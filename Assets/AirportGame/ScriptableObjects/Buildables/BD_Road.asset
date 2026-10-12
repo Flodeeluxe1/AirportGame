@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b707bf0339cdddd48ac715a8e271822e, type: 3}
+  m_Name: BD_Road
+  m_EditorClassIdentifier: Assembly-CSharp::BuildableDefinition
+  id: roads.road.1
+  displayName: Road
+  prefab: {fileID: 3350396938409952396, guid: 1b3f7fee51ff83d4a941dcb6a1760d44, type: 3}
+  placementType: 0
+  requiredSurface: 0
+  width: 1
+  depth: 1
+  edgeLength: 1
+  requiresExistingWall: 0
+  isWallMounted: 0
+  mountHeight: 1
+  canRotate: 1
+  buildCost: 60
+  category: 4
+  icon: {fileID: 0}

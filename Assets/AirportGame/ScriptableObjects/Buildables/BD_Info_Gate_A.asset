@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b707bf0339cdddd48ac715a8e271822e, type: 3}
+  m_Name: BD_Info_Gate_A
+  m_EditorClassIdentifier: Assembly-CSharp::BuildableDefinition
+  id: airport.Info.A
+  displayName: Info Gate A
+  prefab: {fileID: 6903757183398246720, guid: 80ae121acf641414aa628867d6694254, type: 3}
+  placementType: 1
+  requiredSurface: 1
+  width: 1
+  depth: 1
+  edgeLength: 1
+  requiresExistingWall: 1
+  isWallMounted: 1
+  mountHeight: 2
+  canRotate: 1
+  buildCost: 20
+  category: 3
+  icon: {fileID: 0}

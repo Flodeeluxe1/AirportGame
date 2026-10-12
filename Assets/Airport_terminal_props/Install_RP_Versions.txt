@@ -1,0 +1,7 @@
+To install URP or HDRP Version:
+
+1) Import the main package to in URP and HDRP Project
+
+2) Go to the folder "_Install_RP_Versions_" and doubleclick the URP or HDRP package
+
+That´s all!

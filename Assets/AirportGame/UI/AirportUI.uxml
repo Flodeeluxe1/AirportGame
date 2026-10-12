@@ -1,0 +1,32 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+    <Style src="project://database/Assets/AirportGame/UI/AirportUI.uss?fileID=7433441132597879392&amp;guid=12497c851803d844cb55a5b69a5c3ccd&amp;type=3#AirportUI"/>
+    <ui:VisualElement name="root" picking-mode="Ignore" class="root">
+        <ui:VisualElement name="build-window" picking-mode="Position" class="build-window">
+            <ui:VisualElement name="category-panel" class="category-panel" style="background-color: rgba(135, 206, 235, 0.522);">
+                <ui:Label text="BUILD" class="panel-title"/>
+                <ui:Button name="category-floor" text="Floor" class="category-button"/>
+                <ui:Button name="category-wall" text="Wall" class="category-button"/>
+                <ui:Button name="category-door" text="Door" class="category-button"/>
+                <ui:Button name="category-airport" text="Airport" class="category-button"/>
+                <ui:Button name="category-roads" text="Roads" class="category-button"/>
+                <ui:Button name="category-commercial" text="Commercial" class="category-button"/>
+                <ui:Button name="category-taxiways" text="Taxiways" class="category-button"/>
+            </ui:VisualElement>
+            <ui:ScrollView name="buildable-list" mode="Vertical" horizontal-page-size="-1" class="buildable-list" style="background-color: rgba(135, 206, 235, 0.506); border-top-width: 5px; border-right-width: 5px; border-bottom-width: 5px; border-left-width: 5px; border-top-left-radius: 5px; border-top-right-radius: 5px; border-bottom-right-radius: 5px; border-bottom-left-radius: 5px; border-left-color: rgb(55, 103, 255); border-right-color: rgb(55, 103, 255); border-top-color: rgb(55, 103, 255); border-bottom-color: rgb(55, 103, 255);"/>
+        </ui:VisualElement>
+        <ui:VisualElement name="bottom-bar" picking-mode="Position" class="bottom-bar">
+            <ui:Button name="build-button" text="BUILD" class="main-button" style="background-color: rgb(50, 130, 255);"/>
+            <ui:Button name="zone-button" text="ZONES" class="main-button" style="background-color: rgb(50, 130, 255);"/>
+        </ui:VisualElement>
+        <ui:VisualElement name="game-time-panel" enabled="true" class="game-time-panel" style="flex-grow: 1; position: absolute; top: 16px; right: 16px;">
+            <ui:Label text="08:00:00" name="game-time-label" class="game-time-label"/>
+            <ui:VisualElement name="game-time-controls" class="game-time-controls" style="flex-grow: 1;">
+                <ui:Button text="Pause" name="time-pause-button" class="time-speed-button"/>
+                <ui:Button text="1X" name="time-1x-button" class="time-speed-button"/>
+                <ui:Button text="10X" name="time-2x-button" class="time-speed-button"/>
+                <ui:Button text="100X" name="time-4x-button" class="time-speed-button"/>
+                <ui:Button text="1000X" name="time-8x-button" class="time-speed-button"/>
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

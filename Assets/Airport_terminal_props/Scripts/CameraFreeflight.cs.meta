@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: 20df6845cf1f2fb4ea3a2312f726e6e6
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 6482
+  packageName: Airport Terminal Props HQ
+  packageVersion: 2.5
+  assetPath: Assets/Airport_terminal_props/Scripts/CameraFreeflight.cs
+  uploadId: 823496

@@ -1,0 +1,17 @@
+fileFormatVersion: 2
+guid: 3160fc76301458547a20ebe468b19971
+MonoImporter:
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 6482
+  packageName: Airport Terminal Props HQ
+  packageVersion: 2.5
+  assetPath: Assets/Airport_terminal_props/Scripts/FlapboardControl.cs
+  uploadId: 823496
