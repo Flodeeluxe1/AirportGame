@@ -24,6 +24,9 @@ public class AirportWorldResetController : MonoBehaviour
     [Header("Game Time")]
     [SerializeField] private GameTimeManager gameTimeManager;
 
+    [Header("Economy")]
+    [SerializeField] private AirportEconomyManager economyManager;
+
     [Header("Flight Schedule")]
     [SerializeField] private FlightManagementUIController flightManagementUIController;
 
@@ -55,7 +58,7 @@ public class AirportWorldResetController : MonoBehaviour
 
     /// <summary>
     /// Removes the current airport layout.
-    /// Does not reset the game clock, clear the active flight schedule,
+    /// Does not reset the game clock, economy, active flight schedule,
     /// or delete any save files.
     /// </summary>
     public bool ResetAirportLayout()
@@ -98,9 +101,8 @@ public class AirportWorldResetController : MonoBehaviour
 
 
     /// <summary>
-    /// Starts a fresh airport.
-    /// Clears the layout and active flight schedule, and resets the
-    /// clock to the starting time configured in GameTimeManager.
+    /// Starts a fresh airport with an empty layout, cleared active
+    /// flight schedule, reset clock, and new-game starting balance.
     /// Existing airport save slots are left untouched.
     /// </summary>
     public bool StartNewGame()
@@ -111,17 +113,25 @@ public class AirportWorldResetController : MonoBehaviour
         if (!EnsureFlightManagementController())
             return false;
 
-        // Do not clear the layout unless the schedule controller is available.
+        if (!EnsureEconomyManager())
+            return false;
+
+        // Check required controllers before changing the current layout.
         if (!ResetAirportLayout())
             return false;
 
         flightManagementUIController.ClearActiveSchedule();
         gameTimeManager.ResetToStartTime();
 
+        // Starting money is granted only when starting a new game.
+        // Loading a saved airport never calls this method.
+        economyManager.InitializeNewGame();
+
         Debug.Log(
             "AirportWorldResetController: New game initialized. " +
             "Airport layout and active flight schedule cleared; " +
-            "game clock reset. Existing saves were preserved."
+            "game clock reset; starting balance granted. " +
+            "Existing saves were preserved."
         );
 
         return true;
@@ -176,9 +186,33 @@ public class AirportWorldResetController : MonoBehaviour
     }
 
 
+    private bool EnsureEconomyManager()
+    {
+        if (economyManager == null)
+        {
+            economyManager =
+                FindFirstObjectByType<AirportEconomyManager>();
+        }
+
+        if (economyManager == null)
+        {
+            Debug.LogError(
+                "AirportWorldResetController: AirportEconomyManager " +
+                "was not found. Assign it in the Inspector before " +
+                "starting a new game, saving, or loading an airport."
+            );
+
+            return false;
+        }
+
+        return true;
+    }
+
+
     /// <summary>
     /// Saves the airport layout, roads, taxiways, game time,
-    /// simulation speed, placed-object transforms, and flight schedule.
+    /// simulation speed, economy balance, placed-object transforms,
+    /// and flight schedule.
     /// </summary>
     public bool TrySaveSlot(int slot, string saveName)
     {
@@ -186,6 +220,9 @@ public class AirportWorldResetController : MonoBehaviour
             return false;
 
         if (!EnsureFlightManagementController())
+            return false;
+
+        if (!EnsureEconomyManager())
             return false;
 
         AirportSaveData data = new AirportSaveData
@@ -196,6 +233,9 @@ public class AirportWorldResetController : MonoBehaviour
 
             gameTimeSeconds = gameTimeManager.GetGameTimeSeconds(),
             gameSpeedMultiplier = gameTimeManager.CurrentSpeedMultiplier,
+
+            // Save the balance belonging to this airport.
+            balance = economyManager.Balance,
 
             // Capture a snapshot of the active schedule at save time.
             flightSchedule =
@@ -279,7 +319,8 @@ public class AirportWorldResetController : MonoBehaviour
             $"Buildings: {data.placedBuildings.Count}, " +
             $"Road cells: {data.roadCells.Count}, " +
             $"Taxiway cells: {data.taxiwayCells.Count}, " +
-            $"Scheduled flights: {data.flightSchedule.Count}."
+            $"Scheduled flights: {data.flightSchedule.Count}, " +
+            $"Balance: ${data.balance:N0}."
         );
 
         return true;
@@ -319,7 +360,8 @@ public class AirportWorldResetController : MonoBehaviour
             $"Buildings: {data.placedBuildings.Count}, " +
             $"Road cells: {data.roadCells.Count}, " +
             $"Taxiway cells: {data.taxiwayCells.Count}, " +
-            $"Scheduled flights: {data.flightSchedule.Count}. " +
+            $"Scheduled flights: {data.flightSchedule.Count}, " +
+            $"Balance: ${data.balance:N0}. " +
             "The airport has not been changed."
         );
 
@@ -329,7 +371,8 @@ public class AirportWorldResetController : MonoBehaviour
 
     /// <summary>
     /// Replaces the current airport layout and restores its buildings,
-    /// foundations, roads, taxiways, game time, speed, and flight schedule.
+    /// foundations, roads, taxiways, game time, speed, economy balance,
+    /// and flight schedule.
     /// </summary>
     public bool TryRestoreBuildingsAndFoundations(int slot)
     {
@@ -340,6 +383,9 @@ public class AirportWorldResetController : MonoBehaviour
             return false;
 
         if (!EnsureFlightManagementController())
+            return false;
+
+        if (!EnsureEconomyManager())
             return false;
 
         // Load and validate the save before clearing the current airport.
@@ -405,6 +451,7 @@ public class AirportWorldResetController : MonoBehaviour
                 Debug.LogError(
                     $"Cannot restore definition '{saved.definitionId}'."
                 );
+
                 return false;
             }
 
@@ -564,6 +611,7 @@ public class AirportWorldResetController : MonoBehaviour
                     $"Invalid saved road direction at cell {cell}: " +
                     $"({savedRoad.directionX}, {savedRoad.directionZ})."
                 );
+
                 return false;
             }
 
@@ -594,6 +642,7 @@ public class AirportWorldResetController : MonoBehaviour
                     $"Cannot restore taxiway definition " +
                     $"'{savedTaxiway.definitionId}'."
                 );
+
                 return false;
             }
 
@@ -605,6 +654,7 @@ public class AirportWorldResetController : MonoBehaviour
                 Debug.LogError(
                     $"No taxiway tile mapping for '{savedTaxiway.definitionId}'."
                 );
+
                 return false;
             }
 
@@ -623,9 +673,14 @@ public class AirportWorldResetController : MonoBehaviour
         // Rebuild foundation visuals from the restored logical surfaces.
         foundationTilemapController.RefreshFromGridSurface();
 
-        // Restore the saved game time and simulation speed.
+        // Restore saved game time, speed, and economy balance.
+        // Do not grant new-game starting money when loading a save.
         gameTimeManager.SetGameTimeSeconds(data.gameTimeSeconds);
-        gameTimeManager.SetSpeed(Mathf.RoundToInt(data.gameSpeedMultiplier));
+        gameTimeManager.SetSpeed(
+            Mathf.RoundToInt(data.gameSpeedMultiplier)
+        );
+
+        economyManager.RestoreBalanceFromSave(data.balance);
 
         // Refresh the gate registry against the restored airport and then
         // replace the active schedule with this slot's saved schedule.
@@ -652,6 +707,7 @@ public class AirportWorldResetController : MonoBehaviour
             $"taxiway cells: {restoredTaxiwayCells}, " +
             $"centerline cells: {restoredCenterlineCells}, " +
             $"scheduled flights saved: {data.flightSchedule.Count}. " +
+            $"Balance: ${economyManager.Balance:N0}. " +
             $"Game time: {gameTimeManager.FormattedTime}, " +
             $"speed: {gameTimeManager.CurrentSpeedMultiplier}x."
         );

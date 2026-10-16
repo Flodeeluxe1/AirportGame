@@ -266,6 +266,7 @@ public class AreaPlacementHandler : IPlacementHandler
         // Area placement does not need rotation.
     }
 
+
     public void TryPlace()
     {
         GetArea(
@@ -274,19 +275,9 @@ public class AreaPlacementHandler : IPlacementHandler
             out int depth
         );
 
-        bool inside =
-            IsInsideGrid(
-                origin,
-                width,
-                depth
-            );
+        bool inside = IsInsideGrid(origin, width, depth);
 
-        bool free =
-            gridOccupancy.CanOccupy(
-                origin,
-                width,
-                depth
-            );
+        bool free = gridOccupancy.CanOccupy(origin, width, depth);
 
         bool correctSurface =
             gridSurface != null &&
@@ -299,44 +290,41 @@ public class AreaPlacementHandler : IPlacementHandler
 
         if (!inside)
         {
-            Debug.Log(
-                "Cannot place area: outside grid."
-            );
-
+            Debug.Log("Cannot place area: outside grid.");
             return;
         }
 
         if (!free)
         {
-            Debug.Log(
-                "Cannot place area: cells contain buildings."
-            );
-
+            Debug.Log("Cannot place area: cells contain buildings.");
             return;
         }
 
         if (!correctSurface)
         {
-            Debug.Log(
-                "Cannot place area: foundation requires Grass."
-            );
-
+            Debug.Log("Cannot place area: foundation requires Grass.");
             return;
         }
 
-        GameObject placedObject =
-            Object.Instantiate(
-                definition.prefab,
-                previewObject.transform.position,
-                previewObject.transform.rotation
-            );
+        int quantity = width * depth;
 
-        placedObject.transform.localScale =
-            new Vector3(
-                width,
-                originalPrefabScale.y,
-                depth
-            );
+        if (!ConstructionCostUtility.TryPay(
+                definition, quantity, "Foundation construction"))
+        {
+            return;
+        }
+
+        GameObject placedObject = Object.Instantiate(
+            definition.prefab,
+            previewObject.transform.position,
+            previewObject.transform.rotation
+        );
+
+        placedObject.transform.localScale = new Vector3(
+            width,
+            originalPrefabScale.y,
+            depth
+        );
 
         DisableFoundationVisuals(placedObject);
 
@@ -359,35 +347,22 @@ public class AreaPlacementHandler : IPlacementHandler
             placedObject
         );
 
-        PaintFoundationTiles(
-            origin,
-            width,
-            depth
-        );
-
-        BuildAutomaticFoundationWalls(
-            origin,
-            width,
-            depth
-        );
+        PaintFoundationTiles(origin, width, depth);
+        BuildAutomaticFoundationWalls(origin, width, depth);
 
         Debug.Log(
-            $"Placed foundation: " +
-            $"{definition.displayName} " +
-            $"({width} x {depth})"
+            $"Placed foundation: {definition.displayName} " +
+            $"({width} x {depth}). Cost: " +
+            $"${(long)definition.buildCost * quantity:N0}."
         );
 
         isDragging = false;
+        areaStartPosition = currentGridPosition;
+        areaEndPosition = currentGridPosition;
 
-        areaStartPosition =
-            currentGridPosition;
-
-        areaEndPosition =
-            currentGridPosition;
-
-        previewObject.transform.localScale =
-            originalPrefabScale;
+        previewObject.transform.localScale = originalPrefabScale;
     }
+
 
     private void BuildAutomaticFoundationWalls(
         Vector2Int origin,

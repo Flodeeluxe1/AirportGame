@@ -219,8 +219,19 @@ public class AircraftTaxiController : MonoBehaviour
             GetComponent<AircraftTaxiTrafficFollowing>();
     }
 
+
     private void Update()
     {
+        // Hobby aircraft use their own taxi controller.
+        // Keep the existing gate-based taxi system exclusive
+        // to scheduled airline flights.
+        if (flightIdentity != null &&
+            flightIdentity.IsHobbyFlight)
+        {
+            debugTaxiPhase = "HobbyTaxiController";
+            return;
+        }
+
         if (!routeAttempted &&
             landingController != null &&
             landingController.IsLandingComplete)
@@ -234,6 +245,7 @@ public class AircraftTaxiController : MonoBehaviour
 
         debugTaxiPhase = phase.ToString();
     }
+
 
     private void CalculateTaxiRoute()
     {

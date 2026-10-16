@@ -464,30 +464,25 @@ public class RoadPlacementHandler : IPlacementHandler
         }
     }
 
+
     public void TryPlace()
     {
         if (roadNetwork == null)
         {
-            Debug.LogError(
-                "Cannot place road: " +
-                "RoadNetwork is missing."
-            );
-
+            Debug.LogError("Cannot place road: RoadNetwork is missing.");
             return;
         }
 
         if (roadTilemapController == null)
         {
             Debug.LogError(
-                "Cannot place road: " +
-                "RoadTilemapController is missing."
+                "Cannot place road: RoadTilemapController is missing."
             );
 
             return;
         }
 
-        endPosition =
-            GetDirectionalEndPosition();
+        endPosition = GetDirectionalEndPosition();
 
         GetRoadArea(
             out Vector2Int origin,
@@ -495,86 +490,59 @@ public class RoadPlacementHandler : IPlacementHandler
             out int depth
         );
 
-        bool inside =
-            IsInsideGrid(
-                origin,
-                width,
-                depth
-            );
-
-        bool free =
-            AreRoadCellsFree(
-                origin,
-                width,
-                depth
-            );
+        bool inside = IsInsideGrid(origin, width, depth);
+        bool free = AreRoadCellsFree(origin, width, depth);
 
         if (!inside)
         {
-            Debug.Log(
-                "Cannot place road: " +
-                "outside grid."
-            );
-
+            Debug.Log("Cannot place road: outside grid.");
             return;
         }
 
         if (!free)
         {
             Debug.Log(
-                "Cannot place road: " +
-                "one or more cells already contain a road."
+                "Cannot place road: one or more cells already contain a road."
             );
 
             return;
         }
 
-        RoadDirection direction =
-            GetRoadDirection();
+        int quantity = width * depth;
+
+        if (!ConstructionCostUtility.TryPay(
+                definition, quantity, "Road construction"))
+        {
+            return;
+        }
+
+        RoadDirection direction = GetRoadDirection();
 
         for (int x = 0; x < width; x++)
         {
             for (int z = 0; z < depth; z++)
             {
-                Vector2Int cell =
-                    origin +
-                    new Vector2Int(
-                        x,
-                        z
-                    );
+                Vector2Int cell = origin + new Vector2Int(x, z);
 
-                roadNetwork.AddRoad(
-                    cell,
-                    direction
-                );
-
-                roadTilemapController.SetRoadTile(
-                    cell,
-                    direction
-                );
+                roadNetwork.AddRoad(cell, direction);
+                roadTilemapController.SetRoadTile(cell, direction);
 
                 Debug.Log(
-                    $"ROAD PLACED | Cell: {cell} | " +
-                    $"Direction: {direction}"
+                    $"ROAD PLACED | Cell: {cell} | Direction: {direction}"
                 );
             }
         }
 
         Debug.Log(
-            $"Placed road: " +
-            $"{width} x {depth}, " +
-            $"Direction: {direction}"
+            $"Placed road: {width} x {depth}, Direction: {direction}"
         );
 
-        startPosition =
-            currentGridPosition;
+        startPosition = currentGridPosition;
+        endPosition = currentGridPosition;
 
-        endPosition =
-            currentGridPosition;
-
-        previewObject.transform.localScale =
-            Vector3.one;
+        previewObject.transform.localScale = Vector3.one;
     }
+
 
     private RoadDirection GetRoadDirection()
     {

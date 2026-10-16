@@ -493,11 +493,11 @@ public class WallMountedPlacementHandler : IPlacementHandler
             UpdatePreviewTransform();
     }
 
-    
-public void TryPlace()
+
+
+    public void TryPlace()
     {
-        if (!hasValidWallHit ||
-            !IsEdgeValid(currentEdge))
+        if (!hasValidWallHit || !IsEdgeValid(currentEdge))
         {
             Debug.Log(
                 "Cannot place display: aim directly at a valid wall."
@@ -506,12 +506,17 @@ public void TryPlace()
             return;
         }
 
-        GameObject placedObject =
-            Object.Instantiate(
-                definition.prefab,
-                previewObject.transform.position,
-                previewObject.transform.rotation
-            );
+        if (!ConstructionCostUtility.TryPay(
+                definition, 1, "Wall-mounted construction"))
+        {
+            return;
+        }
+
+        GameObject placedObject = Object.Instantiate(
+            definition.prefab,
+            previewObject.transform.position,
+            previewObject.transform.rotation
+        );
 
         PlacedBuilding placedBuilding =
             placedObject.AddComponent<PlacedBuilding>();
@@ -527,6 +532,7 @@ public void TryPlace()
             $"Placed wall-mounted object: {definition.displayName}"
         );
     }
+
 
 
     public void Cancel()

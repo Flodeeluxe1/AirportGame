@@ -14,6 +14,8 @@ public class AirportSaveData
     public int gameTimeSeconds;
     public float gameSpeedMultiplier = 1f;
 
+    public int balance;
+
     public List<PlacedBuildingSaveData> placedBuildings =
         new List<PlacedBuildingSaveData>();
 

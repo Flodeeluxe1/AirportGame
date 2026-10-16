@@ -94,6 +94,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 329bd202958094e408464039e61f03d4, type: 3}
       insertIndex: -1
       addedObject: {fileID: 3000546554250912470}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 329bd202958094e408464039e61f03d4, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5716687695038995830}
   m_SourcePrefab: {fileID: 100100000, guid: 329bd202958094e408464039e61f03d4, type: 3}
 --- !u!1 &2387620211239937619 stripped
 GameObject:
@@ -427,3 +430,22 @@ MonoBehaviour:
   debugLastRayDistance: 0
   debugTrafficDecision: Not tested
   debugRaycastSummary: No raycast performed yet.
+--- !u!114 &5716687695038995830
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2387620211239937619}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 109a25440e7fdd44b871e7d3a13cef3f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AircraftAirportFees
+  landingFee: 250
+  parkingFee: 100
+  parkingIntervalMinutes: 15
+  economyManager: {fileID: 0}
+  gameTimeManager: {fileID: 0}
+  landingController: {fileID: 0}
+  turnaroundController: {fileID: 0}

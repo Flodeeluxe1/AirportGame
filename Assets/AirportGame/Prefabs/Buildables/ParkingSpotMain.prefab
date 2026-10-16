@@ -9,6 +9,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1448783425574104798}
+  - component: {fileID: -5933450104878015963}
   m_Layer: 0
   m_Name: ParkingSpotMain
   m_TagString: Untagged
@@ -32,6 +33,20 @@ Transform:
   - {fileID: 1983325487926544949}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &-5933450104878015963
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3634051649525876682}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 022a8589c05cc6f41b8cb3f43b66af7b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HobbyAircraftParkingSpot
+  parkingPosition: {fileID: 1448783425574104798}
+  reservedAircraft: {fileID: 0}
 --- !u!1 &4219174258698818542
 GameObject:
   m_ObjectHideFlags: 0

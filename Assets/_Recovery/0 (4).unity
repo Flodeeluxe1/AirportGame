@@ -1902,6 +1902,70 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1048131943
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1048131945}
+  - component: {fileID: 1048131944}
+  - component: {fileID: 1048131946}
+  m_Layer: 0
+  m_Name: AirportEconomyManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1048131944
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1048131943}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 199a1e9b80a39ec42b318a2f65ecd4ec, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AirportEconomyManager
+  startingBalance: 50000
+  balance: 50000
+--- !u!4 &1048131945
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1048131943}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 25.01106, y: -382.97073, z: 203.27376}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1048131946
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1048131943}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0263292f2fb28ca4a923b81e5c888bea, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AirportEconomyHUD
+  uiDocument: {fileID: 762824360}
+  economyManager: {fileID: 1048131944}
+  fontSize: 24
+  topOffset: 20
+  rightOffset: 600
 --- !u!1 &1332688657
 GameObject:
   m_ObjectHideFlags: 0
@@ -1942,6 +2006,7 @@ MonoBehaviour:
   taxiwayTilemapController: {fileID: 405670567}
   foundationTilemapController: {fileID: 1832935780}
   gameTimeManager: {fileID: 449210932}
+  economyManager: {fileID: 1048131944}
   flightManagementUIController: {fileID: 0}
 --- !u!4 &1332688659
 Transform:
@@ -2774,6 +2839,67 @@ MonoBehaviour:
   gridSurface: {fileID: 728659360}
   foundationTilemap: {fileID: 1832935778}
   foundationTile: {fileID: 11400000, guid: aea12fc04ae3e2b45a45794273c341f6, type: 2}
+--- !u!1001 &1902104645
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 5782728294546788241, guid: be1bec66b81d64c4ebe7e40c7b9b7572, type: 3}
+      propertyPath: m_Name
+      value: CessnaMain
+      objectReference: {fileID: 0}
+    - target: {fileID: 5782728294546788241, guid: be1bec66b81d64c4ebe7e40c7b9b7572, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8850209717641481165, guid: be1bec66b81d64c4ebe7e40c7b9b7572, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 92.8
+      objectReference: {fileID: 0}
+    - target: {fileID: 8850209717641481165, guid: be1bec66b81d64c4ebe7e40c7b9b7572, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 16.12
+      objectReference: {fileID: 0}
+    - target: {fileID: 8850209717641481165, guid: be1bec66b81d64c4ebe7e40c7b9b7572, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -77.7
+      objectReference: {fileID: 0}
+    - target: {fileID: 8850209717641481165, guid: be1bec66b81d64c4ebe7e40c7b9b7572, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8850209717641481165, guid: be1bec66b81d64c4ebe7e40c7b9b7572, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8850209717641481165, guid: be1bec66b81d64c4ebe7e40c7b9b7572, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8850209717641481165, guid: be1bec66b81d64c4ebe7e40c7b9b7572, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8850209717641481165, guid: be1bec66b81d64c4ebe7e40c7b9b7572, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8850209717641481165, guid: be1bec66b81d64c4ebe7e40c7b9b7572, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8850209717641481165, guid: be1bec66b81d64c4ebe7e40c7b9b7572, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: be1bec66b81d64c4ebe7e40c7b9b7572, type: 3}
 --- !u!1 &1964681757
 GameObject:
   m_ObjectHideFlags: 0
@@ -3909,6 +4035,7 @@ SceneRoots:
   - {fileID: 728659358}
   - {fileID: 1681732909}
   - {fileID: 88094026}
+  - {fileID: 1048131945}
   - {fileID: 1478484322}
   - {fileID: 413444875}
   - {fileID: 3827033538174232110}
@@ -3918,6 +4045,7 @@ SceneRoots:
   - {fileID: 8332688192730351039}
   - {fileID: 5205680144164043837}
   - {fileID: 1705385918}
+  - {fileID: 1902104645}
   - {fileID: 1819549279093804819}
   - {fileID: 732953586}
   - {fileID: 5633136184725958524}

@@ -540,6 +540,7 @@ public class DoorPlacementHandler : IPlacementHandler
         // Door orientation comes from the wall edge.
     }
 
+
     public void TryPlace()
     {
         if (!AreAllPreviewEdgesValid())
@@ -552,58 +553,44 @@ public class DoorPlacementHandler : IPlacementHandler
             return;
         }
 
-        List<GameObject> wallsToRemove =
-            new List<GameObject>();
+        List<GameObject> wallsToRemove = new List<GameObject>();
 
-        foreach (
-            GridEdge edge
-            in previewEdges)
+        foreach (GridEdge edge in previewEdges)
         {
-            GameObject wall =
-                edgeOccupancy.GetOccupant(edge);
+            GameObject wall = edgeOccupancy.GetOccupant(edge);
 
             if (wall == null)
             {
                 Debug.LogError(
-                    "Door placement failed: " +
-                    "a required wall disappeared."
+                    "Door placement failed: a required wall disappeared."
                 );
 
                 return;
             }
 
             if (!wallsToRemove.Contains(wall))
-            {
                 wallsToRemove.Add(wall);
-            }
         }
 
-        foreach (
-            GridEdge edge
-            in previewEdges)
+        // Charge before removing any existing wall.
+        if (!ConstructionCostUtility.TryPay(
+                definition, 1, "Door construction"))
         {
-            edgeOccupancy.Release(edge);
+            return;
         }
 
-        foreach (
-            GameObject wall
-            in wallsToRemove)
+        foreach (GridEdge edge in previewEdges)
+            edgeOccupancy.Release(edge);
+
+        foreach (GameObject wall in wallsToRemove)
         {
             if (wall != null)
-            {
                 Object.Destroy(wall);
-            }
         }
 
-        GameObject placedDoor =
-            Object.Instantiate(
-                definition.prefab
-            );
+        GameObject placedDoor = Object.Instantiate(definition.prefab);
 
-        ApplyDoorTransform(
-            placedDoor,
-            currentEdge
-        );
+        ApplyDoorTransform(placedDoor, currentEdge);
 
         PlacedBuilding placedBuilding =
             placedDoor.AddComponent<PlacedBuilding>();
@@ -615,22 +602,15 @@ public class DoorPlacementHandler : IPlacementHandler
             currentEdge.direction
         );
 
-        foreach (
-            GridEdge edge
-            in previewEdges)
-        {
-            edgeOccupancy.Occupy(
-                edge,
-                placedDoor
-            );
-        }
+        foreach (GridEdge edge in previewEdges)
+            edgeOccupancy.Occupy(edge, placedDoor);
 
         Debug.Log(
-            $"Placed door: " +
-            $"{definition.displayName} " +
+            $"Placed door: {definition.displayName} " +
             $"({previewEdges.Count} edge(s))."
         );
     }
+
 
     public void Cancel()
     {

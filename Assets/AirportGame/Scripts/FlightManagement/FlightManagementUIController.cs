@@ -1418,11 +1418,12 @@ public class FlightManagementUIController : MonoBehaviour
             return;
         }
 
+        // Dropping onto Available Flights unschedules an existing flight.
         if (IsOverAvailableFlights(dropPosition))
         {
-            if (existing != null)
+            if (existing != null && scheduledFlights.Remove(existing))
             {
-                scheduledFlights.Remove(existing);
+                SaveSchedule();
 
                 RebuildFlightStrips();
                 RebuildGateRows();
@@ -1444,6 +1445,7 @@ public class FlightManagementUIController : MonoBehaviour
             return;
         }
 
+        // Otherwise, attempt to schedule the flight or move its existing slot.
         TryScheduleDrop(flight, existing, dropPosition);
 
         evt.StopPropagation();
@@ -1565,10 +1567,16 @@ public class FlightManagementUIController : MonoBehaviour
     }
 
     private void TryScheduleDrop(
-        FlightDefinition flight,
-        ScheduledFlight existing,
-        Vector2 panelPosition)
+    FlightDefinition flight,
+    ScheduledFlight existing,
+    Vector2 panelPosition)
     {
+        if (flight == null)
+        {
+            SetStatus("Cannot schedule this flight: flight data is missing.", false);
+            return;
+        }
+
         EvaluateDropTarget(
             panelPosition,
             flight,
@@ -1583,12 +1591,35 @@ public class FlightManagementUIController : MonoBehaviour
 
         if (!hasTarget || !compatible)
         {
-            SetStatus(reason, false);
+            SetStatus(
+                string.IsNullOrWhiteSpace(reason)
+                    ? "Invalid drop target. Drop the flight onto a valid gate row."
+                    : reason,
+                false
+            );
             return;
         }
 
-        if (existing == null)
+        if (gate == null)
         {
+            SetStatus("Cannot schedule this flight: the selected gate is missing.", false);
+            return;
+        }
+
+        bool isNewSchedule = existing == null;
+
+        if (isNewSchedule)
+        {
+            // Prevent accidentally adding a second entry for the same flight.
+            if (IsFlightScheduled(flight))
+            {
+                SetStatus(
+                    $"{flight.FlightNumber} is already scheduled.",
+                    false
+                );
+                return;
+            }
+
             existing = new ScheduledFlight
             {
                 Definition = flight,
@@ -1600,9 +1631,14 @@ public class FlightManagementUIController : MonoBehaviour
         }
         else
         {
+            // Update the existing entry so moving a flight doesn't duplicate it.
+            existing.Definition = flight;
             existing.GateStableId = gate.StableId;
             existing.StartMinute = startMinute;
         }
+
+        // Persist additions and moves immediately.
+        SaveSchedule();
 
         RebuildFlightStrips();
         RebuildGateRows();
@@ -1791,15 +1827,54 @@ public class FlightManagementUIController : MonoBehaviour
     }
 
 
+    private void SaveSchedule()
+    {
+        string scheduleFilePath = Path.Combine(
+            Application.persistentDataPath,
+            "flight_schedule.json"
+        );
+
+        try
+        {
+            ScheduleFileData fileData = new ScheduleFileData();
+
+            foreach (ScheduledFlight scheduled in scheduledFlights)
+            {
+                if (scheduled == null || scheduled.Definition == null)
+                    continue;
+
+                fileData.flights.Add(new SavedFlightData
+                {
+                    flightNumber = scheduled.Definition.FlightNumber,
+                    gateStableId = scheduled.GateStableId,
+                    startMinute = scheduled.StartMinute
+                });
+            }
+
+            string json = JsonUtility.ToJson(fileData, true);
+            File.WriteAllText(scheduleFilePath, json);
+
+            Debug.Log(
+                $"FlightManagementUIController: Saved " +
+                $"{fileData.flights.Count} scheduled flight(s) to " +
+                $"{scheduleFilePath}"
+            );
+        }
+        catch (Exception exception)
+        {
+            Debug.LogError(
+                "FlightManagementUIController: Could not save the " +
+                $"flight schedule to {scheduleFilePath}.\n{exception}"
+            );
+        }
+    }
+
 
     public void CancelScheduledFlightsForGate(string gateStableId)
     {
         if (string.IsNullOrWhiteSpace(gateStableId))
             return;
 
-        // Load the saved schedule first if Flight Management
-        // has not been opened yet.
-        LoadScheduleIfNeeded();
 
         if (!scheduleLoaded)
         {

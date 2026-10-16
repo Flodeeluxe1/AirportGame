@@ -129,6 +129,7 @@ public class AircraftDepartureTaxiController : MonoBehaviour
         ResolveReferences();
     }
 
+
     private void Update()
     {
         switch (currentState)
@@ -153,8 +154,30 @@ public class AircraftDepartureTaxiController : MonoBehaviour
 
         ResolveReferences();
 
-        if (gateExitController == null ||
-            !gateExitController.ReadyForTaxi)
+        AircraftFlightIdentity identity =
+            GetComponent<AircraftFlightIdentity>();
+
+        bool isHobbyFlight =
+            identity != null &&
+            identity.IsInitialized &&
+            identity.IsHobbyFlight;
+
+        if (isHobbyFlight)
+        {
+            HobbyAircraftVisitController visitController =
+                GetComponent<HobbyAircraftVisitController>();
+
+            // VFR aircraft must finish their visit before taxiing out.
+            if (visitController == null ||
+                !visitController.DepartureRequested)
+            {
+                currentState = DepartureState.WaitingForGateExit;
+                debugStatus = "Hobby aircraft parked; waiting for visit to finish";
+                return;
+            }
+        }
+        else if (gateExitController == null ||
+                 !gateExitController.ReadyForTaxi)
         {
             currentState = DepartureState.WaitingForGateExit;
             debugStatus = "Waiting for gate exit to finish";
@@ -172,6 +195,7 @@ public class AircraftDepartureTaxiController : MonoBehaviour
 
         TrySelectDepartureRunway();
     }
+
 
     private void ResolveReferences()
     {

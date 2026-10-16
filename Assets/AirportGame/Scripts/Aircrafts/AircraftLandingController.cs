@@ -766,6 +766,7 @@ public class AircraftLandingController : MonoBehaviour
         );
     }
 
+
     private void UpdateRollout()
     {
         float targetSpeed =
@@ -820,45 +821,91 @@ public class AircraftLandingController : MonoBehaviour
             remainingNoseRaise
         );
 
-        if (currentSpeed <= targetSpeed + 0.001f)
+        if (currentSpeed > targetSpeed + 0.001f)
+            return;
+
+        currentSpeed = targetSpeed;
+        state = LandingState.LandingComplete;
+
+        AircraftFlightIdentity flightIdentity =
+            GetComponent<AircraftFlightIdentity>();
+
+        if (flightIdentity != null &&
+            flightIdentity.IsHobbyFlight)
         {
-            currentSpeed =
-                targetSpeed;
+            HobbyAircraftParkingSpot[] parkingSpots =
+                FindObjectsByType<HobbyAircraftParkingSpot>(
+                    FindObjectsSortMode.None
+                );
 
-            state = LandingState.LandingComplete;
+            HobbyAircraftParkingSpot reservedSpot = null;
 
-            AircraftFlightIdentity flightIdentity =
-                GetComponent<AircraftFlightIdentity>();
-
-            if (flightIdentity != null &&
-                GateAssignmentController.Instance != null)
+            foreach (HobbyAircraftParkingSpot spot in parkingSpots)
             {
-                if (GateAssignmentController.Instance.TryAssignGate(
-                        flightIdentity,
-                        out AircraftGate assignedGate,
-                        out string assignmentMessage))
+                if (spot == null ||
+                    !spot.IsPlacedBuilding ||
+                    spot.IsOccupied)
                 {
-                    debugStatus = assignmentMessage;
+                    continue;
                 }
-                else
+
+                if (spot.TryReserve(gameObject))
                 {
-                    debugStatus = assignmentMessage;
+                    reservedSpot = spot;
+                    break;
                 }
+            }
+
+            if (reservedSpot != null)
+            {
+                debugStatus =
+                    $"VFR landing complete. Reserved grass parking: " +
+                    $"{reservedSpot.name}. Waiting for taxi routing.";
             }
             else
             {
                 debugStatus =
-                    "Landing complete. Gate assignment controller or flight identity is missing.";
-            }
+                    "VFR landing complete, but no free placed grass " +
+                    "parking spot is available.";
 
-            Debug.Log(
-                $"AIRCRAFT LANDING COMPLETE | " +
-                $"Flight: {(flightIdentity != null ? flightIdentity.FlightNumber : "Unknown")} | " +
-                $"Runway: {debugSelectedRunway} | " +
-                $"Speed: {rolloutTargetSpeedKnots:F1} knots"
-            );
+                Debug.LogWarning(
+                    $"{flightIdentity.FlightNumber}: Landing completed, " +
+                    "but no free hobby parking spot could be reserved.",
+                    this
+                );
+            }
         }
+        else if (flightIdentity != null &&
+                 GateAssignmentController.Instance != null)
+        {
+            if (GateAssignmentController.Instance.TryAssignGate(
+                    flightIdentity,
+                    out AircraftGate assignedGate,
+                    out string assignmentMessage))
+            {
+                debugStatus = assignmentMessage;
+            }
+            else
+            {
+                debugStatus = assignmentMessage;
+            }
+        }
+        else
+        {
+            debugStatus =
+                "Landing complete. Gate assignment controller or " +
+                "flight identity is missing.";
+        }
+
+        Debug.Log(
+            $"AIRCRAFT LANDING COMPLETE | " +
+            $"Flight: {(flightIdentity != null ? flightIdentity.FlightNumber : "Unknown")} | " +
+            $"Runway: {debugSelectedRunway} | " +
+            $"Speed: {rolloutTargetSpeedKnots:F1} knots"
+        );
     }
+
+
 
     private void UpdateGoAround()
     {

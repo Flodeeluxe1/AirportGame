@@ -160,6 +160,7 @@ public class CellPlacementHandler : IPlacementHandler
         UpdatePreviewValidity();
     }
 
+
     public void TryPlace()
     {
         int width = definition.width;
@@ -190,6 +191,13 @@ public class CellPlacementHandler : IPlacementHandler
                 $"Cannot place {definition.displayName}: " +
                 $"requires {definition.requiredSurface}."
             );
+            return;
+        }
+
+        // Charge only after placement validation succeeds.
+        if (!ConstructionCostUtility.TryPay(
+                definition, 1, "Building construction"))
+        {
             return;
         }
 
@@ -225,8 +233,12 @@ public class CellPlacementHandler : IPlacementHandler
             obstacle.Initialize(gridSurface, placedBuilding);
         }
 
-        Debug.Log($"Placed: {definition.displayName}");
+        Debug.Log(
+            $"Placed: {definition.displayName}. " +
+            $"Cost: ${definition.buildCost:N0}."
+        );
     }
+
 
     public void Cancel()
     {

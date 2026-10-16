@@ -823,21 +823,23 @@ public class EdgePlacementHandler : IPlacementHandler
             cell.y < gridManager.Height;
     }
 
+
     private void PlaceWallLine()
     {
-        foreach (
-            GridEdge edge
-            in previewEdges)
+        if (!ConstructionCostUtility.TryPay(
+                definition,
+                previewEdges.Count,
+                "Wall construction"))
+        {
+            return;
+        }
+
+        foreach (GridEdge edge in previewEdges)
         {
             GameObject placedObject =
-                Object.Instantiate(
-                    definition.prefab
-                );
+                Object.Instantiate(definition.prefab);
 
-            ApplyEdgeTransform(
-                placedObject,
-                edge
-            );
+            ApplyEdgeTransform(placedObject, edge);
 
             PlacedBuilding placedBuilding =
                 placedObject.AddComponent<PlacedBuilding>();
@@ -847,23 +849,17 @@ public class EdgePlacementHandler : IPlacementHandler
                 edge.cell,
                 1,
                 1,
-                edge.direction ==
-                        EdgeDirection.Horizontal
-                    ? 0
-                    : 90
+                edge.direction == EdgeDirection.Horizontal ? 0 : 90
             );
 
-            edgeOccupancy.Occupy(
-                edge,
-                placedObject
-            );
+            edgeOccupancy.Occupy(edge, placedObject);
         }
 
         Debug.Log(
-            $"Placed wall path: " +
-            $"{previewEdges.Count} wall segment(s)."
+            $"Placed wall path: {previewEdges.Count} wall segment(s)."
         );
     }
+
 
     public void Rotate()
     {

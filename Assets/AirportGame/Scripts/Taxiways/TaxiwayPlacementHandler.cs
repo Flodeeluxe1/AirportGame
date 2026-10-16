@@ -337,6 +337,7 @@ public class TaxiwayPlacementHandler : IPlacementHandler
         UpdatePreviewValidity();
     }
 
+
     public void TryPlace()
     {
         GetTaxiwayArea(
@@ -351,44 +352,38 @@ public class TaxiwayPlacementHandler : IPlacementHandler
                 areaDepth,
                 out string reason))
         {
-            Debug.Log(
-                $"Cannot place taxiway: {reason}"
-            );
+            Debug.Log($"Cannot place taxiway: {reason}");
+            return;
+        }
 
+        int quantity = areaWidth * areaDepth;
+
+        if (!ConstructionCostUtility.TryPay(
+                definition, quantity, "Taxiway construction"))
+        {
             return;
         }
 
         TileBase taxiwayTile =
-            tilemapController.GetTileForDefinition(
-                definition
-            );
+            tilemapController.GetTileForDefinition(definition);
 
-        // First paint the complete visual footprint.
+        // Paint the complete visual footprint.
         for (int x = 0; x < areaWidth; x++)
         {
             for (int z = 0; z < areaDepth; z++)
             {
-                Vector2Int cell =
-                    origin + new Vector2Int(x, z);
+                Vector2Int cell = origin + new Vector2Int(x, z);
 
-                tilemapController.SetTaxiwayTile(
-                    cell,
-                    taxiwayTile
-                );
+                tilemapController.SetTaxiwayTile(cell, taxiwayTile);
             }
         }
 
-        // Register the complete taxiway footprint for connectivity.
-        RegisterTaxiwayFootprint(
-            origin,
-            areaWidth,
-            areaDepth
-        );
+        // Register the complete footprint and centerline.
+        RegisterTaxiwayFootprint(origin, areaWidth, areaDepth);
 
         Debug.Log(
             $"TAXIWAY PLACED | {definition.displayName} | " +
-            $"Origin: {origin} | " +
-            $"Size: {areaWidth}x{areaDepth} | " +
+            $"Origin: {origin} | Size: {areaWidth}x{areaDepth} | " +
             $"Rotation: {rotation}"
         );
 
@@ -397,6 +392,7 @@ public class TaxiwayPlacementHandler : IPlacementHandler
         UpdatePreview();
         UpdatePreviewValidity();
     }
+
 
 
     private void RegisterTaxiwayFootprint(
