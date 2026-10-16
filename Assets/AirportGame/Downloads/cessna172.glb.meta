@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 8f6daecc2927fb44e8a0c6d147df0e7f
+guid: 34f5e73ca2ce0ad4886ba2ec2578877b
 ScriptedImporter:
   internalIDToNameTable: []
   externalObjects: {}
@@ -12,17 +12,21 @@ ScriptedImporter:
     generateSecondaryUVSet: 0
   importSettings:
     nodeNameMethod: 1
-    animationMethod: 0
+    animationMethod: 2
     generateMipMaps: 1
     texturesReadable: 0
     defaultMinFilterMode: 9729
     defaultMagFilterMode: 9729
     anisotropicFilterLevel: 1
   instantiationSettings:
-    mask: 2
+    mask: -1
     layer: 0
     skinUpdateWhenOffscreen: 1
     lightIntensityFactor: 1
     sceneObjectCreation: 2
   assetDependencies: []
-  reportItems: []
+  reportItems:
+  - type: 2
+    code: 20
+    messages:
+    - KHR_materials_specular

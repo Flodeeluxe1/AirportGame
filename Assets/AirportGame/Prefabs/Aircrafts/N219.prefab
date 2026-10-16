@@ -52,6 +52,14 @@ PrefabInstance:
       propertyPath: m_Name
       value: N219
       objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 329bd202958094e408464039e61f03d4, type: 3}
+      propertyPath: m_Layer
+      value: 7
+      objectReference: {fileID: 0}
+    - target: {fileID: 8164078558771037576, guid: 329bd202958094e408464039e61f03d4, type: 3}
+      propertyPath: m_Layer
+      value: 7
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -59,6 +67,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 329bd202958094e408464039e61f03d4, type: 3}
       insertIndex: -1
       addedObject: {fileID: 6326241249004807039}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 329bd202958094e408464039e61f03d4, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: -5687118414093639624}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 329bd202958094e408464039e61f03d4, type: 3}
       insertIndex: -1
       addedObject: {fileID: 8209981089399311286}
@@ -80,6 +91,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 329bd202958094e408464039e61f03d4, type: 3}
       insertIndex: -1
       addedObject: {fileID: -4298598134865749330}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 329bd202958094e408464039e61f03d4, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3000546554250912470}
   m_SourcePrefab: {fileID: 100100000, guid: 329bd202958094e408464039e61f03d4, type: 3}
 --- !u!1 &2387620211239937619 stripped
 GameObject:
@@ -107,6 +121,26 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 2, y: 1, z: 2}
   m_Center: {x: 0, y: 0.87, z: 0}
+--- !u!114 &-5687118414093639624
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2387620211239937619}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0ba5bbb814d9de6418013c64e9eefc9a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AircraftLoadingManifest
+  initialIncomingBaggageCount: 10
+  expectedOutgoingBaggageCount: 10
+  totalIncomingBaggage: 0
+  remainingIncomingBaggage: 0
+  reservedIncomingBaggage: 0
+  totalOutgoingBaggageLoaded: 0
+  remainingOutgoingBaggage: 0
+  reservedOutgoingBaggage: 0
 --- !u!114 &8209981089399311286
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -129,8 +163,8 @@ MonoBehaviour:
   worldUnitsPerSecondPerKnot: 0.08
   speedChangeRate: 3
   rolloutDeceleration: 1
-  flareHeight: 2
-  noseRaiseDegrees: 7
+  flareHeight: 3
+  noseRaiseDegrees: 8
   noseLoweringDuration: 3
   maximumSidewindComponentKnots: 15
   goAroundNoseUpDegrees: 20
@@ -158,6 +192,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: db4052f87d2eb79448f793591e583f1d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AircraftFlightIdentity
+  flightNumber: 
+  plannedGateStableId: 
+  actualGateStableId: 
 --- !u!114 &-3371605366623992116
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -189,8 +226,8 @@ MonoBehaviour:
   gateArrivalDistance: 0.5
   taxiHeightOffset: 0.05
   modelRotationOffset: {x: 0, y: 0, z: 0}
-  turningRadiusInCells: 1
-  turnCurveResolution: 8
+  turningRadiusInCells: 1.5
+  turnCurveResolution: 16
   taxiPathPointTolerance: 0.03
   logRouteDetails: 1
   logTaxiProgress: 1
@@ -218,6 +255,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AircraftTurnaroundController
   gameTimeManager: {fileID: 0}
+  loadingManifest: {fileID: 0}
   deboarding:
     durationMinutes: 5
     status: 0
@@ -242,6 +280,12 @@ MonoBehaviour:
     durationMinutes: 15
     status: 0
     elapsedGameSeconds: 0
+  incomingBaggageTransferTotal: 0
+  incomingBaggageTransferred: 0
+  incomingBaggageTransferControlled: 0
+  outgoingBaggageTransferTotal: 0
+  outgoingBaggageTransferred: 0
+  outgoingBaggageTransferControlled: 0
   setReadyToDepartAutomatically: 1
   readyToDepart: 0
   turnaroundStarted: 0
@@ -300,8 +344,8 @@ MonoBehaviour:
   rotationSpeedDegreesPerSecond: 45
   waypointArrivalDistance: 0.15
   modelRotationOffset: {x: 0, y: 0, z: 0}
-  turningRadiusInCells: 1
-  turnCurveResolution: 8
+  turningRadiusInCells: 2
+  turnCurveResolution: 16
   lineUpSafetyMarginInCells: 0.25
   currentState: 0
   selectedRunway: {fileID: 0}
@@ -354,3 +398,32 @@ MonoBehaviour:
   currentAltitudeAboveRunway: 0
   runwayReservationReleased: 0
   debugStatus: Waiting for line-up
+--- !u!114 &3000546554250912470
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2387620211239937619}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e4f0fded1e400a14e8046655719557e9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AircraftTaxiTrafficFollowing
+  trafficLayer:
+    serializedVersion: 2
+    m_Bits: 128
+  trafficDetectionDistance: 8
+  safeFollowingDistance: 7
+  rayOriginHeight: 0.5
+  rayOriginForwardOffset: 1
+  acceleration: 0.3
+  braking: 0.1
+  debugCurrentSpeed: 0
+  debugBlockingAircraft: None
+  debugBlockingDistance: 0
+  debugLastRayHitCollider: None
+  debugLastRayDirection: None
+  debugLastRayDistance: 0
+  debugTrafficDecision: Not tested
+  debugRaycastSummary: No raycast performed yet.

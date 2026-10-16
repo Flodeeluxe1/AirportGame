@@ -27,8 +27,6 @@ public class FlightManagementUIController : MonoBehaviour
     private const float MinimumQuarterHourWidth = 16f;
     private const float EndOfDayMarkerWidth = 48f;
     private const float DragThreshold = 8f;
-    private const int ScheduleFileVersion = 1;
-    private const string ScheduleFileName = "flight_schedule.json";
 
     private float EffectiveQuarterHourWidth =>
         Mathf.Max(MinimumQuarterHourWidth, quarterHourWidth);
@@ -40,19 +38,20 @@ public class FlightManagementUIController : MonoBehaviour
         TimelineWidth + EndOfDayMarkerWidth;
 
     [Serializable]
-    private class ScheduleSaveData
-    {
-        public int version = ScheduleFileVersion;
-        public List<SavedFlightData> flights =
-            new List<SavedFlightData>();
-    }
-
-    [Serializable]
     private class SavedFlightData
     {
         public string flightNumber;
         public string gateStableId;
         public int startMinute;
+    }
+
+    // Must match the JSON format expected by ScheduledAircraftSpawner.
+    [Serializable]
+    private class ScheduleFileData
+    {
+        public int version = 1;
+        public List<SavedFlightData> flights =
+            new List<SavedFlightData>();
     }
 
     private class ScheduledFlight
@@ -90,7 +89,7 @@ public class FlightManagementUIController : MonoBehaviour
     private bool scheduleLoaded;
 
     private string scheduleLoadMessage =
-        "No saved schedule loaded yet.";
+        "The active airport schedule is ready.";
 
     private FlightDefinition draggedFlight;
     private ScheduledFlight draggedScheduledFlight;
@@ -104,12 +103,6 @@ public class FlightManagementUIController : MonoBehaviour
 
     private Color PreviewTextColor =>
         (Color)new Color32(35, 42, 48, 255);
-
-    private string ScheduleFilePath =>
-        Path.Combine(
-            Application.persistentDataPath,
-            ScheduleFileName
-        );
 
     private void Awake()
     {
@@ -151,6 +144,13 @@ public class FlightManagementUIController : MonoBehaviour
 
         root = uiDocument.rootVisualElement;
 
+        // The active schedule starts empty. It is populated by loading an
+        // airport save, or by the player scheduling flights in this airport.
+        // The schedule file is written when an airport save is loaded.
+        scheduledFlights.Clear();
+        scheduleLoaded = true;
+        scheduleLoadMessage = "Active airport schedule is ready.";
+
         CreateOpenButton();
         CreateWindow();
 
@@ -169,6 +169,271 @@ public class FlightManagementUIController : MonoBehaviour
             CloseWindow();
         }
     }
+
+    // ------------------------------------------------------------
+    // Public API used by AirportWorldResetController
+    // ------------------------------------------------------------
+
+    /// <summary>
+    /// Creates a copy of the current airport's flight schedule
+    /// suitable for storing inside AirportSaveData.
+    /// </summary>
+    public List<FlightScheduleSaveData> GetScheduleForAirportSave()
+    {
+        List<FlightScheduleSaveData> result =
+            new List<FlightScheduleSaveData>();
+
+        foreach (ScheduledFlight scheduled in scheduledFlights)
+        {
+            if (scheduled == null || scheduled.Definition == null)
+                continue;
+
+            result.Add(new FlightScheduleSaveData
+            {
+                flightNumber = scheduled.Definition.FlightNumber,
+                gateStableId = scheduled.GateStableId,
+                startMinute = scheduled.StartMinute
+            });
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Replaces the active schedule with the schedule belonging to
+    /// the airport being loaded.
+    ///
+    /// Valid entries are restored into the active schedule and then
+    /// written to flight_schedule.json for ScheduledAircraftSpawner.
+    ///
+    /// Invalid entries are skipped with warnings. The schedule file
+    /// is created if missing and overwritten if it already exists.
+    /// Returns false if the schedule cannot be restored or written.
+    /// </summary>
+    public bool LoadScheduleForAirportSave(
+        List<FlightScheduleSaveData> savedFlights)
+    {
+        if (flightCatalog == null || gateRegistry == null)
+        {
+            Debug.LogError(
+                "FlightManagementUIController: Cannot load an airport " +
+                "schedule because the flight catalog or gate registry " +
+                "reference is missing."
+            );
+
+            return false;
+        }
+
+        CancelDrag();
+        gateRegistry.RefreshGates();
+
+        // A load replaces the current schedule. It never merges schedules.
+        scheduledFlights.Clear();
+        scheduleLoaded = true;
+
+        int restoredCount = 0;
+        int skippedCount = 0;
+
+        if (savedFlights != null)
+        {
+            foreach (FlightScheduleSaveData saved in savedFlights)
+            {
+                if (saved == null ||
+                    string.IsNullOrWhiteSpace(saved.flightNumber) ||
+                    string.IsNullOrWhiteSpace(saved.gateStableId))
+                {
+                    skippedCount++;
+                    continue;
+                }
+
+                if (saved.startMinute < 0 ||
+                    saved.startMinute >= 1440 ||
+                    saved.startMinute % 15 != 0)
+                {
+                    Debug.LogWarning(
+                        $"Skipping saved flight '{saved.flightNumber}': " +
+                        $"invalid start minute {saved.startMinute}."
+                    );
+
+                    skippedCount++;
+                    continue;
+                }
+
+                FlightDefinition flight =
+                    FindFlightDefinition(saved.flightNumber);
+
+                if (flight == null)
+                {
+                    Debug.LogWarning(
+                        $"Skipping saved flight '{saved.flightNumber}': " +
+                        "no matching flight definition exists."
+                    );
+
+                    skippedCount++;
+                    continue;
+                }
+
+                if (!gateRegistry.TryGetGate(
+                        saved.gateStableId,
+                        out AircraftGate gate))
+                {
+                    Debug.LogWarning(
+                        $"Skipping {saved.flightNumber}: gate " +
+                        $"'{saved.gateStableId}' was not found in the " +
+                        "loaded airport."
+                    );
+
+                    skippedCount++;
+                    continue;
+                }
+
+                if (IsFlightScheduled(flight))
+                {
+                    Debug.LogWarning(
+                        $"Skipping saved flight '{saved.flightNumber}': " +
+                        "that flight is already scheduled."
+                    );
+
+                    skippedCount++;
+                    continue;
+                }
+
+                if (!CanPlaceFlight(
+                        flight,
+                        gate,
+                        saved.startMinute,
+                        null,
+                        out string reason))
+                {
+                    Debug.LogWarning(
+                        $"Skipping saved flight '{saved.flightNumber}' " +
+                        $"at {FormatTime(saved.startMinute)}: {reason}"
+                    );
+
+                    skippedCount++;
+                    continue;
+                }
+
+                scheduledFlights.Add(new ScheduledFlight
+                {
+                    Definition = flight,
+                    GateStableId = gate.StableId,
+                    StartMinute = saved.startMinute
+                });
+
+                restoredCount++;
+            }
+        }
+
+        scheduleLoadMessage =
+            $"Loaded {restoredCount} flight(s) from this airport save.";
+
+        if (skippedCount > 0)
+        {
+            scheduleLoadMessage +=
+                $" Skipped {skippedCount} invalid or unavailable entry/entries.";
+        }
+
+        RefreshScheduleUI();
+
+        // Write the restored active schedule to the file watched by
+        // ScheduledAircraftSpawner. WriteAllText creates the file when
+        // it does not exist and overwrites it when it already exists.
+        string scheduleFilePath = Path.Combine(
+            Application.persistentDataPath,
+            "flight_schedule.json"
+        );
+
+        try
+        {
+            ScheduleFileData fileData = new ScheduleFileData();
+
+            foreach (ScheduledFlight scheduled in scheduledFlights)
+            {
+                if (scheduled == null || scheduled.Definition == null)
+                    continue;
+
+                fileData.flights.Add(new SavedFlightData
+                {
+                    flightNumber = scheduled.Definition.FlightNumber,
+                    gateStableId = scheduled.GateStableId,
+                    startMinute = scheduled.StartMinute
+                });
+            }
+
+            string json = JsonUtility.ToJson(fileData, true);
+            File.WriteAllText(scheduleFilePath, json);
+        }
+        catch (Exception exception)
+        {
+            Debug.LogError(
+                "FlightManagementUIController: The schedule was restored " +
+                "in memory, but flight_schedule.json could not be written. " +
+                $"Path: {scheduleFilePath}\n{exception}"
+            );
+
+            scheduleLoadMessage +=
+                " WARNING: The schedule file could not be written.";
+
+            return false;
+        }
+
+        Debug.Log(
+            $"FlightManagementUIController: Replaced active schedule. " +
+            $"Restored: {restoredCount}, skipped: {skippedCount}. " +
+            $"Wrote {scheduledFlights.Count} flight(s) to: " +
+            $"{scheduleFilePath}"
+        );
+
+        return true;
+    }
+
+    /// <summary>
+    /// Clears the active airport's schedule without modifying any
+    /// airport save slot.
+    /// </summary>
+    public void ClearActiveSchedule()
+    {
+        CancelDrag();
+
+        scheduledFlights.Clear();
+        scheduleLoaded = true;
+        scheduleLoadMessage = "New airport: no flights scheduled.";
+
+        RefreshScheduleUI();
+
+        Debug.Log(
+            "FlightManagementUIController: Active flight schedule cleared. " +
+            "Saved airport slots were not changed."
+        );
+    }
+
+    private void RefreshScheduleUI()
+    {
+        if (flightStripScroll == null ||
+            timelineBodyScroll == null ||
+            gateLabelScroll == null)
+        {
+            return;
+        }
+
+        gateRegistry.RefreshGates();
+        RebuildFlightStrips();
+        RebuildGateRows();
+
+        if (windowOpen)
+        {
+            SetStatus(
+                $"{scheduleLoadMessage} " +
+                "Drag flights to schedule or return them to Available Flights.",
+                true
+            );
+        }
+    }
+
+    // ------------------------------------------------------------
+    // Window creation
+    // ------------------------------------------------------------
 
     private void CreateOpenButton()
     {
@@ -222,6 +487,8 @@ public class FlightManagementUIController : MonoBehaviour
         CreateTitleBar();
         CreateAvailableFlightsSection();
         CreateScheduleSection();
+
+        window.style.display = DisplayStyle.None;
     }
 
     private void CreateTitleBar()
@@ -310,6 +577,9 @@ public class FlightManagementUIController : MonoBehaviour
 
     private void RebuildFlightStrips()
     {
+        if (flightStripScroll == null || flightCatalog == null)
+            return;
+
         flightStripScroll.Clear();
 
         IReadOnlyList<FlightDefinition> flights =
@@ -328,8 +598,8 @@ public class FlightManagementUIController : MonoBehaviour
     {
         foreach (ScheduledFlight scheduled in scheduledFlights)
         {
-            if (scheduled.Definition.FlightNumber ==
-                flight.FlightNumber)
+            if (scheduled.Definition != null &&
+                scheduled.Definition.FlightNumber == flight.FlightNumber)
             {
                 return true;
             }
@@ -550,6 +820,9 @@ public class FlightManagementUIController : MonoBehaviour
 
     private void RebuildGateRows()
     {
+        if (gateLabelScroll == null || timelineBodyScroll == null)
+            return;
+
         gateLabelScroll.Clear();
         timelineBodyScroll.Clear();
 
@@ -931,8 +1204,6 @@ public class FlightManagementUIController : MonoBehaviour
         if (dragPreview == null || draggedFlight == null)
             return;
 
-        // Returning to the Available Flights area is a valid drop
-        // for an already scheduled flight.
         if (IsOverAvailableFlights(panelPosition))
         {
             dragPreview.style.backgroundColor =
@@ -1101,8 +1372,6 @@ public class FlightManagementUIController : MonoBehaviour
             return false;
         }
 
-        // The drop target covers the Available Flights heading through
-        // the bottom of the strips area, including its scroll region.
         Rect windowBounds = window.worldBound;
         Rect headingBounds = availableFlightsHeading.worldBound;
         Rect stripBounds = flightStripScroll.worldBound;
@@ -1149,7 +1418,6 @@ public class FlightManagementUIController : MonoBehaviour
             return;
         }
 
-        // A scheduled flight dropped in Available Flights is unscheduled.
         if (IsOverAvailableFlights(dropPosition))
         {
             if (existing != null)
@@ -1449,219 +1717,18 @@ public class FlightManagementUIController : MonoBehaviour
             : (Color)new Color32(245, 155, 145, 255);
     }
 
-    // ------------------------------------------------------------
-    // Schedule persistence
-    // ------------------------------------------------------------
-
-    private void LoadScheduleIfNeeded()
-    {
-        if (scheduleLoaded)
-            return;
-
-        gateRegistry.RefreshGates();
-        scheduledFlights.Clear();
-
-        if (!File.Exists(ScheduleFilePath))
-        {
-            scheduleLoaded = true;
-            scheduleLoadMessage = "No saved schedule found; starting fresh.";
-
-            Debug.Log(
-                $"No saved flight schedule found at: {ScheduleFilePath}"
-            );
-
-            return;
-        }
-
-        try
-        {
-            string json = File.ReadAllText(ScheduleFilePath);
-
-            ScheduleSaveData saveData =
-                JsonUtility.FromJson<ScheduleSaveData>(json);
-
-            if (saveData == null)
-                throw new InvalidDataException(
-                    "The schedule file could not be parsed."
-                );
-
-            if (saveData.version != ScheduleFileVersion)
-            {
-                throw new InvalidDataException(
-                    $"Unsupported schedule version {saveData.version}."
-                );
-            }
-
-            int restoredCount = 0;
-            int skippedCount = 0;
-
-            if (saveData.flights != null)
-            {
-                foreach (SavedFlightData saved in saveData.flights)
-                {
-                    if (saved == null ||
-                        string.IsNullOrWhiteSpace(saved.flightNumber) ||
-                        string.IsNullOrWhiteSpace(saved.gateStableId))
-                    {
-                        skippedCount++;
-                        continue;
-                    }
-
-                    FlightDefinition flight =
-                        FindFlightDefinition(saved.flightNumber);
-
-                    if (flight == null)
-                    {
-                        Debug.LogWarning(
-                            $"Skipping saved flight '{saved.flightNumber}': " +
-                            "no matching flight definition exists."
-                        );
-
-                        skippedCount++;
-                        continue;
-                    }
-
-                    if (!gateRegistry.TryGetGate(
-                            saved.gateStableId,
-                            out AircraftGate gate))
-                    {
-                        Debug.LogWarning(
-                            $"Skipping {saved.flightNumber}: gate " +
-                            $"'{saved.gateStableId}' was not found."
-                        );
-
-                        skippedCount++;
-                        continue;
-                    }
-
-                    string reason = string.Empty;
-
-                    if (saved.startMinute < 0 ||
-                        saved.startMinute >= 1440 ||
-                        saved.startMinute % 15 != 0 ||
-                        IsFlightScheduled(flight) ||
-                        !CanPlaceFlight(
-                            flight,
-                            gate,
-                            saved.startMinute,
-                            null,
-                            out reason))
-                    {
-                        Debug.LogWarning(
-                            $"Skipping saved flight {saved.flightNumber} " +
-                            $"at {saved.startMinute}: schedule entry is " +
-                            $"invalid or conflicts. {reason}"
-                        );
-
-                        skippedCount++;
-                        continue;
-                    }
-
-                    scheduledFlights.Add(new ScheduledFlight
-                    {
-                        Definition = flight,
-                        GateStableId = gate.StableId,
-                        StartMinute = saved.startMinute
-                    });
-
-                    restoredCount++;
-                }
-            }
-
-            scheduleLoaded = true;
-
-            scheduleLoadMessage =
-                $"Loaded {restoredCount} scheduled flight(s).";
-
-            if (skippedCount > 0)
-            {
-                scheduleLoadMessage +=
-                    $" Skipped {skippedCount} invalid or unavailable " +
-                    "entry/entries.";
-            }
-
-            Debug.Log(
-                $"Flight schedule loaded: {restoredCount} flight(s), " +
-                $"{skippedCount} skipped. File: {ScheduleFilePath}"
-            );
-        }
-        catch (Exception exception)
-        {
-            scheduleLoaded = false;
-            scheduleLoadMessage =
-                "Could not load the saved schedule. See the Console.";
-
-            Debug.LogError(
-                $"Could not load flight schedule from " +
-                $"{ScheduleFilePath}. The existing file has not been " +
-                $"overwritten.\n{exception}"
-            );
-        }
-    }
-
     private FlightDefinition FindFlightDefinition(string flightNumber)
     {
         foreach (FlightDefinition flight in flightCatalog.Flights)
         {
-            if (flight.FlightNumber == flightNumber)
+            if (flight != null &&
+                flight.FlightNumber == flightNumber)
+            {
                 return flight;
+            }
         }
 
         return null;
-    }
-
-    private void SaveSchedule()
-    {
-        if (!scheduleLoaded)
-        {
-            Debug.LogWarning(
-                "Flight schedule was not loaded successfully. " +
-                "Not saving, to avoid overwriting the existing file."
-            );
-
-            return;
-        }
-
-        ScheduleSaveData saveData = new ScheduleSaveData
-        {
-            version = ScheduleFileVersion,
-            flights = new List<SavedFlightData>()
-        };
-
-        foreach (ScheduledFlight scheduled in scheduledFlights)
-        {
-            saveData.flights.Add(new SavedFlightData
-            {
-                flightNumber = scheduled.Definition.FlightNumber,
-                gateStableId = scheduled.GateStableId,
-                startMinute = scheduled.StartMinute
-            });
-        }
-
-        try
-        {
-            Directory.CreateDirectory(Application.persistentDataPath);
-
-            string json = JsonUtility.ToJson(saveData, true);
-            File.WriteAllText(ScheduleFilePath, json);
-
-            Debug.Log(
-                $"Flight schedule saved: {saveData.flights.Count} flight(s). " +
-                $"File: {ScheduleFilePath}"
-            );
-        }
-        catch (Exception exception)
-        {
-            Debug.LogError(
-                $"Could not save flight schedule to {ScheduleFilePath}.\n" +
-                exception
-            );
-
-            SetStatus(
-                "Could not save the flight schedule. Check the Console.",
-                false
-            );
-        }
     }
 
     // ------------------------------------------------------------
@@ -1723,8 +1790,71 @@ public class FlightManagementUIController : MonoBehaviour
         syncingScroll = false;
     }
 
+
+
+    public void CancelScheduledFlightsForGate(string gateStableId)
+    {
+        if (string.IsNullOrWhiteSpace(gateStableId))
+            return;
+
+        // Load the saved schedule first if Flight Management
+        // has not been opened yet.
+        LoadScheduleIfNeeded();
+
+        if (!scheduleLoaded)
+        {
+            Debug.LogError(
+                "Cannot cancel flights for deleted gate: " +
+                "the flight schedule could not be loaded."
+            );
+            return;
+        }
+
+        List<ScheduledFlight> cancelledFlights =
+            new List<ScheduledFlight>();
+
+        foreach (ScheduledFlight scheduled in scheduledFlights)
+        {
+            if (scheduled.GateStableId == gateStableId)
+                cancelledFlights.Add(scheduled);
+        }
+
+        if (cancelledFlights.Count == 0)
+            return;
+
+        foreach (ScheduledFlight scheduled in cancelledFlights)
+            scheduledFlights.Remove(scheduled);
+
+        // Return the cancelled flights to Available Flights.
+        RebuildFlightStrips();
+
+        // Save immediately so cancellations persist even if
+        // the Flight Management window is closed.
+        SaveSchedule();
+
+        string cancelledNumbers = string.Join(
+            ", ",
+            cancelledFlights.ConvertAll(
+                flight => flight.Definition.FlightNumber
+            )
+        );
+
+        SetStatus(
+            $"Cancelled {cancelledFlights.Count} flight(s) because " +
+            $"gate {gateStableId} was deleted: {cancelledNumbers}.",
+            true
+        );
+
+        Debug.Log(
+            $"Cancelled {cancelledFlights.Count} scheduled flight(s) " +
+            $"for deleted gate {gateStableId}: {cancelledNumbers}"
+        );
+    }
+
+
+
     // ------------------------------------------------------------
-    // Window lifecycle and game-time pause/restore
+    // Window lifecycle
     // ------------------------------------------------------------
 
     private void OpenWindow()
@@ -1743,8 +1873,6 @@ public class FlightManagementUIController : MonoBehaviour
         }
 
         gateRegistry.RefreshGates();
-        LoadScheduleIfNeeded();
-
         RebuildFlightStrips();
         RebuildGateRows();
 
@@ -1754,7 +1882,7 @@ public class FlightManagementUIController : MonoBehaviour
         SetStatus(
             $"{scheduleLoadMessage} " +
             "Drag flights to schedule or return them to Available Flights.",
-            scheduleLoaded
+            true
         );
     }
 
@@ -1765,20 +1893,12 @@ public class FlightManagementUIController : MonoBehaviour
 
         CancelDrag();
 
-        SaveSchedule();
-
         windowOpen = false;
         window.style.display = DisplayStyle.None;
         openButton.style.display = DisplayStyle.Flex;
 
         if (gameTimeManager != null)
             gameTimeManager.SetSpeed(previousGameSpeed);
-    }
-
-    private void OnApplicationQuit()
-    {
-        if (scheduleLoaded)
-            SaveSchedule();
     }
 
     private void OnDestroy()

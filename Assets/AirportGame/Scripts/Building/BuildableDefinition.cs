@@ -49,6 +49,9 @@ public class BuildableDefinition : ScriptableObject
     public bool canRotate = true;
     public int buildCost = 0;
 
+    [Header("Pathfinding")]
+    public bool blocksPathfinding = false;
+
     [Header("UI")]
     public BuildCategory category = BuildCategory.Airport;
     public Texture2D icon;

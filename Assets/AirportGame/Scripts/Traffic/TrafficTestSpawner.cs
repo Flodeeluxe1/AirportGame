@@ -1,131 +1,194 @@
+
 using UnityEngine;
 
 public class TrafficTestSpawner : MonoBehaviour
 {
+    private enum TrafficSpawnMode
+    {
+        NormalTrafficOnly,
+        CargoTrucksOnly,
+        Both
+    }
+
     [Header("References")]
     [SerializeField] private GameObject trafficVehiclePrefab;
+    [SerializeField] private GameObject cargoTruckPrefab;
     [SerializeField] private GridManager gridManager;
 
+    [Header("Traffic Type")]
+    [SerializeField]
+    private TrafficSpawnMode spawnMode =
+        TrafficSpawnMode.NormalTrafficOnly;
+
+    [Tooltip("When Both is selected, choose randomly between normal traffic and cargo trucks.")]
+    [SerializeField] private bool randomizeWhenBoth = true;
+
     [Header("Spawning")]
+    [Min(0.1f)]
     [SerializeField] private float spawnInterval = 10f;
+
     [SerializeField] private float spawnHeightOffset = 0.2f;
 
     [Header("Exit")]
     [SerializeField] private Transform exitPoint;
 
     private float spawnTimer;
+    private bool nextSpawnIsCargoTruck;
 
     private void Awake()
     {
         if (gridManager == null)
         {
-            gridManager =
-                FindFirstObjectByType<GridManager>();
+            gridManager = FindFirstObjectByType<GridManager>();
         }
     }
 
     private void Start()
     {
-        spawnTimer =
-            spawnInterval;
+        spawnTimer = spawnInterval;
     }
 
     private void Update()
     {
-        spawnTimer -=
-            Time.deltaTime;
+        spawnTimer -= Time.deltaTime;
 
         if (spawnTimer > 0f)
+        {
             return;
+        }
 
-        spawnTimer =
-            spawnInterval;
-
+        spawnTimer = spawnInterval;
         SpawnVehicle();
     }
 
     private void SpawnVehicle()
     {
-        if (trafficVehiclePrefab == null)
-        {
-            Debug.LogError(
-                "TrafficTestSpawner: " +
-                "Traffic Vehicle Prefab is missing."
-            );
-
-            return;
-        }
-
         if (gridManager == null)
         {
             Debug.LogError(
-                "TrafficTestSpawner: " +
-                "GridManager is missing."
+                "TrafficTestSpawner: GridManager is missing.",
+                this
             );
-
             return;
         }
 
         if (exitPoint == null)
         {
             Debug.LogError(
-                "TrafficTestSpawner: " +
-                "Exit Point is missing."
+                "TrafficTestSpawner: Exit Point is missing.",
+                this
             );
+            return;
+        }
 
+        bool spawnCargoTruck = ShouldSpawnCargoTruck();
+
+        GameObject selectedPrefab = spawnCargoTruck
+            ? cargoTruckPrefab
+            : trafficVehiclePrefab;
+
+        if (selectedPrefab == null)
+        {
+            Debug.LogError(
+                spawnCargoTruck
+                    ? "TrafficTestSpawner: Cargo Truck Prefab is missing."
+                    : "TrafficTestSpawner: Traffic Vehicle Prefab is missing.",
+                this
+            );
             return;
         }
 
         Vector2Int startCell =
-            gridManager.WorldToGrid(
-                transform.position
-            );
+            gridManager.WorldToGrid(transform.position);
 
         Vector2Int exitCell =
-            gridManager.WorldToGrid(
-                exitPoint.position
-            );
+            gridManager.WorldToGrid(exitPoint.position);
 
         Vector3 spawnPosition =
-            gridManager.GridToWorldCenter(
-                startCell
-            );
+            gridManager.GridToWorldCenter(startCell);
 
-        spawnPosition.y +=
-            spawnHeightOffset;
+        spawnPosition.y += spawnHeightOffset;
 
-        GameObject vehicle =
-            Instantiate(
-                trafficVehiclePrefab,
-                spawnPosition,
-                transform.rotation
-            );
+        GameObject vehicle = Instantiate(
+            selectedPrefab,
+            spawnPosition,
+            transform.rotation
+        );
 
-        TrafficTestVehicle trafficVehicle =
-            vehicle.GetComponent<TrafficTestVehicle>();
-
-        if (trafficVehicle == null)
+        if (spawnCargoTruck)
         {
-            Debug.LogError(
-                "TrafficTestSpawner: " +
-                "Spawned prefab does not have " +
-                "TrafficTestVehicle attached."
+            CargoDeliveryTruck cargoTruck =
+                vehicle.GetComponent<CargoDeliveryTruck>();
+
+            if (cargoTruck == null)
+            {
+                Debug.LogError(
+                    "TrafficTestSpawner: Cargo Truck Prefab must have " +
+                    "CargoDeliveryTruck attached.",
+                    vehicle
+                );
+
+                Destroy(vehicle);
+                return;
+            }
+
+            // Pass the spawner's route before the truck's Start() runs.
+            cargoTruck.InitializeRoute(startCell, exitCell);
+
+            Debug.Log(
+                $"CARGO TRUCK SPAWNED | Start: {startCell} | " +
+                $"Exit: {exitCell}",
+                vehicle
             );
-
-            Destroy(vehicle);
-
-            return;
         }
+        else
+        {
+            TrafficTestVehicle trafficVehicle =
+                vehicle.GetComponent<TrafficTestVehicle>();
 
-        trafficVehicle.InitializeRoute(
-            startCell,
-            exitCell
-        );
+            if (trafficVehicle == null)
+            {
+                Debug.LogError(
+                    "TrafficTestSpawner: Traffic Vehicle Prefab must have " +
+                    "TrafficTestVehicle attached.",
+                    vehicle
+                );
 
-        Debug.Log(
-            $"TRAFFIC SPAWNED | " +
-            $"Start: {startCell} | " +
-            $"Exit: {exitCell}"
-        );
+                Destroy(vehicle);
+                return;
+            }
+
+            trafficVehicle.InitializeRoute(startCell, exitCell);
+
+            Debug.Log(
+                $"TRAFFIC SPAWNED | Start: {startCell} | Exit: {exitCell}",
+                vehicle
+            );
+        }
+    }
+
+    private bool ShouldSpawnCargoTruck()
+    {
+        switch (spawnMode)
+        {
+            case TrafficSpawnMode.NormalTrafficOnly:
+                return false;
+
+            case TrafficSpawnMode.CargoTrucksOnly:
+                return true;
+
+            case TrafficSpawnMode.Both:
+                if (randomizeWhenBoth)
+                {
+                    return Random.value < 0.5f;
+                }
+
+                bool cargo = nextSpawnIsCargoTruck;
+                nextSpawnIsCargoTruck = !nextSpawnIsCargoTruck;
+                return cargo;
+
+            default:
+                return false;
+        }
     }
 }

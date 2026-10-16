@@ -1,0 +1,249 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &1970913010140861768
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4821483623978217240}
+  - component: {fileID: 4770373362077910615}
+  - component: {fileID: 6092467791942992843}
+  - component: {fileID: 3170799302219078531}
+  - component: {fileID: 6644041826916707201}
+  - component: {fileID: 3285098631579699966}
+  m_Layer: 0
+  m_Name: CargoTugMain
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4821483623978217240
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1970913010140861768}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 31.95, y: -0, z: 27.77}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 7405617682849776359}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &4770373362077910615
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1970913010140861768}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 910f281006246464894d12e7ffaf48f8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GuidedCargoTrailerFollower
+  trailer: {fileID: 0}
+  tugHitchPoint: {fileID: 5898636438715226431}
+  hitchToTrailerDistance: 0.64
+  followSpeed: 20
+  rotationSpeed: 15
+  positionTrailerAtStart: 1
+  showDebugMessages: 1
+  isInitialized: 0
+  currentHitchDistance: 0
+--- !u!114 &6092467791942992843
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1970913010140861768}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0befb08071d5da848964426885702aa0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AirportCargoVehicleController
+  gridManager: {fileID: 0}
+  gridOccupancy: {fileID: 0}
+  gridSurface: {fileID: 0}
+  roadNetwork: {fileID: 0}
+  taxiwayNetwork: {fileID: 0}
+  trailerFollower: {fileID: 0}
+  grassMovementCost: 1
+  taxiwayMovementCost: 1
+  foundationClearance: 0
+  movementSpeed: 1
+  rotationSpeed: 5
+  waypointArrivalDistance: 0.08
+  groundHeightOffset: 0.05
+  turningRadiusInCells: 2
+  turnCurveResolution: 15
+  parkingTurnDistanceInCells: 2
+  parkingCurveResolution: 20
+  parkFacingWorldNegativeZ: 1
+  cargoZoneTestTarget: {fileID: 0}
+  testCargoZoneOnPlay: 0
+  testCollectionOnArrival: 0
+  testFlightOperationId: 
+  maximumCargoCapacity: 10
+  isMoving: 0
+  movementStatus: Idle
+  routeCellCount: 0
+  currentWaypointIndex: 0
+  carriedPackageCount: 0
+--- !u!114 &3170799302219078531
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1970913010140861768}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f638fa2e8bfd42240bdfcc017c5a7a39, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AirportCargoVehicleDispatcherRegistration
+--- !u!114 &6644041826916707201
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1970913010140861768}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dabd77b151ea97941baad8b94277c45b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AirportCargoIncomingBaggageJob
+  cargoBoxPrefab: {fileID: 2704268867500195016, guid: eac10ae4add626d4fb7013f86e41d626, type: 3}
+  gameTimeManager: {fileID: 0}
+  currentOperationId: 
+  jobStatus: Idle
+  reservedPackageCount: 0
+  transferredPackageCount: 0
+  phaseElapsedGameSeconds: 0
+--- !u!114 &3285098631579699966
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1970913010140861768}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6b44fe5bb953ed644b67483b67f6e83a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AirportCargoOutgoingBaggageJob
+  gameTimeManager: {fileID: 0}
+  jobStatus: Idle
+  currentOperationId: 
+  reservedPackageCount: 0
+  loadedPackageCount: 0
+  phaseElapsedGameSeconds: 0
+--- !u!1 &7085189830102814123
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5898636438715226431}
+  m_Layer: 0
+  m_Name: TugHitchPoint
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5898636438715226431
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7085189830102814123}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: -0.43, z: 1.92}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 7405617682849776359}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1001 &5463972992204059384
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 4821483623978217240}
+    m_Modifications:
+    - target: {fileID: 2764705340557240997, guid: 37a542770b5a2d24786c9fa66eb93a14, type: 3}
+      propertyPath: m_Name
+      value: cargoTug
+      objectReference: {fileID: 0}
+    - target: {fileID: 3248753907819245599, guid: 37a542770b5a2d24786c9fa66eb93a14, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3248753907819245599, guid: 37a542770b5a2d24786c9fa66eb93a14, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.27
+      objectReference: {fileID: 0}
+    - target: {fileID: 3248753907819245599, guid: 37a542770b5a2d24786c9fa66eb93a14, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3248753907819245599, guid: 37a542770b5a2d24786c9fa66eb93a14, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3248753907819245599, guid: 37a542770b5a2d24786c9fa66eb93a14, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3248753907819245599, guid: 37a542770b5a2d24786c9fa66eb93a14, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3248753907819245599, guid: 37a542770b5a2d24786c9fa66eb93a14, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3248753907819245599, guid: 37a542770b5a2d24786c9fa66eb93a14, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3248753907819245599, guid: 37a542770b5a2d24786c9fa66eb93a14, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 180
+      objectReference: {fileID: 0}
+    - target: {fileID: 3248753907819245599, guid: 37a542770b5a2d24786c9fa66eb93a14, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4366034473082838169, guid: 37a542770b5a2d24786c9fa66eb93a14, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 62d2947173b391e4c9bc14288ece99b7, type: 2}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: 3248753907819245599, guid: 37a542770b5a2d24786c9fa66eb93a14, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5898636438715226431}
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 37a542770b5a2d24786c9fa66eb93a14, type: 3}
+--- !u!4 &7405617682849776359 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 3248753907819245599, guid: 37a542770b5a2d24786c9fa66eb93a14, type: 3}
+  m_PrefabInstance: {fileID: 5463972992204059384}
+  m_PrefabAsset: {fileID: 0}

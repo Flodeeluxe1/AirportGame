@@ -1214,8 +1214,15 @@ public class AircraftDepartureTaxiController : MonoBehaviour
             return;
         }
 
-        float speed =
+        float cruisingSpeed =
             taxiSpeedKnots * worldUnitsPerSecondPerKnot;
+
+        AircraftTaxiTrafficFollowing trafficFollowing =
+            GetComponent<AircraftTaxiTrafficFollowing>();
+
+        float speed = trafficFollowing != null
+            ? trafficFollowing.GetTrafficFollowingSpeed(cruisingSpeed)
+            : cruisingSpeed;
 
         Vector3 target = movementWaypoints[currentWaypointIndex];
         target.y = transform.position.y;
@@ -1249,6 +1256,9 @@ public class AircraftDepartureTaxiController : MonoBehaviour
                 rotationSpeedDegreesPerSecond * Time.deltaTime
             );
         }
+
+        if (speed <= 0.001f)
+            return;
 
         transform.position = Vector3.MoveTowards(
             transform.position,

@@ -1932,6 +1932,61 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1332688657
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1332688659}
+  - component: {fileID: 1332688658}
+  m_Layer: 0
+  m_Name: AirportWorldResetController
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1332688658
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1332688657}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 51ac4e44dee0e9a44b04dceeec9b7e10, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AirportWorldResetController
+  buildController: {fileID: 88094025}
+  buildCatalog: {fileID: 0}
+  gridOccupancy: {fileID: 751787734}
+  edgeOccupancy: {fileID: 751787733}
+  gridSurface: {fileID: 728659360}
+  roadNetwork: {fileID: 401526682}
+  roadTilemapController: {fileID: 401526683}
+  taxiwayNetwork: {fileID: 405670568}
+  taxiwayTilemapController: {fileID: 405670567}
+  foundationTilemapController: {fileID: 1832935780}
+  gameTimeManager: {fileID: 449210932}
+--- !u!4 &1332688659
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1332688657}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 27.90472, y: 0, z: 21.7546}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1478484321
 GameObject:
   m_ObjectHideFlags: 0
@@ -1941,6 +1996,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1478484322}
+  - component: {fileID: 1478484327}
   - component: {fileID: 1478484323}
   - component: {fileID: 1478484324}
   - component: {fileID: 1478484325}
@@ -2032,6 +2088,36 @@ MonoBehaviour:
   gateRegistry: {fileID: 0}
   refreshInterval: 0.5
   statusListHeight: 54
+--- !u!114 &1478484327
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1478484321}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7e2908faef9091843857d0355481a0bc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GameMenuUIController
+  uiDocument: {fileID: 762824360}
+  gameTimeManager: {fileID: 449210932}
+  onNewRequested:
+    m_PersistentCalls:
+      m_Calls: []
+  onSaveRequested:
+    m_PersistentCalls:
+      m_Calls: []
+  onLoadRequested:
+    m_PersistentCalls:
+      m_Calls: []
+  onOptionsRequested:
+    m_PersistentCalls:
+      m_Calls: []
+  menuButtonText: MENU
+  menuButtonWidth: 100
+  menuButtonHeight: 42
+  menuPanelWidth: 340
 --- !u!1 &1681732905
 GameObject:
   m_ObjectHideFlags: 0
@@ -3401,3 +3487,4 @@ SceneRoots:
   - {fileID: 335832196}
   - {fileID: 1712716985}
   - {fileID: 818626683}
+  - {fileID: 1332688659}

@@ -1,7 +1,17 @@
+
+/* =========================================================
+   ROOT
+   ========================================================= */
+
 .root {
     width: 100%;
     height: 100%;
 }
+
+
+/* =========================================================
+   BUILD WINDOW
+   ========================================================= */
 
 .build-window {
     position: absolute;
@@ -24,8 +34,14 @@
     padding: 12px;
 }
 
+
+/* =========================================================
+   CATEGORY PANEL
+   ========================================================= */
+
 .category-panel {
     width: 155px;
+    flex-shrink: 0;
 
     padding-top: 8px;
     padding-bottom: 8px;
@@ -40,10 +56,12 @@
     margin-left: 5px;
 
     -unity-font-style: bold;
+    color: white;
 }
 
 .category-button {
     height: 42px;
+    flex-shrink: 0;
 
     margin-bottom: 5px;
 
@@ -55,6 +73,7 @@
     border-bottom-right-radius: 5px;
 
     font-size: 15px;
+    color: white;
 
     -unity-text-align: middle-left;
 }
@@ -65,44 +84,45 @@
 
 .category-selected {
     background-color: rgb(75, 110, 150);
-
     -unity-font-style: bold;
 }
 
 
-.bottom-bar {
-    position: absolute;
+/* =========================================================
+   BUILDABLE LIST
+   ========================================================= */
 
-    bottom: 25px;
-    left: 0;
-    right: 0;
+.buildable-list {
+    flex-grow: 1;
+    flex-shrink: 1;
+
+    min-width: 0;
+
+    padding-left: 10px;
+    padding-right: 10px;
 
     flex-direction: row;
+    flex-wrap: wrap;
 
-    justify-content: center;
-    align-items: center;
-}
+    align-content: flex-start;
+    align-items: flex-start;
 
-.main-button {
-    width: 180px;
-    height: 60px;
+    background-color: rgba(135, 206, 235, 0.12);
 
-    margin-left: 8px;
-    margin-right: 8px;
+    border-top-width: 2px;
+    border-right-width: 2px;
+    border-bottom-width: 2px;
+    border-left-width: 2px;
 
-    background-color: rgb(45, 48, 55);
+    border-top-left-radius: 5px;
+    border-top-right-radius: 5px;
+    border-bottom-right-radius: 5px;
+    border-bottom-left-radius: 5px;
 
-    border-top-left-radius: 8px;
-    border-top-right-radius: 8px;
-    border-bottom-left-radius: 8px;
-    border-bottom-right-radius: 8px;
-
-    font-size: 20px;
-    -unity-text-align: middle-center;
-}
-
-.main-button:hover {
-    background-color: rgb(65, 69, 78);
+    border-left-color: rgb(55, 103, 255);
+    border-right-color: rgb(55, 103, 255);
+    border-top-color: rgb(55, 103, 255);
+    border-bottom-color: rgb(55, 103, 255);
 }
 
 .buildable-card {
@@ -152,42 +172,141 @@
 
 .buildable-cost {
     font-size: 8px;
-
     -unity-text-align: middle-center;
 }
 
-.buildable-list {
-    flex-grow: 1;
+.buildable-selected {
+    border-top-width: 2px;
+    border-right-width: 2px;
+    border-bottom-width: 2px;
+    border-left-width: 2px;
 
-    padding-left: 10px;
-    padding-right: 10px;
+    border-top-color: rgb(50, 130, 255);
+    border-right-color: rgb(50, 130, 255);
+    border-bottom-color: rgb(50, 130, 255);
+    border-left-color: rgb(50, 130, 255);
+}
+
+
+/* =========================================================
+   BOTTOM ACTION BAR
+   ========================================================= */
+
+.bottom-bar {
+    position: absolute;
+
+    bottom: 25px;
+    left: 0;
+    right: 0;
 
     flex-direction: row;
-    flex-wrap: wrap;
 
-    align-content: flex-start;
-    align-items: flex-start;
+    justify-content: center;
+    align-items: center;
+
+    padding-left: 8px;
+    padding-right: 8px;
 }
 
-.buildable-selected {
-    border-width: 2px;
+.main-button {
+    flex-grow: 1;
+    flex-shrink: 1;
+
+    min-width: 0;
+    height: 60px;
+
+    margin-left: 5px;
+    margin-right: 5px;
+
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+
+    font-size: 16px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+
+    color: white;
 }
+
+
+/* BUILD */
+
+.build-action-button {
+    background-color: rgb(50, 130, 255);
+}
+
+.build-action-button:hover {
+    background-color: rgb(75, 150, 255);
+}
+
+
+/* ZONES */
+
+.zone-action-button {
+    background-color: rgb(45, 48, 55);
+}
+
+.zone-action-button:hover {
+    background-color: rgb(65, 69, 78);
+}
+
+
+/* DELETE ALL */
+
+.delete-all-button {
+    background-color: rgb(180, 45, 45);
+
+    border-top-width: 2px;
+    border-right-width: 2px;
+    border-bottom-width: 2px;
+    border-left-width: 2px;
+
+    border-top-color: rgb(220, 90, 90);
+    border-right-color: rgb(220, 90, 90);
+    border-bottom-color: rgb(220, 90, 90);
+    border-left-color: rgb(220, 90, 90);
+}
+
+.delete-all-button:hover {
+    background-color: rgb(220, 55, 55);
+}
+
+.delete-all-button:active {
+    background-color: rgb(145, 30, 30);
+}
+
+
+/* =========================================================
+   GAME TIME PANEL
+   ========================================================= */
 
 .game-time-panel {
     position: absolute;
+
     top: 16px;
     right: 16px;
+
     padding: 10px;
+
     background-color: rgba(20, 24, 30, 0.92);
-    border-radius: 8px;
+
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+
     flex-direction: column;
     align-items: center;
 }
 
 .game-time-label {
     font-size: 26px;
+
     -unity-font-style: bold;
     color: white;
+
     margin-bottom: 8px;
 }
 
@@ -198,6 +317,7 @@
 
 .time-speed-button {
     min-width: 48px;
+
     margin-left: 2px;
     margin-right: 2px;
 }

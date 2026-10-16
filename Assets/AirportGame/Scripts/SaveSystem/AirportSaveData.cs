@@ -5,26 +5,27 @@ using System.Collections.Generic;
 [Serializable]
 public class AirportSaveData
 {
-    public int schemaVersion = 1;
+    public const int CurrentSchemaVersion = 1;
 
-    public string saveName = "Airport Save";
+    public int schemaVersion = CurrentSchemaVersion;
+    public string saveName = "";
     public string savedAtUtc = "";
 
-    // Game time is stored as seconds since midnight.
     public int gameTimeSeconds;
-    public int gameSpeedMultiplier = 1;
+    public float gameSpeedMultiplier = 1f;
 
-    // Main airport layout.
     public List<PlacedBuildingSaveData> placedBuildings =
         new List<PlacedBuildingSaveData>();
 
-    // Road network data.
     public List<RoadCellSaveData> roadCells =
         new List<RoadCellSaveData>();
 
-    // Taxiway network data.
     public List<TaxiwayCellSaveData> taxiwayCells =
         new List<TaxiwayCellSaveData>();
+
+    // The flight schedule belongs to this airport save slot.
+    public List<FlightScheduleSaveData> flightSchedule =
+        new List<FlightScheduleSaveData>();
 
     public void EnsureCollections()
     {
@@ -36,26 +37,41 @@ public class AirportSaveData
 
         if (taxiwayCells == null)
             taxiwayCells = new List<TaxiwayCellSaveData>();
+
+        if (flightSchedule == null)
+            flightSchedule = new List<FlightScheduleSaveData>();
     }
 }
 
 [Serializable]
 public class PlacedBuildingSaveData
 {
-    // Stable identifier used to find the matching BuildableDefinition.
     public string definitionId = "";
 
     public int originX;
     public int originZ;
-
     public int width;
     public int depth;
     public int rotation;
 
-    // Used by edge-placement objects.
     public bool isEdgeBuilding;
     public int edgeLength;
     public int edgeDirection;
+
+    public bool hasWorldTransform;
+
+    public float positionX;
+    public float positionY;
+    public float positionZ;
+
+    public float rotationX;
+    public float rotationY;
+    public float rotationZ;
+    public float rotationW = 1f;
+
+    public float scaleX = 1f;
+    public float scaleY = 1f;
+    public float scaleZ = 1f;
 }
 
 [Serializable]
@@ -64,8 +80,6 @@ public class RoadCellSaveData
     public int x;
     public int z;
 
-    // These fields let us restore directional road connections
-    // and the placed road's orientation.
     public int directionX;
     public int directionZ;
 
@@ -81,10 +95,14 @@ public class TaxiwayCellSaveData
     public int x;
     public int z;
 
-    // Stable identifier used to find the matching buildable definition.
     public string definitionId = "";
-
-    // Retained explicitly so the loader can restore or validate
-    // the logical taxiway centerline.
     public bool isCenterline;
+}
+
+[Serializable]
+public class FlightScheduleSaveData
+{
+    public string flightNumber = "";
+    public string gateStableId = "";
+    public int startMinute;
 }

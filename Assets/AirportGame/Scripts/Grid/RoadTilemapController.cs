@@ -118,4 +118,12 @@ public class RoadTilemapController : MonoBehaviour
 
         return 0f;
     }
+
+    public void ClearAllRoadTiles()
+    {
+        if (roadTilemap == null)
+            return;
+
+        roadTilemap.ClearAllTiles();
+    }
 }

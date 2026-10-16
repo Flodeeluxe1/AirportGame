@@ -276,4 +276,45 @@ public class TaxiwayNetwork : MonoBehaviour
             $"Centerline: {centerline}\n" +
             $"Connections: {connections}";
     }
+
+    public System.Collections.Generic.List<TaxiwayCellSaveData> GetSaveData()
+    {
+        var result = new System.Collections.Generic.List<TaxiwayCellSaveData>();
+
+        foreach (var entry in taxiwayCells)
+        {
+            Vector2Int position = entry.Key;
+            TaxiwayCell cell = entry.Value;
+
+            if (cell.Definition == null)
+            {
+                Debug.LogWarning(
+                    $"TaxiwayNetwork: Skipping cell {position}; " +
+                    "its BuildableDefinition is missing."
+                );
+
+                continue;
+            }
+
+            if (string.IsNullOrWhiteSpace(cell.Definition.id))
+            {
+                Debug.LogWarning(
+                    $"TaxiwayNetwork: Skipping cell {position}; " +
+                    "its definition has no stable ID."
+                );
+
+                continue;
+            }
+
+            result.Add(new TaxiwayCellSaveData
+            {
+                x = position.x,
+                z = position.y,
+                definitionId = cell.Definition.id,
+                isCenterline = centerlineCells.Contains(position)
+            });
+        }
+
+        return result;
+    }
 }

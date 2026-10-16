@@ -12,9 +12,15 @@ public class ScheduledAircraftSpawner : MonoBehaviour
     [SerializeField] private TestFlightCatalog flightCatalog;
     [SerializeField] private GameTimeManager gameTimeManager;
 
+    [Header("Spawn Queue")]
+    [Tooltip("Minimum game-time interval between aircraft spawns, in seconds.")]
+    [Min(1)]
+    [SerializeField] private int spawnIntervalSeconds = 120;
+
     [Header("Diagnostics")]
     [SerializeField] private bool logScheduleReloads = true;
     [SerializeField] private bool logAircraftSpawns = true;
+    [SerializeField] private bool logQueueChanges = true;
 
     private const int ScheduleFileVersion = 1;
     private const int MinutesBeforeScheduledTime = 10;
@@ -46,16 +52,31 @@ public class ScheduledAircraftSpawner : MonoBehaviour
         public int TriggerMinute;
     }
 
+    private class QueuedAircraftSpawn
+    {
+        public ScheduledSpawn Scheduled;
+        public long ScheduledDayIndex;
+        public string OperationId;
+    }
+
     private readonly List<ScheduledSpawn> scheduledFlights =
         new List<ScheduledSpawn>();
 
+    private readonly Queue<QueuedAircraftSpawn> spawnQueue =
+        new Queue<QueuedAircraftSpawn>();
+
     private readonly HashSet<string> spawnedOperationIds =
+        new HashSet<string>();
+
+    private readonly HashSet<string> queuedOperationIds =
         new HashSet<string>();
 
     private bool initialized;
     private bool scheduleLoaded;
     private int lastGameSecond;
     private long gameDayIndex;
+
+    private long nextAllowedSpawnGameSecond = -1;
 
     private long observedWriteTicks = long.MinValue;
     private long observedFileLength = -1;
@@ -114,12 +135,15 @@ public class ScheduledAircraftSpawner : MonoBehaviour
             return;
         }
 
+        spawnIntervalSeconds = Mathf.Max(1, spawnIntervalSeconds);
+
         TryReloadScheduleIfChanged();
 
         if (!TryReadGameSecond(out lastGameSecond))
         {
             Debug.LogError(
-                "ScheduledAircraftSpawner could not read GameTimeManager.FormattedTime.",
+                "ScheduledAircraftSpawner could not read " +
+                "GameTimeManager.FormattedTime.",
                 this
             );
             enabled = false;
@@ -132,7 +156,8 @@ public class ScheduledAircraftSpawner : MonoBehaviour
         Debug.Log(
             $"ScheduledAircraftSpawner ready. Game time: " +
             $"{gameTimeManager.FormattedTime}. " +
-            $"Saved flights loaded: {scheduledFlights.Count}.",
+            $"Saved flights loaded: {scheduledFlights.Count}. " +
+            $"Spawn interval: {spawnIntervalSeconds} game seconds.",
             this
         );
     }
@@ -142,46 +167,44 @@ public class ScheduledAircraftSpawner : MonoBehaviour
         if (!initialized)
             return;
 
-        // Flight Management saves when its window closes. Notice changes
-        // to the file so newly saved schedules can be used during this run.
         TryReloadScheduleIfChanged();
 
         if (!TryReadGameSecond(out int currentGameSecond))
             return;
 
-        if (currentGameSecond == lastGameSecond)
-            return;
-
-        if (currentGameSecond > lastGameSecond)
+        if (currentGameSecond != lastGameSecond)
         {
-            // Normal progression through the same game day.
-            ProcessTriggerRange(
-                lastGameSecond,
-                currentGameSecond,
-                gameDayIndex
-            );
+            if (currentGameSecond > lastGameSecond)
+            {
+                ProcessTriggerRange(
+                    lastGameSecond,
+                    currentGameSecond,
+                    gameDayIndex
+                );
+            }
+            else
+            {
+                long previousDayIndex = gameDayIndex;
+
+                ProcessTriggerRange(
+                    lastGameSecond,
+                    SecondsPerDay - 1,
+                    previousDayIndex
+                );
+
+                gameDayIndex++;
+
+                ProcessTriggerRange(
+                    -1,
+                    currentGameSecond,
+                    gameDayIndex
+                );
+            }
+
+            lastGameSecond = currentGameSecond;
         }
-        else
-        {
-            // The game clock crossed midnight.
-            long previousDayIndex = gameDayIndex;
 
-            ProcessTriggerRange(
-                lastGameSecond,
-                SecondsPerDay - 1,
-                previousDayIndex
-            );
-
-            gameDayIndex++;
-
-            ProcessTriggerRange(
-                -1,
-                currentGameSecond,
-                gameDayIndex
-            );
-        }
-
-        lastGameSecond = currentGameSecond;
+        ProcessSpawnQueue();
     }
 
     private bool TryReadGameSecond(out int seconds)
@@ -216,6 +239,9 @@ public class ScheduledAircraftSpawner : MonoBehaviour
         if (currentSecondInclusive <= previousSecondExclusive)
             return;
 
+        List<ScheduledSpawn> triggeredFlights =
+            new List<ScheduledSpawn>();
+
         foreach (ScheduledSpawn scheduled in scheduledFlights)
         {
             int triggerSecond = scheduled.TriggerMinute * 60;
@@ -226,16 +252,27 @@ public class ScheduledAircraftSpawner : MonoBehaviour
                 continue;
             }
 
-            SpawnScheduledFlight(scheduled, triggerDayIndex);
+            triggeredFlights.Add(scheduled);
+        }
+
+        // Preserve chronological order when several triggers are crossed
+        // during a single game-time update.
+        triggeredFlights.Sort(
+            (a, b) => a.TriggerMinute.CompareTo(b.TriggerMinute)
+        );
+
+        foreach (ScheduledSpawn scheduled in triggeredFlights)
+        {
+            EnqueueScheduledFlight(scheduled, triggerDayIndex);
         }
     }
 
-    private void SpawnScheduledFlight(
+    private void EnqueueScheduledFlight(
         ScheduledSpawn scheduled,
         long triggerDayIndex)
     {
-        // A flight scheduled just after midnight can be triggered the
-        // previous game day. Its scheduled occurrence belongs to tomorrow.
+        // Flights scheduled shortly after midnight are triggered
+        // on the previous game day.
         long scheduledDayIndex =
             scheduled.StartMinute < MinutesBeforeScheduledTime
                 ? triggerDayIndex + 1
@@ -244,10 +281,83 @@ public class ScheduledAircraftSpawner : MonoBehaviour
         string operationId =
             $"{scheduledDayIndex}:{scheduled.Definition.FlightNumber}";
 
-        // Protect against duplicate spawning if a trigger is encountered
-        // more than once during an update or schedule reload.
-        if (spawnedOperationIds.Contains(operationId))
+        if (spawnedOperationIds.Contains(operationId) ||
+            queuedOperationIds.Contains(operationId))
+        {
             return;
+        }
+
+        QueuedAircraftSpawn queuedFlight = new QueuedAircraftSpawn
+        {
+            Scheduled = scheduled,
+            ScheduledDayIndex = scheduledDayIndex,
+            OperationId = operationId
+        };
+
+        spawnQueue.Enqueue(queuedFlight);
+        queuedOperationIds.Add(operationId);
+
+        if (logQueueChanges)
+        {
+            Debug.Log(
+                $"Aircraft added to spawn queue | " +
+                $"Flight: {scheduled.Definition.FlightNumber} | " +
+                $"Planned time: {FormatTime(scheduled.StartMinute)} | " +
+                $"Queue position: {spawnQueue.Count}",
+                this
+            );
+        }
+    }
+
+    private void ProcessSpawnQueue()
+    {
+        if (spawnQueue.Count == 0)
+            return;
+
+        long currentGameTime =
+            gameDayIndex * SecondsPerDay + lastGameSecond;
+
+        if (nextAllowedSpawnGameSecond >= 0 &&
+            currentGameTime < nextAllowedSpawnGameSecond)
+        {
+            return;
+        }
+
+        // Spawn at most one aircraft during this Update.
+        QueuedAircraftSpawn queuedFlight = spawnQueue.Dequeue();
+
+        queuedOperationIds.Remove(queuedFlight.OperationId);
+
+        SpawnQueuedAircraft(queuedFlight);
+
+        // The next aircraft cannot spawn until the configured interval
+        // has elapsed in game time.
+        nextAllowedSpawnGameSecond =
+            currentGameTime + spawnIntervalSeconds;
+
+        if (logQueueChanges)
+        {
+            Debug.Log(
+                $"Aircraft spawn interval started. Next aircraft " +
+                $"can spawn after {spawnIntervalSeconds} game seconds. " +
+                $"Aircraft remaining in queue: {spawnQueue.Count}.",
+                this
+            );
+        }
+    }
+
+    private void SpawnQueuedAircraft(QueuedAircraftSpawn queuedFlight)
+    {
+        if (queuedFlight == null ||
+            queuedFlight.Scheduled == null)
+        {
+            return;
+        }
+
+        if (spawnedOperationIds.Contains(queuedFlight.OperationId))
+            return;
+
+        ScheduledSpawn scheduled = queuedFlight.Scheduled;
 
         GameObject aircraft = Instantiate(
             aircraftPrefab,
@@ -260,7 +370,6 @@ public class ScheduledAircraftSpawner : MonoBehaviour
 
         if (identity == null)
         {
-            // Fallback for a prefab that does not yet have this component.
             identity = aircraft.AddComponent<AircraftFlightIdentity>();
 
             Debug.LogWarning(
@@ -274,10 +383,10 @@ public class ScheduledAircraftSpawner : MonoBehaviour
             scheduled.Definition,
             scheduled.GateStableId,
             scheduled.StartMinute,
-            scheduledDayIndex
+            queuedFlight.ScheduledDayIndex
         );
 
-        spawnedOperationIds.Add(operationId);
+        spawnedOperationIds.Add(queuedFlight.OperationId);
 
         if (logAircraftSpawns)
         {
@@ -328,7 +437,8 @@ public class ScheduledAircraftSpawner : MonoBehaviour
         catch (Exception exception)
         {
             Debug.LogWarning(
-                $"Could not inspect the flight schedule file: {exception.Message}",
+                $"Could not inspect the flight schedule file: " +
+                $"{exception.Message}",
                 this
             );
             return;
@@ -340,8 +450,6 @@ public class ScheduledAircraftSpawner : MonoBehaviour
             return;
         }
 
-        // Remember the observed file version even if parsing fails.
-        // This prevents repeated error messages on every Update.
         observedWriteTicks = currentWriteTicks;
         observedFileLength = currentFileLength;
 
@@ -353,9 +461,11 @@ public class ScheduledAircraftSpawner : MonoBehaviour
                 JsonUtility.FromJson<ScheduleSaveData>(json);
 
             if (saveData == null)
+            {
                 throw new InvalidDataException(
                     "The schedule file could not be parsed."
                 );
+            }
 
             if (saveData.version != ScheduleFileVersion)
             {
@@ -420,11 +530,10 @@ public class ScheduledAircraftSpawner : MonoBehaviour
                         continue;
                     }
 
-                    int triggerMinute =
-                        ModuloDay(
-                            saved.startMinute -
-                            MinutesBeforeScheduledTime
-                        );
+                    int triggerMinute = ModuloDay(
+                        saved.startMinute -
+                        MinutesBeforeScheduledTime
+                    );
 
                     loadedFlights.Add(new ScheduledSpawn
                     {
@@ -438,6 +547,7 @@ public class ScheduledAircraftSpawner : MonoBehaviour
 
             scheduledFlights.Clear();
             scheduledFlights.AddRange(loadedFlights);
+
             scheduleLoaded = true;
 
             if (logScheduleReloads)
@@ -452,8 +562,6 @@ public class ScheduledAircraftSpawner : MonoBehaviour
         }
         catch (Exception exception)
         {
-            // Keep the last successfully loaded schedule if a changed
-            // file is incomplete or unreadable.
             Debug.LogError(
                 $"Could not load flight schedule from " +
                 $"{ScheduleFilePath}. The last successfully loaded " +

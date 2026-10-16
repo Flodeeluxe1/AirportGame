@@ -103,6 +103,7 @@ public class GameTimeUIController : MonoBehaviour
             return;
 
         string currentTime =
+            $"Day {gameTimeManager.CurrentDay} | " +
             gameTimeManager.FormattedTime;
 
         if (currentTime != lastDisplayedTime)
@@ -144,11 +145,11 @@ public class GameTimeUIController : MonoBehaviour
         if (gameTimeManager == null)
             return;
 
-        clockLabel.text =
+        lastDisplayedTime =
+            $"Day {gameTimeManager.CurrentDay} | " +
             gameTimeManager.FormattedTime;
 
-        lastDisplayedTime =
-            gameTimeManager.FormattedTime;
+        clockLabel.text = lastDisplayedTime;
 
         UpdateSpeedButtonStates();
     }

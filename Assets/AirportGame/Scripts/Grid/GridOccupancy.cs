@@ -97,4 +97,9 @@ public class GridOccupancy : MonoBehaviour
             occupiedCells.Remove(cell);
         }
     }
+
+    public void Clear()
+    {
+        occupiedCells.Clear();
+    }
 }

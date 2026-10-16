@@ -17,6 +17,7 @@ public class GameTimeManager : MonoBehaviour
 
     [Header("Runtime")]
     [SerializeField] private int currentSpeedMultiplier = 1;
+    [SerializeField] private long currentDay = 1;
 
     private double gameSeconds;
     private float baseFixedDeltaTime;
@@ -26,6 +27,9 @@ public class GameTimeManager : MonoBehaviour
 
     public bool IsPaused =>
         currentSpeedMultiplier == 0;
+
+    public long CurrentDay =>
+        currentDay;
 
     public int Hour =>
         (int)(gameSeconds / 3600.0);
@@ -49,6 +53,8 @@ public class GameTimeManager : MonoBehaviour
             startMinute * 60.0 +
             startSecond;
 
+        currentDay = 1;
+
         SetSpeed(1);
     }
 
@@ -57,17 +63,23 @@ public class GameTimeManager : MonoBehaviour
         if (currentSpeedMultiplier == 0)
             return;
 
-        // Use unscaled time because Time.timeScale is
-        // already applied to the rest of the simulation.
-        gameSeconds +=
+        double totalGameSeconds =
+            gameSeconds +
             Time.unscaledDeltaTime *
             currentSpeedMultiplier;
 
-        // Wrap the clock at midnight.
-        if (gameSeconds >= SecondsPerDay)
+        if (totalGameSeconds >= SecondsPerDay)
         {
-            gameSeconds %= SecondsPerDay;
+            long daysPassed =
+                (long)System.Math.Floor(
+                    totalGameSeconds / SecondsPerDay
+                );
+
+            currentDay += daysPassed;
         }
+
+        gameSeconds =
+            totalGameSeconds % SecondsPerDay;
     }
 
     public void SetSpeed(int multiplier)
@@ -77,21 +89,18 @@ public class GameTimeManager : MonoBehaviour
             multiplier != 10 &&
             multiplier != 100 &&
             multiplier != 1000)
-                {
-                    Debug.LogWarning(
-                        $"GameTimeManager: Unsupported speed {multiplier}."
-                    );
+        {
+            Debug.LogWarning(
+                $"GameTimeManager: Unsupported speed {multiplier}."
+            );
 
-                    return;
-                }
+            return;
+        }
 
         currentSpeedMultiplier = multiplier;
 
         Time.timeScale = multiplier;
 
-        // Keep physics stepping consistent at each
-        // simulation speed. While paused, timeScale
-        // stops physics without requiring a zero timestep.
         if (multiplier > 0)
         {
             Time.fixedDeltaTime =
@@ -101,8 +110,32 @@ public class GameTimeManager : MonoBehaviour
         Debug.Log(
             $"GAME SPEED | " +
             $"{(multiplier == 0 ? "PAUSED" : multiplier + "x")} | " +
-            $"Game Time: {FormattedTime}"
+            $"Day {currentDay} | Game Time: {FormattedTime}"
         );
+    }
+
+    public int GetGameTimeSeconds()
+    {
+        return Mathf.Clamp(
+            (int)System.Math.Floor(gameSeconds),
+            0,
+            86399
+        );
+    }
+
+    public void SetGameTimeSeconds(int seconds)
+    {
+        gameSeconds = Mathf.Clamp(seconds, 0, 86399);
+    }
+
+    public void ResetToStartTime()
+    {
+        gameSeconds =
+            startHour * 3600.0 +
+            startMinute * 60.0 +
+            startSecond;
+
+        currentDay = 1;
     }
 
     public void Pause()
@@ -132,8 +165,6 @@ public class GameTimeManager : MonoBehaviour
 
     private void OnDestroy()
     {
-        // Avoid leaving the editor or next scene paused
-        // if this manager is destroyed.
         Time.timeScale = 1f;
 
         if (baseFixedDeltaTime > 0f)

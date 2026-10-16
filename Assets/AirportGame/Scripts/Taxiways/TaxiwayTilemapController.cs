@@ -1,3 +1,4 @@
+
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Tilemaps;
@@ -91,5 +92,31 @@ public class TaxiwayTilemapController : MonoBehaviour
             tilePosition,
             tile
         );
+    }
+
+    public void RemoveTaxiwayTile(
+        Vector2Int gridPosition)
+    {
+        if (taxiwayTilemap == null)
+            return;
+
+        Vector3Int tilePosition = new Vector3Int(
+            gridPosition.x,
+            gridPosition.y,
+            0
+        );
+
+        taxiwayTilemap.SetTile(
+            tilePosition,
+            null
+        );
+    }
+
+    public void ClearAllTaxiwayTiles()
+    {
+        if (taxiwayTilemap == null)
+            return;
+
+        taxiwayTilemap.ClearAllTiles();
     }
 }

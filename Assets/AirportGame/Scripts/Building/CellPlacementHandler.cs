@@ -24,8 +24,7 @@ public class CellPlacementHandler : IPlacementHandler
         this.gridManager = gridManager;
         this.gridOccupancy = gridOccupancy;
 
-        gridSurface =
-            gridManager.GetComponent<GridSurface>();
+        gridSurface = gridManager.GetComponent<GridSurface>();
     }
 
     public void BeginPlacement(
@@ -43,8 +42,7 @@ public class CellPlacementHandler : IPlacementHandler
 
     public void UpdatePlacement(Vector3 hitPoint)
     {
-        currentGridPosition =
-            gridManager.WorldToGrid(hitPoint);
+        currentGridPosition = gridManager.WorldToGrid(hitPoint);
 
         UpdatePreviewTransform();
         UpdatePreviewValidity();
@@ -55,18 +53,14 @@ public class CellPlacementHandler : IPlacementHandler
         int width = definition.width;
         int depth = definition.depth;
 
-        if (currentRotation == 90 ||
-            currentRotation == 270)
+        if (currentRotation == 90 || currentRotation == 270)
         {
             int temp = width;
             width = depth;
             depth = temp;
         }
 
-        Vector3 position =
-            gridManager.GridToWorld(
-                currentGridPosition
-            );
+        Vector3 position = gridManager.GridToWorld(currentGridPosition);
 
         position += new Vector3(
             width * gridManager.CellSize * 0.5f,
@@ -74,15 +68,9 @@ public class CellPlacementHandler : IPlacementHandler
             depth * gridManager.CellSize * 0.5f
         );
 
-        previewObject.transform.position =
-            position;
-
+        previewObject.transform.position = position;
         previewObject.transform.rotation =
-            Quaternion.Euler(
-                0f,
-                currentRotation,
-                0f
-            );
+            Quaternion.Euler(0f, currentRotation, 0f);
     }
 
     private void UpdatePreviewValidity()
@@ -90,40 +78,28 @@ public class CellPlacementHandler : IPlacementHandler
         int width = definition.width;
         int depth = definition.depth;
 
-        if (currentRotation == 90 ||
-            currentRotation == 270)
+        if (currentRotation == 90 || currentRotation == 270)
         {
             int temp = width;
             width = depth;
             depth = temp;
         }
 
-        bool inside =
-            IsInsideGrid(
-                currentGridPosition,
-                width,
-                depth
-            );
+        bool inside = IsInsideGrid(currentGridPosition, width, depth);
 
-        bool free =
-            gridOccupancy.CanOccupy(
-                currentGridPosition,
-                width,
-                depth
-            );
-
-        bool correctSurface =
-            HasRequiredSurface(
-                currentGridPosition,
-                width,
-                depth
-            );
-
-        placementPreview.SetValid(
-            inside &&
-            free &&
-            correctSurface
+        bool free = gridOccupancy.CanOccupy(
+            currentGridPosition,
+            width,
+            depth
         );
+
+        bool correctSurface = HasRequiredSurface(
+            currentGridPosition,
+            width,
+            depth
+        );
+
+        placementPreview.SetValid(inside && free && correctSurface);
     }
 
     private bool HasRequiredSurface(
@@ -132,29 +108,19 @@ public class CellPlacementHandler : IPlacementHandler
         int depth)
     {
         if (gridSurface == null)
-            return definition.requiredSurface ==
-                   BuildSurface.Any;
+            return definition.requiredSurface == BuildSurface.Any;
 
-        if (definition.requiredSurface ==
-            BuildSurface.Any)
-        {
+        if (definition.requiredSurface == BuildSurface.Any)
             return true;
-        }
 
         for (int x = 0; x < width; x++)
         {
             for (int z = 0; z < depth; z++)
             {
-                Vector2Int cell =
-                    origin +
-                    new Vector2Int(x, z);
+                Vector2Int cell = origin + new Vector2Int(x, z);
 
-                if (!gridSurface.IsSurface(
-                        cell,
-                        definition.requiredSurface))
-                {
+                if (!gridSurface.IsSurface(cell, definition.requiredSurface))
                     return false;
-                }
             }
         }
 
@@ -170,9 +136,7 @@ public class CellPlacementHandler : IPlacementHandler
         {
             for (int z = 0; z < depth; z++)
             {
-                Vector2Int cell =
-                    origin +
-                    new Vector2Int(x, z);
+                Vector2Int cell = origin + new Vector2Int(x, z);
 
                 if (!gridManager.IsInsideGrid(cell))
                     return false;
@@ -201,57 +165,39 @@ public class CellPlacementHandler : IPlacementHandler
         int width = definition.width;
         int depth = definition.depth;
 
-        if (currentRotation == 90 ||
-            currentRotation == 270)
+        if (currentRotation == 90 || currentRotation == 270)
         {
             int temp = width;
             width = depth;
             depth = temp;
         }
 
-        if (!IsInsideGrid(
-                currentGridPosition,
-                width,
-                depth))
+        if (!IsInsideGrid(currentGridPosition, width, depth))
         {
-            Debug.Log(
-                "Cannot place building: outside grid."
-            );
-
+            Debug.Log("Cannot place building: outside grid.");
             return;
         }
 
-        if (!gridOccupancy.CanOccupy(
-                currentGridPosition,
-                width,
-                depth))
+        if (!gridOccupancy.CanOccupy(currentGridPosition, width, depth))
         {
-            Debug.Log(
-                "Cannot place building: cells are occupied."
-            );
-
+            Debug.Log("Cannot place building: cells are occupied.");
             return;
         }
 
-        if (!HasRequiredSurface(
-                currentGridPosition,
-                width,
-                depth))
+        if (!HasRequiredSurface(currentGridPosition, width, depth))
         {
             Debug.Log(
                 $"Cannot place {definition.displayName}: " +
                 $"requires {definition.requiredSurface}."
             );
-
             return;
         }
 
-        GameObject placedObject =
-            Object.Instantiate(
-                definition.prefab,
-                previewObject.transform.position,
-                previewObject.transform.rotation
-            );
+        GameObject placedObject = Object.Instantiate(
+            definition.prefab,
+            previewObject.transform.position,
+            previewObject.transform.rotation
+        );
 
         gridOccupancy.Occupy(
             currentGridPosition,
@@ -271,9 +217,15 @@ public class CellPlacementHandler : IPlacementHandler
             currentRotation
         );
 
-        Debug.Log(
-            $"Placed: {definition.displayName}"
-        );
+        if (definition.blocksPathfinding && gridSurface != null)
+        {
+            GridPathfindingObstacle obstacle =
+                placedObject.AddComponent<GridPathfindingObstacle>();
+
+            obstacle.Initialize(gridSurface, placedBuilding);
+        }
+
+        Debug.Log($"Placed: {definition.displayName}");
     }
 
     public void Cancel()

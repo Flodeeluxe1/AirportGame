@@ -1,4 +1,4 @@
-
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -639,5 +639,53 @@ public class RoadNetwork : MonoBehaviour
 
             return result;
         }
+    }
+
+    public void Clear()
+    {
+        roadCells.Clear();
+    }
+
+    public System.Collections.Generic.List<RoadCellSaveData> GetSaveData()
+    {
+        var result = new System.Collections.Generic.List<RoadCellSaveData>();
+
+        foreach (var entry in roadCells)
+        {
+            RoadCell cell = entry.Value;
+
+            int directionX = 0;
+            int directionZ = 0;
+
+            switch (cell.Direction)
+            {
+                case RoadDirection.North:
+                    directionZ = 1;
+                    break;
+                case RoadDirection.East:
+                    directionX = 1;
+                    break;
+                case RoadDirection.South:
+                    directionZ = -1;
+                    break;
+                case RoadDirection.West:
+                    directionX = -1;
+                    break;
+            }
+
+            result.Add(new RoadCellSaveData
+            {
+                x = cell.Position.x,
+                z = cell.Position.y,
+                directionX = directionX,
+                directionZ = directionZ,
+                connectNorth = cell.ConnectNorth,
+                connectEast = cell.ConnectEast,
+                connectSouth = cell.ConnectSouth,
+                connectWest = cell.ConnectWest
+            });
+        }
+
+        return result;
     }
 }

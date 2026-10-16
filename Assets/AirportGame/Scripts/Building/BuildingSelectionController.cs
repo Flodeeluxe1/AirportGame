@@ -1,3 +1,4 @@
+
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -13,25 +14,50 @@ public class BuildingSelectionController : MonoBehaviour
     [SerializeField] private BuildController buildController;
     [SerializeField] private CellBuildingMoveController moveController;
 
+    [Header("Foundation Selection")]
+    [SerializeField] private FoundationTilemapController foundationTilemapController;
+
+    [Header("Road Selection")]
+    [SerializeField] private RoadNetwork roadNetwork;
+    [SerializeField] private RoadTilemapController roadTilemapController;
+
+    [Header("Taxiway Selection")]
+    [SerializeField] private TaxiwayNetwork taxiwayNetwork;
+    [SerializeField] private TaxiwayTilemapController taxiwayTilemapController;
+
     [Header("Selection Highlight")]
     [SerializeField]
-    private Color highlightColor =
-        new Color(0.1f, 0.85f, 1f, 0.45f);
+    private Color highlightColor = new Color(0.1f, 0.85f, 1f, 0.45f);
+
+    [Header("Wall Highlight")]
+    [SerializeField]
+    private Color wallHighlightColor = new Color(0.1f, 0.85f, 1f, 1f);
+
+    [Range(0f, 1f)]
+    [SerializeField] private float wallHighlightStrength = 0.75f;
 
     [Header("Selection Box")]
     [SerializeField]
-    private Color selectionBoxColor =
-        new Color(0.1f, 0.85f, 1f, 0.15f);
+    private Color selectionBoxColor = new Color(0.1f, 0.85f, 1f, 0.15f);
 
     [SerializeField]
-    private Color selectionBorderColor =
-        new Color(0.1f, 0.85f, 1f, 0.9f);
+    private Color selectionBorderColor = new Color(0.1f, 0.85f, 1f, 0.9f);
 
     private readonly List<GameObject> selectedObjects =
         new List<GameObject>();
 
+    private readonly HashSet<Vector2Int> selectedRoadCells =
+        new HashSet<Vector2Int>();
+
+    private readonly HashSet<Vector2Int> selectedTaxiwayCells =
+        new HashSet<Vector2Int>();
+
     private readonly List<GameObject> highlights =
         new List<GameObject>();
+
+    private readonly Dictionary<Renderer, MaterialPropertyBlock>
+        originalWallPropertyBlocks =
+            new Dictionary<Renderer, MaterialPropertyBlock>();
 
     private Material highlightMaterial;
     private Material selectionBoxMaterial;
@@ -41,8 +67,8 @@ public class BuildingSelectionController : MonoBehaviour
 
     private bool isDragging;
     private bool hasValidDragStart;
-
     private bool mouseDownOnCellBuilding;
+    private bool deleteSelectionMode;
 
     private Vector2 dragStartScreenPosition;
     private Vector2 dragCurrentScreenPosition;
@@ -50,28 +76,66 @@ public class BuildingSelectionController : MonoBehaviour
     private Vector2Int dragStartGridPosition;
     private Vector2Int dragCurrentGridPosition;
 
+    private static readonly int BaseColorId =
+        Shader.PropertyToID("_BaseColor");
+
+    private static readonly int ColorId =
+        Shader.PropertyToID("_Color");
+
     private const float DRAG_THRESHOLD = 8f;
     private const float SELECTION_HEIGHT_OFFSET = 0.05f;
     private const float SELECTION_BORDER_WIDTH = 0.025f;
 
     private void Awake()
     {
-        if (gridSurface == null &&
-            gridManager != null)
-        {
-            gridSurface =
-                gridManager.GetComponent<GridSurface>();
-        }
+        if (gridSurface == null && gridManager != null)
+            gridSurface = gridManager.GetComponent<GridSurface>();
 
         if (moveController == null)
+            moveController = FindFirstObjectByType<CellBuildingMoveController>();
+
+        if (foundationTilemapController == null)
         {
-            moveController =
-                FindFirstObjectByType<CellBuildingMoveController>();
+            foundationTilemapController =
+                FindFirstObjectByType<FoundationTilemapController>();
+        }
+
+        if (roadNetwork == null)
+            roadNetwork = FindFirstObjectByType<RoadNetwork>();
+
+        if (roadTilemapController == null)
+            roadTilemapController = FindFirstObjectByType<RoadTilemapController>();
+
+        if (taxiwayNetwork == null)
+            taxiwayNetwork = FindFirstObjectByType<TaxiwayNetwork>();
+
+        if (taxiwayTilemapController == null)
+        {
+            taxiwayTilemapController =
+                FindFirstObjectByType<TaxiwayTilemapController>();
         }
 
         CreateHighlightMaterial();
         CreateSelectionBoxMaterial();
         CreateSelectionVisuals();
+    }
+
+    public void BeginDeleteSelectionMode()
+    {
+        if (buildController != null && buildController.IsBuilding)
+            buildController.CancelBuilding();
+
+        deleteSelectionMode = true;
+        isDragging = false;
+        hasValidDragStart = false;
+        mouseDownOnCellBuilding = false;
+
+        ClearSelection();
+
+        Debug.Log(
+            "Delete mode active. Drag to select buildings, foundations, " +
+            "roads and taxiways, then press Delete or Backspace."
+        );
     }
 
     private void Update()
@@ -82,19 +146,13 @@ public class BuildingSelectionController : MonoBehaviour
         if (keyboard == null || mouse == null)
             return;
 
-        if (buildController != null &&
-            buildController.IsBuilding)
-        {
+        if (buildController != null && buildController.IsBuilding)
             return;
-        }
 
         if (mouse.leftButton.wasPressedThisFrame)
         {
-            dragStartScreenPosition =
-                mouse.position.ReadValue();
-
-            dragCurrentScreenPosition =
-                dragStartScreenPosition;
+            dragStartScreenPosition = mouse.position.ReadValue();
+            dragCurrentScreenPosition = dragStartScreenPosition;
 
             mouseDownOnCellBuilding =
                 moveController != null &&
@@ -102,35 +160,25 @@ public class BuildingSelectionController : MonoBehaviour
                     dragStartScreenPosition
                 );
 
-            hasValidDragStart =
-                TryGetGridPositionFromMouse(
-                    dragStartScreenPosition,
-                    out dragStartGridPosition
-                );
+            hasValidDragStart = TryGetGridPositionFromMouse(
+                dragStartScreenPosition,
+                out dragStartGridPosition
+            );
 
-            dragCurrentGridPosition =
-                dragStartGridPosition;
-
+            dragCurrentGridPosition = dragStartGridPosition;
             isDragging = false;
 
             HideSelectionVisuals();
 
-            // Cell buildings are handled by the
-            // move controller while the mouse is held.
-            // We wait until release to determine whether
-            // this was a click or a drag.
             if (mouseDownOnCellBuilding)
-            {
                 return;
-            }
         }
 
         if (mouse.leftButton.isPressed &&
             hasValidDragStart &&
             !mouseDownOnCellBuilding)
         {
-            dragCurrentScreenPosition =
-                mouse.position.ReadValue();
+            dragCurrentScreenPosition = mouse.position.ReadValue();
 
             if (!TryGetGridPositionFromMouse(
                     dragCurrentScreenPosition,
@@ -141,16 +189,14 @@ public class BuildingSelectionController : MonoBehaviour
 
             if (!isDragging)
             {
-                float distance =
-                    Vector2.Distance(
-                        dragStartScreenPosition,
-                        dragCurrentScreenPosition
-                    );
+                float distance = Vector2.Distance(
+                    dragStartScreenPosition,
+                    dragCurrentScreenPosition
+                );
 
                 if (distance >= DRAG_THRESHOLD)
                 {
                     isDragging = true;
-
                     ClearSelection();
                 }
             }
@@ -166,17 +212,13 @@ public class BuildingSelectionController : MonoBehaviour
         {
             if (mouseDownOnCellBuilding)
             {
-                // If the move controller started moving the
-                // building, leave selection alone.
-                if (moveController != null &&
-                    moveController.IsMoving)
+                if (moveController != null && moveController.IsMoving)
                 {
+                    mouseDownOnCellBuilding = false;
                     return;
                 }
 
-                // Otherwise this was a simple click.
                 HandleSingleSelection();
-
                 mouseDownOnCellBuilding = false;
                 return;
             }
@@ -192,15 +234,12 @@ public class BuildingSelectionController : MonoBehaviour
             {
                 HandleSingleSelection();
             }
-            else
+            else if (TryGetGridPositionFromMouse(
+                         mouse.position.ReadValue(),
+                         out dragCurrentGridPosition))
             {
-                if (TryGetGridPositionFromMouse(
-                        mouse.position.ReadValue(),
-                        out dragCurrentGridPosition))
-                {
-                    UpdateDragSelection();
-                    UpdateSelectionVisuals();
-                }
+                UpdateDragSelection();
+                UpdateSelectionVisuals();
             }
 
             isDragging = false;
@@ -216,23 +255,21 @@ public class BuildingSelectionController : MonoBehaviour
 
     private void HandleSingleSelection()
     {
-        Ray ray =
-            mainCamera.ScreenPointToRay(
-                Mouse.current.position.ReadValue()
-            );
+        if (mainCamera == null)
+        {
+            ClearSelection();
+            return;
+        }
 
-        RaycastHit[] hits =
-            Physics.RaycastAll(
-                ray,
-                1000f
-            );
+        Ray ray = mainCamera.ScreenPointToRay(
+            Mouse.current.position.ReadValue()
+        );
+
+        RaycastHit[] hits = Physics.RaycastAll(ray, 1000f);
 
         System.Array.Sort(
             hits,
-            (a, b) =>
-                a.distance.CompareTo(
-                    b.distance
-                )
+            (a, b) => a.distance.CompareTo(b.distance)
         );
 
         foreach (RaycastHit hit in hits)
@@ -243,11 +280,26 @@ public class BuildingSelectionController : MonoBehaviour
             if (!IsSelectable(building))
                 continue;
 
-            SelectSingleBuilding(
-                building.gameObject
-            );
-
+            SelectSingleBuilding(building.gameObject);
             return;
+        }
+
+        if (TryGetGridPositionFromMouse(
+                Mouse.current.position.ReadValue(),
+                out Vector2Int gridPosition))
+        {
+            if (roadNetwork != null && roadNetwork.IsRoad(gridPosition))
+            {
+                SelectSingleRoad(gridPosition);
+                return;
+            }
+
+            if (taxiwayNetwork != null &&
+                taxiwayNetwork.IsTaxiway(gridPosition))
+            {
+                SelectSingleTaxiway(gridPosition);
+                return;
+            }
         }
 
         ClearSelection();
@@ -261,13 +313,12 @@ public class BuildingSelectionController : MonoBehaviour
             out int depth
         );
 
-        List<GameObject> newSelection =
-            new List<GameObject>();
+        List<GameObject> newSelection = new List<GameObject>();
+        HashSet<Vector2Int> newRoadSelection = new HashSet<Vector2Int>();
+        HashSet<Vector2Int> newTaxiwaySelection = new HashSet<Vector2Int>();
 
         PlacedBuilding[] buildings =
-            FindObjectsByType<PlacedBuilding>(
-                FindObjectsSortMode.None
-            );
+            FindObjectsByType<PlacedBuilding>(FindObjectsSortMode.None);
 
         foreach (PlacedBuilding building in buildings)
         {
@@ -275,36 +326,50 @@ public class BuildingSelectionController : MonoBehaviour
                 continue;
 
             if (IsBuildingInsideGridSelection(
-                    building,
-                    origin,
-                    width,
-                    depth))
+                    building, origin, width, depth))
             {
-                newSelection.Add(
-                    building.gameObject
-                );
+                newSelection.Add(building.gameObject);
             }
         }
 
-        SetSelection(
-            newSelection
-        );
+        if (roadNetwork != null)
+        {
+            for (int x = origin.x; x < origin.x + width; x++)
+            {
+                for (int z = origin.y; z < origin.y + depth; z++)
+                {
+                    Vector2Int cell = new Vector2Int(x, z);
+
+                    if (roadNetwork.IsRoad(cell))
+                        newRoadSelection.Add(cell);
+                }
+            }
+        }
+
+        if (taxiwayNetwork != null)
+        {
+            for (int x = origin.x; x < origin.x + width; x++)
+            {
+                for (int z = origin.y; z < origin.y + depth; z++)
+                {
+                    Vector2Int cell = new Vector2Int(x, z);
+
+                    if (taxiwayNetwork.IsTaxiway(cell))
+                        newTaxiwaySelection.Add(cell);
+                }
+            }
+        }
+
+        SetSelection(newSelection, newRoadSelection, newTaxiwaySelection);
     }
 
-    private bool IsSelectable(
-        PlacedBuilding building)
+    private bool IsSelectable(PlacedBuilding building)
     {
-        if (building == null)
+        if (building == null || building.Definition == null)
             return false;
 
-        if (building.Definition == null)
-            return false;
-
-        if (building.Definition.placementType ==
-            PlacementType.Area)
-        {
-            return false;
-        }
+        if (building.Definition.placementType == PlacementType.Area)
+            return deleteSelectionMode;
 
         return true;
     }
@@ -318,54 +383,27 @@ public class BuildingSelectionController : MonoBehaviour
         if (building == null)
             return false;
 
-        int minX =
-            selectionOrigin.x;
-
-        int maxX =
-            selectionOrigin.x +
-            selectionWidth -
-            1;
-
-        int minZ =
-            selectionOrigin.y;
-
-        int maxZ =
-            selectionOrigin.y +
-            selectionDepth -
-            1;
+        int minX = selectionOrigin.x;
+        int maxX = selectionOrigin.x + selectionWidth - 1;
+        int minZ = selectionOrigin.y;
+        int maxZ = selectionOrigin.y + selectionDepth - 1;
 
         if (building.IsEdgeBuilding)
         {
             return DoesEdgeBuildingOverlapSelection(
-                building,
-                minX,
-                maxX,
-                minZ,
-                maxZ
+                building, minX, maxX, minZ, maxZ
             );
         }
 
-        int buildingMinX =
-            building.Origin.x;
+        int buildingMinX = building.Origin.x;
+        int buildingMaxX = building.Origin.x + building.Width - 1;
+        int buildingMinZ = building.Origin.y;
+        int buildingMaxZ = building.Origin.y + building.Depth - 1;
 
-        int buildingMaxX =
-            building.Origin.x +
-            building.Width -
-            1;
-
-        int buildingMinZ =
-            building.Origin.y;
-
-        int buildingMaxZ =
-            building.Origin.y +
-            building.Depth -
-            1;
-
-        return
-            buildingMaxX >= minX &&
-            buildingMinX <= maxX &&
-            buildingMaxZ >= minZ &&
-            buildingMinZ <= maxZ;
+        return buildingMaxX >= minX &&
+               buildingMinX <= maxX &&
+               buildingMaxZ >= minZ &&
+               buildingMinZ <= maxZ;
     }
 
     private bool DoesEdgeBuildingOverlapSelection(
@@ -375,77 +413,43 @@ public class BuildingSelectionController : MonoBehaviour
         int minZ,
         int maxZ)
     {
-        int edgeLength =
-            Mathf.Max(
-                1,
-                building.EdgeLength
-            );
+        int edgeLength = Mathf.Max(1, building.EdgeLength);
 
         for (int i = 0; i < edgeLength; i++)
         {
-            Vector2Int edgeCell =
-                building.Origin;
+            Vector2Int edgeCell = building.Origin;
 
-            if (building.EdgeDirection ==
-                EdgeDirection.Horizontal)
+            if (building.EdgeDirection == EdgeDirection.Horizontal)
             {
                 edgeCell.x += i;
 
                 if (IsCellInsideSelection(
-                        edgeCell.x,
-                        edgeCell.y,
-                        minX,
-                        maxX,
-                        minZ,
-                        maxZ))
-                {
+                        edgeCell.x, edgeCell.y,
+                        minX, maxX, minZ, maxZ))
                     return true;
-                }
 
-                Vector2Int oppositeSide =
-                    edgeCell +
-                    Vector2Int.down;
+                Vector2Int oppositeSide = edgeCell + Vector2Int.down;
 
                 if (IsCellInsideSelection(
-                        oppositeSide.x,
-                        oppositeSide.y,
-                        minX,
-                        maxX,
-                        minZ,
-                        maxZ))
-                {
+                        oppositeSide.x, oppositeSide.y,
+                        minX, maxX, minZ, maxZ))
                     return true;
-                }
             }
             else
             {
                 edgeCell.y += i;
 
                 if (IsCellInsideSelection(
-                        edgeCell.x,
-                        edgeCell.y,
-                        minX,
-                        maxX,
-                        minZ,
-                        maxZ))
-                {
+                        edgeCell.x, edgeCell.y,
+                        minX, maxX, minZ, maxZ))
                     return true;
-                }
 
-                Vector2Int oppositeSide =
-                    edgeCell +
-                    Vector2Int.left;
+                Vector2Int oppositeSide = edgeCell + Vector2Int.left;
 
                 if (IsCellInsideSelection(
-                        oppositeSide.x,
-                        oppositeSide.y,
-                        minX,
-                        maxX,
-                        minZ,
-                        maxZ))
-                {
+                        oppositeSide.x, oppositeSide.y,
+                        minX, maxX, minZ, maxZ))
                     return true;
-                }
             }
         }
 
@@ -453,69 +457,92 @@ public class BuildingSelectionController : MonoBehaviour
     }
 
     private bool IsCellInsideSelection(
-        int x,
-        int z,
-        int minX,
-        int maxX,
-        int minZ,
-        int maxZ)
+        int x, int z,
+        int minX, int maxX,
+        int minZ, int maxZ)
     {
-        return
-            x >= minX &&
-            x <= maxX &&
-            z >= minZ &&
-            z <= maxZ;
+        return x >= minX && x <= maxX &&
+               z >= minZ && z <= maxZ;
     }
 
-    private void SelectSingleBuilding(
-        GameObject building)
+    private void SelectSingleBuilding(GameObject building)
     {
         ClearSelection();
-
-        selectedObjects.Add(
-            building
-        );
-
+        selectedObjects.Add(building);
         RefreshHighlights();
 
         PlacedBuilding placedBuilding =
             building.GetComponent<PlacedBuilding>();
 
-        if (placedBuilding != null &&
-            placedBuilding.Definition != null)
+        if (placedBuilding != null && placedBuilding.Definition != null)
         {
-            Debug.Log(
-                $"Selected: " +
-                $"{placedBuilding.Definition.displayName}"
-            );
+            Debug.Log($"Selected: {placedBuilding.Definition.displayName}");
         }
     }
 
+    private void SelectSingleRoad(Vector2Int cell)
+    {
+        ClearSelection();
+        selectedRoadCells.Add(cell);
+        RefreshHighlights();
+
+        Debug.Log($"Selected road cell: {cell}");
+    }
+
+    private void SelectSingleTaxiway(Vector2Int cell)
+    {
+        ClearSelection();
+        selectedTaxiwayCells.Add(cell);
+        RefreshHighlights();
+
+        Debug.Log($"Selected taxiway cell: {cell}");
+    }
+
     private void SetSelection(
-        List<GameObject> newSelection)
+        List<GameObject> newSelection,
+        HashSet<Vector2Int> newRoadSelection,
+        HashSet<Vector2Int> newTaxiwaySelection)
     {
         selectedObjects.Clear();
 
         foreach (GameObject building in newSelection)
         {
-            if (building == null)
-                continue;
-
-            if (!selectedObjects.Contains(
-                    building))
-            {
-                selectedObjects.Add(
-                    building
-                );
-            }
+            if (building != null && !selectedObjects.Contains(building))
+                selectedObjects.Add(building);
         }
+
+        selectedRoadCells.Clear();
+
+        foreach (Vector2Int cell in newRoadSelection)
+            selectedRoadCells.Add(cell);
+
+        selectedTaxiwayCells.Clear();
+
+        foreach (Vector2Int cell in newTaxiwaySelection)
+            selectedTaxiwayCells.Add(cell);
 
         RefreshHighlights();
     }
 
+
     private void RefreshHighlights()
     {
         ClearHighlights();
+
+        bool hasDragSelection = isDragging || deleteSelectionMode;
+
+        Vector2Int selectionOrigin = Vector2Int.zero;
+        int selectionWidth = 0;
+        int selectionDepth = 0;
+
+        if (hasDragSelection)
+        {
+            GetSelectionGridArea(
+                out selectionOrigin,
+                out selectionWidth,
+                out selectionDepth
+            );
+        }
 
         foreach (GameObject building in selectedObjects)
         {
@@ -528,43 +555,159 @@ public class BuildingSelectionController : MonoBehaviour
             if (placedBuilding == null)
                 continue;
 
-            CreateHighlights(
-                placedBuilding
+            bool isFoundation =
+                placedBuilding.Definition != null &&
+                placedBuilding.Definition.placementType == PlacementType.Area;
+
+            if (isFoundation && deleteSelectionMode && hasDragSelection)
+            {
+                for (int x = 0; x < selectionWidth; x++)
+                {
+                    for (int z = 0; z < selectionDepth; z++)
+                    {
+                        Vector2Int cell =
+                            selectionOrigin + new Vector2Int(x, z);
+
+                        if (cell.x < placedBuilding.Origin.x ||
+                            cell.y < placedBuilding.Origin.y ||
+                            cell.x >= placedBuilding.Origin.x + placedBuilding.Width ||
+                            cell.y >= placedBuilding.Origin.y + placedBuilding.Depth)
+                        {
+                            continue;
+                        }
+
+                        if (gridSurface != null &&
+                            !gridSurface.IsSurfaceOwner(cell, building))
+                        {
+                            continue;
+                        }
+
+                        CreateCellHighlight(cell);
+                    }
+                }
+
+                continue;
+            }
+
+            if (placedBuilding.IsEdgeBuilding)
+                HighlightWallObject(building);
+            else
+                CreateHighlights(placedBuilding);
+        }
+
+        foreach (Vector2Int cell in selectedRoadCells)
+            CreateCellHighlight(cell);
+
+        foreach (Vector2Int cell in selectedTaxiwayCells)
+            CreateCellHighlight(cell);
+    }
+
+
+    private void HighlightWallObject(GameObject wall)
+    {
+        Renderer[] renderers =
+            wall.GetComponentsInChildren<Renderer>(true);
+
+        foreach (Renderer wallRenderer in renderers)
+        {
+            if (wallRenderer == null ||
+                originalWallPropertyBlocks.ContainsKey(wallRenderer))
+                continue;
+
+            Material[] materials = wallRenderer.sharedMaterials;
+
+            bool supportsBaseColor = false;
+            bool supportsColor = false;
+            Color originalColor = Color.white;
+
+            foreach (Material material in materials)
+            {
+                if (material == null)
+                    continue;
+
+                if (!supportsBaseColor && material.HasProperty(BaseColorId))
+                {
+                    supportsBaseColor = true;
+                    originalColor = material.GetColor(BaseColorId);
+                }
+                else if (!supportsColor && material.HasProperty(ColorId))
+                {
+                    supportsColor = true;
+
+                    if (!supportsBaseColor)
+                        originalColor = material.GetColor(ColorId);
+                }
+            }
+
+            if (!supportsBaseColor && !supportsColor)
+                continue;
+
+            MaterialPropertyBlock originalBlock =
+                new MaterialPropertyBlock();
+
+            wallRenderer.GetPropertyBlock(originalBlock);
+            originalWallPropertyBlocks.Add(wallRenderer, originalBlock);
+
+            MaterialPropertyBlock highlightBlock =
+                new MaterialPropertyBlock();
+
+            wallRenderer.GetPropertyBlock(highlightBlock);
+
+            if (supportsBaseColor && originalBlock.HasColor(BaseColorId))
+                originalColor = originalBlock.GetColor(BaseColorId);
+            else if (!supportsBaseColor &&
+                     supportsColor &&
+                     originalBlock.HasColor(ColorId))
+                originalColor = originalBlock.GetColor(ColorId);
+
+            Color targetColor = wallHighlightColor;
+            targetColor.a = originalColor.a;
+
+            Color tintedColor = Color.Lerp(
+                originalColor,
+                targetColor,
+                wallHighlightStrength
             );
+
+            if (supportsBaseColor)
+                highlightBlock.SetColor(BaseColorId, tintedColor);
+
+            if (supportsColor)
+                highlightBlock.SetColor(ColorId, tintedColor);
+
+            wallRenderer.SetPropertyBlock(highlightBlock);
         }
     }
 
-    private void CreateHighlights(
-        PlacedBuilding building)
+    private void RestoreWallHighlights()
     {
-        int highlightWidth =
-            building.Width;
+        foreach (
+            KeyValuePair<Renderer, MaterialPropertyBlock> entry
+            in originalWallPropertyBlocks)
+        {
+            if (entry.Key != null)
+                entry.Key.SetPropertyBlock(entry.Value);
+        }
 
-        int highlightDepth =
-            building.Depth;
+        originalWallPropertyBlocks.Clear();
+    }
+
+    private void CreateHighlights(PlacedBuilding building)
+    {
+        int highlightWidth = building.Width;
+        int highlightDepth = building.Depth;
 
         if (building.IsEdgeBuilding)
         {
-            if (building.EdgeDirection ==
-                EdgeDirection.Horizontal)
+            if (building.EdgeDirection == EdgeDirection.Horizontal)
             {
-                highlightWidth =
-                    Mathf.Max(
-                        1,
-                        building.EdgeLength
-                    );
-
+                highlightWidth = Mathf.Max(1, building.EdgeLength);
                 highlightDepth = 1;
             }
             else
             {
                 highlightWidth = 1;
-
-                highlightDepth =
-                    Mathf.Max(
-                        1,
-                        building.EdgeLength
-                    );
+                highlightDepth = Mathf.Max(1, building.EdgeLength);
             }
         }
 
@@ -573,59 +716,44 @@ public class BuildingSelectionController : MonoBehaviour
             for (int z = 0; z < highlightDepth; z++)
             {
                 Vector2Int cell =
-                    building.Origin +
-                    new Vector2Int(
-                        x,
-                        z
-                    );
+                    building.Origin + new Vector2Int(x, z);
 
-                GameObject highlight =
-                    GameObject.CreatePrimitive(
-                        PrimitiveType.Quad
-                    );
-
-                highlight.name =
-                    "Selection Highlight";
-
-                Collider collider =
-                    highlight.GetComponent<Collider>();
-
-                if (collider != null)
-                {
-                    Destroy(collider);
-                }
-
-                highlight.transform.position =
-                    gridManager.GridToWorldCenter(
-                        cell
-                    ) +
-                    Vector3.up * 0.03f;
-
-                highlight.transform.rotation =
-                    Quaternion.Euler(
-                        90f,
-                        0f,
-                        0f
-                    );
-
-                highlight.transform.localScale =
-                    new Vector3(
-                        gridManager.CellSize * 0.94f,
-                        gridManager.CellSize * 0.94f,
-                        1f
-                    );
-
-                Renderer renderer =
-                    highlight.GetComponent<Renderer>();
-
-                renderer.material =
-                    highlightMaterial;
-
-                highlights.Add(
-                    highlight
-                );
+                CreateCellHighlight(cell);
             }
         }
+    }
+
+    private void CreateCellHighlight(Vector2Int cell)
+    {
+        if (gridManager == null || highlightMaterial == null)
+            return;
+
+        GameObject highlight =
+            GameObject.CreatePrimitive(PrimitiveType.Quad);
+
+        highlight.name = "Selection Highlight";
+
+        Collider collider = highlight.GetComponent<Collider>();
+
+        if (collider != null)
+            Destroy(collider);
+
+        highlight.transform.position =
+            gridManager.GridToWorldCenter(cell) + Vector3.up * 0.03f;
+
+        highlight.transform.rotation =
+            Quaternion.Euler(90f, 0f, 0f);
+
+        highlight.transform.localScale = new Vector3(
+            gridManager.CellSize * 0.94f,
+            gridManager.CellSize * 0.94f,
+            1f
+        );
+
+        Renderer renderer = highlight.GetComponent<Renderer>();
+        renderer.material = highlightMaterial;
+
+        highlights.Add(highlight);
     }
 
     public void RefreshSelectionHighlights()
@@ -636,18 +764,19 @@ public class BuildingSelectionController : MonoBehaviour
     private void ClearSelection()
     {
         selectedObjects.Clear();
-
+        selectedRoadCells.Clear();
+        selectedTaxiwayCells.Clear();
         ClearHighlights();
     }
 
     private void ClearHighlights()
     {
+        RestoreWallHighlights();
+
         foreach (GameObject highlight in highlights)
         {
             if (highlight != null)
-            {
                 Destroy(highlight);
-            }
         }
 
         highlights.Clear();
@@ -655,44 +784,74 @@ public class BuildingSelectionController : MonoBehaviour
 
     private void DeleteSelectedBuildings()
     {
-        if (selectedObjects.Count == 0)
-            return;
-
         List<GameObject> buildingsToDelete =
             new List<GameObject>();
 
         foreach (GameObject building in selectedObjects)
         {
             if (building != null)
-            {
-                buildingsToDelete.Add(
-                    building
-                );
-            }
+                buildingsToDelete.Add(building);
         }
 
-        if (buildingsToDelete.Count == 0)
+        List<Vector2Int> roadsToDelete =
+            new List<Vector2Int>(selectedRoadCells);
+
+        List<Vector2Int> taxiwaysToDelete =
+            new List<Vector2Int>(selectedTaxiwayCells);
+
+        if (buildingsToDelete.Count == 0 &&
+            roadsToDelete.Count == 0 &&
+            taxiwaysToDelete.Count == 0)
         {
             ClearSelection();
+            deleteSelectionMode = false;
             return;
         }
 
         Debug.Log(
-            $"Deleting {buildingsToDelete.Count} selected building(s)."
+            $"Deleting {buildingsToDelete.Count} building(s), " +
+            $"{roadsToDelete.Count} road cell(s), and " +
+            $"{taxiwaysToDelete.Count} taxiway cell(s)."
         );
 
         foreach (GameObject building in buildingsToDelete)
-        {
-            DeleteBuilding(
-                building
-            );
-        }
+            DeleteBuilding(building);
+
+        foreach (Vector2Int cell in roadsToDelete)
+            DeleteRoadCell(cell);
+
+        foreach (Vector2Int cell in taxiwaysToDelete)
+            DeleteTaxiwayCell(cell);
 
         ClearSelection();
+        deleteSelectionMode = false;
     }
 
-    private void DeleteBuilding(
-        GameObject building)
+    private void DeleteRoadCell(Vector2Int cell)
+    {
+        if (roadNetwork != null)
+            roadNetwork.RemoveRoad(cell);
+
+        if (roadTilemapController != null)
+            roadTilemapController.RemoveRoadTile(cell);
+
+        Debug.Log($"Deleted road cell: {cell}");
+    }
+
+    private void DeleteTaxiwayCell(Vector2Int cell)
+    {
+        if (taxiwayNetwork != null)
+            taxiwayNetwork.RemoveTaxiwayCell(cell);
+
+        if (taxiwayTilemapController != null)
+            taxiwayTilemapController.RemoveTaxiwayTile(cell);
+
+        Debug.Log($"Deleted taxiway cell: {cell}");
+    }
+
+
+
+    private void DeleteBuilding(GameObject building)
     {
         if (building == null)
             return;
@@ -700,45 +859,60 @@ public class BuildingSelectionController : MonoBehaviour
         PlacedBuilding placedBuilding =
             building.GetComponent<PlacedBuilding>();
 
-        string displayName =
-            building.name;
+        string displayName = building.name;
 
         if (placedBuilding != null &&
             placedBuilding.Definition != null)
         {
-            displayName =
-                placedBuilding.Definition.displayName;
+            displayName = placedBuilding.Definition.displayName;
+        }
+
+        // Cancel flights before destroying the gate.
+        AircraftGate aircraftGate =
+            building.GetComponent<AircraftGate>();
+
+        if (aircraftGate != null)
+        {
+            string gateStableId = aircraftGate.StableId;
+
+            if (!string.IsNullOrWhiteSpace(gateStableId))
+            {
+                FlightManagementUIController flightManagement =
+                    FindFirstObjectByType<FlightManagementUIController>();
+
+                if (flightManagement != null)
+                {
+                    flightManagement.CancelScheduledFlightsForGate(
+                        gateStableId
+                    );
+                }
+                else
+                {
+                    Debug.LogWarning(
+                        $"Deleting {displayName}, but no " +
+                        "FlightManagementUIController was found."
+                    );
+                }
+            }
         }
 
         if (gridOccupancy != null)
-        {
-            gridOccupancy.ReleaseBuilding(
-                building
-            );
-        }
+            gridOccupancy.ReleaseBuilding(building);
 
         if (edgeOccupancy != null)
-        {
-            edgeOccupancy.ReleaseBuilding(
-                building
-            );
-        }
+            edgeOccupancy.ReleaseBuilding(building);
 
         if (gridSurface != null)
         {
-            gridSurface.ReleaseSurfaceOwner(
-                building
-            );
+            gridSurface.ReleaseSurfaceOwner(building);
+            gridSurface.ReleaseObstacleOwner(building);
         }
 
-        Debug.Log(
-            $"Deleted building: {displayName}"
-        );
-
-        Destroy(
-            building
-        );
+        Debug.Log($"Deleted building: {displayName}");
+        Destroy(building);
     }
+
+
 
     private bool TryGetGridPositionFromMouse(
         Vector2 screenPosition,
@@ -746,41 +920,23 @@ public class BuildingSelectionController : MonoBehaviour
     {
         gridPosition = Vector2Int.zero;
 
-        if (mainCamera == null ||
-            gridManager == null)
-        {
+        if (mainCamera == null || gridManager == null)
             return false;
-        }
 
-        Ray ray =
-            mainCamera.ScreenPointToRay(
-                screenPosition
-            );
+        Ray ray = mainCamera.ScreenPointToRay(screenPosition);
 
-        Plane gridPlane =
-            new Plane(
-                Vector3.up,
-                gridManager.transform.position
-            );
-
-        if (!gridPlane.Raycast(
-                ray,
-                out float distance))
-        {
-            return false;
-        }
-
-        Vector3 worldPoint =
-            ray.GetPoint(distance);
-
-        gridPosition =
-            gridManager.WorldToGrid(
-                worldPoint
-            );
-
-        return gridManager.IsInsideGrid(
-            gridPosition
+        Plane gridPlane = new Plane(
+            Vector3.up,
+            gridManager.transform.position
         );
+
+        if (!gridPlane.Raycast(ray, out float distance))
+            return false;
+
+        Vector3 worldPoint = ray.GetPoint(distance);
+        gridPosition = gridManager.WorldToGrid(worldPoint);
+
+        return gridManager.IsInsideGrid(gridPosition);
     }
 
     private void GetSelectionGridArea(
@@ -788,82 +944,50 @@ public class BuildingSelectionController : MonoBehaviour
         out int width,
         out int depth)
     {
-        int minX =
-            Mathf.Min(
-                dragStartGridPosition.x,
-                dragCurrentGridPosition.x
-            );
+        int minX = Mathf.Min(
+            dragStartGridPosition.x,
+            dragCurrentGridPosition.x
+        );
 
-        int maxX =
-            Mathf.Max(
-                dragStartGridPosition.x,
-                dragCurrentGridPosition.x
-            );
+        int maxX = Mathf.Max(
+            dragStartGridPosition.x,
+            dragCurrentGridPosition.x
+        );
 
-        int minZ =
-            Mathf.Min(
-                dragStartGridPosition.y,
-                dragCurrentGridPosition.y
-            );
+        int minZ = Mathf.Min(
+            dragStartGridPosition.y,
+            dragCurrentGridPosition.y
+        );
 
-        int maxZ =
-            Mathf.Max(
-                dragStartGridPosition.y,
-                dragCurrentGridPosition.y
-            );
+        int maxZ = Mathf.Max(
+            dragStartGridPosition.y,
+            dragCurrentGridPosition.y
+        );
 
-        origin =
-            new Vector2Int(
-                minX,
-                minZ
-            );
-
-        width =
-            maxX - minX + 1;
-
-        depth =
-            maxZ - minZ + 1;
+        origin = new Vector2Int(minX, minZ);
+        width = maxX - minX + 1;
+        depth = maxZ - minZ + 1;
     }
 
     private void CreateSelectionVisuals()
     {
-        selectionBox =
-            GameObject.CreatePrimitive(
-                PrimitiveType.Quad
-            );
+        selectionBox = GameObject.CreatePrimitive(PrimitiveType.Quad);
+        selectionBox.name = "Grid Selection Box";
 
-        selectionBox.name =
-            "Grid Selection Box";
-
-        Collider collider =
-            selectionBox.GetComponent<Collider>();
+        Collider collider = selectionBox.GetComponent<Collider>();
 
         if (collider != null)
-        {
             Destroy(collider);
-        }
 
-        Renderer renderer =
-            selectionBox.GetComponent<Renderer>();
+        Renderer renderer = selectionBox.GetComponent<Renderer>();
+        renderer.material = selectionBoxMaterial;
 
-        renderer.material =
-            selectionBoxMaterial;
-
-        selectionBorder =
-            selectionBox.AddComponent<LineRenderer>();
-
+        selectionBorder = selectionBox.AddComponent<LineRenderer>();
         selectionBorder.useWorldSpace = true;
         selectionBorder.loop = true;
-
-        selectionBorder.startWidth =
-            SELECTION_BORDER_WIDTH;
-
-        selectionBorder.endWidth =
-            SELECTION_BORDER_WIDTH;
-
-        selectionBorder.material =
-            CreateSelectionBorderMaterial();
-
+        selectionBorder.startWidth = SELECTION_BORDER_WIDTH;
+        selectionBorder.endWidth = SELECTION_BORDER_WIDTH;
+        selectionBorder.material = CreateSelectionBorderMaterial();
         selectionBorder.positionCount = 4;
 
         HideSelectionVisuals();
@@ -872,10 +996,9 @@ public class BuildingSelectionController : MonoBehaviour
     private void UpdateSelectionVisuals()
     {
         if (selectionBox == null ||
-            selectionBorder == null)
-        {
+            selectionBorder == null ||
+            gridManager == null)
             return;
-        }
 
         GetSelectionGridArea(
             out Vector2Int origin,
@@ -883,85 +1006,44 @@ public class BuildingSelectionController : MonoBehaviour
             out int depth
         );
 
-        Vector3 bottomLeft =
-            gridManager.GridToWorld(
-                origin
-            );
+        Vector3 bottomLeft = gridManager.GridToWorld(origin);
 
-        Vector3 topRight =
-            gridManager.GridToWorld(
-                origin +
-                new Vector2Int(
-                    width,
-                    depth
-                )
-            );
+        Vector3 topRight = gridManager.GridToWorld(
+            origin + new Vector2Int(width, depth)
+        );
 
-        Vector3 bottomRight =
-            new Vector3(
-                topRight.x,
-                bottomLeft.y,
-                bottomLeft.z
-            );
+        Vector3 bottomRight = new Vector3(
+            topRight.x, bottomLeft.y, bottomLeft.z
+        );
 
-        Vector3 topLeft =
-            new Vector3(
-                bottomLeft.x,
-                bottomLeft.y,
-                topRight.z
-            );
+        Vector3 topLeft = new Vector3(
+            bottomLeft.x, bottomLeft.y, topRight.z
+        );
 
         float y =
-            gridManager.transform.position.y +
-            SELECTION_HEIGHT_OFFSET;
+            gridManager.transform.position.y + SELECTION_HEIGHT_OFFSET;
 
         bottomLeft.y = y;
         bottomRight.y = y;
         topRight.y = y;
         topLeft.y = y;
 
-        Vector3 center =
-            (bottomLeft + topRight) *
-            0.5f;
+        Vector3 center = (bottomLeft + topRight) * 0.5f;
 
-        selectionBox.transform.position =
-            center;
-
+        selectionBox.transform.position = center;
         selectionBox.transform.rotation =
-            Quaternion.Euler(
-                90f,
-                0f,
-                0f
-            );
+            Quaternion.Euler(90f, 0f, 0f);
 
-        selectionBox.transform.localScale =
-            new Vector3(
-                width *
-                gridManager.CellSize,
-                depth *
-                gridManager.CellSize,
-                1f
-            );
-
-        selectionBorder.SetPosition(
-            0,
-            bottomLeft
+        selectionBox.transform.localScale = new Vector3(
+            width * gridManager.CellSize,
+            depth * gridManager.CellSize,
+            1f
         );
 
-        selectionBorder.SetPosition(
-            1,
-            bottomRight
-        );
-
-        selectionBorder.SetPosition(
-            2,
-            topRight
-        );
-
-        selectionBorder.SetPosition(
-            3,
-            topLeft
-        );
+        selectionBorder.SetPosition(0, bottomLeft);
+        selectionBorder.SetPosition(1, bottomRight);
+        selectionBorder.SetPosition(2, topRight);
+        selectionBorder.SetPosition(3, topLeft);
 
         selectionBox.SetActive(true);
         selectionBorder.enabled = true;
@@ -970,168 +1052,89 @@ public class BuildingSelectionController : MonoBehaviour
     private void HideSelectionVisuals()
     {
         if (selectionBox != null)
-        {
             selectionBox.SetActive(false);
-        }
 
         if (selectionBorder != null)
-        {
             selectionBorder.enabled = false;
-        }
     }
 
     private void CreateSelectionBoxMaterial()
     {
-        Shader shader =
-            Shader.Find(
-                "Universal Render Pipeline/Unlit"
-            );
+        Shader shader = Shader.Find("Universal Render Pipeline/Unlit");
 
         if (shader == null)
         {
-            Debug.LogError(
-                "Could not find URP Unlit shader."
-            );
-
+            Debug.LogError("Could not find URP Unlit shader.");
             return;
         }
 
-        selectionBoxMaterial =
-            new Material(shader);
+        selectionBoxMaterial = new Material(shader);
+        selectionBoxMaterial.name = "Grid Selection Box Material";
 
-        selectionBoxMaterial.name =
-            "Grid Selection Box Material";
+        selectionBoxMaterial.SetFloat("_Surface", 1.0f);
+        selectionBoxMaterial.SetFloat("_Blend", 0.0f);
+        selectionBoxMaterial.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+        selectionBoxMaterial.DisableKeyword("_ALPHATEST_ON");
+        selectionBoxMaterial.DisableKeyword("_ALPHAMODULATE_ON");
 
-        selectionBoxMaterial.SetFloat(
-            "_Surface",
-            1.0f
-        );
-
-        selectionBoxMaterial.SetFloat(
-            "_Blend",
-            0.0f
-        );
-
-        selectionBoxMaterial.EnableKeyword(
-            "_SURFACE_TYPE_TRANSPARENT"
-        );
-
-        selectionBoxMaterial.DisableKeyword(
-            "_ALPHATEST_ON"
-        );
-
-        selectionBoxMaterial.DisableKeyword(
-            "_ALPHAMODULATE_ON"
-        );
-
-        if (selectionBoxMaterial.HasProperty(
-                "_BaseColor"))
+        if (selectionBoxMaterial.HasProperty("_BaseColor"))
         {
-            Color color =
-                selectionBoxColor;
-
+            Color color = selectionBoxColor;
             color.a = 0.15f;
-
-            selectionBoxMaterial.SetColor(
-                "_BaseColor",
-                color
-            );
+            selectionBoxMaterial.SetColor("_BaseColor", color);
         }
 
-        selectionBoxMaterial.SetFloat(
-            "_ReceiveShadows",
-            0.0f
-        );
-
+        selectionBoxMaterial.SetFloat("_ReceiveShadows", 0.0f);
         selectionBoxMaterial.SetInt(
             "_SrcBlend",
             (int)UnityEngine.Rendering.BlendMode.SrcAlpha
         );
-
         selectionBoxMaterial.SetInt(
             "_DstBlend",
             (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha
         );
 
-        selectionBoxMaterial.SetInt(
-            "_ZWrite",
-            0
-        );
-
-        selectionBoxMaterial.renderQueue =
-            3000;
+        selectionBoxMaterial.SetInt("_ZWrite", 0);
+        selectionBoxMaterial.renderQueue = 3000;
     }
 
     private Material CreateSelectionBorderMaterial()
     {
-        Shader shader =
-            Shader.Find(
-                "Universal Render Pipeline/Unlit"
-            );
+        Shader shader = Shader.Find("Universal Render Pipeline/Unlit");
 
         if (shader == null)
         {
-            Debug.LogError(
-                "Could not find URP Unlit shader."
-            );
-
+            Debug.LogError("Could not find URP Unlit shader.");
             return null;
         }
 
-        Material material =
-            new Material(shader);
+        Material material = new Material(shader);
+        material.name = "Grid Selection Border Material";
 
-        material.name =
-            "Grid Selection Border Material";
+        if (material.HasProperty("_BaseColor"))
+            material.SetColor("_BaseColor", selectionBorderColor);
 
-        if (material.HasProperty(
-                "_BaseColor"))
-        {
-            material.SetColor(
-                "_BaseColor",
-                selectionBorderColor
-            );
-        }
-
-        material.renderQueue =
-            3000;
-
+        material.renderQueue = 3000;
         return material;
     }
 
     private void CreateHighlightMaterial()
     {
-        Shader shader =
-            Shader.Find(
-                "Universal Render Pipeline/Unlit"
-            );
+        Shader shader = Shader.Find("Universal Render Pipeline/Unlit");
 
         if (shader == null)
         {
-            Debug.LogError(
-                "Could not find URP Unlit shader."
-            );
-
+            Debug.LogError("Could not find URP Unlit shader.");
             return;
         }
 
-        highlightMaterial =
-            new Material(shader);
+        highlightMaterial = new Material(shader);
+        highlightMaterial.name = "Building Selection Material";
 
-        highlightMaterial.name =
-            "Building Selection Material";
+        if (highlightMaterial.HasProperty("_BaseColor"))
+            highlightMaterial.SetColor("_BaseColor", highlightColor);
 
-        if (highlightMaterial.HasProperty(
-                "_BaseColor"))
-        {
-            highlightMaterial.SetColor(
-                "_BaseColor",
-                highlightColor
-            );
-        }
-
-        highlightMaterial.renderQueue =
-            3000;
+        highlightMaterial.renderQueue = 3000;
     }
 
     private void OnDestroy()
@@ -1139,18 +1142,12 @@ public class BuildingSelectionController : MonoBehaviour
         ClearSelection();
 
         if (selectionBox != null)
-        {
             Destroy(selectionBox);
-        }
 
         if (highlightMaterial != null)
-        {
             Destroy(highlightMaterial);
-        }
 
         if (selectionBoxMaterial != null)
-        {
             Destroy(selectionBoxMaterial);
-        }
     }
 }

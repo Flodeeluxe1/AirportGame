@@ -65,9 +65,9 @@ public class AircraftTaxiController : MonoBehaviour
     [SerializeField] private Vector3 modelRotationOffset;
 
     [Header("Smooth Taxi Turns")]
-    [Tooltip("Desired curve radius as a fraction of one grid cell. A value of 1 starts the curve one cell before the corner and ends one cell after it, when space allows.")]
-    [Range(0.1f, 1.5f)]
-    [SerializeField] private float turningRadiusInCells = 1f;
+    [Tooltip("Desired curve radius as a fraction of one grid cell.")]
+    [Range(0.1f, 3f)]
+    [SerializeField] private float turningRadiusInCells = 2f;
 
     [Tooltip("Number of curve segments used to approximate each rounded corner.")]
     [Range(4, 16)]
@@ -125,6 +125,7 @@ public class AircraftTaxiController : MonoBehaviour
 
     private AircraftGate assignedGate;
     private AircraftRunway selectedRunway;
+    private AircraftTaxiTrafficFollowing trafficFollowing;
 
     private Vector3 landingDirection;
     private Vector3 runwayExitPoint;
@@ -211,6 +212,11 @@ public class AircraftTaxiController : MonoBehaviour
 
         if (gateRegistry == null)
             gateRegistry = FindFirstObjectByType<AircraftGateRegistry>();
+
+        // Shared component handles all aircraft traffic detection and
+        // speed adjustment for arriving aircraft.
+        trafficFollowing =
+            GetComponent<AircraftTaxiTrafficFollowing>();
     }
 
     private void Update()
@@ -531,11 +537,7 @@ public class AircraftTaxiController : MonoBehaviour
         }
 
         float cellSize = Mathf.Max(0.001f, gridManager.CellSize);
-
-        // Unlike the previous implementation, the desired tangent distance
-        // can now be one complete grid cell rather than 45% of a cell.
         float desiredRadius = turningRadiusInCells * cellSize;
-
         int pointCount = gridPoints.Count;
 
         Vector3[] incomingDirections = new Vector3[pointCount];
@@ -544,7 +546,6 @@ public class AircraftTaxiController : MonoBehaviour
 
         List<int> turnIndices = new List<int>();
 
-        // Detect every change in direction along the grid route.
         for (int i = 1; i < pointCount - 1; i++)
         {
             Vector3 incoming = gridPoints[i] - gridPoints[i - 1];
@@ -564,7 +565,6 @@ public class AircraftTaxiController : MonoBehaviour
 
             float directionDot = Vector3.Dot(incoming, outgoing);
 
-            // Straight sections do not need a corner.
             if (directionDot > 0.99f)
                 continue;
 
@@ -573,16 +573,12 @@ public class AircraftTaxiController : MonoBehaviour
             incomingDirections[i] = incoming;
             outgoingDirections[i] = outgoing;
 
-            // Only round approximately 90-degree corners. Other changes,
-            // such as reversals, remain as explicit waypoints.
             if (Mathf.Abs(directionDot) <= 0.01f)
                 cornerRadii[i] = desiredRadius;
             else
                 cornerRadii[i] = 0f;
         }
 
-        // Limit each corner using the available straight distance to
-        // neighboring corners. This prevents adjacent curves overlapping.
         for (int turnIndex = 0;
              turnIndex < turnIndices.Count;
              turnIndex++)
@@ -647,8 +643,6 @@ public class AircraftTaxiController : MonoBehaviour
 
         const float BezierCircleFactor = 0.55228475f;
 
-        // Each rounded corner begins on its incoming straight section,
-        // then follows a cubic Bezier arc and ends on its outgoing section.
         for (int turnIndex = 0;
              turnIndex < turnIndices.Count;
              turnIndex++)
@@ -679,7 +673,6 @@ public class AircraftTaxiController : MonoBehaviour
             entryPoint.y = taxiWorldY;
             exitPoint.y = taxiWorldY;
 
-            // The path before entry remains straight.
             AddMovementPoint(entryPoint);
 
             Vector3 controlPoint1 =
@@ -696,8 +689,7 @@ public class AircraftTaxiController : MonoBehaviour
                  sample <= turnCurveResolution;
                  sample++)
             {
-                float t =
-                    sample / (float)turnCurveResolution;
+                float t = sample / (float)turnCurveResolution;
 
                 Vector3 curvePoint = EvaluateCubicBezier(
                     entryPoint,
@@ -1139,6 +1131,14 @@ public class AircraftTaxiController : MonoBehaviour
         float taxiSpeed =
             taxiSpeedKnots * worldUnitsPerSecondPerKnot;
 
+        // Delegate aircraft detection and speed adjustment to the shared
+        // traffic-following component used by departing aircraft.
+        if (trafficFollowing != null)
+        {
+            taxiSpeed =
+                trafficFollowing.GetTrafficFollowingSpeed(taxiSpeed);
+        }
+
         transform.position = Vector3.MoveTowards(
             transform.position,
             target,
@@ -1211,7 +1211,6 @@ public class AircraftTaxiController : MonoBehaviour
         }
 
         GetComponent<AircraftTurnaroundController>()?.BeginTurnaround();
-
     }
 
     private void StopTaxiing(string reason)

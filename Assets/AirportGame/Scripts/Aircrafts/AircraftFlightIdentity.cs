@@ -4,14 +4,24 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class AircraftFlightIdentity : MonoBehaviour
 {
+    [Header("Flight Identity")]
+    [SerializeField] private string flightNumber;
+
+    [Header("Gate Identity")]
+    [Tooltip("The intended gate from the flight schedule.")]
+    [SerializeField] private string plannedGateStableId;
+
+    [Tooltip("The gate actually assigned to this aircraft.")]
+    [SerializeField] private string actualGateStableId;
+
     public FlightDefinition Definition { get; private set; }
 
     public string FlightNumber =>
-        Definition != null ? Definition.FlightNumber : string.Empty;
+        Definition != null ? Definition.FlightNumber : flightNumber;
 
-    public string PlannedGateStableId { get; private set; }
+    public string PlannedGateStableId => plannedGateStableId;
 
-    public string ActualGateStableId { get; private set; }
+    public string ActualGateStableId => actualGateStableId;
 
     public int PlannedStartMinute { get; private set; }
 
@@ -23,7 +33,7 @@ public class AircraftFlightIdentity : MonoBehaviour
     public bool IsInitialized { get; private set; }
 
     public bool HasActualGate =>
-        !string.IsNullOrEmpty(ActualGateStableId);
+        !string.IsNullOrEmpty(actualGateStableId);
 
     public void Initialize(
         FlightDefinition definition,
@@ -42,11 +52,12 @@ public class AircraftFlightIdentity : MonoBehaviour
         }
 
         Definition = definition;
-        PlannedGateStableId = plannedGateStableId;
+        flightNumber = definition.FlightNumber;
+        this.plannedGateStableId = plannedGateStableId;
         PlannedStartMinute = plannedStartMinute;
         ScheduledDayIndex = scheduledDayIndex;
 
-        ActualGateStableId = string.Empty;
+        actualGateStableId = string.Empty;
         IsInitialized = true;
 
         Debug.Log(
@@ -69,12 +80,12 @@ public class AircraftFlightIdentity : MonoBehaviour
             return;
         }
 
-        ActualGateStableId = gateStableId;
+        actualGateStableId = gateStableId;
     }
 
     public void ClearActualGate()
     {
-        ActualGateStableId = string.Empty;
+        actualGateStableId = string.Empty;
     }
 
     private string FormatTime(int minutes)

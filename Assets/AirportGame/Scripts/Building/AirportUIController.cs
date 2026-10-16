@@ -1,8 +1,8 @@
+
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UIElements;
-using UnityEngine.InputSystem;
 
 public class AirportUIController : MonoBehaviour
 {
@@ -10,6 +10,7 @@ public class AirportUIController : MonoBehaviour
     [SerializeField] private UIDocument uiDocument;
     [SerializeField] private BuildCatalog buildCatalog;
     [SerializeField] private BuildController buildController;
+    [SerializeField] private BuildingSelectionController buildingSelectionController;
 
     private VisualElement root;
 
@@ -18,6 +19,7 @@ public class AirportUIController : MonoBehaviour
 
     private Button buildButton;
     private Button zoneButton;
+    private Button deleteAllButton;
 
     private readonly Dictionary<BuildCategory, Button> categoryButtons =
         new();
@@ -26,25 +28,30 @@ public class AirportUIController : MonoBehaviour
         new();
 
     private BuildCategory currentCategory;
-
     private BuildableDefinition selectedBuildable;
 
     private void Awake()
     {
         if (uiDocument == null)
         {
-            uiDocument =
-                GetComponent<UIDocument>();
+            uiDocument = GetComponent<UIDocument>();
         }
 
-        root =
-            uiDocument.rootVisualElement;
+        if (uiDocument == null)
+        {
+            Debug.LogError(
+                "AirportUIController: UIDocument is not assigned."
+            );
+            enabled = false;
+            return;
+        }
+
+        root = uiDocument.rootVisualElement;
 
         FindElements();
         RegisterEvents();
 
-        currentCategory =
-            BuildCategory.Floor;
+        currentCategory = BuildCategory.Floor;
 
         HideBuildWindow();
     }
@@ -68,31 +75,33 @@ public class AirportUIController : MonoBehaviour
 
     private void FindElements()
     {
-        buildWindow =
-            root.Q<VisualElement>("build-window");
+        buildWindow = root.Q<VisualElement>("build-window");
+        buildableList = root.Q<ScrollView>("buildable-list");
 
-        buildableList =
-            root.Q<ScrollView>("buildable-list");
+        if (buildableList != null)
+        {
+            buildableList.contentContainer.style.flexDirection =
+                FlexDirection.Row;
 
-        // Make the ScrollView content behave like a
-        // horizontal wrapping grid.
-        buildableList.contentContainer.style.flexDirection =
-            FlexDirection.Row;
+            buildableList.contentContainer.style.flexWrap =
+                Wrap.Wrap;
 
-        buildableList.contentContainer.style.flexWrap =
-            Wrap.Wrap;
+            buildableList.contentContainer.style.alignContent =
+                Align.FlexStart;
 
-        buildableList.contentContainer.style.alignContent =
-            Align.FlexStart;
+            buildableList.contentContainer.style.alignItems =
+                Align.FlexStart;
+        }
 
-        buildableList.contentContainer.style.alignItems =
-            Align.FlexStart;
+        buildButton = root.Q<Button>("build-button");
+        zoneButton = root.Q<Button>("zone-button");
+        deleteAllButton = root.Q<Button>("delete-all-button");
 
-        buildButton =
-            root.Q<Button>("build-button");
-
-        zoneButton =
-            root.Q<Button>("zone-button");
+        if (buildingSelectionController == null)
+        {
+            buildingSelectionController =
+                FindFirstObjectByType<BuildingSelectionController>();
+        }
 
         categoryButtons[BuildCategory.Floor] =
             root.Q<Button>("category-floor");
@@ -114,20 +123,40 @@ public class AirportUIController : MonoBehaviour
 
         categoryButtons[BuildCategory.Commercial] =
             root.Q<Button>("category-commercial");
+
+        if (buildWindow == null)
+            Debug.LogError("AirportUIController: 'build-window' was not found.");
+
+        if (buildableList == null)
+            Debug.LogError("AirportUIController: 'buildable-list' was not found.");
+
+        if (buildButton == null)
+            Debug.LogError("AirportUIController: 'build-button' was not found.");
+
+        if (zoneButton == null)
+            Debug.LogError("AirportUIController: 'zone-button' was not found.");
+
+        if (deleteAllButton == null)
+            Debug.LogError("AirportUIController: 'delete-all-button' was not found.");
     }
 
     private void RegisterEvents()
     {
-        buildButton.clicked += ToggleBuildWindow;
+        if (buildButton != null)
+            buildButton.clicked += ToggleBuildWindow;
 
-        zoneButton.clicked += OnZoneButtonClicked;
+        if (zoneButton != null)
+            zoneButton.clicked += OnZoneButtonClicked;
 
-        foreach (
-            KeyValuePair<BuildCategory, Button> pair
-            in categoryButtons)
+        if (deleteAllButton != null)
+            deleteAllButton.clicked += OnDeleteAllButtonClicked;
+
+        foreach (KeyValuePair<BuildCategory, Button> pair in categoryButtons)
         {
-            BuildCategory category =
-                pair.Key;
+            if (pair.Value == null)
+                continue;
+
+            BuildCategory category = pair.Key;
 
             pair.Value.clicked += () =>
             {
@@ -138,6 +167,9 @@ public class AirportUIController : MonoBehaviour
 
     private void ToggleBuildWindow()
     {
+        if (buildWindow == null)
+            return;
+
         if (IsBuildWindowVisible())
         {
             HideBuildWindow();
@@ -156,62 +188,56 @@ public class AirportUIController : MonoBehaviour
 
     private void ShowBuildWindow()
     {
-        buildWindow.style.display =
-            DisplayStyle.Flex;
+        if (buildWindow == null)
+            return;
 
+        buildWindow.style.display = DisplayStyle.Flex;
         SelectCategory(currentCategory);
     }
 
     private void HideBuildWindow()
     {
-        buildWindow.style.display =
-            DisplayStyle.None;
+        if (buildWindow != null)
+            buildWindow.style.display = DisplayStyle.None;
     }
 
     private bool IsBuildWindowVisible()
     {
-        return buildWindow.resolvedStyle.display !=
-               DisplayStyle.None;
+        return buildWindow != null &&
+               buildWindow.resolvedStyle.display != DisplayStyle.None;
     }
 
-    private void SelectCategory(
-        BuildCategory category)
+    private void SelectCategory(BuildCategory category)
     {
-        currentCategory =
-            category;
-
+        currentCategory = category;
         UpdateCategoryButtonStates();
         PopulateBuildableList();
     }
 
     private void UpdateCategoryButtonStates()
     {
-        foreach (
-            KeyValuePair<BuildCategory, Button> pair
-            in categoryButtons)
+        foreach (KeyValuePair<BuildCategory, Button> pair in categoryButtons)
         {
-            bool selected =
-                pair.Key == currentCategory;
+            if (pair.Value == null)
+                continue;
 
-            if (selected)
+            if (pair.Key == currentCategory)
             {
-                pair.Value.AddToClassList(
-                    "category-selected"
-                );
+                pair.Value.AddToClassList("category-selected");
             }
             else
             {
-                pair.Value.RemoveFromClassList(
-                    "category-selected"
-                );
+                pair.Value.RemoveFromClassList("category-selected");
             }
         }
     }
 
     private void PopulateBuildableList()
     {
-        buildableList.Clear();
+        if (buildableList == null)
+            return;
 
+        buildableList.Clear();
         buildableCards.Clear();
 
         if (buildCatalog == null ||
@@ -220,132 +246,108 @@ public class AirportUIController : MonoBehaviour
             return;
         }
 
-        foreach (
-            BuildableDefinition definition
-            in buildCatalog.buildables)
+        foreach (BuildableDefinition definition in buildCatalog.buildables)
         {
-            if (definition == null)
-                continue;
-
-            if (definition.category !=
-                currentCategory)
+            if (definition == null ||
+                definition.category != currentCategory)
             {
                 continue;
             }
 
-            CreateBuildableButton(
-                definition
-            );
+            CreateBuildableButton(definition);
         }
     }
 
-    private void CreateBuildableButton(
-        BuildableDefinition definition)
+    private void CreateBuildableButton(BuildableDefinition definition)
     {
-        VisualElement card =
-            new VisualElement();
+        VisualElement card = new VisualElement();
+        card.AddToClassList("buildable-card");
 
-        card.AddToClassList(
-            "buildable-card"
-        );
-
-        Label nameLabel =
-            new Label(
-                definition.displayName
-            );
-
-        nameLabel.AddToClassList(
-            "buildable-name"
-        );
-
+        Label nameLabel = new Label(definition.displayName);
+        nameLabel.AddToClassList("buildable-name");
         card.Add(nameLabel);
 
-        Label costLabel =
-            new Label(
-                $"${definition.buildCost}"
-            );
-
-        costLabel.AddToClassList(
-            "buildable-cost"
-        );
-
+        Label costLabel = new Label($"${definition.buildCost}");
+        costLabel.AddToClassList("buildable-cost");
         card.Add(costLabel);
 
-        buildableCards[definition] =
-            card;
+        buildableCards[definition] = card;
 
         if (selectedBuildable == definition)
         {
-            card.AddToClassList(
-                "buildable-selected"
-            );
+            card.AddToClassList("buildable-selected");
         }
 
-        card.RegisterCallback<ClickEvent>(
-            evt =>
-            {
-                SelectBuildable(
-                    definition
-                );
-
-                evt.StopPropagation();
-            }
-        );
+        card.RegisterCallback<ClickEvent>(evt =>
+        {
+            SelectBuildable(definition);
+            evt.StopPropagation();
+        });
 
         buildableList.Add(card);
     }
 
-    private void SelectBuildable(
-        BuildableDefinition definition)
+    private void SelectBuildable(BuildableDefinition definition)
     {
         if (buildController == null)
         {
             Debug.LogError(
-                "AirportUIController: " +
-                "BuildController is not assigned."
+                "AirportUIController: BuildController is not assigned."
             );
-
             return;
         }
 
-        selectedBuildable =
-            definition;
-
+        selectedBuildable = definition;
         UpdateBuildableSelectionVisuals();
-
-        buildController.StartBuilding(
-            definition
-        );
+        buildController.StartBuilding(definition);
     }
 
     private void UpdateBuildableSelectionVisuals()
     {
         foreach (
-            KeyValuePair<
-                BuildableDefinition,
-                VisualElement
-            > pair
+            KeyValuePair<BuildableDefinition, VisualElement> pair
             in buildableCards)
         {
             if (pair.Key == selectedBuildable)
             {
-                pair.Value.AddToClassList(
-                    "buildable-selected"
-                );
+                pair.Value.AddToClassList("buildable-selected");
             }
             else
             {
-                pair.Value.RemoveFromClassList(
-                    "buildable-selected"
-                );
+                pair.Value.RemoveFromClassList("buildable-selected");
             }
         }
     }
 
     private void OnZoneButtonClicked()
     {
-        Debug.Log(
-            "Zones UI will be implemented later."
-        );
+        Debug.Log("Zones UI will be implemented later.");
+    }
+
+    private void OnDeleteAllButtonClicked()
+    {
+        if (buildingSelectionController == null)
+        {
+            buildingSelectionController =
+                FindFirstObjectByType<BuildingSelectionController>();
+        }
+
+        if (buildingSelectionController == null)
+        {
+            Debug.LogError(
+                "AirportUIController: BuildingSelectionController " +
+                "could not be found."
+            );
+            return;
+        }
+
+        if (buildController != null &&
+            buildController.IsBuilding)
+        {
+            buildController.CancelBuilding();
+        }
+
+        HideBuildWindow();
+        buildingSelectionController.BeginDeleteSelectionMode();
     }
 }

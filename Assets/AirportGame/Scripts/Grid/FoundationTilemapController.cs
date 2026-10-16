@@ -118,5 +118,21 @@ public class FoundationTilemapController : MonoBehaviour
             }
         }
     }
+
+    public void RemoveFoundationArea(
+    Vector2Int origin,
+    int width,
+    int depth)
+    {
+        for (int x = 0; x < width; x++)
+        {
+            for (int z = 0; z < depth; z++)
+            {
+                RemoveFoundationTile(
+                    origin + new Vector2Int(x, z)
+                );
+            }
+        }
+    }
 }
 
