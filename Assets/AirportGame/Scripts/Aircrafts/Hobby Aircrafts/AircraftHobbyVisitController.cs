@@ -8,7 +8,7 @@ using UnityEngine;
 /// </summary>
 [DisallowMultipleComponent]
 [RequireComponent(typeof(AircraftFlightIdentity))]
-public class HobbyAircraftVisitController : MonoBehaviour
+public class AircraftHobbyVisitController : MonoBehaviour
 {
     [Header("Landing Fee")]
     [Min(0)]
@@ -44,8 +44,8 @@ public class HobbyAircraftVisitController : MonoBehaviour
     public int ParkingFee => parkingFee;
 
     private AircraftFlightIdentity flightIdentity;
-    private AircraftLandingController landingController;
-    private HobbyAircraftTaxiController hobbyTaxiController;
+    private AircraftHobbyLandingController landingController;
+    private AircraftHobbyLandingTaxiController hobbyTaxiController;
     private HobbyAircraftParkingSpot reservedSpot;
     private AirportEconomyManager economyManager;
     private GameTimeManager gameTimeManager;
@@ -61,8 +61,8 @@ public class HobbyAircraftVisitController : MonoBehaviour
     private void Awake()
     {
         flightIdentity = GetComponent<AircraftFlightIdentity>();
-        landingController = GetComponent<AircraftLandingController>();
-        hobbyTaxiController = GetComponent<HobbyAircraftTaxiController>();
+        landingController = GetComponent<AircraftHobbyLandingController>();
+        hobbyTaxiController = GetComponent<AircraftHobbyLandingTaxiController>();
 
         economyManager =
             FindFirstObjectByType<AirportEconomyManager>();
@@ -82,10 +82,10 @@ public class HobbyAircraftVisitController : MonoBehaviour
         }
 
         if (landingController == null)
-            landingController = GetComponent<AircraftLandingController>();
+            landingController = GetComponent<AircraftHobbyLandingController>();
 
         if (hobbyTaxiController == null)
-            hobbyTaxiController = GetComponent<HobbyAircraftTaxiController>();
+            hobbyTaxiController = GetComponent<AircraftHobbyLandingTaxiController>();
 
         if (economyManager == null)
             economyManager = FindFirstObjectByType<AirportEconomyManager>();

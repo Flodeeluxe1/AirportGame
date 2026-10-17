@@ -4572,13 +4572,13 @@ GameObject:
   m_Component:
   - component: {fileID: 8850209717641481165}
   - component: {fileID: 1868921001595489411}
-  - component: {fileID: -8894545629272198768}
-  - component: {fileID: -8110166634475094363}
-  - component: {fileID: -8117037435087780820}
-  - component: {fileID: 4191876586678499804}
-  - component: {fileID: 6880801071020878416}
-  - component: {fileID: 4447065906074437843}
-  - component: {fileID: 71869691852557280}
+  - component: {fileID: -1437335864178184074}
+  - component: {fileID: -5828195141393434414}
+  - component: {fileID: -8064365332280727941}
+  - component: {fileID: 4611748060777580918}
+  - component: {fileID: 510167352823672194}
+  - component: {fileID: -40079160701466050}
+  - component: {fileID: 277294173312402616}
   m_Layer: 0
   m_Name: CessnaMain
   m_TagString: Untagged
@@ -4623,7 +4623,7 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1, y: 1, z: 1}
   m_Center: {x: 0.54, y: 0.51, z: 1.1}
---- !u!114 &-8894545629272198768
+--- !u!114 &-1437335864178184074
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -4636,7 +4636,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HobbyAircraftIdentityInitializer
   flightNumber: VFR101
---- !u!114 &-8110166634475094363
+--- !u!114 &-5828195141393434414
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -4651,7 +4651,7 @@ MonoBehaviour:
   flightNumber: 
   plannedGateStableId: 
   actualGateStableId: 
---- !u!114 &-8117037435087780820
+--- !u!114 &-8064365332280727941
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -4660,26 +4660,26 @@ MonoBehaviour:
   m_GameObject: {fileID: 5782728294546788241}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 75750bee45f5c7e4895808b3b18c72d8, type: 3}
+  m_Script: {fileID: 11500000, guid: 0d67c402bd390654888b128ce40c910d, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::AircraftLandingController
+  m_EditorClassIdentifier: Assembly-CSharp::AircraftHobbyLandingController
   gridManager: {fileID: 0}
   weather: {fileID: 0}
   approachDistance: 60
-  glideAngleDegrees: 4
-  approachSpeedKnots: 100
-  touchdownSpeedKnots: 70
-  rolloutTargetSpeedKnots: 20
-  worldUnitsPerSecondPerKnot: 0.08
-  speedChangeRate: 2
-  rolloutDeceleration: 1
-  flareHeight: 2
-  noseRaiseDegrees: 8
-  noseLoweringDuration: 2
+  glideAngleDegrees: 3
+  approachSpeedKnots: 140
+  touchdownSpeedKnots: 120
+  rolloutTargetSpeedKnots: 30
+  worldUnitsPerSecondPerKnot: 0.05
+  speedChangeRate: 3
+  rolloutDeceleration: 1.2
+  flareHeight: 1.5
+  noseRaiseDegrees: 3
+  noseLoweringDuration: 1.5
   maximumSidewindComponentKnots: 15
-  goAroundNoseUpDegrees: 10
+  goAroundNoseUpDegrees: 20
   goAroundAltitudeAboveRunway: 30
-  rotationSpeed: 2
+  rotationSpeed: 3
   modelRotationOffset: {x: 0, y: 0, z: 0}
   debugLandingState: Initializing
   debugSelectedRunway: None
@@ -4690,7 +4690,7 @@ MonoBehaviour:
   debugDistanceToThreshold: 0
   debugGoAroundTargetAltitude: 0
   debugStatus: Waiting for initialization
---- !u!114 &4191876586678499804
+--- !u!114 &4611748060777580918
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -4701,9 +4701,8 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 443cf1a01839a0743b71ae075c2d02f9, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::HobbyAircraftTaxiController
+  m_EditorClassIdentifier: Assembly-CSharp::AircraftHobbyLandingTaxiController
   landingController: {fileID: 0}
-  flightIdentity: {fileID: 0}
   gridManager: {fileID: 0}
   taxiwayNetwork: {fileID: 0}
   taxiwayPathfinder: {fileID: 0}
@@ -4715,8 +4714,8 @@ MonoBehaviour:
   runwayEndTolerance: 1
   maximumParkingConnectorDistance: 4
   taxiSpeedKnots: 10
-  worldUnitsPerSecondPerKnot: 0.08
-  rotationSpeed: 1
+  worldUnitsPerSecondPerKnot: 0.05
+  rotationSpeed: 3
   waypointArrivalDistance: 0.2
   parkingArrivalDistance: 0.5
   taxiHeightOffset: 0.05
@@ -4725,8 +4724,8 @@ MonoBehaviour:
   turnCurveResolution: 8
   taxiPathPointTolerance: 0.02
   logTaxiProgress: 1
-  debugStatus: Waiting for VFR landing completion.
---- !u!114 &6880801071020878416
+  debugStatus: Waiting for hobby landing completion.
+--- !u!114 &510167352823672194
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -4737,19 +4736,19 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 55525b5280edd2940967179e57e81867, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::HobbyAircraftVisitController
-  landingFee: 10
-  parkingFee: 5
-  parkingIntervalMinutes: 10
-  minimumStayMinutes: 17
-  maximumStayMinutes: 50
+  m_EditorClassIdentifier: Assembly-CSharp::AircraftHobbyVisitController
+  landingFee: 150
+  parkingFee: 25
+  parkingIntervalMinutes: 30
+  minimumStayMinutes: 60
+  maximumStayMinutes: 120
   parkingSpotReleaseDistance: 2
   landingFeeCharged: 0
   hasParked: 0
   departureRequested: 0
   visitMinutesRemaining: 0
   debugStatus: Waiting for landing
---- !u!114 &4447065906074437843
+--- !u!114 &-40079160701466050
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -4758,10 +4757,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 5782728294546788241}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: affde225309190b489d2b2272fbc51ae, type: 3}
+  m_Script: {fileID: 11500000, guid: 35f1eb85ae355924487a69c477ce76c5, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::AircraftDepartureTaxiController
-  gateExitController: {fileID: 0}
+  m_EditorClassIdentifier: Assembly-CSharp::AircraftHobbyDepartureTaxiController
   gridManager: {fileID: 0}
   weather: {fileID: 0}
   trafficManager: {fileID: 0}
@@ -4773,8 +4771,8 @@ MonoBehaviour:
   startSearchRadiusCells: 4
   maximumStartCandidates: 10
   runwaySafetyMarginInCells: 1
-  taxiSpeedKnots: 10
-  worldUnitsPerSecondPerKnot: 0.08
+  taxiSpeedKnots: 15
+  worldUnitsPerSecondPerKnot: 0.05
   rotationSpeedDegreesPerSecond: 45
   waypointArrivalDistance: 0.15
   modelRotationOffset: {x: 0, y: 0, z: 0}
@@ -4796,8 +4794,8 @@ MonoBehaviour:
   debugTaxiRouteLength: 0
   debugSelectedRunway: None
   debugTakeoffHeading: None
-  debugStatus: Waiting for gate exit
---- !u!114 &71869691852557280
+  debugStatus: Waiting for hobby aircraft departure request
+--- !u!114 &277294173312402616
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -4806,22 +4804,22 @@ MonoBehaviour:
   m_GameObject: {fileID: 5782728294546788241}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d8d23606ac7ba554d8d17d749a1ae106, type: 3}
+  m_Script: {fileID: 11500000, guid: c47087dc9db968e418dc8d18308a8ce2, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::AircraftTakeoffController
+  m_EditorClassIdentifier: Assembly-CSharp::AircraftHobbyTakeoffController
   departureController: {fileID: 0}
   trafficManager: {fileID: 0}
   gameTimeManager: {fileID: 0}
   gridManager: {fileID: 0}
   aircraftCollider: {fileID: 0}
-  takeoffSpeedKnots: 70
-  groundAccelerationKnotsPerSecond: 6
-  airborneAccelerationKnotsPerSecond: 2
-  worldUnitsPerSecondPerKnot: 0.08
+  takeoffSpeedKnots: 120
+  groundAccelerationKnotsPerSecond: 12
+  airborneAccelerationKnotsPerSecond: 3
+  worldUnitsPerSecondPerKnot: 0.05
   rotationStartSpeedFraction: 0.8
   rotationRateDegreesPerSecond: 3
-  targetNoseUpDegrees: 10
-  liftoffStartNoseUpDegrees: 3
+  targetNoseUpDegrees: 25
+  liftoffStartNoseUpDegrees: 10
   modelRotationOffset: {x: 0, y: 0, z: 0}
   targetAltitudeAboveRunway: 60
   runwayClearanceBuffer: 1

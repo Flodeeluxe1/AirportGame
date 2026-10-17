@@ -45,7 +45,7 @@ public class TrainingFlightController : MonoBehaviour
     private AircraftDepartureTaxiController departureController;
     private AircraftTakeoffController takeoffController;
     private AircraftLandingController landingController;
-    private HobbyAircraftTaxiController taxiController;
+    private AircraftHobbyLandingTaxiController taxiController;
 
     private readonly List<Vector3> circuitWaypoints = new();
 
@@ -76,7 +76,7 @@ public class TrainingFlightController : MonoBehaviour
         landingController =
             GetComponent<AircraftLandingController>();
         taxiController =
-            GetComponent<HobbyAircraftTaxiController>();
+            GetComponent<AircraftHobbyLandingTaxiController>();
     }
 
     private void Update()

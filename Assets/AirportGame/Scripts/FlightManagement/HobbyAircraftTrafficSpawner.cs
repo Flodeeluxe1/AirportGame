@@ -500,8 +500,8 @@ public class HobbyAircraftTrafficSpawner : MonoBehaviour
 
     private float GetFeeDemandMultiplier()
     {
-        HobbyAircraftVisitController visitController =
-            hobbyAircraftPrefab.GetComponent<HobbyAircraftVisitController>();
+        AircraftHobbyVisitController visitController =
+            hobbyAircraftPrefab.GetComponent<AircraftHobbyVisitController>();
 
         if (visitController == null)
             return 1f;
@@ -598,11 +598,11 @@ public class HobbyAircraftTrafficSpawner : MonoBehaviour
         bool valid = true;
 
         if (hobbyAircraftPrefab.GetComponent<AircraftFlightIdentity>() == null ||
-            hobbyAircraftPrefab.GetComponent<AircraftLandingController>() == null ||
-            hobbyAircraftPrefab.GetComponent<HobbyAircraftTaxiController>() == null ||
-            hobbyAircraftPrefab.GetComponent<HobbyAircraftVisitController>() == null ||
-            hobbyAircraftPrefab.GetComponent<AircraftDepartureTaxiController>() == null ||
-            hobbyAircraftPrefab.GetComponent<AircraftTakeoffController>() == null)
+            hobbyAircraftPrefab.GetComponent<AircraftHobbyLandingController>() == null ||
+            hobbyAircraftPrefab.GetComponent<AircraftHobbyLandingTaxiController>() == null ||
+            hobbyAircraftPrefab.GetComponent<AircraftHobbyVisitController>() == null ||
+            hobbyAircraftPrefab.GetComponent<AircraftHobbyDepartureTaxiController>() == null ||
+            hobbyAircraftPrefab.GetComponent<AircraftHobbyTakeoffController>() == null)
         {
             Debug.LogError(
                 "Hobby aircraft prefab is missing one or more required " +

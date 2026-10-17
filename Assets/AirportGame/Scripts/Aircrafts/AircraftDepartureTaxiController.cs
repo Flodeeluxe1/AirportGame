@@ -184,8 +184,8 @@ public class AircraftDepartureTaxiController : MonoBehaviour
         }
         else if (isHobbyFlight)
         {
-            HobbyAircraftVisitController visitController =
-                GetComponent<HobbyAircraftVisitController>();
+            AircraftHobbyVisitController visitController =
+                GetComponent<AircraftHobbyVisitController>();
 
             // Hobby aircraft wait until their visit has finished.
             if (visitController == null ||

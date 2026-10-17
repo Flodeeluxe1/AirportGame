@@ -3,11 +3,10 @@ using System.Collections.Generic;
 using UnityEngine;
 
 [DisallowMultipleComponent]
-public class HobbyAircraftTaxiController : MonoBehaviour
+public class AircraftHobbyLandingTaxiController : MonoBehaviour
 {
     [Header("References")]
-    [SerializeField] private AircraftLandingController landingController;
-    [SerializeField] private AircraftFlightIdentity flightIdentity;
+    [SerializeField] private AircraftHobbyLandingController landingController;
     [SerializeField] private GridManager gridManager;
     [SerializeField] private TaxiwayNetwork taxiwayNetwork;
     [SerializeField] private TaxiwayPathfinder taxiwayPathfinder;
@@ -59,7 +58,7 @@ public class HobbyAircraftTaxiController : MonoBehaviour
     [Header("Debug")]
     [SerializeField] private bool logTaxiProgress = true;
     [TextArea(2, 5)]
-    public string debugStatus = "Waiting for VFR landing completion.";
+    public string debugStatus = "Waiting for hobby landing completion.";
 
     private enum TaxiPhase
     {
@@ -106,11 +105,8 @@ public class HobbyAircraftTaxiController : MonoBehaviour
         }
     }
 
-    private readonly List<Vector2Int> route =
-        new List<Vector2Int>();
-
-    private readonly List<Vector3> taxiMovementPath =
-        new List<Vector3>();
+    private readonly List<Vector2Int> route = new List<Vector2Int>();
+    private readonly List<Vector3> taxiMovementPath = new List<Vector3>();
 
     private bool routeAttempted;
     private int currentRouteIndex;
@@ -132,53 +128,32 @@ public class HobbyAircraftTaxiController : MonoBehaviour
         phase == TaxiPhase.FollowingTaxiway ||
         phase == TaxiPhase.ApproachingParking;
 
-    public bool HasArrivedAtParking =>
-        phase == TaxiPhase.Parked;
+    public bool HasArrivedAtParking => phase == TaxiPhase.Parked;
 
     private void Awake()
     {
         if (landingController == null)
+        {
             landingController =
-                GetComponent<AircraftLandingController>();
-
-        if (flightIdentity == null)
-            flightIdentity =
-                GetComponent<AircraftFlightIdentity>();
+                GetComponent<AircraftHobbyLandingController>();
+        }
 
         if (gridManager == null)
             gridManager = FindFirstObjectByType<GridManager>();
 
         if (taxiwayNetwork == null)
-            taxiwayNetwork =
-                FindFirstObjectByType<TaxiwayNetwork>();
+            taxiwayNetwork = FindFirstObjectByType<TaxiwayNetwork>();
 
         if (taxiwayPathfinder == null)
-            taxiwayPathfinder =
-                FindFirstObjectByType<TaxiwayPathfinder>();
+            taxiwayPathfinder = FindFirstObjectByType<TaxiwayPathfinder>();
     }
-
 
     private void Update()
     {
-        if (flightIdentity == null ||
-            (!flightIdentity.IsHobbyFlight &&
-             !flightIdentity.IsTrainingFlight))
-        {
+        if (landingController == null)
             return;
-        }
 
-        if (flightIdentity.IsTrainingFlight &&
-            landingController != null &&
-            !landingController.IsLandingComplete)
-        {
-            // A new training landing has begun.
-            // Allow taxi routing to be built again when rollout finishes.
-            routeAttempted = false;
-        }
-
-        if (!routeAttempted &&
-            landingController != null &&
-            landingController.IsLandingComplete)
+        if (!routeAttempted && landingController.IsLandingComplete)
         {
             routeAttempted = true;
             TryBuildTaxiRoute();
@@ -204,7 +179,6 @@ public class HobbyAircraftTaxiController : MonoBehaviour
         }
     }
 
-
     private void TryBuildTaxiRoute()
     {
         if (gridManager == null ||
@@ -215,17 +189,7 @@ public class HobbyAircraftTaxiController : MonoBehaviour
             Fail(
                 "Hobby taxi references are incomplete. Check " +
                 "GridManager, TaxiwayNetwork, TaxiwayPathfinder " +
-                "and AircraftLandingController."
-            );
-            return;
-        }
-
-        if (flightIdentity == null ||
-            !flightIdentity.IsInitialized)
-        {
-            Fail(
-                "VFR taxiing requires an initialized " +
-                "AircraftFlightIdentity."
+                "and AircraftHobbyLandingController."
             );
             return;
         }
@@ -234,10 +198,7 @@ public class HobbyAircraftTaxiController : MonoBehaviour
 
         if (reservedSpot == null)
         {
-            Fail(
-                "No grass parking spot is reserved for this " +
-                "VFR aircraft."
-            );
+            Fail("No grass parking spot is reserved for this hobby aircraft.");
             return;
         }
 
@@ -248,9 +209,7 @@ public class HobbyAircraftTaxiController : MonoBehaviour
         if (selectedRunway == null ||
             landingDirection.sqrMagnitude < 0.0001f)
         {
-            Fail(
-                "The selected runway or landing direction is invalid."
-            );
+            Fail("The selected runway or landing direction is invalid.");
             return;
         }
 
@@ -272,9 +231,7 @@ public class HobbyAircraftTaxiController : MonoBehaviour
 
         if (runwayBuilding == null)
         {
-            Fail(
-                "The selected runway has no PlacedBuilding component."
-            );
+            Fail("The selected runway has no PlacedBuilding component.");
             return;
         }
 
@@ -284,14 +241,10 @@ public class HobbyAircraftTaxiController : MonoBehaviour
         aircraftPosition.y = runwaySurfaceY;
 
         Vector3 runwayEnd =
-            runwayCenter +
-            landingDirection * (runwayLength * 0.5f);
+            runwayCenter + landingDirection * (runwayLength * 0.5f);
 
         float remainingRunwayDistance =
-            Vector3.Dot(
-                runwayEnd - aircraftPosition,
-                landingDirection
-            );
+            Vector3.Dot(runwayEnd - aircraftPosition, landingDirection);
 
         if (remainingRunwayDistance <= 0f)
         {
@@ -311,25 +264,18 @@ public class HobbyAircraftTaxiController : MonoBehaviour
 
         if (exits.Count == 0)
         {
-            Fail(
-                "No compatible taxiway exit was found ahead " +
-                "of the landed aircraft."
-            );
+            Fail("No compatible taxiway exit was found ahead of the landed aircraft.");
             return;
         }
 
         parkingTarget = reservedSpot.ParkingWorldPosition;
         parkingTarget.y = taxiWorldY;
 
-        List<TargetCandidate> targets =
-            FindNearbyTaxiwayTargets(parkingTarget);
+        List<TargetCandidate> targets = FindNearbyTaxiwayTargets(parkingTarget);
 
         if (targets.Count == 0)
         {
-            Fail(
-                "No suitable taxiway centerline was found near " +
-                "the reserved grass parking spot."
-            );
+            Fail("No suitable taxiway centerline was found near the reserved grass parking spot.");
             return;
         }
 
@@ -343,21 +289,14 @@ public class HobbyAircraftTaxiController : MonoBehaviour
         {
             foreach (TargetCandidate target in targets)
             {
-                Vector3 targetWorld =
-                    gridManager.GridToWorldCenter(target.Cell);
-
+                Vector3 targetWorld = gridManager.GridToWorldCenter(target.Cell);
                 targetWorld.y = taxiWorldY;
 
                 float connectorDistance =
-                    maximumParkingConnectorDistance *
-                    gridManager.CellSize;
+                    maximumParkingConnectorDistance * gridManager.CellSize;
 
-                if (HorizontalDistance(
-                        targetWorld,
-                        parkingTarget) > connectorDistance)
-                {
+                if (HorizontalDistance(targetWorld, parkingTarget) > connectorDistance)
                     continue;
-                }
 
                 if (attempts >= maximumRouteAttempts)
                     break;
@@ -371,11 +310,8 @@ public class HobbyAircraftTaxiController : MonoBehaviour
                         minimumTaxiwayWidth
                     );
 
-                if (candidatePath == null ||
-                    candidatePath.Count == 0)
-                {
+                if (candidatePath == null || candidatePath.Count == 0)
                     continue;
-                }
 
                 chosenExit = exit;
                 chosenTarget = target;
@@ -384,18 +320,15 @@ public class HobbyAircraftTaxiController : MonoBehaviour
                 break;
             }
 
-            if (foundRoute ||
-                attempts >= maximumRouteAttempts)
-            {
+            if (foundRoute || attempts >= maximumRouteAttempts)
                 break;
-            }
         }
 
         if (!foundRoute)
         {
             Fail(
-                "No connected taxiway route was found between " +
-                "a runway exit and the reserved grass parking spot."
+                "No connected taxiway route was found between a runway exit " +
+                "and the reserved grass parking spot."
             );
             return;
         }
@@ -404,14 +337,10 @@ public class HobbyAircraftTaxiController : MonoBehaviour
         route.AddRange(chosenPath);
 
         runwayExitPoint =
-            aircraftPosition +
-            landingDirection * chosenExit.ForwardDistance;
-
+            aircraftPosition + landingDirection * chosenExit.ForwardDistance;
         runwayExitPoint.y = taxiWorldY;
 
-        taxiwayJoinPoint =
-            gridManager.GridToWorldCenter(chosenExit.Cell);
-
+        taxiwayJoinPoint = gridManager.GridToWorldCenter(chosenExit.Cell);
         taxiwayJoinPoint.y = taxiWorldY;
 
         BuildSmoothedTaxiMovementPath();
@@ -422,8 +351,6 @@ public class HobbyAircraftTaxiController : MonoBehaviour
             return;
         }
 
-        // Index zero is the taxiway join cell. The aircraft reaches
-        // that point during JoiningTaxiway before following this path.
         currentRouteIndex = 1;
         phase = TaxiPhase.RollingToRunwayExit;
 
@@ -432,26 +359,21 @@ public class HobbyAircraftTaxiController : MonoBehaviour
         transform.position = adjustedPosition;
 
         debugStatus =
-            $"VFR taxi route found. Runway exit {chosenExit.Cell}, " +
-            $"taxiway target {chosenTarget.Cell}, " +
-            $"{route.Count} route cells, " +
+            $"Hobby taxi route found. Runway exit {chosenExit.Cell}, " +
+            $"taxiway target {chosenTarget.Cell}, {route.Count} route cells, " +
             $"{taxiMovementPath.Count} smoothed waypoints.";
 
         if (logTaxiProgress)
         {
             Debug.Log(
-                $"VFR TAXI ROUTE FOUND | " +
-                $"Flight: {flightIdentity.FlightNumber} | " +
-                $"Parking: {reservedSpot.name} | " +
-                $"Exit: {chosenExit.Cell} | " +
-                $"Target: {chosenTarget.Cell} | " +
-                $"Route cells: {route.Count} | " +
+                $"HOBBY TAXI ROUTE FOUND | Aircraft: {name} | " +
+                $"Parking: {reservedSpot.name} | Exit: {chosenExit.Cell} | " +
+                $"Target: {chosenTarget.Cell} | Route cells: {route.Count} | " +
                 $"Smoothed waypoints: {taxiMovementPath.Count}",
                 this
             );
         }
     }
-
 
     private void BuildSmoothedTaxiMovementPath()
     {
@@ -476,8 +398,7 @@ public class HobbyAircraftTaxiController : MonoBehaviour
         }
 
         float desiredRadius =
-            Mathf.Max(0.01f, turningRadiusInCells) *
-            gridManager.CellSize;
+            Mathf.Max(0.01f, turningRadiusInCells) * gridManager.CellSize;
 
         AddMovementPoint(points[0]);
 
@@ -496,8 +417,7 @@ public class HobbyAircraftTaxiController : MonoBehaviour
             float incomingLength = incoming.magnitude;
             float outgoingLength = outgoing.magnitude;
 
-            if (incomingLength < 0.001f ||
-                outgoingLength < 0.001f)
+            if (incomingLength < 0.001f || outgoingLength < 0.001f)
             {
                 AddMovementPoint(corner);
                 continue;
@@ -508,16 +428,12 @@ public class HobbyAircraftTaxiController : MonoBehaviour
 
             float directionDot = Vector3.Dot(incoming, outgoing);
 
-            // Only smooth 90-degree corners. Keep straight sections
-            // and other path changes in their original order.
             if (Mathf.Abs(directionDot) > 0.01f)
             {
                 AddMovementPoint(corner);
                 continue;
             }
 
-            // Leave room on both adjoining straight sections so that
-            // neighboring curves cannot extend past one another.
             float radius = Mathf.Min(
                 desiredRadius,
                 incomingLength * 0.45f,
@@ -530,16 +446,12 @@ public class HobbyAircraftTaxiController : MonoBehaviour
                 continue;
             }
 
-            Vector3 entry =
-                corner - incoming * radius;
-
-            Vector3 exit =
-                corner + outgoing * radius;
+            Vector3 entry = corner - incoming * radius;
+            Vector3 exit = corner + outgoing * radius;
 
             entry.y = taxiWorldY;
             exit.y = taxiWorldY;
 
-            // Travel to the curve entry before following the curve.
             AddMovementPoint(entry);
 
             Vector3 controlPoint1 =
@@ -548,14 +460,8 @@ public class HobbyAircraftTaxiController : MonoBehaviour
             Vector3 controlPoint2 =
                 exit - outgoing * (radius * BezierCircleFactor);
 
-            int resolution = Mathf.Clamp(
-                turnCurveResolution,
-                4,
-                16
-            );
+            int resolution = Mathf.Clamp(turnCurveResolution, 4, 16);
 
-            // Generate curve points in forward travel order,
-            // ending at the exit before continuing down the route.
             for (int step = 1; step <= resolution; step++)
             {
                 float t = step / (float)resolution;
@@ -573,10 +479,8 @@ public class HobbyAircraftTaxiController : MonoBehaviour
             }
         }
 
-        // Always finish at the actual final taxiway cell.
         AddMovementPoint(points[points.Count - 1]);
     }
-
 
     private void AddMovementPoint(Vector3 point)
     {
@@ -584,8 +488,7 @@ public class HobbyAircraftTaxiController : MonoBehaviour
 
         if (taxiMovementPath.Count > 0)
         {
-            Vector3 previous =
-                taxiMovementPath[taxiMovementPath.Count - 1];
+            Vector3 previous = taxiMovementPath[taxiMovementPath.Count - 1];
 
             if (HorizontalDistance(previous, point) < 0.005f)
                 return;
@@ -635,28 +538,17 @@ public class HobbyAircraftTaxiController : MonoBehaviour
         float remainingRunwayDistance,
         PlacedBuilding runwayBuilding)
     {
-        List<ExitCandidate> candidates =
-            new List<ExitCandidate>();
+        List<ExitCandidate> candidates = new List<ExitCandidate>();
 
         int minX = runwayBuilding.Origin.x;
-        int maxX =
-            runwayBuilding.Origin.x +
-            runwayBuilding.Width - 1;
-
+        int maxX = runwayBuilding.Origin.x + runwayBuilding.Width - 1;
         int minZ = runwayBuilding.Origin.y;
-        int maxZ =
-            runwayBuilding.Origin.y +
-            runwayBuilding.Depth - 1;
+        int maxZ = runwayBuilding.Origin.y + runwayBuilding.Depth - 1;
 
-        bool runwayAlongX =
-            runwayBuilding.Width >= runwayBuilding.Depth;
+        bool runwayAlongX = runwayBuilding.Width >= runwayBuilding.Depth;
 
         Vector3 perpendicularDirection =
-            new Vector3(
-                -landingDirection.z,
-                0f,
-                landingDirection.x
-            );
+            new Vector3(-landingDirection.z, 0f, landingDirection.x);
 
         for (int x = 0; x < gridManager.Width; x++)
         {
@@ -666,8 +558,7 @@ public class HobbyAircraftTaxiController : MonoBehaviour
 
                 if (!taxiwayNetwork.IsTaxiway(cell) ||
                     !taxiwayNetwork.IsCenterlineCell(cell) ||
-                    taxiwayNetwork.GetTaxiwayWidth(cell) <
-                    minimumTaxiwayWidth)
+                    taxiwayNetwork.GetTaxiwayWidth(cell) < minimumTaxiwayWidth)
                 {
                     continue;
                 }
@@ -682,16 +573,10 @@ public class HobbyAircraftTaxiController : MonoBehaviour
                     connectedExit =
                         (cell.y == maxZ + 1 &&
                          taxiwayNetwork.IsCenterlineCell(
-                             new Vector2Int(
-                                 cell.x,
-                                 cell.y + 1
-                             ))) ||
+                             new Vector2Int(cell.x, cell.y + 1))) ||
                         (cell.y == minZ - 1 &&
                          taxiwayNetwork.IsCenterlineCell(
-                             new Vector2Int(
-                                 cell.x,
-                                 cell.y - 1
-                             )));
+                             new Vector2Int(cell.x, cell.y - 1)));
                 }
                 else
                 {
@@ -701,63 +586,41 @@ public class HobbyAircraftTaxiController : MonoBehaviour
                     connectedExit =
                         (cell.x == maxX + 1 &&
                          taxiwayNetwork.IsCenterlineCell(
-                             new Vector2Int(
-                                 cell.x + 1,
-                                 cell.y
-                             ))) ||
+                             new Vector2Int(cell.x + 1, cell.y))) ||
                         (cell.x == minX - 1 &&
                          taxiwayNetwork.IsCenterlineCell(
-                             new Vector2Int(
-                                 cell.x - 1,
-                                 cell.y
-                             )));
+                             new Vector2Int(cell.x - 1, cell.y)));
                 }
 
                 if (!connectedExit)
                     continue;
 
-                Vector3 cellWorld =
-                    gridManager.GridToWorldCenter(cell);
-
-                Vector3 delta =
-                    cellWorld - aircraftPosition;
-
+                Vector3 cellWorld = gridManager.GridToWorldCenter(cell);
+                Vector3 delta = cellWorld - aircraftPosition;
                 delta.y = 0f;
 
                 float forwardDistance =
-                    Vector3.Dot(
-                        delta,
-                        landingDirection
-                    );
+                    Vector3.Dot(delta, landingDirection);
 
-                if (forwardDistance <
-                    minimumExitForwardDistance ||
-                    forwardDistance >
-                    remainingRunwayDistance + runwayEndTolerance)
+                if (forwardDistance < minimumExitForwardDistance ||
+                    forwardDistance > remainingRunwayDistance + runwayEndTolerance)
                 {
                     continue;
                 }
 
                 Vector3 lateralOffset =
-                    delta -
-                    landingDirection * forwardDistance;
-
+                    delta - landingDirection * forwardDistance;
                 lateralOffset.y = 0f;
 
-                float lateralDistance =
-                    lateralOffset.magnitude;
+                float lateralDistance = lateralOffset.magnitude;
 
-                if (lateralDistance >
-                    maximumRunwayExitLateralDistance)
-                {
+                if (lateralDistance > maximumRunwayExitLateralDistance)
                     continue;
-                }
 
                 int side =
-                    Vector3.Dot(
-                        lateralOffset,
-                        perpendicularDirection
-                    ) >= 0f ? 1 : -1;
+                    Vector3.Dot(lateralOffset, perpendicularDirection) >= 0f
+                        ? 1
+                        : -1;
 
                 candidates.Add(
                     new ExitCandidate(
@@ -772,29 +635,21 @@ public class HobbyAircraftTaxiController : MonoBehaviour
 
         candidates.Sort((a, b) =>
         {
-            int comparison =
-                a.ForwardDistance.CompareTo(
-                    b.ForwardDistance
-                );
+            int comparison = a.ForwardDistance.CompareTo(b.ForwardDistance);
 
             return comparison != 0
                 ? comparison
-                : a.LateralDistance.CompareTo(
-                    b.LateralDistance
-                );
+                : a.LateralDistance.CompareTo(b.LateralDistance);
         });
 
         return candidates;
     }
 
-    private List<TargetCandidate> FindNearbyTaxiwayTargets(
-        Vector3 worldPosition)
+    private List<TargetCandidate> FindNearbyTaxiwayTargets(Vector3 worldPosition)
     {
-        List<TargetCandidate> candidates =
-            new List<TargetCandidate>();
+        List<TargetCandidate> candidates = new List<TargetCandidate>();
 
-        Vector2Int center =
-            gridManager.WorldToGrid(worldPosition);
+        Vector2Int center = gridManager.WorldToGrid(worldPosition);
 
         for (int dx = -connectionSearchRadiusCells;
              dx <= connectionSearchRadiusCells;
@@ -804,44 +659,27 @@ public class HobbyAircraftTaxiController : MonoBehaviour
                  dz <= connectionSearchRadiusCells;
                  dz++)
             {
-                Vector2Int cell =
-                    new Vector2Int(
-                        center.x + dx,
-                        center.y + dz
-                    );
+                Vector2Int cell = new Vector2Int(center.x + dx, center.y + dz);
 
                 if (!gridManager.IsInsideGrid(cell) ||
                     !taxiwayNetwork.IsTaxiway(cell) ||
                     !taxiwayNetwork.IsCenterlineCell(cell) ||
-                    taxiwayNetwork.GetTaxiwayWidth(cell) <
-                    minimumTaxiwayWidth)
+                    taxiwayNetwork.GetTaxiwayWidth(cell) < minimumTaxiwayWidth)
                 {
                     continue;
                 }
 
-                Vector3 cellWorld =
-                    gridManager.GridToWorldCenter(cell);
+                Vector3 cellWorld = gridManager.GridToWorldCenter(cell);
 
                 float distanceSquared =
-                    HorizontalDistanceSquared(
-                        worldPosition,
-                        cellWorld
-                    );
+                    HorizontalDistanceSquared(worldPosition, cellWorld);
 
-                candidates.Add(
-                    new TargetCandidate(
-                        cell,
-                        distanceSquared
-                    )
-                );
+                candidates.Add(new TargetCandidate(cell, distanceSquared));
             }
         }
 
         candidates.Sort(
-            (a, b) =>
-                a.DistanceSquared.CompareTo(
-                    b.DistanceSquared
-                )
+            (a, b) => a.DistanceSquared.CompareTo(b.DistanceSquared)
         );
 
         return candidates;
@@ -849,29 +687,23 @@ public class HobbyAircraftTaxiController : MonoBehaviour
 
     private void MoveToRunwayExit()
     {
-        if (MoveToward(
-                runwayExitPoint,
-                waypointArrivalDistance))
+        if (MoveToward(runwayExitPoint, waypointArrivalDistance))
         {
             SetPositionAt(runwayExitPoint);
             phase = TaxiPhase.JoiningTaxiway;
 
-            debugStatus =
-                $"Reached runway exit {route[0]}. Joining taxiway.";
+            debugStatus = $"Reached runway exit {route[0]}. Joining taxiway.";
         }
     }
 
     private void MoveToTaxiwayJoin()
     {
-        if (MoveToward(
-                taxiwayJoinPoint,
-                waypointArrivalDistance))
+        if (MoveToward(taxiwayJoinPoint, waypointArrivalDistance))
         {
             SetPositionAt(taxiwayJoinPoint);
             phase = TaxiPhase.FollowingTaxiway;
 
-            debugStatus =
-                "Joined taxiway. Following route toward grass parking.";
+            debugStatus = "Joined taxiway. Following route toward grass parking.";
         }
     }
 
@@ -879,65 +711,47 @@ public class HobbyAircraftTaxiController : MonoBehaviour
     {
         while (currentRouteIndex < taxiMovementPath.Count)
         {
-            Vector3 waypoint =
-                taxiMovementPath[currentRouteIndex];
-
+            Vector3 waypoint = taxiMovementPath[currentRouteIndex];
             waypoint.y = taxiWorldY;
 
-            if (HorizontalDistance(
-                    transform.position,
-                    waypoint) <= taxiPathPointTolerance)
+            if (HorizontalDistance(transform.position, waypoint) <=
+                taxiPathPointTolerance)
             {
                 SetPositionAt(waypoint);
                 currentRouteIndex++;
                 continue;
             }
 
-            MoveToward(
-                waypoint,
-                taxiPathPointTolerance
-            );
-
+            MoveToward(waypoint, taxiPathPointTolerance);
             return;
         }
 
         phase = TaxiPhase.ApproachingParking;
-
-        debugStatus =
-            $"Taxiway route complete. Approaching {reservedSpot.name}.";
+        debugStatus = $"Taxiway route complete. Approaching {reservedSpot.name}.";
     }
 
     private void MoveToParkingSpot()
     {
-        if (reservedSpot == null ||
-            !reservedSpot.IsPlacedBuilding)
+        if (reservedSpot == null || !reservedSpot.IsPlacedBuilding)
         {
-            Fail(
-                "The reserved grass parking spot was removed during taxiing."
-            );
+            Fail("The reserved grass parking spot was removed during taxiing.");
             return;
         }
 
-        parkingTarget =
-            reservedSpot.ParkingWorldPosition;
-
+        parkingTarget = reservedSpot.ParkingWorldPosition;
         parkingTarget.y = taxiWorldY;
 
-        if (MoveToward(
-                parkingTarget,
-                parkingArrivalDistance))
+        if (MoveToward(parkingTarget, parkingArrivalDistance))
         {
             SetPositionAt(parkingTarget);
             phase = TaxiPhase.Parked;
 
-            debugStatus =
-                $"VFR aircraft parked at {reservedSpot.name}.";
+            debugStatus = $"Hobby aircraft parked at {reservedSpot.name}.";
 
             if (logTaxiProgress)
             {
                 Debug.Log(
-                    $"VFR AIRCRAFT PARKED | " +
-                    $"Flight: {flightIdentity.FlightNumber} | " +
+                    $"HOBBY AIRCRAFT PARKED | Aircraft: {name} | " +
                     $"Parking spot: {reservedSpot.name}",
                     this
                 );
@@ -945,55 +759,37 @@ public class HobbyAircraftTaxiController : MonoBehaviour
         }
     }
 
-    private bool MoveToward(
-        Vector3 target,
-        float arrivalDistance)
+    private bool MoveToward(Vector3 target, float arrivalDistance)
     {
-        if (HorizontalDistance(
-                transform.position,
-                target) <= arrivalDistance)
-        {
+        if (HorizontalDistance(transform.position, target) <= arrivalDistance)
             return true;
-        }
 
-        Vector3 movement =
-            target - transform.position;
-
+        Vector3 movement = target - transform.position;
         movement.y = 0f;
 
         if (movement.sqrMagnitude > 0.0001f)
         {
             Quaternion targetRotation =
-                Quaternion.LookRotation(
-                    movement.normalized,
-                    Vector3.up
-                );
+                Quaternion.LookRotation(movement.normalized, Vector3.up);
 
-            targetRotation *=
-                Quaternion.Euler(modelRotationOffset);
+            targetRotation *= Quaternion.Euler(modelRotationOffset);
 
-            transform.rotation =
-                Quaternion.Slerp(
-                    transform.rotation,
-                    targetRotation,
-                    rotationSpeed * Time.deltaTime
-                );
+            transform.rotation = Quaternion.Slerp(
+                transform.rotation,
+                targetRotation,
+                rotationSpeed * Time.deltaTime
+            );
         }
 
-        float speed =
-            taxiSpeedKnots *
-            worldUnitsPerSecondPerKnot;
+        float speed = taxiSpeedKnots * worldUnitsPerSecondPerKnot;
 
-        transform.position =
-            Vector3.MoveTowards(
-                transform.position,
-                target,
-                speed * Time.deltaTime
-            );
-
-        return HorizontalDistance(
+        transform.position = Vector3.MoveTowards(
             transform.position,
-            target) <= arrivalDistance;
+            target,
+            speed * Time.deltaTime
+        );
+
+        return HorizontalDistance(transform.position, target) <= arrivalDistance;
     }
 
     private void SetPositionAt(Vector3 target)
@@ -1003,9 +799,7 @@ public class HobbyAircraftTaxiController : MonoBehaviour
         transform.position = position;
     }
 
-    private float HorizontalDistance(
-        Vector3 a,
-        Vector3 b)
+    private float HorizontalDistance(Vector3 a, Vector3 b)
     {
         float dx = a.x - b.x;
         float dz = a.z - b.z;
@@ -1013,9 +807,7 @@ public class HobbyAircraftTaxiController : MonoBehaviour
         return Mathf.Sqrt(dx * dx + dz * dz);
     }
 
-    private float HorizontalDistanceSquared(
-        Vector3 a,
-        Vector3 b)
+    private float HorizontalDistanceSquared(Vector3 a, Vector3 b)
     {
         float dx = a.x - b.x;
         float dz = a.z - b.z;
@@ -1029,9 +821,7 @@ public class HobbyAircraftTaxiController : MonoBehaviour
         debugStatus = message;
 
         Debug.LogWarning(
-            $"VFR TAXI ROUTE FAILED | " +
-            $"{(flightIdentity != null ? flightIdentity.FlightNumber : "Unknown")}: " +
-            message,
+            $"HOBBY TAXI ROUTE FAILED | Aircraft: {name}: {message}",
             this
         );
     }
