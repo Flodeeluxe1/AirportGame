@@ -1,3 +1,4 @@
+
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -40,18 +41,6 @@ public class AircraftTaxiTrafficFollowing : MonoBehaviour
 
     private float currentSpeed;
 
-    private AircraftDepartureTaxiController ownDepartureController;
-    private AircraftTaxiController ownArrivalController;
-
-    private void Awake()
-    {
-        ownDepartureController =
-            GetComponent<AircraftDepartureTaxiController>();
-
-        ownArrivalController =
-            GetComponent<AircraftTaxiController>();
-    }
-
     public float GetTrafficFollowingSpeed(float cruisingSpeed)
     {
         cruisingSpeed = Mathf.Max(0f, cruisingSpeed);
@@ -71,16 +60,13 @@ public class AircraftTaxiTrafficFollowing : MonoBehaviour
         List<string> rayReports = new();
 
         if (TryFindAircraftAhead(
-                out AircraftDepartureTaxiController blockingDeparture,
-                out AircraftTaxiController blockingArrival,
+                out Transform blockingAircraft,
                 out float distance,
-                out string direction,
+                out _,
                 rayReports))
         {
             debugBlockingDistance = distance;
-            debugBlockingAircraft = blockingDeparture != null
-                ? blockingDeparture.name
-                : blockingArrival.name;
+            debugBlockingAircraft = blockingAircraft.name;
 
             float safeDistance = Mathf.Max(0.1f, safeFollowingDistance);
             float detectionDistance = Mathf.Max(
@@ -107,7 +93,8 @@ public class AircraftTaxiTrafficFollowing : MonoBehaviour
             }
             else
             {
-                debugTrafficDecision = "Aircraft detected; near cruising speed";
+                debugTrafficDecision =
+                    "Aircraft detected; near cruising speed";
             }
 
             debugRaycastSummary =
@@ -140,14 +127,12 @@ public class AircraftTaxiTrafficFollowing : MonoBehaviour
     }
 
     private bool TryFindAircraftAhead(
-        out AircraftDepartureTaxiController blockingDeparture,
-        out AircraftTaxiController blockingArrival,
+        out Transform blockingAircraft,
         out float closestDistance,
         out string closestDirection,
         List<string> rayReports)
     {
-        blockingDeparture = null;
-        blockingArrival = null;
+        blockingAircraft = null;
         closestDistance = float.MaxValue;
         closestDirection = "None";
 
@@ -190,10 +175,7 @@ public class AircraftTaxiTrafficFollowing : MonoBehaviour
 
             if (hits.Length == 0)
             {
-                rayReports.Add(
-                    $"{directionNames[i]}: no hit"
-                );
-
+                rayReports.Add($"{directionNames[i]}: no hit");
                 continue;
             }
 
@@ -204,7 +186,9 @@ public class AircraftTaxiTrafficFollowing : MonoBehaviour
                 if (hitCollider == null)
                     continue;
 
-                if (hitCollider.transform.root == transform.root)
+                Transform aircraftRoot = hitCollider.transform.root;
+
+                if (aircraftRoot == transform.root)
                 {
                     rayReports.Add(
                         $"{directionNames[i]}: ignored own collider " +
@@ -214,42 +198,11 @@ public class AircraftTaxiTrafficFollowing : MonoBehaviour
                     continue;
                 }
 
-                AircraftDepartureTaxiController departure =
-                    hitCollider.GetComponentInParent<
-                        AircraftDepartureTaxiController>();
-
-                AircraftTaxiController arrival =
-                    hitCollider.GetComponentInParent<
-                        AircraftTaxiController>();
-
-                string controllerInfo = "No aircraft controller found";
-                bool isMovingAircraft = false;
-
-                if (departure != null)
-                {
-                    controllerInfo =
-                        $"Departure state: {departure.CurrentState}";
-
-                    isMovingAircraft =
-                        departure != ownDepartureController &&
-                        (
-                            departure.CurrentState ==
-                                AircraftDepartureTaxiController.DepartureState.TaxiingToHoldingPoint ||
-                            departure.CurrentState ==
-                                AircraftDepartureTaxiController.DepartureState.TaxiingToRunwayEntry ||
-                            departure.CurrentState ==
-                                AircraftDepartureTaxiController.DepartureState.MovingOntoRunway
-                        );
-                }
-                else if (arrival != null)
-                {
-                    controllerInfo =
-                        $"Arrival IsTaxiing: {arrival.IsTaxiing}";
-
-                    isMovingAircraft =
-                        arrival != ownArrivalController &&
-                        arrival.IsTaxiing;
-                }
+                bool isMovingAircraft = IsMovingAircraft(
+                    hitCollider,
+                    out Transform detectedAircraft,
+                    out string controllerInfo
+                );
 
                 rayReports.Add(
                     $"{directionNames[i]} HIT '{hitCollider.name}' " +
@@ -258,8 +211,6 @@ public class AircraftTaxiTrafficFollowing : MonoBehaviour
                     $"{controllerInfo} | Moving blocker: {isMovingAircraft}"
                 );
 
-                // Record the first actual ray hit for debugging,
-                // even if it isn't a moving aircraft.
                 if (debugLastRayHitCollider == "None")
                 {
                     debugLastRayHitCollider = hitCollider.name;
@@ -267,7 +218,7 @@ public class AircraftTaxiTrafficFollowing : MonoBehaviour
                     debugLastRayDistance = hit.distance;
                 }
 
-                if (!isMovingAircraft)
+                if (!isMovingAircraft || detectedAircraft == null)
                     continue;
 
                 if (hit.distance >= closestDistance)
@@ -275,17 +226,134 @@ public class AircraftTaxiTrafficFollowing : MonoBehaviour
 
                 closestDistance = hit.distance;
                 closestDirection = directionNames[i];
-                blockingDeparture = departure;
-                blockingArrival = arrival;
+                blockingAircraft = detectedAircraft;
                 foundAircraft = true;
 
-                // Hits are sorted nearest-first for this ray.
-                // Continue other rays to find the closest blocker overall.
+                // Hits on this ray are sorted nearest-first.
                 break;
             }
         }
 
         return foundAircraft;
+    }
+
+    private bool IsMovingAircraft(
+        Collider hitCollider,
+        out Transform aircraftRoot,
+        out string controllerInfo)
+    {
+        aircraftRoot = null;
+        controllerInfo = "No recognized taxi controller found";
+
+        // CargoPax departure taxiing
+        AircraftCargoPaxDepartureTaxiController cargoDeparture =
+            hitCollider.GetComponentInParent<
+                AircraftCargoPaxDepartureTaxiController>();
+
+        if (cargoDeparture != null)
+        {
+            aircraftRoot = cargoDeparture.transform;
+            var state = cargoDeparture.CurrentState;
+
+            bool moving =
+                state ==
+                    AircraftCargoPaxDepartureTaxiController.DepartureState.TaxiingToHoldingPoint ||
+                state ==
+                    AircraftCargoPaxDepartureTaxiController.DepartureState.TaxiingToRunwayEntry ||
+                state ==
+                    AircraftCargoPaxDepartureTaxiController.DepartureState.MovingOntoRunway;
+
+            controllerInfo = $"CargoPax departure state: {state}";
+            return moving && aircraftRoot != transform.root;
+        }
+
+        // Training departure taxiing
+        AircraftTrainingDepartureTaxiController trainingDeparture =
+            hitCollider.GetComponentInParent<
+                AircraftTrainingDepartureTaxiController>();
+
+        if (trainingDeparture != null)
+        {
+            aircraftRoot = trainingDeparture.transform;
+            var state = trainingDeparture.CurrentState;
+
+            bool moving =
+                state ==
+                    AircraftTrainingDepartureTaxiController.DepartureState.TaxiingToHoldingPoint ||
+                state ==
+                    AircraftTrainingDepartureTaxiController.DepartureState.TaxiingToRunwayEntry ||
+                state ==
+                    AircraftTrainingDepartureTaxiController.DepartureState.MovingOntoRunway;
+
+            controllerInfo = $"Training departure state: {state}";
+            return moving && aircraftRoot != transform.root;
+        }
+
+        // Hobby departure taxiing
+        AircraftHobbyDepartureTaxiController hobbyDeparture =
+            hitCollider.GetComponentInParent<
+                AircraftHobbyDepartureTaxiController>();
+
+        if (hobbyDeparture != null)
+        {
+            aircraftRoot = hobbyDeparture.transform;
+            var state = hobbyDeparture.CurrentState;
+
+            bool moving =
+                state ==
+                    AircraftHobbyDepartureTaxiController.DepartureState.TaxiingToHoldingPoint ||
+                state ==
+                    AircraftHobbyDepartureTaxiController.DepartureState.TaxiingToRunwayEntry ||
+                state ==
+                    AircraftHobbyDepartureTaxiController.DepartureState.MovingOntoRunway;
+
+            controllerInfo = $"Hobby departure state: {state}";
+            return moving && aircraftRoot != transform.root;
+        }
+
+        // CargoPax landing taxiing
+        AircraftCargoPaxLandingTaxiController cargoLanding =
+            hitCollider.GetComponentInParent<
+                AircraftCargoPaxLandingTaxiController>();
+
+        if (cargoLanding != null)
+        {
+            aircraftRoot = cargoLanding.transform;
+            bool moving = cargoLanding.IsTaxiing;
+
+            controllerInfo = $"CargoPax landing IsTaxiing: {moving}";
+            return moving && aircraftRoot != transform.root;
+        }
+
+        // Training landing taxiing
+        AircraftTrainingLandingTaxiController trainingLanding =
+            hitCollider.GetComponentInParent<
+                AircraftTrainingLandingTaxiController>();
+
+        if (trainingLanding != null)
+        {
+            aircraftRoot = trainingLanding.transform;
+            bool moving = trainingLanding.IsTaxiing;
+
+            controllerInfo = $"Training landing IsTaxiing: {moving}";
+            return moving && aircraftRoot != transform.root;
+        }
+
+        // Hobby landing taxiing
+        AircraftHobbyLandingTaxiController hobbyLanding =
+            hitCollider.GetComponentInParent<
+                AircraftHobbyLandingTaxiController>();
+
+        if (hobbyLanding != null)
+        {
+            aircraftRoot = hobbyLanding.transform;
+            bool moving = hobbyLanding.IsTaxiing;
+
+            controllerInfo = $"Hobby landing IsTaxiing: {moving}";
+            return moving && aircraftRoot != transform.root;
+        }
+
+        return false;
     }
 
     private void OnDrawGizmosSelected()

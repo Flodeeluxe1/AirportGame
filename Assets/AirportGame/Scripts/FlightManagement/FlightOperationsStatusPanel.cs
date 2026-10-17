@@ -41,7 +41,6 @@ public class FlightOperationsStatusPanel : MonoBehaviour
             );
 
             enabled = false;
-            return;
         }
     }
 
@@ -123,8 +122,7 @@ public class FlightOperationsStatusPanel : MonoBehaviour
 
         panel.Add(statusList);
 
-        // Insert the panel immediately before the existing gate timetable,
-        // leaving the working FlightManagementUIController unchanged.
+        // Insert before the existing gate timetable.
         int insertIndex = flightManagementWindow.childCount;
 
         for (int i = 0; i < flightManagementWindow.childCount; i++)
@@ -184,21 +182,13 @@ public class FlightOperationsStatusPanel : MonoBehaviour
         }
 
         foreach (AircraftFlightIdentity identity in activeAircraft)
-        {
             statusList.Add(CreateAircraftStatusRow(identity));
-        }
     }
 
     private VisualElement CreateAircraftStatusRow(
         AircraftFlightIdentity identity)
     {
-        AircraftLandingController landing =
-            identity.GetComponent<AircraftLandingController>();
-
-        AircraftTaxiController taxi =
-            identity.GetComponent<AircraftTaxiController>();
-
-        string status = GetOperationalStatus(landing, taxi);
+        string status = GetOperationalStatus(identity);
 
         string plannedGate =
             GetGateDisplayName(identity.PlannedGateStableId);
@@ -237,30 +227,237 @@ public class FlightOperationsStatusPanel : MonoBehaviour
     }
 
     private string GetOperationalStatus(
-        AircraftLandingController landing,
-        AircraftTaxiController taxi)
+        AircraftFlightIdentity identity)
     {
+        // Training aircraft
+        if (identity.IsTrainingFlight)
+            return GetTrainingStatus(identity);
+
+        // Hobby aircraft
+        if (identity.IsHobbyFlight)
+            return GetHobbyStatus(identity);
+
+        // Scheduled CargoPax aircraft
+        return GetCargoPaxStatus(identity);
+    }
+
+    private string GetCargoPaxStatus(
+        AircraftFlightIdentity identity)
+    {
+        AircraftCargoPaxLandingController landing =
+            identity.GetComponent<AircraftCargoPaxLandingController>();
+
+        AircraftCargoPaxLandingTaxiController arrivalTaxi =
+            identity.GetComponent<AircraftCargoPaxLandingTaxiController>();
+
+        AircraftCargoPaxDepartureTaxiController departureTaxi =
+            identity.GetComponent<AircraftCargoPaxDepartureTaxiController>();
+
         if (landing != null && landing.IsGoingAround)
             return "Go-around";
 
-        if (taxi != null && taxi.HasArrivedAtGate)
+        if (arrivalTaxi != null && arrivalTaxi.HasArrivedAtGate)
             return "At Gate";
 
-        if (taxi != null && taxi.IsTaxiing)
-            return "Taxiing";
+        if (arrivalTaxi != null && arrivalTaxi.IsTaxiing)
+            return "Taxiing to Gate";
 
         if (landing != null && landing.IsLandingComplete)
         {
-            if (taxi == null)
-                return "Awaiting Taxi Controller";
+            if (arrivalTaxi == null)
+                return "Awaiting Arrival Taxi";
 
-            if (!taxi.HasRoute)
+            if (!arrivalTaxi.HasRoute)
                 return "Taxi Route Unavailable";
 
             return "Taxi Route Ready";
         }
 
-        return "Approach / Landing";
+        if (departureTaxi != null)
+            return GetCargoPaxDepartureStatus(departureTaxi);
+
+        if (landing != null)
+            return "Approach / Landing";
+
+        return "Scheduled Operation";
+    }
+
+    private string GetCargoPaxDepartureStatus(
+        AircraftCargoPaxDepartureTaxiController taxi)
+    {
+        switch (taxi.CurrentState)
+        {
+            case AircraftCargoPaxDepartureTaxiController.DepartureState.WaitingForGateExit:
+                return "Waiting for Gate Exit";
+
+            case AircraftCargoPaxDepartureTaxiController.DepartureState.WaitingForRunway:
+                return "Waiting for Runway";
+
+            case AircraftCargoPaxDepartureTaxiController.DepartureState.TaxiingToHoldingPoint:
+                return "Taxiing to Holding Point";
+
+            case AircraftCargoPaxDepartureTaxiController.DepartureState.AtHoldingPoint:
+                return "Holding for Runway";
+
+            case AircraftCargoPaxDepartureTaxiController.DepartureState.TaxiingToRunwayEntry:
+                return "Taxiing to Runway";
+
+            case AircraftCargoPaxDepartureTaxiController.DepartureState.MovingOntoRunway:
+                return "Entering Runway";
+
+            case AircraftCargoPaxDepartureTaxiController.DepartureState.AligningOnRunway:
+                return "Aligning on Runway";
+
+            case AircraftCargoPaxDepartureTaxiController.DepartureState.LinedUpReadyForTakeoff:
+                return "Ready for Takeoff";
+
+            default:
+                return "Departure Operation";
+        }
+    }
+
+    private string GetTrainingStatus(
+        AircraftFlightIdentity identity)
+    {
+        AircraftTrainingLandingController landing =
+            identity.GetComponent<AircraftTrainingLandingController>();
+
+        AircraftTrainingLandingTaxiController arrivalTaxi =
+            identity.GetComponent<AircraftTrainingLandingTaxiController>();
+
+        AircraftTrainingDepartureTaxiController departureTaxi =
+            identity.GetComponent<AircraftTrainingDepartureTaxiController>();
+
+        if (landing != null && landing.IsGoingAround)
+            return "Training: Go-around";
+
+        if (arrivalTaxi != null && arrivalTaxi.HasArrivedAtParking)
+            return "Training: Parked";
+
+        if (arrivalTaxi != null && arrivalTaxi.IsTaxiing)
+            return "Training: Taxiing to Parking";
+
+        if (landing != null && landing.IsLandingComplete)
+        {
+            if (arrivalTaxi == null)
+                return "Training: Awaiting Taxi";
+
+            return "Training: Taxiing to Parking";
+        }
+
+        if (departureTaxi != null)
+            return GetTrainingDepartureStatus(departureTaxi);
+
+        if (landing != null)
+            return "Training: Approach / Landing";
+
+        return "Training: Circuit";
+    }
+
+    private string GetTrainingDepartureStatus(
+        AircraftTrainingDepartureTaxiController taxi)
+    {
+        switch (taxi.CurrentState)
+        {
+            case AircraftTrainingDepartureTaxiController.DepartureState.WaitingForDepartureRequest:
+                return "Training: Waiting to Depart";
+
+            case AircraftTrainingDepartureTaxiController.DepartureState.WaitingForRunway:
+                return "Training: Waiting for Runway";
+
+            case AircraftTrainingDepartureTaxiController.DepartureState.TaxiingToHoldingPoint:
+                return "Training: Taxiing to Hold";
+
+            case AircraftTrainingDepartureTaxiController.DepartureState.AtHoldingPoint:
+                return "Training: Holding for Runway";
+
+            case AircraftTrainingDepartureTaxiController.DepartureState.TaxiingToRunwayEntry:
+                return "Training: Taxiing to Runway";
+
+            case AircraftTrainingDepartureTaxiController.DepartureState.MovingOntoRunway:
+                return "Training: Entering Runway";
+
+            case AircraftTrainingDepartureTaxiController.DepartureState.AligningOnRunway:
+                return "Training: Aligning on Runway";
+
+            case AircraftTrainingDepartureTaxiController.DepartureState.LinedUpReadyForTakeoff:
+                return "Training: Ready for Takeoff";
+
+            default:
+                return "Training: Departure";
+        }
+    }
+
+    private string GetHobbyStatus(
+        AircraftFlightIdentity identity)
+    {
+        AircraftHobbyLandingController landing =
+            identity.GetComponent<AircraftHobbyLandingController>();
+
+        AircraftHobbyLandingTaxiController arrivalTaxi =
+            identity.GetComponent<AircraftHobbyLandingTaxiController>();
+
+        AircraftHobbyDepartureTaxiController departureTaxi =
+            identity.GetComponent<AircraftHobbyDepartureTaxiController>();
+
+        if (landing != null && landing.IsGoingAround)
+            return "Hobby: Go-around";
+
+        if (arrivalTaxi != null && arrivalTaxi.HasArrivedAtParking)
+            return "Hobby: Parked";
+
+        if (arrivalTaxi != null && arrivalTaxi.IsTaxiing)
+            return "Hobby: Taxiing to Parking";
+
+        if (landing != null && landing.IsLandingComplete)
+        {
+            if (arrivalTaxi == null)
+                return "Hobby: Awaiting Taxi";
+
+            return "Hobby: Taxiing to Parking";
+        }
+
+        if (departureTaxi != null)
+            return GetHobbyDepartureStatus(departureTaxi);
+
+        if (landing != null)
+            return "Hobby: Approach / Landing";
+
+        return "Hobby: Visiting";
+    }
+
+    private string GetHobbyDepartureStatus(
+        AircraftHobbyDepartureTaxiController taxi)
+    {
+        switch (taxi.CurrentState)
+        {
+            case AircraftHobbyDepartureTaxiController.DepartureState.WaitingForDepartureRequest:
+                return "Hobby: Waiting to Depart";
+
+            case AircraftHobbyDepartureTaxiController.DepartureState.WaitingForRunway:
+                return "Hobby: Waiting for Runway";
+
+            case AircraftHobbyDepartureTaxiController.DepartureState.TaxiingToHoldingPoint:
+                return "Hobby: Taxiing to Hold";
+
+            case AircraftHobbyDepartureTaxiController.DepartureState.AtHoldingPoint:
+                return "Hobby: Holding for Runway";
+
+            case AircraftHobbyDepartureTaxiController.DepartureState.TaxiingToRunwayEntry:
+                return "Hobby: Taxiing to Runway";
+
+            case AircraftHobbyDepartureTaxiController.DepartureState.MovingOntoRunway:
+                return "Hobby: Entering Runway";
+
+            case AircraftHobbyDepartureTaxiController.DepartureState.AligningOnRunway:
+                return "Hobby: Aligning on Runway";
+
+            case AircraftHobbyDepartureTaxiController.DepartureState.LinedUpReadyForTakeoff:
+                return "Hobby: Ready for Takeoff";
+
+            default:
+                return "Hobby: Departure";
+        }
     }
 
     private string GetGateDisplayName(string gateStableId)
@@ -276,7 +473,7 @@ public class FlightOperationsStatusPanel : MonoBehaviour
             return gate.DisplayName;
         }
 
-        // Retain a useful identifier if a gate was removed from the scene.
+        // Keep the identifier visible if the gate is no longer in the scene.
         return gateStableId;
     }
 }

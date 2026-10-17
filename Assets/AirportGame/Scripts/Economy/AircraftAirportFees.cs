@@ -23,8 +23,18 @@ public class AircraftAirportFees : MonoBehaviour
     [Header("References")]
     [SerializeField] private AirportEconomyManager economyManager;
     [SerializeField] private GameTimeManager gameTimeManager;
-    [SerializeField] private AircraftLandingController landingController;
-    [SerializeField] private AircraftTurnaroundController turnaroundController;
+
+    [SerializeField]
+    private AircraftCargoPaxLandingController cargoPaxLandingController;
+
+    [SerializeField]
+    private AircraftTrainingLandingController trainingLandingController;
+
+    [SerializeField]
+    private AircraftHobbyLandingController hobbyLandingController;
+
+    [SerializeField]
+    private AircraftTurnaroundController turnaroundController;
 
     private bool landingFeePaid;
     private bool wasParked;
@@ -46,10 +56,22 @@ public class AircraftAirportFees : MonoBehaviour
                 FindFirstObjectByType<GameTimeManager>();
         }
 
-        if (landingController == null)
+        if (cargoPaxLandingController == null)
         {
-            landingController =
-                GetComponent<AircraftLandingController>();
+            cargoPaxLandingController =
+                GetComponent<AircraftCargoPaxLandingController>();
+        }
+
+        if (trainingLandingController == null)
+        {
+            trainingLandingController =
+                GetComponent<AircraftTrainingLandingController>();
+        }
+
+        if (hobbyLandingController == null)
+        {
+            hobbyLandingController =
+                GetComponent<AircraftHobbyLandingController>();
         }
 
         if (turnaroundController == null)
@@ -73,12 +95,8 @@ public class AircraftAirportFees : MonoBehaviour
 
     private void ChargeLandingFeeIfDue()
     {
-        if (landingFeePaid ||
-            landingController == null ||
-            !landingController.IsLandingComplete)
-        {
+        if (landingFeePaid || !IsLandingComplete())
             return;
-        }
 
         // Mark as paid before adding revenue so this aircraft
         // can never charge its landing fee more than once.
@@ -97,6 +115,26 @@ public class AircraftAirportFees : MonoBehaviour
             $"+${landingFee:N0} | Aircraft: {gameObject.name}",
             this
         );
+    }
+
+    private bool IsLandingComplete()
+    {
+        if (cargoPaxLandingController != null)
+        {
+            return cargoPaxLandingController.IsLandingComplete;
+        }
+
+        if (trainingLandingController != null)
+        {
+            return trainingLandingController.IsLandingComplete;
+        }
+
+        if (hobbyLandingController != null)
+        {
+            return hobbyLandingController.IsLandingComplete;
+        }
+
+        return false;
     }
 
     private void UpdateParkingFees()

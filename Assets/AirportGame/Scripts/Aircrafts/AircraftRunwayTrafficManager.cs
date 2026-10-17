@@ -10,6 +10,13 @@ public class AircraftRunwayTrafficManager : MonoBehaviour
         public MonoBehaviour Owner;
     }
 
+    private sealed class LandingTrafficEntry
+    {
+        public AircraftRunway Runway;
+        public MonoBehaviour Owner;
+        public bool IsActive;
+    }
+
     [Header("Runway Occupancy")]
     [Tooltip("Additional clearance around an aircraft when checking if it still occupies a runway.")]
     [Min(0f)]
@@ -17,241 +24,105 @@ public class AircraftRunwayTrafficManager : MonoBehaviour
 
     [SerializeField] private GridManager gridManager;
 
+    private readonly Dictionary<EntityId, LandingTrafficEntry>
+        landingTraffic = new();
+
     private readonly Dictionary<EntityId, RunwayReservation>
         departureReservations = new();
 
     private readonly Dictionary<EntityId, RunwayReservation>
         lineupReservations = new();
 
+    // ---------------------------------------------------------------------
+    // Landing traffic API
+    // ---------------------------------------------------------------------
+
+    /// <summary>
+    /// Updates an aircraft's landing traffic registration.
+    /// The manager does not need to know the aircraft's operation type.
+    /// Inactive entries remain registered so runway occupancy can still
+    /// be checked after touchdown.
+    /// </summary>
+    public void UpdateLandingTraffic(
+        MonoBehaviour aircraft,
+        AircraftRunway runway,
+        bool isLandingTrafficActive)
+    {
+        if (aircraft == null)
+            return;
+
+        EntityId id = aircraft.GetEntityId();
+
+        if (runway == null)
+        {
+            UnregisterLandingTraffic(aircraft);
+            return;
+        }
+
+        if (landingTraffic.TryGetValue(
+                id,
+                out LandingTrafficEntry existing))
+        {
+            if (existing.Owner != aircraft)
+            {
+                // Defensive handling if an entity ID was reused.
+                landingTraffic.Remove(id);
+            }
+            else
+            {
+                existing.Runway = runway;
+                existing.IsActive = isLandingTrafficActive;
+                return;
+            }
+        }
+
+        landingTraffic[id] = new LandingTrafficEntry
+        {
+            Owner = aircraft,
+            Runway = runway,
+            IsActive = isLandingTrafficActive
+        };
+    }
+
+    /// <summary>
+    /// Removes an aircraft from the landing traffic registry.
+    /// </summary>
+    public void UnregisterLandingTraffic(MonoBehaviour aircraft)
+    {
+        if (aircraft == null)
+            return;
+
+        EntityId id = aircraft.GetEntityId();
+
+        if (landingTraffic.TryGetValue(
+                id,
+                out LandingTrafficEntry entry) &&
+            entry.Owner == aircraft)
+        {
+            landingTraffic.Remove(id);
+        }
+    }
+
+    /// <summary>
+    /// Counts active landing traffic on a runway, excluding the requester.
+    /// Works with any operation-specific landing controller.
+    /// </summary>
     public int GetLandingTrafficCount(
         AircraftRunway runway,
-        AircraftLandingController requestingAircraft = null)
+        MonoBehaviour requestingAircraft = null)
     {
         if (runway == null)
             return 0;
 
-        AircraftLandingController[] aircraft =
-            FindObjectsByType<AircraftLandingController>(
-                FindObjectsSortMode.None
-            );
+        RemoveInvalidLandingTraffic();
 
         int count = 0;
 
-        foreach (AircraftLandingController controller in aircraft)
+        foreach (LandingTrafficEntry entry in landingTraffic.Values)
         {
-            if (controller == null ||
-                controller == requestingAircraft)
-            {
-                continue;
-            }
-
-            if (!controller.IsLandingTrafficActive)
-                continue;
-
-            if (controller.SelectedRunway == runway)
-                count++;
-        }
-
-        return count;
-    }
-
-
-    public int GetLandingTrafficCount(
-        AircraftRunway runway,
-        AircraftCargoPaxLandingController requestingAircraft)
-    {
-        if (runway == null)
-            return 0;
-
-        int count = 0;
-
-        // Count active landings handled by the original controller.
-        AircraftLandingController[] originalAircraft =
-            FindObjectsByType<AircraftLandingController>(
-                FindObjectsSortMode.None
-            );
-
-        foreach (AircraftLandingController controller in originalAircraft)
-        {
-            if (controller == null)
-                continue;
-
-            if (!controller.IsLandingTrafficActive)
-                continue;
-
-            if (controller.SelectedRunway == runway)
-                count++;
-        }
-
-        // Count active CargoPax landings.
-        AircraftCargoPaxLandingController[] cargoPaxAircraft =
-            FindObjectsByType<AircraftCargoPaxLandingController>(
-                FindObjectsSortMode.None
-            );
-
-        foreach (AircraftCargoPaxLandingController controller in cargoPaxAircraft)
-        {
-            if (controller == null || controller == requestingAircraft)
-                continue;
-
-            if (!controller.IsLandingTrafficActive)
-                continue;
-
-            if (controller.SelectedRunway == runway)
-                count++;
-        }
-
-        return count;
-    }
-
-    public int GetLandingTrafficCount(
-    AircraftRunway runway,
-    AircraftHobbyLandingTaxiController requestingAircraft)
-    {
-        if (runway == null)
-            return 0;
-
-        int count = 0;
-
-        // Count active landings handled by the original controller.
-        AircraftLandingController[] originalAircraft =
-            FindObjectsByType<AircraftLandingController>(
-                FindObjectsSortMode.None
-            );
-
-        foreach (AircraftLandingController controller in originalAircraft)
-        {
-            if (controller == null)
-                continue;
-
-            if (!controller.IsLandingTrafficActive)
-                continue;
-
-            if (controller.SelectedRunway == runway)
-                count++;
-        }
-
-        // Count active CargoPax landings.
-        AircraftCargoPaxLandingController[] cargoPaxAircraft =
-            FindObjectsByType<AircraftCargoPaxLandingController>(
-                FindObjectsSortMode.None
-            );
-
-        foreach (AircraftCargoPaxLandingController controller in cargoPaxAircraft)
-        {
-            if (controller == null)
-                continue;
-
-            if (!controller.IsLandingTrafficActive)
-                continue;
-
-            if (controller.SelectedRunway == runway)
-                count++;
-        }
-
-        // Count active hobby landings, excluding the requesting aircraft.
-        AircraftHobbyLandingController[] hobbyAircraft =
-            FindObjectsByType<AircraftHobbyLandingController>(
-                FindObjectsSortMode.None
-            );
-
-        foreach (AircraftHobbyLandingController controller in hobbyAircraft)
-        {
-            if (controller == null)
-                continue;
-
-            if (requestingAircraft != null &&
-                controller.gameObject == requestingAircraft.gameObject)
-            {
-                continue;
-            }
-
-            if (!controller.IsLandingTrafficActive)
-                continue;
-
-            if (controller.SelectedRunway == runway)
-                count++;
-        }
-
-        return count;
-    }
-
-
-    public int GetLandingTrafficCount(
-        AircraftRunway runway,
-        AircraftTrainingLandingController requestingAircraft)
-    {
-        if (runway == null)
-            return 0;
-
-        int count = 0;
-
-        // Count active standard landings.
-        AircraftLandingController[] standardAircraft =
-            FindObjectsByType<AircraftLandingController>(
-                FindObjectsSortMode.None
-            );
-
-        foreach (AircraftLandingController controller in standardAircraft)
-        {
-            if (controller == null ||
-                !controller.IsLandingTrafficActive ||
-                controller.SelectedRunway != runway)
-            {
-                continue;
-            }
-
-            count++;
-        }
-
-        // Count active CargoPax landings.
-        AircraftCargoPaxLandingController[] cargoAircraft =
-            FindObjectsByType<AircraftCargoPaxLandingController>(
-                FindObjectsSortMode.None
-            );
-
-        foreach (AircraftCargoPaxLandingController controller in cargoAircraft)
-        {
-            if (controller == null ||
-                !controller.IsLandingTrafficActive ||
-                controller.SelectedRunway != runway)
-            {
-                continue;
-            }
-
-            count++;
-        }
-
-        // Count active hobby landings.
-        AircraftHobbyLandingController[] hobbyAircraft =
-            FindObjectsByType<AircraftHobbyLandingController>(
-                FindObjectsSortMode.None
-            );
-
-        foreach (AircraftHobbyLandingController controller in hobbyAircraft)
-        {
-            if (controller == null ||
-                !controller.IsLandingTrafficActive ||
-                controller.SelectedRunway != runway)
-            {
-                continue;
-            }
-
-            count++;
-        }
-
-        // Count active training landings, excluding the requesting aircraft.
-        AircraftTrainingLandingController[] trainingAircraft =
-            FindObjectsByType<AircraftTrainingLandingController>(
-                FindObjectsSortMode.None
-            );
-
-        foreach (AircraftTrainingLandingController controller in trainingAircraft)
-        {
-            if (controller == null ||
-                controller == requestingAircraft ||
-                !controller.IsLandingTrafficActive ||
-                controller.SelectedRunway != runway)
+            if (entry.Runway != runway ||
+                entry.Owner == requestingAircraft ||
+                !entry.IsActive)
             {
                 continue;
             }
@@ -262,73 +133,9 @@ public class AircraftRunwayTrafficManager : MonoBehaviour
         return count;
     }
 
-    public int GetLandingTrafficCount(
-    AircraftRunway runway,
-    AircraftHobbyLandingController requestingAircraft)
-    {
-        if (runway == null)
-            return 0;
-
-        int count = 0;
-
-        // Count active landings handled by the original controller.
-        AircraftLandingController[] originalAircraft =
-            FindObjectsByType<AircraftLandingController>(
-                FindObjectsSortMode.None
-            );
-
-        foreach (AircraftLandingController controller in originalAircraft)
-        {
-            if (controller == null ||
-                !controller.IsLandingTrafficActive ||
-                controller.SelectedRunway != runway)
-            {
-                continue;
-            }
-
-            count++;
-        }
-
-        // Count active CargoPax landings.
-        AircraftCargoPaxLandingController[] cargoAircraft =
-            FindObjectsByType<AircraftCargoPaxLandingController>(
-                FindObjectsSortMode.None
-            );
-
-        foreach (AircraftCargoPaxLandingController controller in cargoAircraft)
-        {
-            if (controller == null ||
-                !controller.IsLandingTrafficActive ||
-                controller.SelectedRunway != runway)
-            {
-                continue;
-            }
-
-            count++;
-        }
-
-        // Count active hobby landings, excluding the requesting aircraft.
-        AircraftHobbyLandingController[] hobbyAircraft =
-            FindObjectsByType<AircraftHobbyLandingController>(
-                FindObjectsSortMode.None
-            );
-
-        foreach (AircraftHobbyLandingController controller in hobbyAircraft)
-        {
-            if (controller == null ||
-                controller == requestingAircraft ||
-                !controller.IsLandingTrafficActive ||
-                controller.SelectedRunway != runway)
-            {
-                continue;
-            }
-
-            count++;
-        }
-
-        return count;
-    }
-
+    // ---------------------------------------------------------------------
+    // Departure traffic
+    // ---------------------------------------------------------------------
 
     public int GetDepartureTrafficCount(
         AircraftRunway runway,
@@ -358,7 +165,7 @@ public class AircraftRunwayTrafficManager : MonoBehaviour
 
     public int GetRunwayTrafficCount(
         AircraftRunway runway,
-        AircraftLandingController requestingLandingAircraft = null,
+        MonoBehaviour requestingLandingAircraft = null,
         MonoBehaviour requestingDepartureAircraft = null)
     {
         if (runway == null)
@@ -469,7 +276,8 @@ public class AircraftRunwayTrafficManager : MonoBehaviour
             Debug.Log(
                 $"RUNWAY DEPARTURE RESERVATION RELEASED | " +
                 $"Aircraft: {departureAircraft.name} | " +
-                $"Runway: {reservation.Runway.name}",
+                $"Runway: " +
+                $"{(reservation.Runway != null ? reservation.Runway.name : "Unknown")}",
                 this
             );
         }
@@ -477,10 +285,13 @@ public class AircraftRunwayTrafficManager : MonoBehaviour
         ReleaseRunwayLineUpReservation(departureAircraft);
     }
 
+    // ---------------------------------------------------------------------
+    // Runway line-up clearance
+    // ---------------------------------------------------------------------
+
     /// <summary>
-    /// Checks whether there is an active arrival, an aircraft still
-    /// physically occupying the runway, or another departure holding
-    /// the line-up reservation.
+    /// Checks active arrivals, landed aircraft still occupying the runway,
+    /// and competing line-up reservations.
     /// </summary>
     public bool IsRunwayClearForLineUp(
         AircraftRunway runway,
@@ -495,37 +306,34 @@ public class AircraftRunwayTrafficManager : MonoBehaviour
             return false;
         }
 
+        RemoveInvalidLandingTraffic();
         RemoveInvalidReservations();
 
-        AircraftLandingController[] arrivals =
-            FindObjectsByType<AircraftLandingController>(
-                FindObjectsSortMode.None
-            );
-
-        foreach (AircraftLandingController arrival in arrivals)
+        foreach (LandingTrafficEntry entry in landingTraffic.Values)
         {
-            if (arrival == null ||
-                arrival.SelectedRunway != runway)
+            if (entry.Runway != runway ||
+                entry.Owner == null)
             {
                 continue;
             }
 
-            // Includes alignment, approach, flare, rollout and go-around.
-            if (arrival.IsLandingTrafficActive)
+            if (entry.IsActive)
             {
                 reason =
-                    $"Waiting for arrival {arrival.name} to finish " +
+                    $"Waiting for arrival {entry.Owner.name} to finish " +
                     "landing and clear the runway.";
 
                 return false;
             }
 
-            // LandingComplete becomes true before the aircraft necessarily
-            // finishes taxiing off the runway. Check its actual footprint.
-            if (IsAircraftOccupyingRunway(arrival, runway))
+            // Landing traffic can become inactive before the aircraft
+            // has physically taxied off the runway.
+            if (IsAircraftOccupyingRunway(
+                    entry.Owner.transform,
+                    runway))
             {
                 reason =
-                    $"Waiting for landed aircraft {arrival.name} " +
+                    $"Waiting for landed aircraft {entry.Owner.name} " +
                     "to vacate the runway.";
 
                 return false;
@@ -641,15 +449,22 @@ public class AircraftRunwayTrafficManager : MonoBehaviour
         );
     }
 
+    // ---------------------------------------------------------------------
+    // Physical runway occupancy
+    // ---------------------------------------------------------------------
+
     private bool IsAircraftOccupyingRunway(
-        AircraftLandingController aircraft,
+        Transform aircraft,
         AircraftRunway runway)
     {
+        if (aircraft == null || runway == null)
+            return false;
+
         if (gridManager == null)
             gridManager = FindFirstObjectByType<GridManager>();
 
         // Fail safe: if the runway footprint cannot be determined,
-        // don't permit a departure based on an uncertain clearance check.
+        // don't permit departure based on uncertain clearance.
         if (gridManager == null ||
             !runway.TryGetGeometry(
                 gridManager,
@@ -683,8 +498,6 @@ public class AircraftRunwayTrafficManager : MonoBehaviour
         Vector3 lateralAxis =
             new Vector3(-axis.z, 0f, axis.x);
 
-        // Runway geometry determines the longitudinal axis. The other
-        // placed-building dimension determines the width.
         bool axisIsX = Mathf.Abs(axis.x) >= Mathf.Abs(axis.z);
 
         float lateralCellCount =
@@ -697,6 +510,8 @@ public class AircraftRunwayTrafficManager : MonoBehaviour
         Collider[] colliders =
             aircraft.GetComponentsInChildren<Collider>();
 
+        bool foundUsableCollider = false;
+
         foreach (Collider aircraftCollider in colliders)
         {
             if (aircraftCollider == null ||
@@ -706,10 +521,11 @@ public class AircraftRunwayTrafficManager : MonoBehaviour
                 continue;
             }
 
+            foundUsableCollider = true;
+
             Bounds bounds = aircraftCollider.bounds;
 
-            // Ignore a landed aircraft if it is clearly at a different
-            // altitude from the runway surface.
+            // Ignore an aircraft clearly at a different altitude.
             if (Mathf.Abs(bounds.center.y - surfaceY) >
                 bounds.extents.y + 3f)
             {
@@ -725,8 +541,6 @@ public class AircraftRunwayTrafficManager : MonoBehaviour
             float lateralDistance =
                 Mathf.Abs(Vector3.Dot(offset, lateralAxis));
 
-            // Project the collider's world AABB extents onto the
-            // runway's longitudinal and lateral axes.
             float alongExtent =
                 Mathf.Abs(axis.x) * bounds.extents.x +
                 Mathf.Abs(axis.z) * bounds.extents.z;
@@ -746,11 +560,11 @@ public class AircraftRunwayTrafficManager : MonoBehaviour
                 return true;
         }
 
-        // If the aircraft has no collider, use its root position with
-        // a small conservative margin.
-        if (colliders.Length == 0)
+        // If no usable collider exists, use the aircraft root position
+        // with a conservative margin.
+        if (!foundUsableCollider)
         {
-            Vector3 offset = aircraft.transform.position - center;
+            Vector3 offset = aircraft.position - center;
             offset.y = 0f;
 
             return
@@ -762,6 +576,39 @@ public class AircraftRunwayTrafficManager : MonoBehaviour
         }
 
         return false;
+    }
+
+    // ---------------------------------------------------------------------
+    // Cleanup and diagnostics
+    // ---------------------------------------------------------------------
+
+    private void RemoveInvalidLandingTraffic()
+    {
+        List<EntityId> invalidIds = null;
+
+        foreach (KeyValuePair<EntityId, LandingTrafficEntry> pair
+                 in landingTraffic)
+        {
+            LandingTrafficEntry entry = pair.Value;
+
+            if (entry.Owner != null &&
+                entry.Owner.gameObject.activeInHierarchy &&
+                entry.Runway != null)
+            {
+                continue;
+            }
+
+            if (invalidIds == null)
+                invalidIds = new List<EntityId>();
+
+            invalidIds.Add(pair.Key);
+        }
+
+        if (invalidIds == null)
+            return;
+
+        foreach (EntityId id in invalidIds)
+            landingTraffic.Remove(id);
     }
 
     private void RemoveInvalidReservations()
@@ -781,6 +628,7 @@ public class AircraftRunwayTrafficManager : MonoBehaviour
             RunwayReservation reservation = pair.Value;
 
             if (reservation.Owner != null &&
+                reservation.Owner.gameObject.activeInHierarchy &&
                 reservation.Runway != null)
             {
                 continue;
@@ -802,13 +650,25 @@ public class AircraftRunwayTrafficManager : MonoBehaviour
     [ContextMenu("Debug/Log Departure Reservations")]
     private void DebugLogDepartureReservations()
     {
+        RemoveInvalidLandingTraffic();
         RemoveInvalidReservations();
 
         Debug.Log(
+            $"Landing traffic entries: {landingTraffic.Count} | " +
             $"Departure reservations: {departureReservations.Count} | " +
             $"Line-up reservations: {lineupReservations.Count}",
             this
         );
+
+        foreach (LandingTrafficEntry entry in landingTraffic.Values)
+        {
+            Debug.Log(
+                $"Landing traffic: {entry.Owner.name} | " +
+                $"Runway: {entry.Runway.name} | " +
+                $"Active: {entry.IsActive}",
+                entry.Owner
+            );
+        }
 
         foreach (RunwayReservation reservation
                  in departureReservations.Values)

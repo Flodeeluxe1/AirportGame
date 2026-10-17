@@ -87,34 +87,34 @@ public class GateReadyForTaxiTestSpawner : MonoBehaviour
         // Prevent the test aircraft from starting its landing sequence.
         if (disableLandingController)
         {
-            AircraftLandingController landingController =
+            AircraftCargoPaxLandingController landingController =
                 aircraft.GetComponentInChildren
-                    <AircraftLandingController>(true);
+                    <AircraftCargoPaxLandingController>(true);
 
             if (landingController != null)
                 landingController.enabled = false;
         }
 
-        AircraftGateExitController gateExitController =
-            aircraft.GetComponent<AircraftGateExitController>();
+        AircraftCargoPaxGateExitController gateExitController =
+            aircraft.GetComponent<AircraftCargoPaxGateExitController>();
 
         if (gateExitController == null)
         {
             Debug.LogError(
-                $"{aircraft.name}: AircraftGateExitController is missing.",
+                $"{aircraft.name}: AircraftCargoPaxGateExitController is missing.",
                 aircraft
             );
 
             return;
         }
 
-        AircraftDepartureTaxiController departureController =
-            aircraft.GetComponent<AircraftDepartureTaxiController>();
+        AircraftCargoPaxDepartureTaxiController departureController =
+            aircraft.GetComponent<AircraftCargoPaxDepartureTaxiController>();
 
         if (departureController == null)
         {
             Debug.LogError(
-                $"{aircraft.name}: AircraftDepartureTaxiController is missing.",
+                $"{aircraft.name}: AircraftCargoPaxDepartureTaxiController is missing.",
                 aircraft
             );
 

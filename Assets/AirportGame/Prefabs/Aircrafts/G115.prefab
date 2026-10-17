@@ -15,7 +15,7 @@ GameObject:
   - component: {fileID: 4737968444723569948}
   - component: {fileID: 6070543810844894910}
   - component: {fileID: 7950305122120887158}
-  - component: {fileID: 3227202134047224975}
+  - component: {fileID: -4628986706001033226}
   m_Layer: 0
   m_Name: G115
   m_TagString: Untagged
@@ -120,7 +120,7 @@ MonoBehaviour:
   maximumStartCandidates: 10
   runwaySafetyMarginInCells: 1
   taxiSpeedKnots: 15
-  worldUnitsPerSecondPerKnot: 0.05
+  worldUnitsPerSecondPerKnot: 0.08
   rotationSpeedDegreesPerSecond: 45
   waypointArrivalDistance: 0.15
   modelRotationOffset: {x: 0, y: 0, z: 0}
@@ -155,16 +155,16 @@ MonoBehaviour:
   gameTimeManager: {fileID: 0}
   gridManager: {fileID: 0}
   aircraftCollider: {fileID: 0}
-  takeoffSpeedKnots: 120
-  groundAccelerationKnotsPerSecond: 12
+  takeoffSpeedKnots: 100
+  groundAccelerationKnotsPerSecond: 20
   airborneAccelerationKnotsPerSecond: 3
-  worldUnitsPerSecondPerKnot: 0.05
-  rotationStartSpeedFraction: 0.8
+  worldUnitsPerSecondPerKnot: 0.08
+  rotationStartSpeedFraction: 0.7
   rotationRateDegreesPerSecond: 3
-  targetNoseUpDegrees: 25
+  targetNoseUpDegrees: 10
   liftoffStartNoseUpDegrees: 10
   modelRotationOffset: {x: 0, y: 0, z: 0}
-  targetAltitudeAboveRunway: 60
+  targetAltitudeAboveRunway: 40
   runwayClearanceBuffer: 1
   currentState: 0
   currentSpeedKnots: 0
@@ -188,18 +188,18 @@ MonoBehaviour:
   gridManager: {fileID: 0}
   weather: {fileID: 0}
   approachDistance: 60
-  glideAngleDegrees: 3
-  approachSpeedKnots: 140
-  touchdownSpeedKnots: 120
-  rolloutTargetSpeedKnots: 30
-  worldUnitsPerSecondPerKnot: 0.05
-  speedChangeRate: 3
-  rolloutDeceleration: 1.2
+  glideAngleDegrees: 4
+  approachSpeedKnots: 100
+  touchdownSpeedKnots: 70
+  rolloutTargetSpeedKnots: 20
+  worldUnitsPerSecondPerKnot: 0.08
+  speedChangeRate: 2
+  rolloutDeceleration: 1
   flareHeight: 1.5
-  noseRaiseDegrees: 3
+  noseRaiseDegrees: 8
   noseLoweringDuration: 1.5
   maximumSidewindComponentKnots: 15
-  goAroundNoseUpDegrees: 20
+  goAroundNoseUpDegrees: 10
   goAroundAltitudeAboveRunway: 30
   rotationSpeed: 3
   modelRotationOffset: {x: 0, y: 0, z: 0}
@@ -212,7 +212,7 @@ MonoBehaviour:
   debugDistanceToThreshold: 0
   debugGoAroundTargetAltitude: 0
   debugStatus: Waiting for initialization
---- !u!114 &3227202134047224975
+--- !u!114 &-4628986706001033226
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -221,36 +221,32 @@ MonoBehaviour:
   m_GameObject: {fileID: 2931056182657766213}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2732dea777c2b8c458870cd04a2eb2cb, type: 3}
+  m_Script: {fileID: 11500000, guid: 62462bec1ef65bf4e848c47cddd6b39f, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::AircraftTrainingLandingController
+  m_EditorClassIdentifier: Assembly-CSharp::AircraftTrainingLandingTaxiController
+  landingController: {fileID: 0}
   gridManager: {fileID: 0}
-  weather: {fileID: 0}
-  approachDistance: 60
-  glideAngleDegrees: 3
-  approachSpeedKnots: 140
-  touchdownSpeedKnots: 120
-  rolloutTargetSpeedKnots: 30
+  taxiwayNetwork: {fileID: 0}
+  taxiwayPathfinder: {fileID: 0}
+  connectionSearchRadiusCells: 12
+  maximumRouteAttempts: 32
+  minimumTaxiwayWidth: 3
+  maximumRunwayExitLateralDistance: 12
+  minimumExitForwardDistance: 0.5
+  runwayEndTolerance: 1
+  maximumParkingConnectorDistance: 4
+  taxiSpeedKnots: 15
   worldUnitsPerSecondPerKnot: 0.05
-  speedChangeRate: 3
-  rolloutDeceleration: 1.2
-  flareHeight: 1.5
-  noseRaiseDegrees: 3
-  noseLoweringDuration: 1.5
-  maximumSidewindComponentKnots: 15
-  goAroundNoseUpDegrees: 20
-  goAroundAltitudeAboveRunway: 30
   rotationSpeed: 3
+  waypointArrivalDistance: 0.2
+  parkingArrivalDistance: 0.5
+  taxiHeightOffset: 0.08
   modelRotationOffset: {x: 0, y: 0, z: 0}
-  debugLandingState: Initializing
-  debugSelectedRunway: None
-  debugLandingHeading: None
-  debugHeadwindComponentKnots: 0
-  debugSidewindComponentKnots: 0
-  debugCurrentSpeedKnots: 0
-  debugDistanceToThreshold: 0
-  debugGoAroundTargetAltitude: 0
-  debugStatus: Waiting for initialization
+  turningRadiusInCells: 2
+  turnCurveResolution: 16
+  taxiPathPointTolerance: 0.03
+  logTaxiProgress: 1
+  debugStatus: Waiting for training landing completion.
 --- !u!1001 &7649397686244966220
 PrefabInstance:
   m_ObjectHideFlags: 0

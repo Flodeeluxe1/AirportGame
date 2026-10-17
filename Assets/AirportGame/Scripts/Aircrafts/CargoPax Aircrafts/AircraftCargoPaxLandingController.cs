@@ -119,6 +119,7 @@ public class AircraftCargoPaxLandingController : MonoBehaviour
     private LandingState state = LandingState.Initializing;
 
     private AircraftRunway selectedRunway;
+    private AircraftRunwayTrafficManager trafficManager;
 
     private Vector3 runwayDirection;
     private Vector3 runwayCenter;
@@ -172,6 +173,7 @@ public class AircraftCargoPaxLandingController : MonoBehaviour
         UpdateDebugInformation();
     }
 
+
     private void Update()
     {
         switch (state)
@@ -197,8 +199,31 @@ public class AircraftCargoPaxLandingController : MonoBehaviour
                 break;
         }
 
+        if (trafficManager == null)
+        {
+            trafficManager =
+                FindFirstObjectByType<AircraftRunwayTrafficManager>();
+        }
+
+        if (trafficManager != null)
+        {
+            if (selectedRunway != null)
+            {
+                trafficManager.UpdateLandingTraffic(
+                    this,
+                    selectedRunway,
+                    IsLandingTrafficActive
+                );
+            }
+            else
+            {
+                trafficManager.UnregisterLandingTraffic(this);
+            }
+        }
+
         UpdateDebugInformation();
     }
+
 
     private bool SelectLandingRunway()
     {
