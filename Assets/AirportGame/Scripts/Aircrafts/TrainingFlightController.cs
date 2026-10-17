@@ -34,18 +34,19 @@ public class TrainingFlightController : MonoBehaviour
     [Header("Runtime Status")]
     [SerializeField] private int completedCircuits;
     [SerializeField] private bool departureRequested;
+
     [SerializeField]
-    private TrainingState currentState =
-        TrainingState.Inactive;
+    private TrainingState currentState = TrainingState.Inactive;
+
     [SerializeField]
-    private string debugStatus =
-        "Waiting for Flight School Manager.";
+    private string debugStatus = "Waiting for Flight School Manager.";
 
     private AircraftFlightIdentity flightIdentity;
-    private AircraftDepartureTaxiController departureController;
-    private AircraftTakeoffController takeoffController;
-    private AircraftLandingController landingController;
-    private AircraftHobbyLandingTaxiController taxiController;
+
+    private AircraftTrainingDepartureTaxiController departureController;
+    private AircraftTrainingTakeoffController takeoffController;
+    private AircraftTrainingLandingController landingController;
+    private AircraftTrainingLandingTaxiController taxiController;
 
     private readonly List<Vector3> circuitWaypoints = new();
 
@@ -69,14 +70,18 @@ public class TrainingFlightController : MonoBehaviour
     private void Awake()
     {
         flightIdentity = GetComponent<AircraftFlightIdentity>();
+
         departureController =
-            GetComponent<AircraftDepartureTaxiController>();
+            GetComponent<AircraftTrainingDepartureTaxiController>();
+
         takeoffController =
-            GetComponent<AircraftTakeoffController>();
+            GetComponent<AircraftTrainingTakeoffController>();
+
         landingController =
-            GetComponent<AircraftLandingController>();
+            GetComponent<AircraftTrainingLandingController>();
+
         taxiController =
-            GetComponent<AircraftHobbyLandingTaxiController>();
+            GetComponent<AircraftTrainingLandingTaxiController>();
     }
 
     private void Update()
@@ -157,6 +162,7 @@ public class TrainingFlightController : MonoBehaviour
         RequestNextCircuitDeparture();
 
         currentState = TrainingState.WaitingForTakeoff;
+
         debugStatus =
             "Lesson started. Waiting for departure taxi and takeoff.";
 
@@ -181,9 +187,6 @@ public class TrainingFlightController : MonoBehaviour
     private void RequestNextCircuitDeparture()
     {
         departureRequested = true;
-
-        GetComponent<TrainingFlightController>()
-            .departureRequested = true;
 
         // The departure taxi controller reads this request.
         debugStatus = "Departure requested. Taxiing toward runway.";
@@ -269,7 +272,7 @@ public class TrainingFlightController : MonoBehaviour
         float downwindDistance =
             runwayLength * 0.5f + circuitExtension;
 
-        // A simple rectangular training circuit:
+        // Rectangular training circuit:
         // upwind, crosswind, downwind, then base.
         Vector3 upwindPoint =
             runwayCenter + direction * downwindDistance;
@@ -387,6 +390,7 @@ public class TrainingFlightController : MonoBehaviour
         }
 
         currentState = TrainingState.TaxiingBackToSchool;
+
         debugStatus =
             "Landing complete. Taxiing back to the school parking spot.";
     }
@@ -439,6 +443,7 @@ public class TrainingFlightController : MonoBehaviour
         RequestNextCircuitDeparture();
 
         currentState = TrainingState.WaitingForTakeoff;
+
         debugStatus =
             $"Returned to school parking. Preparing circuit " +
             $"{completedCircuits + 1}/{requiredCircuits}.";

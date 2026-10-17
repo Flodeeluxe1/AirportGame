@@ -178,6 +178,91 @@ public class AircraftRunwayTrafficManager : MonoBehaviour
 
 
     public int GetLandingTrafficCount(
+        AircraftRunway runway,
+        AircraftTrainingLandingController requestingAircraft)
+    {
+        if (runway == null)
+            return 0;
+
+        int count = 0;
+
+        // Count active standard landings.
+        AircraftLandingController[] standardAircraft =
+            FindObjectsByType<AircraftLandingController>(
+                FindObjectsSortMode.None
+            );
+
+        foreach (AircraftLandingController controller in standardAircraft)
+        {
+            if (controller == null ||
+                !controller.IsLandingTrafficActive ||
+                controller.SelectedRunway != runway)
+            {
+                continue;
+            }
+
+            count++;
+        }
+
+        // Count active CargoPax landings.
+        AircraftCargoPaxLandingController[] cargoAircraft =
+            FindObjectsByType<AircraftCargoPaxLandingController>(
+                FindObjectsSortMode.None
+            );
+
+        foreach (AircraftCargoPaxLandingController controller in cargoAircraft)
+        {
+            if (controller == null ||
+                !controller.IsLandingTrafficActive ||
+                controller.SelectedRunway != runway)
+            {
+                continue;
+            }
+
+            count++;
+        }
+
+        // Count active hobby landings.
+        AircraftHobbyLandingController[] hobbyAircraft =
+            FindObjectsByType<AircraftHobbyLandingController>(
+                FindObjectsSortMode.None
+            );
+
+        foreach (AircraftHobbyLandingController controller in hobbyAircraft)
+        {
+            if (controller == null ||
+                !controller.IsLandingTrafficActive ||
+                controller.SelectedRunway != runway)
+            {
+                continue;
+            }
+
+            count++;
+        }
+
+        // Count active training landings, excluding the requesting aircraft.
+        AircraftTrainingLandingController[] trainingAircraft =
+            FindObjectsByType<AircraftTrainingLandingController>(
+                FindObjectsSortMode.None
+            );
+
+        foreach (AircraftTrainingLandingController controller in trainingAircraft)
+        {
+            if (controller == null ||
+                controller == requestingAircraft ||
+                !controller.IsLandingTrafficActive ||
+                controller.SelectedRunway != runway)
+            {
+                continue;
+            }
+
+            count++;
+        }
+
+        return count;
+    }
+
+    public int GetLandingTrafficCount(
     AircraftRunway runway,
     AircraftHobbyLandingController requestingAircraft)
     {

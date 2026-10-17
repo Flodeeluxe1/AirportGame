@@ -12,10 +12,10 @@ GameObject:
   - component: {fileID: 6708039799144440726}
   - component: {fileID: 7563263625542891464}
   - component: {fileID: 5705690150798237064}
-  - component: {fileID: -6568580447584512305}
-  - component: {fileID: 3664410654012688961}
-  - component: {fileID: 3364339437619990639}
-  - component: {fileID: -2765776846840073537}
+  - component: {fileID: 4737968444723569948}
+  - component: {fileID: 6070543810844894910}
+  - component: {fileID: 7950305122120887158}
+  - component: {fileID: 3227202134047224975}
   m_Layer: 0
   m_Name: G115
   m_TagString: Untagged
@@ -96,7 +96,7 @@ MonoBehaviour:
   departureRequested: 0
   currentState: 0
   debugStatus: Waiting for Flight School Manager.
---- !u!114 &-6568580447584512305
+--- !u!114 &4737968444723569948
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -105,46 +105,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 2931056182657766213}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 443cf1a01839a0743b71ae075c2d02f9, type: 3}
+  m_Script: {fileID: 11500000, guid: 7ab07c3eacf51604981fbaa638758b05, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::HobbyAircraftTaxiController
-  landingController: {fileID: 0}
-  flightIdentity: {fileID: 0}
-  gridManager: {fileID: 0}
-  taxiwayNetwork: {fileID: 0}
-  taxiwayPathfinder: {fileID: 0}
-  connectionSearchRadiusCells: 12
-  maximumRouteAttempts: 32
-  minimumTaxiwayWidth: 3
-  maximumRunwayExitLateralDistance: 12
-  minimumExitForwardDistance: 0.5
-  runwayEndTolerance: 1
-  maximumParkingConnectorDistance: 4
-  taxiSpeedKnots: 10
-  worldUnitsPerSecondPerKnot: 0.08
-  rotationSpeed: 3
-  waypointArrivalDistance: 0.2
-  parkingArrivalDistance: 0.5
-  taxiHeightOffset: 0.05
-  modelRotationOffset: {x: 0, y: 0, z: 0}
-  turningRadiusInCells: 2
-  turnCurveResolution: 8
-  taxiPathPointTolerance: 0.02
-  logTaxiProgress: 1
-  debugStatus: Waiting for VFR landing completion.
---- !u!114 &3664410654012688961
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2931056182657766213}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: affde225309190b489d2b2272fbc51ae, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::AircraftDepartureTaxiController
-  gateExitController: {fileID: 0}
+  m_EditorClassIdentifier: Assembly-CSharp::AircraftTrainingDepartureTaxiController
   gridManager: {fileID: 0}
   weather: {fileID: 0}
   trafficManager: {fileID: 0}
@@ -156,8 +119,8 @@ MonoBehaviour:
   startSearchRadiusCells: 4
   maximumStartCandidates: 10
   runwaySafetyMarginInCells: 1
-  taxiSpeedKnots: 10
-  worldUnitsPerSecondPerKnot: 0.08
+  taxiSpeedKnots: 15
+  worldUnitsPerSecondPerKnot: 0.05
   rotationSpeedDegreesPerSecond: 45
   waypointArrivalDistance: 0.15
   modelRotationOffset: {x: 0, y: 0, z: 0}
@@ -170,17 +133,12 @@ MonoBehaviour:
   departureThreshold: {x: 0, y: 0, z: 0}
   holdingCell: {x: 0, y: 0}
   hasHoldingCell: 0
-  debugAircraftForwardExtent: 0
-  debugRequiredHoldingDistance: 0
-  debugActualHoldingDistance: 0
-  debugRunwayTrafficCount: 0
+  debugStatus: Waiting for training departure request
+  debugSelectedRunway: None
   debugHeadwindComponentKnots: 0
   debugSidewindComponentKnots: 0
   debugTaxiRouteLength: 0
-  debugSelectedRunway: None
-  debugTakeoffHeading: None
-  debugStatus: Waiting for gate exit
---- !u!114 &3364339437619990639
+--- !u!114 &6070543810844894910
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -189,24 +147,24 @@ MonoBehaviour:
   m_GameObject: {fileID: 2931056182657766213}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d8d23606ac7ba554d8d17d749a1ae106, type: 3}
+  m_Script: {fileID: 11500000, guid: bcd0605fc4737a647841c98c28972200, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::AircraftTakeoffController
+  m_EditorClassIdentifier: Assembly-CSharp::AircraftTrainingTakeoffController
   departureController: {fileID: 0}
   trafficManager: {fileID: 0}
   gameTimeManager: {fileID: 0}
   gridManager: {fileID: 0}
   aircraftCollider: {fileID: 0}
-  takeoffSpeedKnots: 100
-  groundAccelerationKnotsPerSecond: 10
+  takeoffSpeedKnots: 120
+  groundAccelerationKnotsPerSecond: 12
   airborneAccelerationKnotsPerSecond: 3
-  worldUnitsPerSecondPerKnot: 0.08
+  worldUnitsPerSecondPerKnot: 0.05
   rotationStartSpeedFraction: 0.8
   rotationRateDegreesPerSecond: 3
-  targetNoseUpDegrees: 10
-  liftoffStartNoseUpDegrees: 2
+  targetNoseUpDegrees: 25
+  liftoffStartNoseUpDegrees: 10
   modelRotationOffset: {x: 0, y: 0, z: 0}
-  targetAltitudeAboveRunway: 20
+  targetAltitudeAboveRunway: 60
   runwayClearanceBuffer: 1
   currentState: 0
   currentSpeedKnots: 0
@@ -215,7 +173,7 @@ MonoBehaviour:
   currentAltitudeAboveRunway: 0
   runwayReservationReleased: 0
   debugStatus: Waiting for line-up
---- !u!114 &-2765776846840073537
+--- !u!114 &7950305122120887158
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -224,21 +182,60 @@ MonoBehaviour:
   m_GameObject: {fileID: 2931056182657766213}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 75750bee45f5c7e4895808b3b18c72d8, type: 3}
+  m_Script: {fileID: 11500000, guid: 2732dea777c2b8c458870cd04a2eb2cb, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::AircraftLandingController
+  m_EditorClassIdentifier: Assembly-CSharp::AircraftTrainingLandingController
   gridManager: {fileID: 0}
   weather: {fileID: 0}
   approachDistance: 60
   glideAngleDegrees: 3
-  approachSpeedKnots: 100
-  touchdownSpeedKnots: 70
-  rolloutTargetSpeedKnots: 20
-  worldUnitsPerSecondPerKnot: 0.08
+  approachSpeedKnots: 140
+  touchdownSpeedKnots: 120
+  rolloutTargetSpeedKnots: 30
+  worldUnitsPerSecondPerKnot: 0.05
   speedChangeRate: 3
-  rolloutDeceleration: 1
+  rolloutDeceleration: 1.2
   flareHeight: 1.5
-  noseRaiseDegrees: 8
+  noseRaiseDegrees: 3
+  noseLoweringDuration: 1.5
+  maximumSidewindComponentKnots: 15
+  goAroundNoseUpDegrees: 20
+  goAroundAltitudeAboveRunway: 30
+  rotationSpeed: 3
+  modelRotationOffset: {x: 0, y: 0, z: 0}
+  debugLandingState: Initializing
+  debugSelectedRunway: None
+  debugLandingHeading: None
+  debugHeadwindComponentKnots: 0
+  debugSidewindComponentKnots: 0
+  debugCurrentSpeedKnots: 0
+  debugDistanceToThreshold: 0
+  debugGoAroundTargetAltitude: 0
+  debugStatus: Waiting for initialization
+--- !u!114 &3227202134047224975
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2931056182657766213}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2732dea777c2b8c458870cd04a2eb2cb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AircraftTrainingLandingController
+  gridManager: {fileID: 0}
+  weather: {fileID: 0}
+  approachDistance: 60
+  glideAngleDegrees: 3
+  approachSpeedKnots: 140
+  touchdownSpeedKnots: 120
+  rolloutTargetSpeedKnots: 30
+  worldUnitsPerSecondPerKnot: 0.05
+  speedChangeRate: 3
+  rolloutDeceleration: 1.2
+  flareHeight: 1.5
+  noseRaiseDegrees: 3
   noseLoweringDuration: 1.5
   maximumSidewindComponentKnots: 15
   goAroundNoseUpDegrees: 20
