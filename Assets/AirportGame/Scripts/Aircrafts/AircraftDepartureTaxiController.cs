@@ -130,6 +130,7 @@ public class AircraftDepartureTaxiController : MonoBehaviour
     }
 
 
+
     private void Update()
     {
         switch (currentState)
@@ -157,22 +158,42 @@ public class AircraftDepartureTaxiController : MonoBehaviour
         AircraftFlightIdentity identity =
             GetComponent<AircraftFlightIdentity>();
 
+        bool isInitializedTrainingFlight =
+            identity != null &&
+            identity.IsInitialized &&
+            identity.IsTrainingFlight;
+
         bool isHobbyFlight =
             identity != null &&
             identity.IsInitialized &&
             identity.IsHobbyFlight;
 
-        if (isHobbyFlight)
+        if (isInitializedTrainingFlight)
+        {
+            TrainingFlightController trainingController =
+                GetComponent<TrainingFlightController>();
+
+            if (trainingController == null ||
+                !trainingController.DepartureRequested)
+            {
+                currentState = DepartureState.WaitingForGateExit;
+                debugStatus =
+                    "Training aircraft parked; waiting for circuit departure request.";
+                return;
+            }
+        }
+        else if (isHobbyFlight)
         {
             HobbyAircraftVisitController visitController =
                 GetComponent<HobbyAircraftVisitController>();
 
-            // VFR aircraft must finish their visit before taxiing out.
+            // Hobby aircraft wait until their visit has finished.
             if (visitController == null ||
                 !visitController.DepartureRequested)
             {
                 currentState = DepartureState.WaitingForGateExit;
-                debugStatus = "Hobby aircraft parked; waiting for visit to finish";
+                debugStatus =
+                    "Hobby aircraft parked; waiting for visit to finish";
                 return;
             }
         }
@@ -194,6 +215,60 @@ public class AircraftDepartureTaxiController : MonoBehaviour
         retryTimer = runwaySelectionRetryInterval;
 
         TrySelectDepartureRunway();
+    }
+
+
+    public bool ResetForTrainingCircuit()
+    {
+        AircraftFlightIdentity identity =
+            GetComponent<AircraftFlightIdentity>();
+
+        if (identity == null || !identity.IsTrainingFlight)
+        {
+            Debug.LogWarning(
+                $"{name}: Departure reset is only for training flights.",
+                this
+            );
+
+            return false;
+        }
+
+        if (trafficManager != null)
+        {
+            trafficManager.ReleaseRunwayLineUpReservation(this);
+            trafficManager.ReleaseDepartureReservation(this);
+        }
+
+        selectedRunway = null;
+        takeoffDirection = Vector3.zero;
+        departureThreshold = Vector3.zero;
+        holdingCell = default;
+        hasHoldingCell = false;
+
+        taxiRoute.Clear();
+        runwayJoinRoute.Clear();
+        movementWaypoints.Clear();
+
+        currentWaypointIndex = 0;
+        holdingRouteIndex = 0;
+        retryTimer = 0f;
+        hasLoggedWaitingMessage = false;
+        lastRunwayWaitReason = string.Empty;
+
+        runwayJoinCell = default;
+        runwayCenter = Vector3.zero;
+        runwayLength = 0f;
+        runwaySurfaceY = 0f;
+        runwayLineUpTarget = Vector3.zero;
+        runwayLineUpRotation = Quaternion.identity;
+
+        debugSelectedRunway = "None";
+        debugTakeoffHeading = "None";
+        debugStatus = "Training circuit reset; waiting for departure request.";
+
+        currentState = DepartureState.WaitingForGateExit;
+
+        return true;
     }
 
 

@@ -157,12 +157,23 @@ public class HobbyAircraftTaxiController : MonoBehaviour
                 FindFirstObjectByType<TaxiwayPathfinder>();
     }
 
+
     private void Update()
     {
         if (flightIdentity == null ||
-            !flightIdentity.IsHobbyFlight)
+            (!flightIdentity.IsHobbyFlight &&
+             !flightIdentity.IsTrainingFlight))
         {
             return;
+        }
+
+        if (flightIdentity.IsTrainingFlight &&
+            landingController != null &&
+            !landingController.IsLandingComplete)
+        {
+            // A new training landing has begun.
+            // Allow taxi routing to be built again when rollout finishes.
+            routeAttempted = false;
         }
 
         if (!routeAttempted &&
@@ -192,6 +203,7 @@ public class HobbyAircraftTaxiController : MonoBehaviour
                 break;
         }
     }
+
 
     private void TryBuildTaxiRoute()
     {

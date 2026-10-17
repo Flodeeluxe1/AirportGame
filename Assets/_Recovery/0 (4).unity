@@ -1379,7 +1379,7 @@ MonoBehaviour:
   maximumActiveHobbyAircraft: 3
   demandCheckIntervalMinutes: 15
   testFlightMode: 0
-  testSpawnIntervalSeconds: 10
+  testSpawnIntervalSeconds: 5
   baseDailyVisits: 3
   dailyVisitsPerParkingSpot: 1.25
   dailyVisitsPerExtraRunway: 0.5

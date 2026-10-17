@@ -577,6 +577,55 @@ public class AircraftTakeoffController : MonoBehaviour
         runwayReservationReleased = true;
     }
 
+    public bool ResetForTrainingCircuit()
+    {
+        AircraftFlightIdentity identity =
+            GetComponent<AircraftFlightIdentity>();
+
+        if (identity == null || !identity.IsTrainingFlight)
+        {
+            Debug.LogWarning(
+                $"{name}: Only training aircraft can reset " +
+                "the takeoff controller for another circuit.",
+                this
+            );
+
+            return false;
+        }
+
+        if (currentState != TakeoffState.Completed)
+        {
+            Debug.LogWarning(
+                $"{name}: Cannot reset takeoff because the " +
+                "previous takeoff has not completed.",
+                this
+            );
+
+            return false;
+        }
+
+        selectedRunway = null;
+        takeoffDirection = Vector3.zero;
+        runwayCenter = Vector3.zero;
+        runwayLength = 0f;
+        runwaySurfaceY = 0f;
+        groundLevelY = transform.position.y;
+
+        currentSpeedKnots = 0f;
+        currentNoseUpDegrees = 0f;
+        rotationTriggerSpeedKnots = 0f;
+        currentAltitudeAboveRunway = 0f;
+
+        runwayReservationReleased = false;
+
+        currentState = TakeoffState.WaitingForLineUp;
+
+        debugStatus =
+            "Training circuit reset. Waiting for runway line-up.";
+
+        return true;
+    }
+
     private void CompleteTakeoff()
     {
         if (currentState == TakeoffState.Completed)
@@ -586,12 +635,34 @@ public class AircraftTakeoffController : MonoBehaviour
 
         currentState = TakeoffState.Completed;
 
+        // Release runway reservations for both normal and training aircraft.
+        ReleaseRunwayReservations();
+
+        AircraftFlightIdentity flightIdentity =
+            GetComponent<AircraftFlightIdentity>();
+
+        bool isTrainingFlight =
+            flightIdentity != null &&
+            flightIdentity.IsTrainingFlight;
+
+        if (isTrainingFlight)
+        {
+            debugStatus =
+                "Training takeoff complete. Aircraft retained for circuit.";
+
+            Debug.Log(
+                $"TRAINING TAKEOFF COMPLETE | Aircraft: {name} | " +
+                $"Runway: {(selectedRunway != null ? selectedRunway.name : "Unknown")} | " +
+                $"Altitude above runway: {currentAltitudeAboveRunway:F1} | " +
+                "Aircraft retained for training circuit.",
+                this
+            );
+
+            return;
+        }
+
         debugStatus =
             "Target altitude reached. Aircraft despawning.";
-
-        // Safety cleanup if the aircraft reaches its target altitude
-        // before its collider has fully cleared the runway end.
-        ReleaseRunwayReservations();
 
         Debug.Log(
             $"AIRCRAFT TAKEOFF COMPLETE | Aircraft: {name} | " +
@@ -603,6 +674,7 @@ public class AircraftTakeoffController : MonoBehaviour
 
         Destroy(gameObject);
     }
+
 
     private void OnDestroy()
     {

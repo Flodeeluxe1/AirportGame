@@ -391,6 +391,7 @@ public class HobbyAircraftTrafficSpawner : MonoBehaviour
         return usableRunwayCount > 0;
     }
 
+
     private void GetParkingSpotCounts(
         out int total,
         out int available)
@@ -405,15 +406,21 @@ public class HobbyAircraftTrafficSpawner : MonoBehaviour
 
         foreach (HobbyAircraftParkingSpot spot in spots)
         {
-            if (spot == null || !spot.IsPlacedBuilding)
+            if (spot == null ||
+                !spot.IsPlacedBuilding ||
+                spot.ReservedForFlightSchool)
+            {
                 continue;
+            }
 
+            // Only count spots available to ordinary hobby traffic.
             total++;
 
             if (!spot.IsOccupied)
                 available++;
         }
     }
+
 
     private int CountActiveHobbyAircraft()
     {

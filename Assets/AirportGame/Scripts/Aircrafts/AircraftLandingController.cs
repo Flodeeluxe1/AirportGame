@@ -131,8 +131,21 @@ public class AircraftLandingController : MonoBehaviour
 
     private bool flareDecisionMade;
 
+
     private void Start()
     {
+        AircraftFlightIdentity identity =
+            GetComponent<AircraftFlightIdentity>();
+
+        // Training aircraft only begin landing when their training
+        // controller explicitly starts a circuit landing.
+        if (identity != null && identity.IsTrainingFlight)
+        {
+            debugLandingState = "Training aircraft waiting for landing request.";
+            debugStatus = "Waiting for training circuit controller.";
+            return;
+        }
+
         if (gridManager == null)
         {
             gridManager =
@@ -145,29 +158,19 @@ public class AircraftLandingController : MonoBehaviour
                 FindFirstObjectByType<Weather>();
         }
 
-        if (gridManager == null ||
-            weather == null)
+        if (gridManager == null || weather == null)
         {
-            Fail(
-                "GridManager or Weather is missing."
-            );
-
+            Fail("GridManager or Weather is missing.");
             return;
         }
 
         if (!SelectLandingRunway())
         {
-            Fail(
-                "No placed runway with AircraftRunway was found."
-            );
-
+            Fail("No placed runway with AircraftRunway was found.");
             return;
         }
 
-        currentSpeed =
-            KnotsToWorldSpeed(
-                approachSpeedKnots
-            );
+        currentSpeed = KnotsToWorldSpeed(approachSpeedKnots);
 
         rolloutElapsed = 0f;
         flareDecisionMade = false;
@@ -179,6 +182,7 @@ public class AircraftLandingController : MonoBehaviour
 
         UpdateDebugInformation();
     }
+
 
     private void Update()
     {
@@ -206,6 +210,69 @@ public class AircraftLandingController : MonoBehaviour
         }
 
         UpdateDebugInformation();
+    }
+
+
+    public bool BeginTrainingLanding()
+    {
+        AircraftFlightIdentity identity =
+            GetComponent<AircraftFlightIdentity>();
+
+        if (identity == null || !identity.IsTrainingFlight)
+        {
+            Debug.LogWarning(
+                $"{name}: BeginTrainingLanding can only be used " +
+                "by a training aircraft.",
+                this
+            );
+
+            return false;
+        }
+
+        if (gridManager == null)
+            gridManager = FindFirstObjectByType<GridManager>();
+
+        if (weather == null)
+            weather = FindFirstObjectByType<Weather>();
+
+        if (gridManager == null || weather == null)
+        {
+            Fail("Cannot begin training landing: GridManager or Weather is missing.");
+            return false;
+        }
+
+        // Clear the previous circuit's runway selection and landing state.
+        selectedRunway = null;
+        runwayDirection = Vector3.zero;
+        runwayCenter = Vector3.zero;
+        touchdownPoint = Vector3.zero;
+        alignmentPoint = Vector3.zero;
+        runwayLength = 0f;
+        runwaySurfaceY = 0f;
+        rolloutElapsed = 0f;
+        flareDecisionMade = false;
+
+        if (!SelectLandingRunway())
+        {
+            Fail("Cannot begin training landing: no usable runway was found.");
+            return false;
+        }
+
+        currentSpeed = KnotsToWorldSpeed(approachSpeedKnots);
+        state = LandingState.Aligning;
+
+        debugStatus =
+            "Training circuit: approaching the selected runway.";
+
+        UpdateDebugInformation();
+
+        Debug.Log(
+            $"TRAINING LANDING STARTED | Aircraft: {name} | " +
+            $"Runway: {selectedRunway.name}",
+            this
+        );
+
+        return true;
     }
 
 
@@ -874,6 +941,12 @@ public class AircraftLandingController : MonoBehaviour
                     this
                 );
             }
+        }
+        else if (flightIdentity != null &&
+         flightIdentity.IsTrainingFlight)
+        {
+            debugStatus =
+                "Training landing complete. Waiting for training circuit controller.";
         }
         else if (flightIdentity != null &&
                  GateAssignmentController.Instance != null)

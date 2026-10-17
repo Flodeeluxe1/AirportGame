@@ -20,19 +20,17 @@ public class AircraftFlightIdentity : MonoBehaviour
         Definition != null ? Definition.FlightNumber : flightNumber;
 
     public string PlannedGateStableId => plannedGateStableId;
-
     public string ActualGateStableId => actualGateStableId;
 
     public int PlannedStartMinute { get; private set; }
-
     public long ScheduledDayIndex { get; private set; }
 
     public string OperationId =>
         $"{ScheduledDayIndex}:{FlightNumber}";
 
     public bool IsInitialized { get; private set; }
-
     public bool IsHobbyFlight { get; private set; }
+    public bool IsTrainingFlight { get; private set; }
 
     public bool HasActualGate =>
         !string.IsNullOrEmpty(actualGateStableId);
@@ -60,7 +58,9 @@ public class AircraftFlightIdentity : MonoBehaviour
         ScheduledDayIndex = scheduledDayIndex;
 
         actualGateStableId = string.Empty;
+
         IsHobbyFlight = false;
+        IsTrainingFlight = false;
         IsInitialized = true;
 
         Debug.Log(
@@ -97,10 +97,46 @@ public class AircraftFlightIdentity : MonoBehaviour
         ScheduledDayIndex = dayIndex;
 
         IsHobbyFlight = true;
+        IsTrainingFlight = false;
         IsInitialized = true;
 
         Debug.Log(
             $"Hobby aircraft initialized | Flight: {FlightNumber} | " +
+            $"Operation: {OperationId}",
+            this
+        );
+    }
+
+    public void InitializeTrainingFlight(
+        string trainingFlightNumber,
+        int startMinute,
+        long dayIndex)
+    {
+        if (string.IsNullOrWhiteSpace(trainingFlightNumber))
+        {
+            Debug.LogError(
+                $"{nameof(AircraftFlightIdentity)} on {name}: " +
+                "Cannot initialize a training flight without a flight number.",
+                this
+            );
+            return;
+        }
+
+        Definition = null;
+        flightNumber = trainingFlightNumber.Trim();
+
+        plannedGateStableId = string.Empty;
+        actualGateStableId = string.Empty;
+
+        PlannedStartMinute = Mathf.Clamp(startMinute, 0, 1440);
+        ScheduledDayIndex = dayIndex;
+
+        IsHobbyFlight = false;
+        IsTrainingFlight = true;
+        IsInitialized = true;
+
+        Debug.Log(
+            $"Training aircraft initialized | Flight: {FlightNumber} | " +
             $"Operation: {OperationId}",
             this
         );
