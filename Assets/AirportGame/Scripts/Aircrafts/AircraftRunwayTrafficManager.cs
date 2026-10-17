@@ -55,6 +55,56 @@ public class AircraftRunwayTrafficManager : MonoBehaviour
         return count;
     }
 
+
+    public int GetLandingTrafficCount(
+        AircraftRunway runway,
+        AircraftCargoPaxLandingController requestingAircraft)
+    {
+        if (runway == null)
+            return 0;
+
+        int count = 0;
+
+        // Count active landings handled by the original controller.
+        AircraftLandingController[] originalAircraft =
+            FindObjectsByType<AircraftLandingController>(
+                FindObjectsSortMode.None
+            );
+
+        foreach (AircraftLandingController controller in originalAircraft)
+        {
+            if (controller == null)
+                continue;
+
+            if (!controller.IsLandingTrafficActive)
+                continue;
+
+            if (controller.SelectedRunway == runway)
+                count++;
+        }
+
+        // Count active CargoPax landings.
+        AircraftCargoPaxLandingController[] cargoPaxAircraft =
+            FindObjectsByType<AircraftCargoPaxLandingController>(
+                FindObjectsSortMode.None
+            );
+
+        foreach (AircraftCargoPaxLandingController controller in cargoPaxAircraft)
+        {
+            if (controller == null || controller == requestingAircraft)
+                continue;
+
+            if (!controller.IsLandingTrafficActive)
+                continue;
+
+            if (controller.SelectedRunway == runway)
+                count++;
+        }
+
+        return count;
+    }
+
+
     public int GetDepartureTrafficCount(
         AircraftRunway runway,
         MonoBehaviour requestingAircraft = null)
