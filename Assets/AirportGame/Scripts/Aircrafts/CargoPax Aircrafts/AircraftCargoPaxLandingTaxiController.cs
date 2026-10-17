@@ -198,8 +198,19 @@ public class AircraftCargoPaxLandingTaxiController : MonoBehaviour
         trafficFollowing = GetComponent<AircraftTaxiTrafficFollowing>();
     }
 
+
     private void Update()
     {
+        AircraftStatus status = GetComponent<AircraftStatus>();
+
+        if (status != null)
+        {
+            status.SetTaxiing(isTaxiing);
+
+            if (hasArrivedAtGate)
+                status.SetParked(true);
+        }
+
         if (!routeAttempted &&
             landingController != null &&
             landingController.IsLandingComplete)
@@ -213,6 +224,7 @@ public class AircraftCargoPaxLandingTaxiController : MonoBehaviour
 
         debugTaxiPhase = phase.ToString();
     }
+
 
     private void CalculateTaxiRoute()
     {

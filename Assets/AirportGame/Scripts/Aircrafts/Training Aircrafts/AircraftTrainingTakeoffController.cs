@@ -205,6 +205,7 @@ public class AircraftTrainingTakeoffController : MonoBehaviour
         return Time.unscaledDeltaTime * speed;
     }
 
+
     private bool BeginTakeoff()
     {
         AircraftFlightIdentity identity =
@@ -280,7 +281,27 @@ public class AircraftTrainingTakeoffController : MonoBehaviour
         takeoffDirection.Normalize();
 
         groundLevelY = transform.position.y;
-        currentSpeedKnots = 0f;
+
+        // Initial departure starts from rest. Subsequent training
+        // circuit takeoffs inherit the configured landing rollout speed.
+        TrainingFlightController trainingController =
+            GetComponent<TrainingFlightController>();
+
+        AircraftTrainingLandingController landingController =
+            GetComponent<AircraftTrainingLandingController>();
+
+        if (trainingController != null &&
+            trainingController.CompletedCircuits > 0 &&
+            landingController != null)
+        {
+            currentSpeedKnots =
+                landingController.RolloutTargetSpeedKnots;
+        }
+        else
+        {
+            currentSpeedKnots = 0f;
+        }
+
         currentNoseUpDegrees = 0f;
 
         rotationTriggerSpeedKnots =
@@ -296,12 +317,13 @@ public class AircraftTrainingTakeoffController : MonoBehaviour
         currentState = TakeoffState.TakeoffRoll;
 
         debugStatus =
-            $"Accelerating on runway. Rotation begins at " +
-            $"{rotationTriggerSpeedKnots:F1} knots.";
+            $"Accelerating on runway from {currentSpeedKnots:F1} knots. " +
+            $"Rotation begins at {rotationTriggerSpeedKnots:F1} knots.";
 
         Debug.Log(
             $"TRAINING TAKEOFF ROLL STARTED | " +
             $"Aircraft: {name} | Runway: {selectedRunway.name} | " +
+            $"Initial speed: {currentSpeedKnots:F1} knots | " +
             $"Takeoff speed: {takeoffSpeedKnots:F1} knots | " +
             $"Rotation threshold: {rotationTriggerSpeedKnots:F1} knots",
             this
@@ -309,6 +331,7 @@ public class AircraftTrainingTakeoffController : MonoBehaviour
 
         return true;
     }
+
 
     private void UpdateTakeoffRoll(float deltaTime)
     {

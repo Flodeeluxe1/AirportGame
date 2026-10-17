@@ -174,6 +174,7 @@ public class AircraftCargoPaxLandingController : MonoBehaviour
     }
 
 
+
     private void Update()
     {
         switch (state)
@@ -197,6 +198,13 @@ public class AircraftCargoPaxLandingController : MonoBehaviour
             case LandingState.GoAround:
                 UpdateGoAround();
                 break;
+        }
+
+        AircraftStatus status = GetComponent<AircraftStatus>();
+
+        if (status != null && IsLandingComplete)
+        {
+            status.MarkLandingComplete();
         }
 
         if (trafficManager == null)
@@ -223,6 +231,7 @@ public class AircraftCargoPaxLandingController : MonoBehaviour
 
         UpdateDebugInformation();
     }
+
 
 
     private bool SelectLandingRunway()

@@ -109,8 +109,21 @@ public class AircraftTrainingDepartureTaxiController : MonoBehaviour
         ResolveReferences();
     }
 
+
     private void Update()
     {
+        AircraftStatus status = GetComponent<AircraftStatus>();
+
+        if (status != null)
+        {
+            bool isTaxiing =
+                currentState == DepartureState.TaxiingToHoldingPoint ||
+                currentState == DepartureState.TaxiingToRunwayEntry ||
+                currentState == DepartureState.MovingOntoRunway;
+
+            status.SetTaxiing(isTaxiing);
+        }
+
         switch (currentState)
         {
             case DepartureState.AtHoldingPoint:
@@ -161,6 +174,7 @@ public class AircraftTrainingDepartureTaxiController : MonoBehaviour
         TrySelectDepartureRunway();
     }
 
+
     private void ResolveReferences()
     {
         if (gridManager == null)
@@ -182,6 +196,105 @@ public class AircraftTrainingDepartureTaxiController : MonoBehaviour
         if (aircraftCollider == null)
             aircraftCollider = GetComponentInChildren<BoxCollider>(true);
     }
+
+
+    public bool PrepareForTouchAndGo(
+        AircraftRunway runway,
+        Vector3 takeoffDirection)
+    {
+        if (runway == null)
+        {
+            debugStatus =
+                "Touch-and-go failed: landing runway is missing.";
+            return false;
+        }
+
+        ResolveReferences();
+
+        if (trafficManager == null || gridManager == null)
+        {
+            debugStatus =
+                "Touch-and-go waiting: runway traffic manager or grid is missing.";
+            return false;
+        }
+
+        takeoffDirection.y = 0f;
+
+        if (takeoffDirection.sqrMagnitude < 0.0001f)
+        {
+            debugStatus =
+                "Touch-and-go failed: takeoff direction is invalid.";
+            return false;
+        }
+
+        takeoffDirection.Normalize();
+
+        if (!runway.TryGetGeometry(
+                gridManager,
+                out Vector3 center,
+                out Vector3 axis,
+                out float length,
+                out float surfaceY))
+        {
+            debugStatus =
+                "Touch-and-go failed: runway geometry is unavailable.";
+            return false;
+        }
+
+        if (!trafficManager.TryReserveRunwayForLineUp(
+                runway,
+                this,
+                out string reason))
+        {
+            debugStatus =
+                $"Touch-and-go waiting for runway clearance: {reason}";
+            return false;
+        }
+
+        if (!trafficManager.RegisterDepartureReservation(runway, this))
+        {
+            trafficManager.ReleaseRunwayLineUpReservation(this);
+
+            debugStatus =
+                "Touch-and-go failed: departure reservation could not be registered.";
+            return false;
+        }
+
+        selectedRunway = runway;
+        this.takeoffDirection = takeoffDirection;
+
+        runwayCenter = center;
+        runwayLength = length;
+        runwaySurfaceY = surfaceY;
+
+        hasHoldingCell = false;
+        holdingCell = default;
+
+        taxiRoute.Clear();
+        runwayJoinRoute.Clear();
+        movementWaypoints.Clear();
+
+        currentWaypointIndex = 0;
+        holdingRouteIndex = 0;
+
+        departureThreshold =
+            center + takeoffDirection * (length * 0.5f);
+
+        debugSelectedRunway = runway.name;
+        debugStatus =
+            "Touch-and-go cleared. Ready for immediate takeoff.";
+
+        currentState = DepartureState.LinedUpReadyForTakeoff;
+
+        Debug.Log(
+            $"TRAINING TOUCH-AND-GO CLEARED | Aircraft: {name} | " +
+            $"Runway: {runway.name}",
+            this
+        );
+
+        return true;
+    }
+
 
     public bool ResetForTrainingCircuit()
     {

@@ -11,12 +11,15 @@ GameObject:
   - component: {fileID: 2913012613147455480}
   - component: {fileID: 6708039799144440726}
   - component: {fileID: 7563263625542891464}
+  - component: {fileID: 1520858476857260160}
   - component: {fileID: 5705690150798237064}
   - component: {fileID: 4737968444723569948}
   - component: {fileID: 6070543810844894910}
   - component: {fileID: 7950305122120887158}
   - component: {fileID: -4628986706001033226}
-  m_Layer: 0
+  - component: {fileID: -4699634218804049046}
+  - component: {fileID: 4301875829656427440}
+  m_Layer: 7
   m_Name: G115
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -58,7 +61,7 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 4, y: 2, z: 4}
+  m_Size: {x: 6, y: 4, z: 4}
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!114 &7563263625542891464
 MonoBehaviour:
@@ -75,6 +78,18 @@ MonoBehaviour:
   flightNumber: 
   plannedGateStableId: 
   actualGateStableId: 
+--- !u!114 &1520858476857260160
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2931056182657766213}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 03afd6a5301d25e4fa7cef7aa0ee0a5f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AircraftStatus
 --- !u!114 &5705690150798237064
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -156,13 +171,13 @@ MonoBehaviour:
   gridManager: {fileID: 0}
   aircraftCollider: {fileID: 0}
   takeoffSpeedKnots: 100
-  groundAccelerationKnotsPerSecond: 20
+  groundAccelerationKnotsPerSecond: 30
   airborneAccelerationKnotsPerSecond: 3
   worldUnitsPerSecondPerKnot: 0.08
   rotationStartSpeedFraction: 0.7
   rotationRateDegreesPerSecond: 3
   targetNoseUpDegrees: 10
-  liftoffStartNoseUpDegrees: 10
+  liftoffStartNoseUpDegrees: 2
   modelRotationOffset: {x: 0, y: 0, z: 0}
   targetAltitudeAboveRunway: 40
   runwayClearanceBuffer: 1
@@ -191,7 +206,7 @@ MonoBehaviour:
   glideAngleDegrees: 4
   approachSpeedKnots: 100
   touchdownSpeedKnots: 70
-  rolloutTargetSpeedKnots: 20
+  rolloutTargetSpeedKnots: 30
   worldUnitsPerSecondPerKnot: 0.08
   speedChangeRate: 2
   rolloutDeceleration: 1
@@ -247,6 +262,54 @@ MonoBehaviour:
   taxiPathPointTolerance: 0.03
   logTaxiProgress: 1
   debugStatus: Waiting for training landing completion.
+--- !u!114 &-4699634218804049046
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2931056182657766213}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e4f0fded1e400a14e8046655719557e9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AircraftTaxiTrafficFollowing
+  trafficLayer:
+    serializedVersion: 2
+    m_Bits: 128
+  trafficDetectionDistance: 8
+  safeFollowingDistance: 3
+  rayOriginHeight: 0.5
+  rayOriginForwardOffset: 1
+  acceleration: 1.5
+  braking: 3
+  debugCurrentSpeed: 0
+  debugBlockingAircraft: None
+  debugBlockingDistance: 0
+  debugLastRayHitCollider: None
+  debugLastRayDirection: None
+  debugLastRayDistance: 0
+  debugTrafficDecision: Not tested
+  debugRaycastSummary: No raycast performed yet.
+--- !u!114 &4301875829656427440
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2931056182657766213}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 109a25440e7fdd44b871e7d3a13cef3f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AircraftAirportFees
+  landingFee: 150
+  parkingFee: 25
+  parkingIntervalMinutes: 30
+  economyManager: {fileID: 0}
+  gameTimeManager: {fileID: 0}
+  aircraftStatus: {fileID: 0}
+  turnaroundController: {fileID: 0}
 --- !u!1001 &7649397686244966220
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -302,6 +365,14 @@ PrefabInstance:
     - target: {fileID: 919132149155446097, guid: 7df05b4698a2aad4aa60d34afbde3ed9, type: 3}
       propertyPath: m_Name
       value: g115
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 7df05b4698a2aad4aa60d34afbde3ed9, type: 3}
+      propertyPath: m_Layer
+      value: 7
+      objectReference: {fileID: 0}
+    - target: {fileID: 8164078558771037576, guid: 7df05b4698a2aad4aa60d34afbde3ed9, type: 3}
+      propertyPath: m_Layer
+      value: 7
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

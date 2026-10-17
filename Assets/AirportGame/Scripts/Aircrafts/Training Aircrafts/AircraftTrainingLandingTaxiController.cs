@@ -153,8 +153,19 @@ public class AircraftTrainingLandingTaxiController : MonoBehaviour
             taxiwayPathfinder = FindFirstObjectByType<TaxiwayPathfinder>();
     }
 
+
     private void Update()
     {
+        AircraftStatus status = GetComponent<AircraftStatus>();
+
+        if (status != null)
+        {
+            status.SetTaxiing(IsTaxiing);
+
+            if (HasArrivedAtParking)
+                status.SetParked(true);
+        }
+
         if (landingController == null)
             return;
 
@@ -183,6 +194,7 @@ public class AircraftTrainingLandingTaxiController : MonoBehaviour
                 break;
         }
     }
+
 
     private void TryBuildTaxiRoute()
     {

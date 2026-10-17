@@ -121,8 +121,21 @@ public class AircraftCargoPaxDepartureTaxiController : MonoBehaviour
         ResolveReferences();
     }
 
+
     private void Update()
     {
+        AircraftStatus status = GetComponent<AircraftStatus>();
+
+        if (status != null)
+        {
+            bool isTaxiing =
+                currentState == DepartureState.TaxiingToHoldingPoint ||
+                currentState == DepartureState.TaxiingToRunwayEntry ||
+                currentState == DepartureState.MovingOntoRunway;
+
+            status.SetTaxiing(isTaxiing);
+        }
+
         switch (currentState)
         {
             case DepartureState.AtHoldingPoint:
@@ -163,6 +176,7 @@ public class AircraftCargoPaxDepartureTaxiController : MonoBehaviour
         retryTimer = runwaySelectionRetryInterval;
         TrySelectDepartureRunway();
     }
+
 
     private void ResolveReferences()
     {

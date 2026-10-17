@@ -10,6 +10,7 @@ public class TrainingFlightController : MonoBehaviour
         WaitingForTakeoff,
         FlyingCircuit,
         Landing,
+        WaitingForTouchAndGoClearance,
         TaxiingBackToSchool,
         Completed,
         Failed
@@ -47,16 +48,18 @@ public class TrainingFlightController : MonoBehaviour
     private AircraftTrainingTakeoffController takeoffController;
     private AircraftTrainingLandingController landingController;
     private AircraftTrainingLandingTaxiController taxiController;
+    private AircraftRunwayTrafficManager trafficManager;
 
     private readonly List<Vector3> circuitWaypoints = new();
 
     private int currentWaypointIndex;
     private bool landingCounted;
 
+    private AircraftRunway touchAndGoRunway;
+    private Vector3 touchAndGoDirection;
+
     public bool DepartureRequested => departureRequested;
-
     public int CompletedCircuits => completedCircuits;
-
     public int RequiredCircuits => requiredCircuits;
 
     public bool IsLessonComplete =>
@@ -69,19 +72,33 @@ public class TrainingFlightController : MonoBehaviour
 
     private void Awake()
     {
-        flightIdentity = GetComponent<AircraftFlightIdentity>();
+        ResolveReferences();
+    }
 
-        departureController =
-            GetComponent<AircraftTrainingDepartureTaxiController>();
+    private void ResolveReferences()
+    {
+        if (flightIdentity == null)
+            flightIdentity = GetComponent<AircraftFlightIdentity>();
 
-        takeoffController =
-            GetComponent<AircraftTrainingTakeoffController>();
+        if (departureController == null)
+            departureController =
+                GetComponent<AircraftTrainingDepartureTaxiController>();
 
-        landingController =
-            GetComponent<AircraftTrainingLandingController>();
+        if (takeoffController == null)
+            takeoffController =
+                GetComponent<AircraftTrainingTakeoffController>();
 
-        taxiController =
-            GetComponent<AircraftTrainingLandingTaxiController>();
+        if (landingController == null)
+            landingController =
+                GetComponent<AircraftTrainingLandingController>();
+
+        if (taxiController == null)
+            taxiController =
+                GetComponent<AircraftTrainingLandingTaxiController>();
+
+        if (trafficManager == null)
+            trafficManager =
+                FindFirstObjectByType<AircraftRunwayTrafficManager>();
     }
 
     private void Update()
@@ -92,6 +109,8 @@ public class TrainingFlightController : MonoBehaviour
         {
             return;
         }
+
+        ResolveReferences();
 
         if (!HasRequiredComponents())
         {
@@ -116,6 +135,10 @@ public class TrainingFlightController : MonoBehaviour
                 UpdateLanding();
                 break;
 
+            case TrainingState.WaitingForTouchAndGoClearance:
+                UpdateWaitingForTouchAndGoClearance();
+                break;
+
             case TrainingState.TaxiingBackToSchool:
                 UpdateTaxiingBackToSchool();
                 break;
@@ -124,6 +147,8 @@ public class TrainingFlightController : MonoBehaviour
 
     public bool StartTrainingLesson()
     {
+        ResolveReferences();
+
         if (currentState != TrainingState.Inactive)
         {
             Debug.LogWarning(
@@ -156,15 +181,25 @@ public class TrainingFlightController : MonoBehaviour
             return false;
         }
 
+        if (requiredCircuits < 1)
+            requiredCircuits = 1;
+
         completedCircuits = 0;
         landingCounted = false;
 
-        RequestNextCircuitDeparture();
+        touchAndGoRunway = null;
+        touchAndGoDirection = Vector3.zero;
 
+        // The training taxi controller is only needed after the final
+        // landing. Keeping it disabled prevents intermediate touchdowns
+        // from accidentally starting a taxi back to school.
+        taxiController.enabled = false;
+
+        departureRequested = true;
         currentState = TrainingState.WaitingForTakeoff;
 
         debugStatus =
-            "Lesson started. Waiting for departure taxi and takeoff.";
+            "Lesson started. Taxiing from school parking for takeoff.";
 
         Debug.Log(
             $"{name}: Training lesson started. " +
@@ -182,14 +217,6 @@ public class TrainingFlightController : MonoBehaviour
                takeoffController != null &&
                landingController != null &&
                taxiController != null;
-    }
-
-    private void RequestNextCircuitDeparture()
-    {
-        departureRequested = true;
-
-        // The departure taxi controller reads this request.
-        debugStatus = "Departure requested. Taxiing toward runway.";
     }
 
     public void ClearDepartureRequest()
@@ -229,8 +256,7 @@ public class TrainingFlightController : MonoBehaviour
     {
         circuitWaypoints.Clear();
 
-        AircraftRunway runway =
-            departureController.SelectedRunway;
+        AircraftRunway runway = departureController.SelectedRunway;
 
         if (runway == null)
             return false;
@@ -249,9 +275,7 @@ public class TrainingFlightController : MonoBehaviour
             return false;
         }
 
-        Vector3 direction =
-            departureController.TakeoffDirection;
-
+        Vector3 direction = departureController.TakeoffDirection;
         direction.y = 0f;
 
         if (direction.sqrMagnitude < 0.0001f)
@@ -272,8 +296,6 @@ public class TrainingFlightController : MonoBehaviour
         float downwindDistance =
             runwayLength * 0.5f + circuitExtension;
 
-        // Rectangular training circuit:
-        // upwind, crosswind, downwind, then base.
         Vector3 upwindPoint =
             runwayCenter + direction * downwindDistance;
 
@@ -312,11 +334,8 @@ public class TrainingFlightController : MonoBehaviour
             return;
         }
 
-        Vector3 target =
-            circuitWaypoints[currentWaypointIndex];
-
-        Vector3 toTarget =
-            target - transform.position;
+        Vector3 target = circuitWaypoints[currentWaypointIndex];
+        Vector3 toTarget = target - transform.position;
 
         if (toTarget.magnitude <= waypointArrivalDistance)
         {
@@ -351,6 +370,10 @@ public class TrainingFlightController : MonoBehaviour
 
     private void BeginLanding()
     {
+        // The landing controller is disabled during the touch-and-go
+        // takeoff and circuit, so re-enable it before starting an approach.
+        landingController.enabled = true;
+
         if (!landingController.BeginTrainingLanding())
         {
             FailTraining(
@@ -360,6 +383,10 @@ public class TrainingFlightController : MonoBehaviour
             return;
         }
 
+        // Only the final landing should trigger taxiing to school parking.
+        if (completedCircuits >= requiredCircuits - 1)
+            taxiController.enabled = true;
+
         landingCounted = false;
         currentState = TrainingState.Landing;
 
@@ -367,7 +394,8 @@ public class TrainingFlightController : MonoBehaviour
             $"Circuit {completedCircuits + 1}: approaching runway to land.";
 
         Debug.Log(
-            $"{name}: Circuit pattern complete. Beginning landing.",
+            $"{name}: Circuit pattern complete. Beginning landing " +
+            $"{completedCircuits + 1}/{requiredCircuits}.",
             this
         );
     }
@@ -389,10 +417,116 @@ public class TrainingFlightController : MonoBehaviour
             );
         }
 
-        currentState = TrainingState.TaxiingBackToSchool;
+        // The last landing is a full stop followed by taxiing to parking.
+        if (completedCircuits >= requiredCircuits)
+        {
+            taxiController.enabled = true;
+
+            currentState = TrainingState.TaxiingBackToSchool;
+            debugStatus =
+                "Final landing complete. Taxiing back to school parking.";
+
+            Debug.Log(
+                $"{name}: Final training landing complete. " +
+                "Taxiing to the flight-school parking spot.",
+                this
+            );
+
+            return;
+        }
+
+        // Preserve the runway and landing direction used for this landing.
+        touchAndGoRunway = landingController.SelectedRunway;
+        touchAndGoDirection = landingController.LandingDirection;
+        touchAndGoDirection.y = 0f;
+
+        if (touchAndGoRunway == null ||
+            touchAndGoDirection.sqrMagnitude < 0.0001f)
+        {
+            FailTraining(
+                "Touch-and-go failed because the landing runway or direction is invalid."
+            );
+
+            return;
+        }
+
+        touchAndGoDirection.Normalize();
+
+        // Remove the landing entry before reserving the runway for the
+        // same aircraft's immediate takeoff. The aircraft remains on
+        // the runway, so its own stale landing entry would block clearance.
+        if (trafficManager != null)
+            trafficManager.UnregisterLandingTraffic(landingController);
+
+        // Prevent the landing controller from registering that landing
+        // entry again while the aircraft takes off and flies its circuit.
+        landingController.enabled = false;
+
+        // Taxiing is not part of intermediate touch-and-go landings.
+        taxiController.enabled = false;
+
+        ClearDepartureRequest();
+
+        if (!takeoffController.ResetForTrainingCircuit())
+        {
+            FailTraining(
+                "Could not reset the takeoff controller for touch-and-go."
+            );
+
+            return;
+        }
+
+        currentState = TrainingState.WaitingForTouchAndGoClearance;
 
         debugStatus =
-            "Landing complete. Taxiing back to the school parking spot.";
+            $"Landing {completedCircuits}/{requiredCircuits} complete. " +
+            "Preparing immediate runway takeoff.";
+
+        Debug.Log(
+            $"{name}: Preparing touch-and-go after landing " +
+            $"{completedCircuits}/{requiredCircuits}.",
+            this
+        );
+    }
+
+    private void UpdateWaitingForTouchAndGoClearance()
+    {
+        if (touchAndGoRunway == null)
+        {
+            FailTraining(
+                "Touch-and-go failed because the saved runway is missing."
+            );
+
+            return;
+        }
+
+        // Retries while another aircraft or reservation prevents clearance.
+        // The departure controller's new method places the aircraft in
+        // its lined-up state when runway clearance succeeds.
+        if (!departureController.PrepareForTouchAndGo(
+                touchAndGoRunway,
+                touchAndGoDirection))
+        {
+            debugStatus =
+                "Waiting for runway clearance for touch-and-go.";
+
+            return;
+        }
+
+        touchAndGoRunway = null;
+        touchAndGoDirection = Vector3.zero;
+
+        currentState = TrainingState.WaitingForTakeoff;
+
+        debugStatus =
+            $"Touch-and-go cleared. Taking off for circuit " +
+            $"{completedCircuits + 1}/{requiredCircuits}.";
+
+        Debug.Log(
+            $"{name}: Touch-and-go cleared. Taking off directly from " +
+            $"the runway for circuit {completedCircuits + 1}/{requiredCircuits}.",
+            this
+        );
     }
 
     private void UpdateTaxiingBackToSchool()
@@ -400,57 +534,17 @@ public class TrainingFlightController : MonoBehaviour
         if (!taxiController.HasArrivedAtParking)
             return;
 
-        if (completedCircuits >= requiredCircuits)
-        {
-            currentState = TrainingState.Completed;
-            departureRequested = false;
-
-            debugStatus =
-                $"Lesson complete: {completedCircuits} circuits. " +
-                "Ready for Flight School Manager payout.";
-
-            Debug.Log(
-                $"{name}: TRAINING LESSON COMPLETE | " +
-                $"Circuits: {completedCircuits}/{requiredCircuits}. " +
-                "The Flight School Manager can now pay the lesson reward.",
-                this
-            );
-
-            return;
-        }
-
-        // Prepare both controllers for another departure.
-        ClearDepartureRequest();
-
-        if (!takeoffController.ResetForTrainingCircuit())
-        {
-            FailTraining(
-                "Could not reset the takeoff controller for the next circuit."
-            );
-
-            return;
-        }
-
-        if (!departureController.ResetForTrainingCircuit())
-        {
-            FailTraining(
-                "Could not reset the departure controller for the next circuit."
-            );
-
-            return;
-        }
-
-        RequestNextCircuitDeparture();
-
-        currentState = TrainingState.WaitingForTakeoff;
+        currentState = TrainingState.Completed;
+        departureRequested = false;
 
         debugStatus =
-            $"Returned to school parking. Preparing circuit " +
-            $"{completedCircuits + 1}/{requiredCircuits}.";
+            $"Lesson complete: {completedCircuits} circuits. " +
+            "Ready for Flight School Manager payout.";
 
         Debug.Log(
-            $"{name}: Ready for training circuit " +
-            $"{completedCircuits + 1}/{requiredCircuits}.",
+            $"{name}: TRAINING LESSON COMPLETE | " +
+            $"Circuits: {completedCircuits}/{requiredCircuits}. " +
+            "The Flight School Manager can now pay the lesson reward.",
             this
         );
     }

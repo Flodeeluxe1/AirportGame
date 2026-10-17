@@ -99,6 +99,7 @@ public class AircraftTrainingLandingController : MonoBehaviour
         selectedRunway;
 
     public Vector3 LandingDirection => runwayDirection;
+    public float RolloutTargetSpeedKnots => rolloutTargetSpeedKnots;
 
     private LandingState state = LandingState.Initializing;
 
@@ -172,6 +173,7 @@ public class AircraftTrainingLandingController : MonoBehaviour
     }
 
 
+
     private void Update()
     {
         switch (state)
@@ -195,6 +197,13 @@ public class AircraftTrainingLandingController : MonoBehaviour
             case LandingState.GoAround:
                 UpdateGoAround();
                 break;
+        }
+
+        AircraftStatus status = GetComponent<AircraftStatus>();
+
+        if (status != null && IsLandingComplete)
+        {
+            status.MarkLandingComplete();
         }
 
         if (trafficManager == null)
@@ -221,6 +230,7 @@ public class AircraftTrainingLandingController : MonoBehaviour
 
         UpdateDebugInformation();
     }
+
 
 
     public bool BeginTrainingLanding()

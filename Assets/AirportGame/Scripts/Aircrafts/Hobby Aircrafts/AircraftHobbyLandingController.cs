@@ -173,6 +173,7 @@ public class AircraftHobbyLandingController : MonoBehaviour
     }
 
 
+
     private void Update()
     {
         switch (state)
@@ -196,6 +197,13 @@ public class AircraftHobbyLandingController : MonoBehaviour
             case LandingState.GoAround:
                 UpdateGoAround();
                 break;
+        }
+
+        AircraftStatus status = GetComponent<AircraftStatus>();
+
+        if (status != null && IsLandingComplete)
+        {
+            status.MarkLandingComplete();
         }
 
         if (trafficManager == null)
@@ -222,6 +230,7 @@ public class AircraftHobbyLandingController : MonoBehaviour
 
         UpdateDebugInformation();
     }
+
 
 
     private bool SelectLandingRunway()

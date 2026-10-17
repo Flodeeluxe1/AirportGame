@@ -72,6 +72,9 @@ PrefabInstance:
       addedObject: {fileID: -189875983028876971}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 329bd202958094e408464039e61f03d4, type: 3}
       insertIndex: -1
+      addedObject: {fileID: -7825726159349142036}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 329bd202958094e408464039e61f03d4, type: 3}
+      insertIndex: -1
       addedObject: {fileID: -5687118414093639624}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 329bd202958094e408464039e61f03d4, type: 3}
       insertIndex: -1
@@ -139,6 +142,18 @@ MonoBehaviour:
   flightNumber: 
   plannedGateStableId: 
   actualGateStableId: 
+--- !u!114 &-7825726159349142036
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2387620211239937619}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 03afd6a5301d25e4fa7cef7aa0ee0a5f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AircraftStatus
 --- !u!114 &-5687118414093639624
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -447,5 +462,7 @@ MonoBehaviour:
   parkingIntervalMinutes: 15
   economyManager: {fileID: 0}
   gameTimeManager: {fileID: 0}
-  landingController: {fileID: 0}
+  cargoPaxLandingController: {fileID: 0}
+  trainingLandingController: {fileID: 0}
+  hobbyLandingController: {fileID: 0}
   turnaroundController: {fileID: 0}

@@ -237,124 +237,34 @@ public class AircraftTaxiTrafficFollowing : MonoBehaviour
         return foundAircraft;
     }
 
+
     private bool IsMovingAircraft(
         Collider hitCollider,
         out Transform aircraftRoot,
         out string controllerInfo)
     {
         aircraftRoot = null;
-        controllerInfo = "No recognized taxi controller found";
+        controllerInfo = "No AircraftStatus found";
 
-        // CargoPax departure taxiing
-        AircraftCargoPaxDepartureTaxiController cargoDeparture =
-            hitCollider.GetComponentInParent<
-                AircraftCargoPaxDepartureTaxiController>();
+        if (hitCollider == null)
+            return false;
 
-        if (cargoDeparture != null)
-        {
-            aircraftRoot = cargoDeparture.transform;
-            var state = cargoDeparture.CurrentState;
+        AircraftStatus status =
+            hitCollider.GetComponentInParent<AircraftStatus>();
 
-            bool moving =
-                state ==
-                    AircraftCargoPaxDepartureTaxiController.DepartureState.TaxiingToHoldingPoint ||
-                state ==
-                    AircraftCargoPaxDepartureTaxiController.DepartureState.TaxiingToRunwayEntry ||
-                state ==
-                    AircraftCargoPaxDepartureTaxiController.DepartureState.MovingOntoRunway;
+        if (status == null)
+            return false;
 
-            controllerInfo = $"CargoPax departure state: {state}";
-            return moving && aircraftRoot != transform.root;
-        }
+        aircraftRoot = status.transform;
 
-        // Training departure taxiing
-        AircraftTrainingDepartureTaxiController trainingDeparture =
-            hitCollider.GetComponentInParent<
-                AircraftTrainingDepartureTaxiController>();
+        bool moving = status.IsTaxiing;
 
-        if (trainingDeparture != null)
-        {
-            aircraftRoot = trainingDeparture.transform;
-            var state = trainingDeparture.CurrentState;
+        controllerInfo =
+            $"AircraftStatus IsTaxiing: {moving}";
 
-            bool moving =
-                state ==
-                    AircraftTrainingDepartureTaxiController.DepartureState.TaxiingToHoldingPoint ||
-                state ==
-                    AircraftTrainingDepartureTaxiController.DepartureState.TaxiingToRunwayEntry ||
-                state ==
-                    AircraftTrainingDepartureTaxiController.DepartureState.MovingOntoRunway;
-
-            controllerInfo = $"Training departure state: {state}";
-            return moving && aircraftRoot != transform.root;
-        }
-
-        // Hobby departure taxiing
-        AircraftHobbyDepartureTaxiController hobbyDeparture =
-            hitCollider.GetComponentInParent<
-                AircraftHobbyDepartureTaxiController>();
-
-        if (hobbyDeparture != null)
-        {
-            aircraftRoot = hobbyDeparture.transform;
-            var state = hobbyDeparture.CurrentState;
-
-            bool moving =
-                state ==
-                    AircraftHobbyDepartureTaxiController.DepartureState.TaxiingToHoldingPoint ||
-                state ==
-                    AircraftHobbyDepartureTaxiController.DepartureState.TaxiingToRunwayEntry ||
-                state ==
-                    AircraftHobbyDepartureTaxiController.DepartureState.MovingOntoRunway;
-
-            controllerInfo = $"Hobby departure state: {state}";
-            return moving && aircraftRoot != transform.root;
-        }
-
-        // CargoPax landing taxiing
-        AircraftCargoPaxLandingTaxiController cargoLanding =
-            hitCollider.GetComponentInParent<
-                AircraftCargoPaxLandingTaxiController>();
-
-        if (cargoLanding != null)
-        {
-            aircraftRoot = cargoLanding.transform;
-            bool moving = cargoLanding.IsTaxiing;
-
-            controllerInfo = $"CargoPax landing IsTaxiing: {moving}";
-            return moving && aircraftRoot != transform.root;
-        }
-
-        // Training landing taxiing
-        AircraftTrainingLandingTaxiController trainingLanding =
-            hitCollider.GetComponentInParent<
-                AircraftTrainingLandingTaxiController>();
-
-        if (trainingLanding != null)
-        {
-            aircraftRoot = trainingLanding.transform;
-            bool moving = trainingLanding.IsTaxiing;
-
-            controllerInfo = $"Training landing IsTaxiing: {moving}";
-            return moving && aircraftRoot != transform.root;
-        }
-
-        // Hobby landing taxiing
-        AircraftHobbyLandingTaxiController hobbyLanding =
-            hitCollider.GetComponentInParent<
-                AircraftHobbyLandingTaxiController>();
-
-        if (hobbyLanding != null)
-        {
-            aircraftRoot = hobbyLanding.transform;
-            bool moving = hobbyLanding.IsTaxiing;
-
-            controllerInfo = $"Hobby landing IsTaxiing: {moving}";
-            return moving && aircraftRoot != transform.root;
-        }
-
-        return false;
+        return moving && aircraftRoot != transform.root;
     }
+
 
     private void OnDrawGizmosSelected()
     {
