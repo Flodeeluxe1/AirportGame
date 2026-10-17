@@ -43,6 +43,19 @@ public class HobbyAircraftTaxiController : MonoBehaviour
     [SerializeField] private float taxiHeightOffset = 0.05f;
     [SerializeField] private Vector3 modelRotationOffset;
 
+    [Header("Smooth Taxi Turns")]
+    [Tooltip("Desired turning radius in grid-cell units.")]
+    [Range(0.1f, 3f)]
+    [SerializeField] private float turningRadiusInCells = 2f;
+
+    [Tooltip("Number of curve segments used to approximate each rounded corner.")]
+    [Range(4, 16)]
+    [SerializeField] private int turnCurveResolution = 8;
+
+    [Tooltip("Distance tolerance for advancing through smoothed taxi path points.")]
+    [Min(0.005f)]
+    [SerializeField] private float taxiPathPointTolerance = 0.02f;
+
     [Header("Debug")]
     [SerializeField] private bool logTaxiProgress = true;
     [TextArea(2, 5)]
@@ -96,6 +109,9 @@ public class HobbyAircraftTaxiController : MonoBehaviour
     private readonly List<Vector2Int> route =
         new List<Vector2Int>();
 
+    private readonly List<Vector3> taxiMovementPath =
+        new List<Vector3>();
+
     private bool routeAttempted;
     private int currentRouteIndex;
     private TaxiPhase phase = TaxiPhase.WaitingForLanding;
@@ -107,6 +123,8 @@ public class HobbyAircraftTaxiController : MonoBehaviour
     private Vector3 taxiwayJoinPoint;
     private Vector3 parkingTarget;
     private float taxiWorldY;
+
+    private const float BezierCircleFactor = 0.55228475f;
 
     public bool IsTaxiing =>
         phase == TaxiPhase.RollingToRunwayExit ||
@@ -384,6 +402,16 @@ public class HobbyAircraftTaxiController : MonoBehaviour
 
         taxiwayJoinPoint.y = taxiWorldY;
 
+        BuildSmoothedTaxiMovementPath();
+
+        if (taxiMovementPath.Count == 0)
+        {
+            Fail("The taxiway movement path could not be created.");
+            return;
+        }
+
+        // Index zero is the taxiway join cell. The aircraft reaches
+        // that point during JoiningTaxiway before following this path.
         currentRouteIndex = 1;
         phase = TaxiPhase.RollingToRunwayExit;
 
@@ -394,7 +422,8 @@ public class HobbyAircraftTaxiController : MonoBehaviour
         debugStatus =
             $"VFR taxi route found. Runway exit {chosenExit.Cell}, " +
             $"taxiway target {chosenTarget.Cell}, " +
-            $"{route.Count} route cells.";
+            $"{route.Count} route cells, " +
+            $"{taxiMovementPath.Count} smoothed waypoints.";
 
         if (logTaxiProgress)
         {
@@ -404,10 +433,169 @@ public class HobbyAircraftTaxiController : MonoBehaviour
                 $"Parking: {reservedSpot.name} | " +
                 $"Exit: {chosenExit.Cell} | " +
                 $"Target: {chosenTarget.Cell} | " +
-                $"Route cells: {route.Count}",
+                $"Route cells: {route.Count} | " +
+                $"Smoothed waypoints: {taxiMovementPath.Count}",
                 this
             );
         }
+    }
+
+
+    private void BuildSmoothedTaxiMovementPath()
+    {
+        taxiMovementPath.Clear();
+
+        if (route.Count == 0)
+            return;
+
+        List<Vector3> points = new List<Vector3>(route.Count);
+
+        foreach (Vector2Int cell in route)
+        {
+            Vector3 point = gridManager.GridToWorldCenter(cell);
+            point.y = taxiWorldY;
+            points.Add(point);
+        }
+
+        if (points.Count == 1)
+        {
+            AddMovementPoint(points[0]);
+            return;
+        }
+
+        float desiredRadius =
+            Mathf.Max(0.01f, turningRadiusInCells) *
+            gridManager.CellSize;
+
+        AddMovementPoint(points[0]);
+
+        for (int i = 1; i < points.Count - 1; i++)
+        {
+            Vector3 previous = points[i - 1];
+            Vector3 corner = points[i];
+            Vector3 next = points[i + 1];
+
+            Vector3 incoming = corner - previous;
+            Vector3 outgoing = next - corner;
+
+            incoming.y = 0f;
+            outgoing.y = 0f;
+
+            float incomingLength = incoming.magnitude;
+            float outgoingLength = outgoing.magnitude;
+
+            if (incomingLength < 0.001f ||
+                outgoingLength < 0.001f)
+            {
+                AddMovementPoint(corner);
+                continue;
+            }
+
+            incoming /= incomingLength;
+            outgoing /= outgoingLength;
+
+            float directionDot = Vector3.Dot(incoming, outgoing);
+
+            // Only smooth 90-degree corners. Keep straight sections
+            // and other path changes in their original order.
+            if (Mathf.Abs(directionDot) > 0.01f)
+            {
+                AddMovementPoint(corner);
+                continue;
+            }
+
+            // Leave room on both adjoining straight sections so that
+            // neighboring curves cannot extend past one another.
+            float radius = Mathf.Min(
+                desiredRadius,
+                incomingLength * 0.45f,
+                outgoingLength * 0.45f
+            );
+
+            if (radius < 0.01f)
+            {
+                AddMovementPoint(corner);
+                continue;
+            }
+
+            Vector3 entry =
+                corner - incoming * radius;
+
+            Vector3 exit =
+                corner + outgoing * radius;
+
+            entry.y = taxiWorldY;
+            exit.y = taxiWorldY;
+
+            // Travel to the curve entry before following the curve.
+            AddMovementPoint(entry);
+
+            Vector3 controlPoint1 =
+                entry + incoming * (radius * BezierCircleFactor);
+
+            Vector3 controlPoint2 =
+                exit - outgoing * (radius * BezierCircleFactor);
+
+            int resolution = Mathf.Clamp(
+                turnCurveResolution,
+                4,
+                16
+            );
+
+            // Generate curve points in forward travel order,
+            // ending at the exit before continuing down the route.
+            for (int step = 1; step <= resolution; step++)
+            {
+                float t = step / (float)resolution;
+
+                Vector3 curvePoint = EvaluateCubicBezier(
+                    entry,
+                    controlPoint1,
+                    controlPoint2,
+                    exit,
+                    t
+                );
+
+                curvePoint.y = taxiWorldY;
+                AddMovementPoint(curvePoint);
+            }
+        }
+
+        // Always finish at the actual final taxiway cell.
+        AddMovementPoint(points[points.Count - 1]);
+    }
+
+
+    private void AddMovementPoint(Vector3 point)
+    {
+        point.y = taxiWorldY;
+
+        if (taxiMovementPath.Count > 0)
+        {
+            Vector3 previous =
+                taxiMovementPath[taxiMovementPath.Count - 1];
+
+            if (HorizontalDistance(previous, point) < 0.005f)
+                return;
+        }
+
+        taxiMovementPath.Add(point);
+    }
+
+    private Vector3 EvaluateCubicBezier(
+        Vector3 p0,
+        Vector3 p1,
+        Vector3 p2,
+        Vector3 p3,
+        float t)
+    {
+        float oneMinusT = 1f - t;
+
+        return
+            oneMinusT * oneMinusT * oneMinusT * p0 +
+            3f * oneMinusT * oneMinusT * t * p1 +
+            3f * oneMinusT * t * t * p2 +
+            t * t * t * p3;
     }
 
     private HobbyAircraftParkingSpot FindReservedParkingSpot()
@@ -677,26 +865,25 @@ public class HobbyAircraftTaxiController : MonoBehaviour
 
     private void FollowTaxiwayRoute()
     {
-        while (currentRouteIndex < route.Count)
+        while (currentRouteIndex < taxiMovementPath.Count)
         {
             Vector3 waypoint =
-                gridManager.GridToWorldCenter(
-                    route[currentRouteIndex]
-                );
+                taxiMovementPath[currentRouteIndex];
 
             waypoint.y = taxiWorldY;
 
             if (HorizontalDistance(
                     transform.position,
-                    waypoint) <= waypointArrivalDistance)
+                    waypoint) <= taxiPathPointTolerance)
             {
+                SetPositionAt(waypoint);
                 currentRouteIndex++;
                 continue;
             }
 
             MoveToward(
                 waypoint,
-                waypointArrivalDistance
+                taxiPathPointTolerance
             );
 
             return;

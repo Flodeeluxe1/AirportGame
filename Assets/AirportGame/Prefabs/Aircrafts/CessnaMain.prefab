@@ -4666,7 +4666,7 @@ MonoBehaviour:
   gridManager: {fileID: 0}
   weather: {fileID: 0}
   approachDistance: 60
-  glideAngleDegrees: 2
+  glideAngleDegrees: 4
   approachSpeedKnots: 100
   touchdownSpeedKnots: 70
   rolloutTargetSpeedKnots: 20
@@ -4674,7 +4674,7 @@ MonoBehaviour:
   speedChangeRate: 2
   rolloutDeceleration: 1
   flareHeight: 2
-  noseRaiseDegrees: 10
+  noseRaiseDegrees: 8
   noseLoweringDuration: 2
   maximumSidewindComponentKnots: 15
   goAroundNoseUpDegrees: 10
@@ -4716,11 +4716,14 @@ MonoBehaviour:
   maximumParkingConnectorDistance: 4
   taxiSpeedKnots: 10
   worldUnitsPerSecondPerKnot: 0.08
-  rotationSpeed: 3
+  rotationSpeed: 1
   waypointArrivalDistance: 0.2
   parkingArrivalDistance: 0.5
   taxiHeightOffset: 0.05
   modelRotationOffset: {x: 0, y: 0, z: 0}
+  turningRadiusInCells: 2
+  turnCurveResolution: 8
+  taxiPathPointTolerance: 0.02
   logTaxiProgress: 1
   debugStatus: Waiting for VFR landing completion.
 --- !u!114 &6880801071020878416
@@ -4735,9 +4738,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 55525b5280edd2940967179e57e81867, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HobbyAircraftVisitController
-  landingFee: 150
-  parkingFee: 25
-  parkingIntervalMinutes: 30
+  landingFee: 10
+  parkingFee: 5
+  parkingIntervalMinutes: 10
   minimumStayMinutes: 17
   maximumStayMinutes: 50
   parkingSpotReleaseDistance: 2
@@ -4950,7 +4953,7 @@ Transform:
   m_GameObject: {fileID: 6065748451957010503}
   serializedVersion: 2
   m_LocalRotation: {x: -0.7071068, y: -0, z: -0, w: 0.7071068}
-  m_LocalPosition: {x: 0.52846146, y: 0.007, z: 1.2569695}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 0.35, y: 0.34999996, z: 0.34999996}
   m_ConstrainProportionsScale: 1
   m_Children:
@@ -7221,15 +7224,15 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 1290486130874353062, guid: 3069c9eb92867d7418f2a6e6518c74fb, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 36.49288
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 1290486130874353062, guid: 3069c9eb92867d7418f2a6e6518c74fb, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0.012
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 1290486130874353062, guid: 3069c9eb92867d7418f2a6e6518c74fb, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 36.113
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 1290486130874353062, guid: 3069c9eb92867d7418f2a6e6518c74fb, type: 3}
       propertyPath: m_LocalRotation.w

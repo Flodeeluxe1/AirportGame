@@ -40,6 +40,9 @@ public class HobbyAircraftVisitController : MonoBehaviour
     [SerializeField] private float visitMinutesRemaining;
     [SerializeField] private string debugStatus = "Waiting for landing";
 
+    public int LandingFee => landingFee;
+    public int ParkingFee => parkingFee;
+
     private AircraftFlightIdentity flightIdentity;
     private AircraftLandingController landingController;
     private HobbyAircraftTaxiController hobbyTaxiController;
