@@ -2223,6 +2223,7 @@ MonoBehaviour:
   edgeOccupancy: {fileID: 0}
   roomDetection: {fileID: 0}
   buildController: {fileID: 0}
+  infoPanel: {fileID: 0}
   minimumFoundationCells: 20
   doubleClickSeconds: 0.35
 --- !u!4 &1399790237
@@ -2311,6 +2312,7 @@ GameObject:
   - component: {fileID: 1478484324}
   - component: {fileID: 1478484325}
   - component: {fileID: 1478484326}
+  - component: {fileID: 1478484328}
   m_Layer: 0
   m_Name: AirportUI
   m_TagString: Untagged
@@ -2465,6 +2467,25 @@ MonoBehaviour:
   menuButtonWidth: 100
   menuButtonHeight: 42
   menuPanelWidth: 340
+--- !u!114 &1478484328
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1478484321}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4be1c8c5a341bd4d8cfd1f9789bb5bb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RoomInfoPanelController
+  uiDocument: {fileID: 762824360}
+  roomPurposeController: {fileID: 1399790236}
+  gridManager: {fileID: 728659359}
+  panelWidth: 320
+  panelPadding: 18
+  highlightColor: {r: 1, g: 0.82, b: 0, a: 0.28}
+  highlightHeight: 0.06
 --- !u!1 &1577763651
 GameObject:
   m_ObjectHideFlags: 0

@@ -18,6 +18,7 @@ public class RoomPurposeController : MonoBehaviour
     [SerializeField] private EdgeOccupancy edgeOccupancy;
     [SerializeField] private RoomDetectionController roomDetection;
     [SerializeField] private BuildController buildController;
+    [SerializeField] private RoomInfoPanelUIController infoPanel;
 
     [Header("Flight School Rules")]
     [SerializeField, Min(1)] private int minimumFoundationCells = 20;
@@ -40,7 +41,18 @@ public class RoomPurposeController : MonoBehaviour
     {
         if (Mouse.current == null ||
             !Mouse.current.leftButton.wasPressedThisFrame)
+        {
             return;
+        }
+
+        Vector2 mousePosition = Mouse.current.position.ReadValue();
+
+        // Do not interpret clicks on the information panel as world clicks.
+        if (infoPanel != null &&
+            infoPanel.IsPointerOverPanel(mousePosition))
+        {
+            return;
+        }
 
         if (buildController != null && buildController.IsBuilding)
             return;
@@ -68,11 +80,18 @@ public class RoomPurposeController : MonoBehaviour
         if (!roomDetection.TryGetRoomAt(cell, out var room))
         {
             Debug.Log(
-                "Room purpose: double-click a floor cell inside an enclosed room.");
+                "Room information: double-click a floor cell inside an enclosed room.");
             return;
         }
 
-        ToggleFlightSchool(room);
+        if (infoPanel == null)
+        {
+            Debug.LogWarning(
+                "RoomInfoPanelController is not assigned or found.");
+            return;
+        }
+
+        infoPanel.OpenForRoom(room);
     }
 
     private void ResolveReferences()
@@ -94,14 +113,21 @@ public class RoomPurposeController : MonoBehaviour
 
         if (buildController == null)
             buildController = FindFirstObjectByType<BuildController>();
+
+        if (infoPanel == null)
+            infoPanel = FindFirstObjectByType<RoomInfoPanelUIController>();
     }
 
     private bool TryGetMouseCell(out Vector2Int cell)
     {
         cell = Vector2Int.zero;
 
-        if (mainCamera == null || gridManager == null)
+        if (mainCamera == null ||
+            gridManager == null ||
+            Mouse.current == null)
+        {
             return false;
+        }
 
         Ray ray = mainCamera.ScreenPointToRay(
             Mouse.current.position.ReadValue());
@@ -115,30 +141,6 @@ public class RoomPurposeController : MonoBehaviour
 
         cell = gridManager.WorldToGrid(ray.GetPoint(distance));
         return gridManager.IsInsideGrid(cell);
-    }
-
-    private void ToggleFlightSchool(
-        RoomDetectionController.DetectedRoom room)
-    {
-        Vector2Int anchor = GetAnchor(room);
-
-        if (assignments.TryGetValue(anchor, out RoomPurpose existing) &&
-            existing == RoomPurpose.FlightSchool)
-        {
-            assignments.Remove(anchor);
-            Debug.Log(
-                $"Room at {anchor} is no longer assigned as a Flight School.");
-            return;
-        }
-
-        assignments[anchor] = RoomPurpose.FlightSchool;
-
-        bool valid = ValidateFlightSchool(room, out string reason);
-
-        Debug.Log(
-            valid
-                ? $"Flight School assigned at {anchor}: VALID."
-                : $"Flight School assigned at {anchor}: INVALID — {reason}");
     }
 
     private Vector2Int GetAnchor(
@@ -156,6 +158,63 @@ public class RoomPurposeController : MonoBehaviour
         }
 
         return anchor;
+    }
+
+    public RoomPurpose GetAssignedPurpose(
+        RoomDetectionController.DetectedRoom room)
+    {
+        if (room == null ||
+            room.cells == null ||
+            room.cells.Count == 0)
+        {
+            return RoomPurpose.None;
+        }
+
+        Vector2Int anchor = GetAnchor(room);
+
+        return assignments.TryGetValue(anchor, out RoomPurpose purpose)
+            ? purpose
+            : RoomPurpose.None;
+    }
+
+    public void AssignPurpose(
+        RoomDetectionController.DetectedRoom room,
+        RoomPurpose purpose)
+    {
+        if (room == null ||
+            room.cells == null ||
+            room.cells.Count == 0)
+        {
+            Debug.LogWarning("Cannot assign a purpose to an empty room.");
+            return;
+        }
+
+        Vector2Int anchor = GetAnchor(room);
+
+        if (purpose == RoomPurpose.None)
+        {
+            assignments.Remove(anchor);
+            Debug.Log($"Room at {anchor} has no assigned purpose.");
+            return;
+        }
+
+        // Assignment is allowed even if requirements are not yet met.
+        // Validation controls operational status, not the ability to assign.
+        assignments[anchor] = purpose;
+
+        if (purpose == RoomPurpose.FlightSchool)
+        {
+            bool valid = ValidateFlightSchool(room, out string reason);
+
+            Debug.Log(
+                valid
+                    ? $"Flight School assigned at {anchor}: VALID."
+                    : $"Flight School assigned at {anchor}: INVALID — {reason}");
+        }
+        else
+        {
+            Debug.Log($"Room at {anchor} assigned to {purpose}.");
+        }
     }
 
     public bool ValidateFlightSchool(
@@ -323,13 +382,7 @@ public class RoomPurposeController : MonoBehaviour
     public bool IsFlightSchoolAssigned(
         RoomDetectionController.DetectedRoom room)
     {
-        if (room == null || room.cells == null || room.cells.Count == 0)
-            return false;
-
-        return assignments.TryGetValue(
-            GetAnchor(room),
-            out RoomPurpose purpose) &&
-            purpose == RoomPurpose.FlightSchool;
+        return GetAssignedPurpose(room) == RoomPurpose.FlightSchool;
     }
 
     public bool IsFlightSchoolValid(
