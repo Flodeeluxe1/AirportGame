@@ -1,4 +1,3 @@
-
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -359,6 +358,32 @@ public class RoomPurposeController : MonoBehaviour
         Debug.Log(
             $"RoomPurposeController: Restored {restoredCount} of " +
             $"{savedAssignments.Count} saved room-purpose assignment(s).");
+    }
+
+    /// <summary>
+    /// Returns all currently detected rooms assigned as Flight Schools.
+    /// Validation is intentionally left to the caller so invalid assigned
+    /// rooms remain visible and can become operational again after repairs.
+    /// </summary>
+    public List<RoomDetectionController.DetectedRoom> GetAssignedFlightSchoolRooms()
+    {
+        ResolveReferences();
+
+        List<RoomDetectionController.DetectedRoom> result =
+            new List<RoomDetectionController.DetectedRoom>();
+
+        if (roomDetection == null)
+            return result;
+
+        roomDetection.RefreshRooms();
+
+        foreach (RoomDetectionController.DetectedRoom room in roomDetection.Rooms)
+        {
+            if (room != null && IsFlightSchoolAssigned(room))
+                result.Add(room);
+        }
+
+        return result;
     }
 
     public bool ValidateFlightSchool(
