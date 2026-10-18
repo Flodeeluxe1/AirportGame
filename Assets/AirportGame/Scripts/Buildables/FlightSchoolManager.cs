@@ -33,6 +33,7 @@ public class FlightSchoolManager : MonoBehaviour
         public GameObject aircraft;
         public HobbyAircraftParkingSpot parkingSpot;
         public bool rewardPaid;
+        public bool lessonRestartPending;
     }
 
     private readonly Dictionary<Vector2Int, SchoolOperation> operations =
@@ -294,35 +295,80 @@ public class FlightSchoolManager : MonoBehaviour
             return;
         }
 
-        if (!trainingController.IsLessonComplete || operation.rewardPaid)
+        if (!trainingController.IsLessonComplete && !operation.lessonRestartPending)
             return;
 
-        if (economyManager == null)
-            economyManager = FindFirstObjectByType<AirportEconomyManager>();
+        // Pay once for each completed lesson. Keep rewardPaid true until the
+        // next lesson successfully starts, preventing duplicate payouts.
+        if (trainingController.IsLessonComplete && !operation.rewardPaid)
+        {
+            if (economyManager == null)
+                economyManager = FindFirstObjectByType<AirportEconomyManager>();
 
-        if (economyManager == null)
+            if (economyManager == null)
+            {
+                operation.validationMessage =
+                    "Lesson complete, but AirportEconomyManager was not found.";
+                return;
+            }
+
+            if (!economyManager.AddRevenue(
+                    lessonReward,
+                    "Flight school lesson completed"))
+            {
+                operation.validationMessage =
+                    "Lesson complete, but reward payment failed. Will retry.";
+                return;
+            }
+
+            operation.rewardPaid = true;
+            Debug.Log(
+                $"{name}: Flight School room at {operation.anchor} paid " +
+                lessonReward + " for the completed lesson.",
+                this);
+        }
+
+        if (!operation.rewardPaid && !operation.lessonRestartPending)
+            return;
+
+        // Existing lessons may finish after a room becomes invalid. Keep the
+        // aircraft parked and paid for, but do not start a new lesson until
+        // the room has been detected and validated as operational again.
+        if (!operation.assigned || !operation.valid)
         {
             operation.validationMessage =
-                "Lesson complete, but AirportEconomyManager was not found.";
+                "Lesson reward paid. Aircraft remains parked until the Flight School room is valid again.";
             return;
         }
 
-        if (!economyManager.AddRevenue(
-                lessonReward,
-                "Flight school lesson completed"))
+        if (!operation.lessonRestartPending)
+        {
+            if (!trainingController.ResetForNextLesson())
+            {
+                operation.validationMessage =
+                    "Lesson reward paid. Waiting to reset the parked aircraft for the next lesson.";
+                return;
+            }
+
+            operation.lessonRestartPending = true;
+        }
+
+        // Retry a failed start without resetting again or paying twice.
+        if (!trainingController.StartTrainingLesson())
         {
             operation.validationMessage =
-                "Lesson complete, but reward payment failed. Will retry.";
+                "Lesson reward paid. Retrying the next lesson start.";
             return;
         }
 
-        operation.rewardPaid = true;
+        operation.rewardPaid = false;
+        operation.lessonRestartPending = false;
         operation.validationMessage =
-            "Lesson complete. Paid $" + lessonReward + ". Aircraft remains parked.";
+            "Next lesson started; the same aircraft and parking reservation are retained.";
 
         Debug.Log(
-            $"{name}: Flight School room at {operation.anchor} paid " +
-            lessonReward + ". The training aircraft remains parked.",
+            $"{name}: Automatically started the next lesson for Flight School room " +
+            $"at {operation.anchor}; aircraft and parking reservation were retained.",
             this);
     }
 

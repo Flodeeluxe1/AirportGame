@@ -1,4 +1,3 @@
-
 using UnityEngine;
 
 public class AircraftTrainingLandingController : MonoBehaviour
@@ -232,6 +231,35 @@ public class AircraftTrainingLandingController : MonoBehaviour
     }
 
 
+
+    public void ResetForNextTrainingLesson()
+    {
+        if (trafficManager == null)
+            trafficManager =
+                FindFirstObjectByType<AircraftRunwayTrafficManager>();
+
+        if (trafficManager != null)
+            trafficManager.UnregisterLandingTraffic(this);
+
+        selectedRunway = null;
+        runwayDirection = Vector3.zero;
+        runwayCenter = Vector3.zero;
+        touchdownPoint = Vector3.zero;
+        alignmentPoint = Vector3.zero;
+        runwayLength = 0f;
+        runwaySurfaceY = 0f;
+        currentSpeed = 0f;
+        rolloutElapsed = 0f;
+        flareDecisionMade = false;
+
+        state = LandingState.Initializing;
+        debugLandingState = "WaitingForTrainingLanding";
+        debugSelectedRunway = "None";
+        debugLandingHeading = "None";
+        debugStatus = "Reset for the next training lesson.";
+
+        UpdateDebugInformation();
+    }
 
     public bool BeginTrainingLanding()
     {

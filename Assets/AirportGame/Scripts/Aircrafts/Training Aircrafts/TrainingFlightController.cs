@@ -560,4 +560,68 @@ public class TrainingFlightController : MonoBehaviour
             this
         );
     }
+
+    public bool ResetForNextLesson()
+    {
+        ResolveReferences();
+
+        if (currentState != TrainingState.Completed)
+        {
+            Debug.LogWarning(
+                $"{name}: Cannot reset for the next lesson because " +
+                "the current lesson has not completed.",
+                this
+            );
+
+            return false;
+        }
+
+        if (!HasRequiredComponents())
+        {
+            Debug.LogError(
+                $"{name}: Cannot reset for the next lesson because " +
+                "required components are missing.",
+                this
+            );
+
+            return false;
+        }
+
+        // Reset the supporting controllers for a fresh departure.
+        if (!takeoffController.ResetForTrainingCircuit())
+            return false;
+
+        if (!departureController.ResetForTrainingCircuit())
+            return false;
+
+        // Clear the previous lesson's counters and circuit state.
+        completedCircuits = 0;
+        currentWaypointIndex = 0;
+        landingCounted = false;
+        departureRequested = false;
+
+        circuitWaypoints.Clear();
+
+        touchAndGoRunway = null;
+        touchAndGoDirection = Vector3.zero;
+
+        // Let the new lesson start its taxi-out sequence.
+        // Reset taxi state so the final landing of the next lesson
+        // can trigger a fresh route back to the reserved parking spot.
+        taxiController.ResetForNextTrainingLesson();
+
+        // Let the new lesson start its taxi-out sequence.
+        landingController.enabled = true;
+        taxiController.enabled = false;
+
+        currentState = TrainingState.Inactive;
+        debugStatus = "Ready to start the next training lesson.";
+
+        Debug.Log(
+            $"{name}: Reset complete. Ready for the next training lesson.",
+            this
+        );
+
+        return true;
+    }
 }

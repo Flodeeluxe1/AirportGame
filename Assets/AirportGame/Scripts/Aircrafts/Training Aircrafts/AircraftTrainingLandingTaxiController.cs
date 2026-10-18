@@ -1,4 +1,3 @@
-
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -135,6 +134,11 @@ public class AircraftTrainingLandingTaxiController : MonoBehaviour
 
     public bool HasArrivedAtParking => phase == TaxiPhase.Parked;
 
+    public bool HasValidParkingReservation =>
+        reservedSpot != null &&
+        reservedSpot.IsPlacedBuilding &&
+        reservedSpot.ReservedAircraft == gameObject;
+
     private void Awake()
     {
         if (landingController == null)
@@ -195,6 +199,28 @@ public class AircraftTrainingLandingTaxiController : MonoBehaviour
         }
     }
 
+
+    public void ResetForNextTrainingLesson()
+    {
+        route.Clear();
+        taxiMovementPath.Clear();
+
+        routeAttempted = false;
+        currentRouteIndex = 0;
+
+        selectedRunway = null;
+        landingDirection = Vector3.zero;
+        runwayExitPoint = Vector3.zero;
+        taxiwayJoinPoint = Vector3.zero;
+        parkingTarget = Vector3.zero;
+        taxiWorldY = 0f;
+
+        phase = TaxiPhase.WaitingForLanding;
+        debugStatus = "Waiting for the next training lesson's final landing.";
+
+        // Do not release or clear the reserved parking spot.
+        // The same aircraft keeps its existing reservation.
+    }
 
     private void TryBuildTaxiRoute()
     {

@@ -17,7 +17,7 @@ public class HobbyAircraftParkingSpot : MonoBehaviour
         "When enabled, this spot is reserved for flight-school use. " +
         "This manual designation is never changed automatically."
     )]
-    [SerializeField] private bool reservedForFlightSchool = true;
+    [SerializeField] private bool reservedForFlightSchool = false;
 
     [Header("Runtime Status")]
     [SerializeField] private GameObject reservedAircraft;

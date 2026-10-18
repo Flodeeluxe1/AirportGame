@@ -1,4 +1,3 @@
-
 using UnityEngine;
 
 [DisallowMultipleComponent]
@@ -49,6 +48,15 @@ public class AircraftStatus : MonoBehaviour
     public void SetCurrentSpeedKnots(float speed)
     {
         CurrentSpeedKnots = Mathf.Max(0f, speed);
+    }
+
+    public void ResetForTrainingLesson()
+    {
+        IsTaxiing = false;
+        IsParked = true;
+        IsFlying = false;
+        HasCompletedLanding = false;
+        CurrentSpeedKnots = 0f;
     }
 
     public void MarkLandingComplete()
