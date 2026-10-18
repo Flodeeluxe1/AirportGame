@@ -1,3 +1,4 @@
+
 using UnityEngine;
 
 public enum BuildCategory
@@ -9,6 +10,13 @@ public enum BuildCategory
     Roads,
     Commercial,
     Taxiways
+}
+
+public enum RoomFurnitureRole
+{
+    None,
+    InstructorDesk,
+    StudentSeat
 }
 
 [CreateAssetMenu(
@@ -55,4 +63,7 @@ public class BuildableDefinition : ScriptableObject
     [Header("UI")]
     public BuildCategory category = BuildCategory.Airport;
     public Texture2D icon;
+
+    [Header("Room Furniture")]
+    public RoomFurnitureRole roomFurnitureRole = RoomFurnitureRole.None;
 }

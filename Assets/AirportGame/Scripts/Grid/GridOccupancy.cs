@@ -1,4 +1,3 @@
-
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -46,40 +45,15 @@ public class GridOccupancy : MonoBehaviour
         int depth,
         GameObject building)
     {
-        if (building == null)
-            return;
-
         for (int x = 0; x < width; x++)
         {
             for (int z = 0; z < depth; z++)
             {
                 Vector2Int cell = origin + new Vector2Int(x, z);
+
                 occupiedCells[cell] = building;
             }
         }
-    }
-
-    public void OccupyCell(Vector2Int cell, GameObject building)
-    {
-        if (building == null)
-            return;
-
-        occupiedCells[cell] = building;
-    }
-
-    public bool ReleaseCell(Vector2Int cell, GameObject expectedOwner)
-    {
-        if (expectedOwner == null)
-            return false;
-
-        if (!occupiedCells.TryGetValue(cell, out GameObject currentOwner))
-            return false;
-
-        if (currentOwner != expectedOwner)
-            return false;
-
-        occupiedCells.Remove(cell);
-        return true;
     }
 
     public void Release(
@@ -92,6 +66,7 @@ public class GridOccupancy : MonoBehaviour
             for (int z = 0; z < depth; z++)
             {
                 Vector2Int cell = origin + new Vector2Int(x, z);
+
                 occupiedCells.Remove(cell);
             }
         }
@@ -102,16 +77,25 @@ public class GridOccupancy : MonoBehaviour
         if (building == null)
             return;
 
-        List<Vector2Int> cellsToRelease = new List<Vector2Int>();
+        List<Vector2Int> cellsToRelease =
+            new List<Vector2Int>();
 
-        foreach (KeyValuePair<Vector2Int, GameObject> entry in occupiedCells)
+        foreach (
+            KeyValuePair<Vector2Int, GameObject> entry
+            in occupiedCells)
         {
             if (entry.Value == building)
-                cellsToRelease.Add(entry.Key);
+            {
+                cellsToRelease.Add(
+                    entry.Key
+                );
+            }
         }
 
         foreach (Vector2Int cell in cellsToRelease)
+        {
             occupiedCells.Remove(cell);
+        }
     }
 
     public void Clear()

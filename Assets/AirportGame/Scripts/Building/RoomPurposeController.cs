@@ -1,0 +1,341 @@
+
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.InputSystem;
+
+public enum RoomPurpose
+{
+    None,
+    FlightSchool
+}
+
+public class RoomPurposeController : MonoBehaviour
+{
+    [Header("References")]
+    [SerializeField] private Camera mainCamera;
+    [SerializeField] private GridManager gridManager;
+    [SerializeField] private GridSurface gridSurface;
+    [SerializeField] private EdgeOccupancy edgeOccupancy;
+    [SerializeField] private RoomDetectionController roomDetection;
+    [SerializeField] private BuildController buildController;
+
+    [Header("Flight School Rules")]
+    [SerializeField, Min(1)] private int minimumFoundationCells = 20;
+
+    [Header("Input")]
+    [SerializeField, Min(0.1f)] private float doubleClickSeconds = 0.35f;
+
+    private readonly Dictionary<Vector2Int, RoomPurpose> assignments =
+        new Dictionary<Vector2Int, RoomPurpose>();
+
+    private Vector2Int previousClickCell;
+    private float previousClickTime = -10f;
+
+    private void Awake()
+    {
+        ResolveReferences();
+    }
+
+    private void Update()
+    {
+        if (Mouse.current == null ||
+            !Mouse.current.leftButton.wasPressedThisFrame)
+            return;
+
+        if (buildController != null && buildController.IsBuilding)
+            return;
+
+        if (!TryGetMouseCell(out Vector2Int cell))
+            return;
+
+        float now = Time.unscaledTime;
+
+        bool isDoubleClick =
+            cell == previousClickCell &&
+            now - previousClickTime <= doubleClickSeconds;
+
+        previousClickCell = cell;
+        previousClickTime = now;
+
+        if (!isDoubleClick)
+            return;
+
+        if (roomDetection == null)
+            return;
+
+        roomDetection.RefreshRooms();
+
+        if (!roomDetection.TryGetRoomAt(cell, out var room))
+        {
+            Debug.Log(
+                "Room purpose: double-click a floor cell inside an enclosed room.");
+            return;
+        }
+
+        ToggleFlightSchool(room);
+    }
+
+    private void ResolveReferences()
+    {
+        if (mainCamera == null)
+            mainCamera = Camera.main;
+
+        if (gridManager == null)
+            gridManager = FindFirstObjectByType<GridManager>();
+
+        if (gridSurface == null && gridManager != null)
+            gridSurface = gridManager.GetComponent<GridSurface>();
+
+        if (edgeOccupancy == null)
+            edgeOccupancy = FindFirstObjectByType<EdgeOccupancy>();
+
+        if (roomDetection == null)
+            roomDetection = FindFirstObjectByType<RoomDetectionController>();
+
+        if (buildController == null)
+            buildController = FindFirstObjectByType<BuildController>();
+    }
+
+    private bool TryGetMouseCell(out Vector2Int cell)
+    {
+        cell = Vector2Int.zero;
+
+        if (mainCamera == null || gridManager == null)
+            return false;
+
+        Ray ray = mainCamera.ScreenPointToRay(
+            Mouse.current.position.ReadValue());
+
+        Plane gridPlane = new Plane(
+            Vector3.up,
+            gridManager.transform.position);
+
+        if (!gridPlane.Raycast(ray, out float distance))
+            return false;
+
+        cell = gridManager.WorldToGrid(ray.GetPoint(distance));
+        return gridManager.IsInsideGrid(cell);
+    }
+
+    private void ToggleFlightSchool(
+        RoomDetectionController.DetectedRoom room)
+    {
+        Vector2Int anchor = GetAnchor(room);
+
+        if (assignments.TryGetValue(anchor, out RoomPurpose existing) &&
+            existing == RoomPurpose.FlightSchool)
+        {
+            assignments.Remove(anchor);
+            Debug.Log(
+                $"Room at {anchor} is no longer assigned as a Flight School.");
+            return;
+        }
+
+        assignments[anchor] = RoomPurpose.FlightSchool;
+
+        bool valid = ValidateFlightSchool(room, out string reason);
+
+        Debug.Log(
+            valid
+                ? $"Flight School assigned at {anchor}: VALID."
+                : $"Flight School assigned at {anchor}: INVALID — {reason}");
+    }
+
+    private Vector2Int GetAnchor(
+        RoomDetectionController.DetectedRoom room)
+    {
+        Vector2Int anchor = room.cells[0];
+
+        foreach (Vector2Int cell in room.cells)
+        {
+            if (cell.x < anchor.x ||
+                (cell.x == anchor.x && cell.y < anchor.y))
+            {
+                anchor = cell;
+            }
+        }
+
+        return anchor;
+    }
+
+    public bool ValidateFlightSchool(
+        RoomDetectionController.DetectedRoom room,
+        out string reason)
+    {
+        reason = "";
+
+        if (room == null || room.cells == null)
+        {
+            reason = "Room was not detected.";
+            return false;
+        }
+
+        if (room.CellCount < minimumFoundationCells)
+        {
+            reason =
+                $"Needs at least {minimumFoundationCells} foundation cells; found {room.CellCount}.";
+            return false;
+        }
+
+        if (!HasDoor(room))
+        {
+            reason = "Needs at least one door on its boundary.";
+            return false;
+        }
+
+        int desks = 0;
+        int seats = 0;
+
+        HashSet<Vector2Int> roomCells =
+            new HashSet<Vector2Int>(room.cells);
+
+        PlacedBuilding[] placedBuildings =
+            FindObjectsByType<PlacedBuilding>(
+                FindObjectsInactive.Exclude,
+                FindObjectsSortMode.None);
+
+        foreach (PlacedBuilding placed in placedBuildings)
+        {
+            if (placed == null || placed.Definition == null)
+                continue;
+
+            RoomFurnitureRole role =
+                placed.Definition.roomFurnitureRole;
+
+            if (role == RoomFurnitureRole.None)
+                continue;
+
+            if (!BuildingTouchesRoom(placed, roomCells))
+                continue;
+
+            if (role == RoomFurnitureRole.InstructorDesk)
+                desks++;
+            else if (role == RoomFurnitureRole.StudentSeat)
+                seats++;
+        }
+
+        if (desks < 1)
+        {
+            reason = "Needs at least one instructor desk.";
+            return false;
+        }
+
+        if (seats < 1)
+        {
+            reason = "Needs at least one student seat.";
+            return false;
+        }
+
+        return true;
+    }
+
+    private bool BuildingTouchesRoom(
+        PlacedBuilding building,
+        HashSet<Vector2Int> roomCells)
+    {
+        if (building.IsEdgeBuilding)
+            return false;
+
+        for (int x = 0; x < Mathf.Max(1, building.Width); x++)
+        {
+            for (int z = 0; z < Mathf.Max(1, building.Depth); z++)
+            {
+                Vector2Int cell =
+                    building.Origin + new Vector2Int(x, z);
+
+                if (roomCells.Contains(cell))
+                    return true;
+            }
+        }
+
+        return false;
+    }
+
+    private bool HasDoor(
+        RoomDetectionController.DetectedRoom room)
+    {
+        if (edgeOccupancy == null)
+            return false;
+
+        Vector2Int[] directions =
+        {
+            Vector2Int.up,
+            Vector2Int.down,
+            Vector2Int.left,
+            Vector2Int.right
+        };
+
+        foreach (Vector2Int cell in room.cells)
+        {
+            foreach (Vector2Int direction in directions)
+            {
+                Vector2Int neighbor = cell + direction;
+
+                // Internal edges do not count as room entrances.
+                if (room.cells.Contains(neighbor))
+                    continue;
+
+                GridEdge edge = GetSharedEdge(cell, direction);
+
+                if (!edgeOccupancy.TryGetOccupant(
+                        edge, out GameObject boundary))
+                {
+                    continue;
+                }
+
+                if (boundary == null)
+                    continue;
+
+                PlacedBuilding placed =
+                    boundary.GetComponent<PlacedBuilding>();
+
+                if (placed == null || placed.Definition == null)
+                    continue;
+
+                if (placed.Definition.category == BuildCategory.Door)
+                    return true;
+            }
+        }
+
+        return false;
+    }
+
+    private GridEdge GetSharedEdge(
+        Vector2Int cell,
+        Vector2Int direction)
+    {
+        if (direction == Vector2Int.down)
+            return new GridEdge(cell, EdgeDirection.Horizontal);
+
+        if (direction == Vector2Int.up)
+            return new GridEdge(
+                cell + Vector2Int.up,
+                EdgeDirection.Horizontal);
+
+        if (direction == Vector2Int.left)
+            return new GridEdge(cell, EdgeDirection.Vertical);
+
+        return new GridEdge(
+            cell + Vector2Int.right,
+            EdgeDirection.Vertical);
+    }
+
+    public bool IsFlightSchoolAssigned(
+        RoomDetectionController.DetectedRoom room)
+    {
+        if (room == null || room.cells == null || room.cells.Count == 0)
+            return false;
+
+        return assignments.TryGetValue(
+            GetAnchor(room),
+            out RoomPurpose purpose) &&
+            purpose == RoomPurpose.FlightSchool;
+    }
+
+    public bool IsFlightSchoolValid(
+        RoomDetectionController.DetectedRoom room)
+    {
+        return IsFlightSchoolAssigned(room) &&
+               ValidateFlightSchool(room, out _);
+    }
+}

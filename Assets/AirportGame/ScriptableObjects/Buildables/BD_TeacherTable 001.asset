@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b707bf0339cdddd48ac715a8e271822e, type: 3}
+  m_Name: BD_TeacherTable 001
+  m_EditorClassIdentifier: Assembly-CSharp::BuildableDefinition
+  id: airport.teacher.table
+  displayName: Teacher Table 001
+  prefab: {fileID: 6231505095282216803, guid: e72e97b611f276f488c2e89642c6b1ef, type: 3}
+  placementType: 0
+  requiredSurface: 1
+  width: 2
+  depth: 1
+  edgeLength: 1
+  requiresExistingWall: 0
+  isWallMounted: 0
+  mountHeight: 2
+  canRotate: 1
+  buildCost: 40
+  blocksPathfinding: 0
+  category: 3
+  icon: {fileID: 0}
+  roomFurnitureRole: 1
