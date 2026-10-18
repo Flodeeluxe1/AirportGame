@@ -1,3 +1,4 @@
+
 using UnityEngine;
 
 public class AreaPlacementHandler : IPlacementHandler
@@ -16,12 +17,10 @@ public class AreaPlacementHandler : IPlacementHandler
     private PlacementPreview placementPreview;
 
     private Vector2Int currentGridPosition;
-
     private Vector2Int areaStartPosition;
     private Vector2Int areaEndPosition;
 
     private bool isDragging;
-
     private Vector3 originalPrefabScale;
 
     public void Initialize(
@@ -35,8 +34,7 @@ public class AreaPlacementHandler : IPlacementHandler
         this.gridOccupancy = gridOccupancy;
         this.edgeOccupancy = edgeOccupancy;
 
-        gridSurface =
-            gridManager.GetComponent<GridSurface>();
+        gridSurface = gridManager.GetComponent<GridSurface>();
     }
 
     public void SetFoundationTilemapController(
@@ -48,8 +46,7 @@ public class AreaPlacementHandler : IPlacementHandler
     public void SetAutomaticWallDefinition(
         BuildableDefinition wallDefinition)
     {
-        automaticWallDefinition =
-            wallDefinition;
+        automaticWallDefinition = wallDefinition;
     }
 
     public void BeginPlacement(
@@ -64,55 +61,38 @@ public class AreaPlacementHandler : IPlacementHandler
         currentGridPosition = Vector2Int.zero;
         areaStartPosition = Vector2Int.zero;
         areaEndPosition = Vector2Int.zero;
-
         isDragging = false;
 
-        originalPrefabScale =
-            previewObject.transform.localScale;
+        originalPrefabScale = previewObject.transform.localScale;
     }
 
     public void UpdatePlacement(Vector3 hitPoint)
     {
-        currentGridPosition =
-            gridManager.WorldToGrid(hitPoint);
+        currentGridPosition = gridManager.WorldToGrid(hitPoint);
 
         if (!isDragging)
         {
             previewObject.transform.position =
-                gridManager.GridToWorldCenter(
-                    currentGridPosition
-                );
+                gridManager.GridToWorldCenter(currentGridPosition);
 
-            previewObject.transform.rotation =
-                Quaternion.identity;
-
-            previewObject.transform.localScale =
-                originalPrefabScale;
+            previewObject.transform.rotation = Quaternion.identity;
+            previewObject.transform.localScale = originalPrefabScale;
 
             placementPreview.SetValid(
-                gridManager.IsInsideGrid(
-                    currentGridPosition
-                )
-            );
+                gridManager.IsInsideGrid(currentGridPosition));
 
             return;
         }
 
-        areaEndPosition =
-            currentGridPosition;
-
+        areaEndPosition = currentGridPosition;
         UpdatePreview();
         UpdatePreviewValidity();
     }
 
     public void BeginArea()
     {
-        areaStartPosition =
-            currentGridPosition;
-
-        areaEndPosition =
-            currentGridPosition;
-
+        areaStartPosition = currentGridPosition;
+        areaEndPosition = currentGridPosition;
         isDragging = true;
 
         UpdatePreview();
@@ -125,77 +105,38 @@ public class AreaPlacementHandler : IPlacementHandler
             return;
 
         isDragging = false;
-
         TryPlace();
     }
 
     private void UpdatePreview()
     {
-        GetArea(
-            out Vector2Int origin,
-            out int width,
-            out int depth
-        );
+        GetArea(out Vector2Int origin, out int width, out int depth);
 
-        Vector3 position =
-            gridManager.GridToWorld(origin);
-
+        Vector3 position = gridManager.GridToWorld(origin);
         position += new Vector3(
             width * gridManager.CellSize * 0.5f,
             0f,
-            depth * gridManager.CellSize * 0.5f
-        );
+            depth * gridManager.CellSize * 0.5f);
 
-        previewObject.transform.position =
-            position;
-
-        previewObject.transform.rotation =
-            Quaternion.identity;
-
+        previewObject.transform.position = position;
+        previewObject.transform.rotation = Quaternion.identity;
         previewObject.transform.localScale =
-            new Vector3(
-                width,
-                originalPrefabScale.y,
-                depth
-            );
+            new Vector3(width, originalPrefabScale.y, depth);
     }
 
     private void UpdatePreviewValidity()
     {
-        GetArea(
-            out Vector2Int origin,
-            out int width,
-            out int depth
-        );
+        GetArea(out Vector2Int origin, out int width, out int depth);
 
-        bool inside =
-            IsInsideGrid(
-                origin,
-                width,
-                depth
-            );
-
-        bool free =
-            gridOccupancy.CanOccupy(
-                origin,
-                width,
-                depth
-            );
+        bool inside = IsInsideGrid(origin, width, depth);
+        bool free = gridOccupancy.CanOccupy(origin, width, depth);
 
         bool correctSurface =
             gridSurface != null &&
             gridSurface.CanSetSurfaceArea(
-                origin,
-                width,
-                depth,
-                BuildSurface.Grass
-            );
+                origin, width, depth, BuildSurface.Grass);
 
-        placementPreview.SetValid(
-            inside &&
-            free &&
-            correctSurface
-        );
+        placementPreview.SetValid(inside && free && correctSurface);
     }
 
     private void GetArea(
@@ -203,41 +144,14 @@ public class AreaPlacementHandler : IPlacementHandler
         out int width,
         out int depth)
     {
-        int minX =
-            Mathf.Min(
-                areaStartPosition.x,
-                areaEndPosition.x
-            );
+        int minX = Mathf.Min(areaStartPosition.x, areaEndPosition.x);
+        int maxX = Mathf.Max(areaStartPosition.x, areaEndPosition.x);
+        int minZ = Mathf.Min(areaStartPosition.y, areaEndPosition.y);
+        int maxZ = Mathf.Max(areaStartPosition.y, areaEndPosition.y);
 
-        int maxX =
-            Mathf.Max(
-                areaStartPosition.x,
-                areaEndPosition.x
-            );
-
-        int minZ =
-            Mathf.Min(
-                areaStartPosition.y,
-                areaEndPosition.y
-            );
-
-        int maxZ =
-            Mathf.Max(
-                areaStartPosition.y,
-                areaEndPosition.y
-            );
-
-        origin =
-            new Vector2Int(
-                minX,
-                minZ
-            );
-
-        width =
-            maxX - minX + 1;
-
-        depth =
-            maxZ - minZ + 1;
+        origin = new Vector2Int(minX, minZ);
+        width = maxX - minX + 1;
+        depth = maxZ - minZ + 1;
     }
 
     private bool IsInsideGrid(
@@ -249,9 +163,7 @@ public class AreaPlacementHandler : IPlacementHandler
         {
             for (int z = 0; z < depth; z++)
             {
-                Vector2Int cell =
-                    origin +
-                    new Vector2Int(x, z);
+                Vector2Int cell = origin + new Vector2Int(x, z);
 
                 if (!gridManager.IsInsideGrid(cell))
                     return false;
@@ -266,27 +178,17 @@ public class AreaPlacementHandler : IPlacementHandler
         // Area placement does not need rotation.
     }
 
-
     public void TryPlace()
     {
-        GetArea(
-            out Vector2Int origin,
-            out int width,
-            out int depth
-        );
+        GetArea(out Vector2Int origin, out int width, out int depth);
 
         bool inside = IsInsideGrid(origin, width, depth);
-
         bool free = gridOccupancy.CanOccupy(origin, width, depth);
 
         bool correctSurface =
             gridSurface != null &&
             gridSurface.CanSetSurfaceArea(
-                origin,
-                width,
-                depth,
-                BuildSurface.Grass
-            );
+                origin, width, depth, BuildSurface.Grass);
 
         if (!inside)
         {
@@ -317,165 +219,115 @@ public class AreaPlacementHandler : IPlacementHandler
         GameObject placedObject = Object.Instantiate(
             definition.prefab,
             previewObject.transform.position,
-            previewObject.transform.rotation
-        );
+            previewObject.transform.rotation);
 
-        placedObject.transform.localScale = new Vector3(
-            width,
-            originalPrefabScale.y,
-            depth
-        );
+        placedObject.transform.localScale =
+            new Vector3(width, originalPrefabScale.y, depth);
 
         DisableFoundationVisuals(placedObject);
 
         PlacedBuilding placedBuilding =
             placedObject.AddComponent<PlacedBuilding>();
 
-        placedBuilding.Initialize(
-            definition,
-            origin,
-            width,
-            depth,
-            0
-        );
+        placedBuilding.Initialize(definition, origin, width, depth, 0);
+
+        FoundationBoundaryOwnership boundaryOwnership =
+            placedObject.AddComponent<FoundationBoundaryOwnership>();
+
+        boundaryOwnership.Initialize(edgeOccupancy);
 
         gridSurface.SetSurfaceArea(
             origin,
             width,
             depth,
             BuildSurface.Foundation,
-            placedObject
-        );
+            placedObject);
 
         PaintFoundationTiles(origin, width, depth);
-        BuildAutomaticFoundationWalls(origin, width, depth);
+
+        BuildAutomaticFoundationWalls(
+            origin, width, depth, boundaryOwnership);
 
         Debug.Log(
             $"Placed foundation: {definition.displayName} " +
             $"({width} x {depth}). Cost: " +
-            $"${(long)definition.buildCost * quantity:N0}."
-        );
+            $"${(long)definition.buildCost * quantity:N0}.");
 
         isDragging = false;
         areaStartPosition = currentGridPosition;
         areaEndPosition = currentGridPosition;
-
         previewObject.transform.localScale = originalPrefabScale;
     }
-
 
     private void BuildAutomaticFoundationWalls(
         Vector2Int origin,
         int width,
-        int depth)
+        int depth,
+        FoundationBoundaryOwnership boundaryOwnership)
     {
         if (automaticWallDefinition == null)
         {
             Debug.LogWarning(
-                "AreaPlacementHandler: No automatic wall " +
-                "definition has been assigned."
-            );
-
+                "AreaPlacementHandler: No automatic wall definition assigned.");
             return;
         }
 
         if (automaticWallDefinition.prefab == null)
         {
             Debug.LogWarning(
-                "AreaPlacementHandler: Automatic wall " +
-                "definition has no prefab assigned."
-            );
-
+                "AreaPlacementHandler: Automatic wall definition has no prefab.");
             return;
         }
 
         if (edgeOccupancy == null)
         {
             Debug.LogWarning(
-                "AreaPlacementHandler: EdgeOccupancy is missing."
-            );
-
+                "AreaPlacementHandler: EdgeOccupancy is missing.");
             return;
         }
 
-        // Bottom edge.
         for (int x = 0; x < width; x++)
         {
-            GridEdge edge =
+            CreateAutomaticWall(
                 new GridEdge(
-                    new Vector2Int(
-                        origin.x + x,
-                        origin.y
-                    ),
-                    EdgeDirection.Horizontal
-                );
+                    new Vector2Int(origin.x + x, origin.y),
+                    EdgeDirection.Horizontal),
+                boundaryOwnership);
 
-            CreateAutomaticWall(edge);
+            CreateAutomaticWall(
+                new GridEdge(
+                    new Vector2Int(origin.x + x, origin.y + depth),
+                    EdgeDirection.Horizontal),
+                boundaryOwnership);
         }
 
-        // Top edge.
-        for (int x = 0; x < width; x++)
-        {
-            GridEdge edge =
-                new GridEdge(
-                    new Vector2Int(
-                        origin.x + x,
-                        origin.y + depth
-                    ),
-                    EdgeDirection.Horizontal
-                );
-
-            CreateAutomaticWall(edge);
-        }
-
-        // Left edge.
         for (int z = 0; z < depth; z++)
         {
-            GridEdge edge =
+            CreateAutomaticWall(
                 new GridEdge(
-                    new Vector2Int(
-                        origin.x,
-                        origin.y + z
-                    ),
-                    EdgeDirection.Vertical
-                );
+                    new Vector2Int(origin.x, origin.y + z),
+                    EdgeDirection.Vertical),
+                boundaryOwnership);
 
-            CreateAutomaticWall(edge);
-        }
-
-        // Right edge.
-        for (int z = 0; z < depth; z++)
-        {
-            GridEdge edge =
+            CreateAutomaticWall(
                 new GridEdge(
-                    new Vector2Int(
-                        origin.x + width,
-                        origin.y + z
-                    ),
-                    EdgeDirection.Vertical
-                );
-
-            CreateAutomaticWall(edge);
+                    new Vector2Int(origin.x + width, origin.y + z),
+                    EdgeDirection.Vertical),
+                boundaryOwnership);
         }
     }
 
     private void CreateAutomaticWall(
-        GridEdge edge)
+        GridEdge edge,
+        FoundationBoundaryOwnership boundaryOwnership)
     {
         if (edgeOccupancy.IsOccupied(edge))
-        {
             return;
-        }
 
         GameObject wallObject =
-            Object.Instantiate(
-                automaticWallDefinition.prefab
-            );
+            Object.Instantiate(automaticWallDefinition.prefab);
 
-        ApplyWallTransform(
-            wallObject,
-            edge
-        );
+        ApplyWallTransform(wallObject, edge);
 
         PlacedBuilding placedWall =
             wallObject.AddComponent<PlacedBuilding>();
@@ -484,92 +336,52 @@ public class AreaPlacementHandler : IPlacementHandler
             automaticWallDefinition,
             edge.cell,
             1,
-            edge.direction
-        );
+            edge.direction);
 
-        edgeOccupancy.Occupy(
-            edge,
-            wallObject
-        );
+        edgeOccupancy.Occupy(edge, wallObject);
+
+        // Record which foundation generated this boundary segment.
+        if (boundaryOwnership != null)
+            boundaryOwnership.RegisterBoundaryObject(wallObject);
     }
 
-    private void ApplyWallTransform(
-        GameObject wallObject,
-        GridEdge edge)
+    private void ApplyWallTransform(GameObject wallObject, GridEdge edge)
     {
-        Vector3 position =
-            gridManager.GridToWorld(
-                edge.cell
-            );
+        Vector3 position = gridManager.GridToWorld(edge.cell);
+        float wallHeight = GetPrefabHeight(wallObject);
+        position.y = wallHeight * 0.5f;
 
-        float wallHeight =
-            GetPrefabHeight(
-                wallObject
-            );
-
-        position.y =
-            wallHeight * 0.5f;
-
-        if (edge.direction ==
-            EdgeDirection.Horizontal)
+        if (edge.direction == EdgeDirection.Horizontal)
         {
             position += new Vector3(
-                gridManager.CellSize * 0.5f,
-                0f,
-                0f
-            );
+                gridManager.CellSize * 0.5f, 0f, 0f);
 
-            wallObject.transform.position =
-                position;
-
-            wallObject.transform.rotation =
-                Quaternion.identity;
+            wallObject.transform.position = position;
+            wallObject.transform.rotation = Quaternion.identity;
         }
         else
         {
             position += new Vector3(
-                0f,
-                0f,
-                gridManager.CellSize * 0.5f
-            );
+                0f, 0f, gridManager.CellSize * 0.5f);
 
-            wallObject.transform.position =
-                position;
-
+            wallObject.transform.position = position;
             wallObject.transform.rotation =
-                Quaternion.Euler(
-                    0f,
-                    90f,
-                    0f
-                );
+                Quaternion.Euler(0f, 90f, 0f);
         }
     }
 
-    private float GetPrefabHeight(
-        GameObject target)
+    private float GetPrefabHeight(GameObject target)
     {
         Renderer[] renderers =
-            target.GetComponentsInChildren<Renderer>(
-                true
-            );
+            target.GetComponentsInChildren<Renderer>(true);
 
         if (renderers.Length == 0)
-        {
             return 0f;
-        }
 
-        Bounds bounds =
-            renderers[0].bounds;
+        Bounds bounds = renderers[0].bounds;
 
-        for (
-            int i = 1;
-            i < renderers.Length;
-            i++)
-        {
-            bounds.Encapsulate(
-                renderers[i].bounds
-            );
-        }
+        for (int i = 1; i < renderers.Length; i++)
+            bounds.Encapsulate(renderers[i].bounds);
 
         return bounds.size.y;
     }
@@ -579,10 +391,7 @@ public class AreaPlacementHandler : IPlacementHandler
         isDragging = false;
 
         if (previewObject != null)
-        {
-            previewObject.transform.localScale =
-                originalPrefabScale;
-        }
+            previewObject.transform.localScale = originalPrefabScale;
     }
 
     public void Reset()
@@ -596,7 +405,6 @@ public class AreaPlacementHandler : IPlacementHandler
         areaEndPosition = Vector2Int.zero;
 
         isDragging = false;
-
         originalPrefabScale = Vector3.one;
     }
 
@@ -612,31 +420,21 @@ public class AreaPlacementHandler : IPlacementHandler
         {
             for (int z = 0; z < depth; z++)
             {
-                Vector2Int cell =
-                    origin +
-                    new Vector2Int(x, z);
-
-                foundationTilemapController.SetFoundationTile(
-                    cell
-                );
+                Vector2Int cell = origin + new Vector2Int(x, z);
+                foundationTilemapController.SetFoundationTile(cell);
             }
         }
     }
 
-    private void DisableFoundationVisuals(
-    GameObject foundationObject)
+    private void DisableFoundationVisuals(GameObject foundationObject)
     {
         if (foundationObject == null)
             return;
 
         Renderer[] renderers =
-            foundationObject.GetComponentsInChildren<Renderer>(
-                true
-            );
+            foundationObject.GetComponentsInChildren<Renderer>(true);
 
         foreach (Renderer renderer in renderers)
-        {
             renderer.enabled = false;
-        }
     }
 }

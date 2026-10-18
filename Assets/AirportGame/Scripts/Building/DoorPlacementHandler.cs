@@ -28,8 +28,7 @@ public class DoorPlacementHandler : IPlacementHandler
         this.gridManager = gridManager;
         this.edgeOccupancy = edgeOccupancy;
 
-        gridSurface =
-            gridManager.GetComponent<GridSurface>();
+        gridSurface = gridManager.GetComponent<GridSurface>();
     }
 
     public void BeginPlacement(
@@ -41,45 +40,30 @@ public class DoorPlacementHandler : IPlacementHandler
         this.previewObject = previewObject;
         this.placementPreview = placementPreview;
 
-        currentEdge =
-            new GridEdge(
-                Vector2Int.zero,
-                EdgeDirection.Horizontal
-            );
+        currentEdge = new GridEdge(
+            Vector2Int.zero,
+            EdgeDirection.Horizontal);
 
         previewEdges.Clear();
     }
 
     // Required by IPlacementHandler.
-    // BuildController will use the Ray overload below
-    // for door placement.
     public void UpdatePlacement(Vector3 hitPoint)
     {
     }
 
     public void UpdatePlacement(Ray mouseRay)
     {
-        if (previewObject == null ||
-            placementPreview == null)
-        {
+        if (previewObject == null || placementPreview == null)
             return;
-        }
 
         bool foundWall = false;
 
-        RaycastHit[] hits =
-            Physics.RaycastAll(
-                mouseRay,
-                1000f
-            );
+        RaycastHit[] hits = Physics.RaycastAll(mouseRay, 1000f);
 
         System.Array.Sort(
             hits,
-            (a, b) =>
-                a.distance.CompareTo(
-                    b.distance
-                )
-        );
+            (a, b) => a.distance.CompareTo(b.distance));
 
         foreach (RaycastHit hit in hits)
         {
@@ -89,38 +73,21 @@ public class DoorPlacementHandler : IPlacementHandler
             PlacedBuilding wall =
                 hit.collider.GetComponentInParent<PlacedBuilding>();
 
-            if (wall == null ||
-                wall.Definition == null)
+            if (wall == null || wall.Definition == null)
+                continue;
+
+            if (wall.Definition.placementType != PlacementType.Edge ||
+                wall.Definition.category != BuildCategory.Wall)
             {
                 continue;
             }
 
-            if (wall.Definition.placementType !=
-                    PlacementType.Edge ||
-                wall.Definition.category !=
-                    BuildCategory.Wall)
-            {
+            GridEdge wallEdge = GetWallEdgeFromHit(hit, wall);
+
+            if (!IsWallEdgeOwnedByWall(wallEdge, wall.gameObject))
                 continue;
-            }
 
-            GridEdge wallEdge =
-                GetWallEdgeFromHit(
-                    hit,
-                    wall
-                );
-
-            if (!IsWallEdgeOwnedByWall(
-                    wallEdge,
-                    wall.gameObject))
-            {
-                continue;
-            }
-
-            currentEdge =
-                GetDoorStartEdge(
-                    wallEdge,
-                    hit.point
-                );
+            currentEdge = GetDoorStartEdge(wallEdge, hit.point);
 
             BuildPreviewEdgeList();
             UpdatePreview();
@@ -140,31 +107,18 @@ public class DoorPlacementHandler : IPlacementHandler
         RaycastHit hit,
         PlacedBuilding wall)
     {
-        GridEdge wallEdge =
-            new GridEdge(
-                wall.Origin,
-                wall.EdgeDirection
-            );
-
-        return wallEdge;
+        return new GridEdge(wall.Origin, wall.EdgeDirection);
     }
 
     private bool IsWallEdgeOwnedByWall(
         GridEdge edge,
         GameObject wall)
     {
-        if (edgeOccupancy == null ||
-            wall == null)
-        {
+        if (edgeOccupancy == null || wall == null)
             return false;
-        }
 
-        if (!edgeOccupancy.TryGetOccupant(
-                edge,
-                out GameObject occupant))
-        {
+        if (!edgeOccupancy.TryGetOccupant(edge, out GameObject occupant))
             return false;
-        }
 
         return occupant == wall;
     }
@@ -173,88 +127,43 @@ public class DoorPlacementHandler : IPlacementHandler
         GridEdge wallEdge,
         Vector3 hitPoint)
     {
-        int doorLength =
-            Mathf.Max(
-                1,
-                definition.edgeLength
-            );
+        int doorLength = Mathf.Max(1, definition.edgeLength);
 
-        Vector3 gridOrigin =
-            gridManager.transform.position;
-
-        Vector3 localHit =
-            hitPoint -
-            gridOrigin;
-
-        float cellSize =
-            gridManager.CellSize;
+        Vector3 gridOrigin = gridManager.transform.position;
+        Vector3 localHit = hitPoint - gridOrigin;
+        float cellSize = gridManager.CellSize;
 
         float hitCoordinate;
-
         int wallStartCoordinate;
 
-        if (wallEdge.direction ==
-            EdgeDirection.Horizontal)
+        if (wallEdge.direction == EdgeDirection.Horizontal)
         {
-            hitCoordinate =
-                localHit.x / cellSize;
-
-            wallStartCoordinate =
-                wallEdge.cell.x;
+            hitCoordinate = localHit.x / cellSize;
+            wallStartCoordinate = wallEdge.cell.x;
         }
         else
         {
-            hitCoordinate =
-                localHit.z / cellSize;
-
-            wallStartCoordinate =
-                wallEdge.cell.y;
+            hitCoordinate = localHit.z / cellSize;
+            wallStartCoordinate = wallEdge.cell.y;
         }
 
-        float relativeHit =
-            hitCoordinate -
-            wallStartCoordinate;
+        float relativeHit = hitCoordinate - wallStartCoordinate;
+        float desiredStart = relativeHit - doorLength * 0.5f;
 
-        float desiredStart =
-            relativeHit -
-            (doorLength * 0.5f);
-
-        int offset =
-            Mathf.RoundToInt(
-                desiredStart
-            );
+        int offset = Mathf.RoundToInt(desiredStart);
 
         if (doorLength == 1)
-        {
-            offset =
-                Mathf.FloorToInt(
-                    relativeHit
-                );
-        }
+            offset = Mathf.FloorToInt(relativeHit);
 
-        int startCoordinate =
-            wallStartCoordinate +
-            offset;
+        int startCoordinate = wallStartCoordinate + offset;
+        Vector2Int startCell = wallEdge.cell;
 
-        Vector2Int startCell =
-            wallEdge.cell;
-
-        if (wallEdge.direction ==
-            EdgeDirection.Horizontal)
-        {
-            startCell.x =
-                startCoordinate;
-        }
+        if (wallEdge.direction == EdgeDirection.Horizontal)
+            startCell.x = startCoordinate;
         else
-        {
-            startCell.y =
-                startCoordinate;
-        }
+            startCell.y = startCoordinate;
 
-        return new GridEdge(
-            startCell,
-            wallEdge.direction
-        );
+        return new GridEdge(startCell, wallEdge.direction);
     }
 
     private void BuildPreviewEdgeList()
@@ -264,34 +173,16 @@ public class DoorPlacementHandler : IPlacementHandler
         if (definition == null)
             return;
 
-        int length =
-            Mathf.Max(
-                1,
-                definition.edgeLength
-            );
+        int length = Mathf.Max(1, definition.edgeLength);
 
         for (int i = 0; i < length; i++)
         {
-            GridEdge edge =
-                currentEdge;
+            GridEdge edge = currentEdge;
 
-            if (currentEdge.direction ==
-                EdgeDirection.Horizontal)
-            {
-                edge.cell +=
-                    new Vector2Int(
-                        i,
-                        0
-                    );
-            }
+            if (currentEdge.direction == EdgeDirection.Horizontal)
+                edge.cell += new Vector2Int(i, 0);
             else
-            {
-                edge.cell +=
-                    new Vector2Int(
-                        0,
-                        i
-                    );
-            }
+                edge.cell += new Vector2Int(0, i);
 
             previewEdges.Add(edge);
         }
@@ -302,17 +193,8 @@ public class DoorPlacementHandler : IPlacementHandler
         if (previewObject == null)
             return;
 
-        ApplyDoorTransform(
-            previewObject,
-            currentEdge
-        );
-
-        bool valid =
-            AreAllPreviewEdgesValid();
-
-        placementPreview.SetValid(
-            valid
-        );
+        ApplyDoorTransform(previewObject, currentEdge);
+        placementPreview.SetValid(AreAllPreviewEdgesValid());
     }
 
     private void ApplyDoorTransform(
@@ -322,87 +204,49 @@ public class DoorPlacementHandler : IPlacementHandler
         if (target == null)
             return;
 
-        Vector3 position =
-            gridManager.GridToWorld(
-                firstEdge.cell
-            );
-
-        float prefabHeight =
-            GetPrefabHeight(target);
-
-        position.y =
-            prefabHeight * 0.5f;
+        Vector3 position = gridManager.GridToWorld(firstEdge.cell);
+        float prefabHeight = GetPrefabHeight(target);
+        position.y = prefabHeight * 0.5f;
 
         float halfLengthOffset =
-            (Mathf.Max(
-                1,
-                definition.edgeLength
-            ) - 1) *
-            gridManager.CellSize *
-            0.5f;
+            (Mathf.Max(1, definition.edgeLength) - 1) *
+            gridManager.CellSize * 0.5f;
 
-        if (firstEdge.direction ==
-            EdgeDirection.Horizontal)
+        if (firstEdge.direction == EdgeDirection.Horizontal)
         {
             position += new Vector3(
-                gridManager.CellSize * 0.5f +
-                halfLengthOffset,
+                gridManager.CellSize * 0.5f + halfLengthOffset,
                 0f,
-                0f
-            );
+                0f);
 
-            target.transform.position =
-                position;
-
-            target.transform.rotation =
-                Quaternion.identity;
+            target.transform.position = position;
+            target.transform.rotation = Quaternion.identity;
         }
         else
         {
             position += new Vector3(
                 0f,
                 0f,
-                gridManager.CellSize * 0.5f +
-                halfLengthOffset
-            );
+                gridManager.CellSize * 0.5f + halfLengthOffset);
 
-            target.transform.position =
-                position;
-
+            target.transform.position = position;
             target.transform.rotation =
-                Quaternion.Euler(
-                    0f,
-                    90f,
-                    0f
-                );
+                Quaternion.Euler(0f, 90f, 0f);
         }
     }
 
-    private float GetPrefabHeight(
-        GameObject target)
+    private float GetPrefabHeight(GameObject target)
     {
         Renderer[] renderers =
-            target.GetComponentsInChildren<Renderer>(
-                true
-            );
+            target.GetComponentsInChildren<Renderer>(true);
 
         if (renderers.Length == 0)
-        {
             return 0f;
-        }
 
-        Bounds bounds =
-            renderers[0].bounds;
+        Bounds bounds = renderers[0].bounds;
 
-        for (
-            int i = 1;
-            i < renderers.Length;
-            i++)
-        {
-            bounds.Encapsulate(
-                renderers[i].bounds
-            );
-        }
+        for (int i = 1; i < renderers.Length; i++)
+            bounds.Encapsulate(renderers[i].bounds);
 
         return bounds.size.y;
     }
@@ -412,9 +256,7 @@ public class DoorPlacementHandler : IPlacementHandler
         if (previewEdges.Count == 0)
             return false;
 
-        foreach (
-            GridEdge edge
-            in previewEdges)
+        foreach (GridEdge edge in previewEdges)
         {
             if (!IsEdgeValid(edge))
                 return false;
@@ -423,42 +265,24 @@ public class DoorPlacementHandler : IPlacementHandler
         return true;
     }
 
-    private bool IsEdgeValid(
-        GridEdge edge)
+    private bool IsEdgeValid(GridEdge edge)
     {
-        if (!IsEdgeInsideGrid(edge))
+        if (!IsEdgeInsideGrid(edge) || edgeOccupancy == null)
             return false;
 
-        if (edgeOccupancy == null)
+        if (!edgeOccupancy.TryGetOccupant(edge, out GameObject occupant))
             return false;
-
-        if (!edgeOccupancy.TryGetOccupant(
-                edge,
-                out GameObject occupant))
-        {
-            return false;
-        }
 
         if (occupant == null)
             return false;
 
-        PlacedBuilding building =
-            occupant.GetComponent<PlacedBuilding>();
+        PlacedBuilding building = occupant.GetComponent<PlacedBuilding>();
 
-        if (building == null)
+        if (building == null || building.Definition == null)
             return false;
 
-        if (building.Definition == null)
-            return false;
-
-        if (building.Definition.placementType !=
-            PlacementType.Edge)
-        {
-            return false;
-        }
-
-        if (building.Definition.category !=
-            BuildCategory.Wall)
+        if (building.Definition.placementType != PlacementType.Edge ||
+            building.Definition.category != BuildCategory.Wall)
         {
             return false;
         }
@@ -466,60 +290,39 @@ public class DoorPlacementHandler : IPlacementHandler
         return HasRequiredFoundation(edge);
     }
 
-    private bool HasRequiredFoundation(
-        GridEdge edge)
+    private bool HasRequiredFoundation(GridEdge edge)
     {
-        if (definition.requiredSurface ==
-            BuildSurface.Any)
-        {
+        if (definition.requiredSurface == BuildSurface.Any)
             return true;
-        }
 
         if (gridSurface == null)
             return false;
 
-        Vector2Int cell =
-            edge.cell;
+        Vector2Int cell = edge.cell;
 
-        if (edge.direction ==
-            EdgeDirection.Horizontal)
+        if (edge.direction == EdgeDirection.Horizontal)
         {
-            Vector2Int firstCell =
-                cell;
-
-            Vector2Int secondCell =
-                cell +
-                Vector2Int.down;
+            Vector2Int firstCell = cell;
+            Vector2Int secondCell = cell + Vector2Int.down;
 
             return
-                gridSurface.GetSurface(firstCell) ==
-                    definition.requiredSurface ||
-                gridSurface.GetSurface(secondCell) ==
-                    definition.requiredSurface;
+                gridSurface.GetSurface(firstCell) == definition.requiredSurface ||
+                gridSurface.GetSurface(secondCell) == definition.requiredSurface;
         }
 
-        Vector2Int firstSide =
-            cell;
-
-        Vector2Int secondSide =
-            cell +
-            Vector2Int.left;
+        Vector2Int firstSide = cell;
+        Vector2Int secondSide = cell + Vector2Int.left;
 
         return
-            gridSurface.GetSurface(firstSide) ==
-                definition.requiredSurface ||
-            gridSurface.GetSurface(secondSide) ==
-                definition.requiredSurface;
+            gridSurface.GetSurface(firstSide) == definition.requiredSurface ||
+            gridSurface.GetSurface(secondSide) == definition.requiredSurface;
     }
 
-    private bool IsEdgeInsideGrid(
-        GridEdge edge)
+    private bool IsEdgeInsideGrid(GridEdge edge)
     {
-        Vector2Int cell =
-            edge.cell;
+        Vector2Int cell = edge.cell;
 
-        if (edge.direction ==
-            EdgeDirection.Horizontal)
+        if (edge.direction == EdgeDirection.Horizontal)
         {
             return
                 cell.x >= 0 &&
@@ -540,21 +343,19 @@ public class DoorPlacementHandler : IPlacementHandler
         // Door orientation comes from the wall edge.
     }
 
-
     public void TryPlace()
     {
         if (!AreAllPreviewEdgesValid())
         {
             Debug.Log(
-                "Cannot place door: " +
-                "all required wall edges must be valid."
-            );
-
+                "Cannot place door: all required wall edges must be valid.");
             return;
         }
 
         List<GameObject> wallsToRemove = new List<GameObject>();
 
+        // Capture the walls and their foundation owners before changing
+        // occupancy or destroying any wall objects.
         foreach (GridEdge edge in previewEdges)
         {
             GameObject wall = edgeOccupancy.GetOccupant(edge);
@@ -562,9 +363,7 @@ public class DoorPlacementHandler : IPlacementHandler
             if (wall == null)
             {
                 Debug.LogError(
-                    "Door placement failed: a required wall disappeared."
-                );
-
+                    "Door placement failed: a required wall disappeared.");
                 return;
             }
 
@@ -572,24 +371,27 @@ public class DoorPlacementHandler : IPlacementHandler
                 wallsToRemove.Add(wall);
         }
 
-        // Charge before removing any existing wall.
+        List<FoundationBoundaryOwnership> ownersToInherit =
+            new List<FoundationBoundaryOwnership>();
+
+        foreach (GameObject wall in wallsToRemove)
+        {
+            foreach (FoundationBoundaryOwnership owner
+                     in FoundationBoundaryOwnership.GetOwners(wall))
+            {
+                if (owner != null && !ownersToInherit.Contains(owner))
+                    ownersToInherit.Add(owner);
+            }
+        }
+
+        // Charge before changing or removing any existing wall.
         if (!ConstructionCostUtility.TryPay(
                 definition, 1, "Door construction"))
         {
             return;
         }
 
-        foreach (GridEdge edge in previewEdges)
-            edgeOccupancy.Release(edge);
-
-        foreach (GameObject wall in wallsToRemove)
-        {
-            if (wall != null)
-                Object.Destroy(wall);
-        }
-
         GameObject placedDoor = Object.Instantiate(definition.prefab);
-
         ApplyDoorTransform(placedDoor, currentEdge);
 
         PlacedBuilding placedBuilding =
@@ -599,18 +401,31 @@ public class DoorPlacementHandler : IPlacementHandler
             definition,
             currentEdge.cell,
             definition.edgeLength,
-            currentEdge.direction
-        );
+            currentEdge.direction);
 
+        // Register the door with each foundation that owned at least
+        // one replaced wall. Do this before destroying those walls.
+        foreach (FoundationBoundaryOwnership owner in ownersToInherit)
+            owner.RegisterBoundaryObject(placedDoor);
+
+        // Release the replaced wall segments from edge occupancy.
+        foreach (GridEdge edge in previewEdges)
+            edgeOccupancy.Release(edge);
+
+        foreach (GameObject wall in wallsToRemove)
+        {
+            if (wall != null)
+                Object.Destroy(wall);
+        }
+
+        // The door now owns all edges across its configured length.
         foreach (GridEdge edge in previewEdges)
             edgeOccupancy.Occupy(edge, placedDoor);
 
         Debug.Log(
             $"Placed door: {definition.displayName} " +
-            $"({previewEdges.Count} edge(s))."
-        );
+            $"({previewEdges.Count} edge(s)).");
     }
-
 
     public void Cancel()
     {
@@ -622,11 +437,9 @@ public class DoorPlacementHandler : IPlacementHandler
         previewObject = null;
         placementPreview = null;
 
-        currentEdge =
-            new GridEdge(
-                Vector2Int.zero,
-                EdgeDirection.Horizontal
-            );
+        currentEdge = new GridEdge(
+            Vector2Int.zero,
+            EdgeDirection.Horizontal);
 
         previewEdges.Clear();
     }

@@ -851,6 +851,7 @@ public class BuildingSelectionController : MonoBehaviour
 
 
 
+
     private void DeleteBuilding(GameObject building)
     {
         if (building == null)
@@ -859,17 +860,82 @@ public class BuildingSelectionController : MonoBehaviour
         PlacedBuilding placedBuilding =
             building.GetComponent<PlacedBuilding>();
 
-        string displayName = building.name;
+        string displayName =
+            placedBuilding != null && placedBuilding.Definition != null
+                ? placedBuilding.Definition.displayName
+                : building.name;
 
-        if (placedBuilding != null &&
-            placedBuilding.Definition != null)
+        bool isFoundation =
+            placedBuilding != null &&
+            placedBuilding.Definition != null &&
+            placedBuilding.Definition.placementType == PlacementType.Area;
+
+        // In delete mode, remove only the foundation cells inside
+        // the current selection rectangle.
+        if (isFoundation && deleteSelectionMode && gridSurface != null)
         {
-            displayName = placedBuilding.Definition.displayName;
+            GetSelectionGridArea(
+                out Vector2Int selectionOrigin,
+                out int selectionWidth,
+                out int selectionDepth
+            );
+
+            int removedCells = 0;
+
+            for (int x = 0; x < selectionWidth; x++)
+            {
+                for (int z = 0; z < selectionDepth; z++)
+                {
+                    Vector2Int cell =
+                        selectionOrigin + new Vector2Int(x, z);
+
+                    // Do not remove cells outside this foundation's
+                    // remaining footprint or owned by another object.
+                    if (!gridSurface.IsSurfaceOwner(cell, building))
+                        continue;
+
+                    if (!gridSurface.RemoveSurfaceCell(cell, building))
+                        continue;
+
+                    if (foundationTilemapController != null)
+                    {
+                        foundationTilemapController.RemoveFoundationTile(cell);
+                    }
+
+                    removedCells++;
+                }
+            }
+
+            if (removedCells == 0)
+                return;
+
+            Debug.Log(
+                $"Removed {removedCells} foundation tile(s) from {displayName}."
+            );
+
+            // Keep the foundation GameObject and all its walls while
+            // any of its foundation cells remain.
+            if (gridSurface.HasSurfaceCellsOwnedBy(building))
+                return;
+
+            // The last foundation cell was removed. Clean up the
+            // remaining foundation object.
+            if (gridOccupancy != null)
+                gridOccupancy.ReleaseBuilding(building);
+
+            if (edgeOccupancy != null)
+                edgeOccupancy.ReleaseBuilding(building);
+
+            gridSurface.ReleaseObstacleOwner(building);
+
+            Debug.Log($"Deleted remaining foundation object: {displayName}");
+            Destroy(building);
+            return;
         }
 
-        // Cancel flights before destroying the gate.
-        AircraftGate aircraftGate =
-            building.GetComponent<AircraftGate>();
+        // Preserve the existing behavior for normal buildings and walls:
+        // cancel flights assigned to a gate before deleting that gate.
+        AircraftGate aircraftGate = building.GetComponent<AircraftGate>();
 
         if (aircraftGate != null)
         {
@@ -911,6 +977,7 @@ public class BuildingSelectionController : MonoBehaviour
         Debug.Log($"Deleted building: {displayName}");
         Destroy(building);
     }
+
 
 
 

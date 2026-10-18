@@ -1,6 +1,7 @@
 
 using System;
 using System.Collections.Generic;
+using UnityEngine;
 
 [Serializable]
 public class AirportSaveData
@@ -74,6 +75,18 @@ public class PlacedBuildingSaveData
     public float scaleX = 1f;
     public float scaleY = 1f;
     public float scaleZ = 1f;
+
+    // Present only on foundations and boundary objects that use
+    // FoundationBoundaryOwnership.
+    public string boundaryOwnershipId = "";
+
+    // On a boundary object, these are the IDs of its owning foundations.
+    // On a foundation, this list is normally empty.
+    public List<string> boundaryOwnerIds = new List<string>();
+    public bool hasCustomFoundationFootprint;
+    public List<Vector2Int> foundationCells = new List<Vector2Int>();
+
+    
 }
 
 [Serializable]

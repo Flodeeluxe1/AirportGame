@@ -1,4 +1,5 @@
 
+using System.Collections.Generic;
 using UnityEngine;
 
 public class AirportWorldResetController : MonoBehaviour
@@ -30,7 +31,6 @@ public class AirportWorldResetController : MonoBehaviour
     [Header("Flight Schedule")]
     [SerializeField] private FlightManagementUIController flightManagementUIController;
 
-
     [ContextMenu("TEST - Reset Airport Layout")]
     private void TestResetAirportLayout()
     {
@@ -55,7 +55,6 @@ public class AirportWorldResetController : MonoBehaviour
         TryRestoreBuildingsAndFoundations(1);
     }
 
-
     /// <summary>
     /// Removes the current airport layout.
     /// Does not reset the game clock, economy, active flight schedule,
@@ -71,8 +70,7 @@ public class AirportWorldResetController : MonoBehaviour
         PlacedBuilding[] placedBuildings =
             FindObjectsByType<PlacedBuilding>(
                 FindObjectsInactive.Include,
-                FindObjectsSortMode.None
-            );
+                FindObjectsSortMode.None);
 
         foreach (PlacedBuilding placedBuilding in placedBuildings)
         {
@@ -93,12 +91,10 @@ public class AirportWorldResetController : MonoBehaviour
         foundationTilemapController.RefreshFromGridSurface();
 
         Debug.Log(
-            "AirportWorldResetController: Airport layout reset."
-        );
+            "AirportWorldResetController: Airport layout reset.");
 
         return true;
     }
-
 
     /// <summary>
     /// Starts a fresh airport with an empty layout, cleared active
@@ -116,27 +112,21 @@ public class AirportWorldResetController : MonoBehaviour
         if (!EnsureEconomyManager())
             return false;
 
-        // Check required controllers before changing the current layout.
         if (!ResetAirportLayout())
             return false;
 
         flightManagementUIController.ClearActiveSchedule();
         gameTimeManager.ResetToStartTime();
-
-        // Starting money is granted only when starting a new game.
-        // Loading a saved airport never calls this method.
         economyManager.InitializeNewGame();
 
         Debug.Log(
             "AirportWorldResetController: New game initialized. " +
             "Airport layout and active flight schedule cleared; " +
             "game clock reset; starting balance granted. " +
-            "Existing saves were preserved."
-        );
+            "Existing saves were preserved.");
 
         return true;
     }
-
 
     private bool ValidateReferences()
     {
@@ -153,15 +143,13 @@ public class AirportWorldResetController : MonoBehaviour
         {
             Debug.LogError(
                 "AirportWorldResetController: One or more required " +
-                "references are missing. Assign all references in the Inspector."
-            );
+                "references are missing. Assign all references in the Inspector.");
 
             return false;
         }
 
         return true;
     }
-
 
     private bool EnsureFlightManagementController()
     {
@@ -176,15 +164,13 @@ public class AirportWorldResetController : MonoBehaviour
             Debug.LogError(
                 "AirportWorldResetController: FlightManagementUIController " +
                 "was not found. Assign it in the Inspector before saving, " +
-                "loading, or starting a new game."
-            );
+                "loading, or starting a new game.");
 
             return false;
         }
 
         return true;
     }
-
 
     private bool EnsureEconomyManager()
     {
@@ -199,8 +185,7 @@ public class AirportWorldResetController : MonoBehaviour
             Debug.LogError(
                 "AirportWorldResetController: AirportEconomyManager " +
                 "was not found. Assign it in the Inspector before " +
-                "starting a new game, saving, or loading an airport."
-            );
+                "starting a new game, saving, or loading an airport.");
 
             return false;
         }
@@ -208,11 +193,10 @@ public class AirportWorldResetController : MonoBehaviour
         return true;
     }
 
-
     /// <summary>
     /// Saves the airport layout, roads, taxiways, game time,
-    /// simulation speed, economy balance, placed-object transforms,
-    /// and flight schedule.
+    /// simulation speed, economy balance, object transforms,
+    /// boundary ownership, and flight schedule.
     /// </summary>
     public bool TrySaveSlot(int slot, string saveName)
     {
@@ -233,11 +217,8 @@ public class AirportWorldResetController : MonoBehaviour
 
             gameTimeSeconds = gameTimeManager.GetGameTimeSeconds(),
             gameSpeedMultiplier = gameTimeManager.CurrentSpeedMultiplier,
-
-            // Save the balance belonging to this airport.
             balance = economyManager.Balance,
 
-            // Capture a snapshot of the active schedule at save time.
             flightSchedule =
                 flightManagementUIController.GetScheduleForAirportSave()
         };
@@ -245,8 +226,7 @@ public class AirportWorldResetController : MonoBehaviour
         PlacedBuilding[] buildings =
             FindObjectsByType<PlacedBuilding>(
                 FindObjectsInactive.Include,
-                FindObjectsSortMode.None
-            );
+                FindObjectsSortMode.None);
 
         foreach (PlacedBuilding building in buildings)
         {
@@ -259,13 +239,13 @@ public class AirportWorldResetController : MonoBehaviour
             {
                 Debug.LogError(
                     $"Cannot save '{building.name}': its " +
-                    "BuildableDefinition has no ID."
-                );
+                    "BuildableDefinition has no ID.");
 
                 return false;
             }
 
-            data.placedBuildings.Add(new PlacedBuildingSaveData
+
+            PlacedBuildingSaveData savedBuilding = new PlacedBuildingSaveData
             {
                 definitionId = definitionId,
 
@@ -293,7 +273,43 @@ public class AirportWorldResetController : MonoBehaviour
                 scaleX = building.transform.localScale.x,
                 scaleY = building.transform.localScale.y,
                 scaleZ = building.transform.localScale.z
-            });
+            };
+
+
+            FoundationBoundaryOwnership boundaryOwnership =
+                building.GetComponent<FoundationBoundaryOwnership>();
+
+            if (boundaryOwnership != null)
+            {
+                boundaryOwnership.Initialize(edgeOccupancy);
+
+                savedBuilding.boundaryOwnershipId =
+                    boundaryOwnership.OwnershipId;
+
+                savedBuilding.boundaryOwnerIds =
+                    new List<string>(boundaryOwnership.SavedOwnerIds);
+            }
+
+
+            if (building.Definition.placementType == PlacementType.Area)
+            {
+                savedBuilding.hasCustomFoundationFootprint = true;
+
+                for (int x = 0; x < building.Width; x++)
+                {
+                    for (int z = 0; z < building.Depth; z++)
+                    {
+                        Vector2Int cell =
+                            building.Origin + new Vector2Int(x, z);
+
+                        if (gridSurface.IsSurfaceOwner(cell, building.gameObject))
+                            savedBuilding.foundationCells.Add(cell);
+                    }
+                }
+            }
+
+            data.placedBuildings.Add(savedBuilding);
+
         }
 
         data.roadCells = roadNetwork.GetSaveData();
@@ -308,8 +324,7 @@ public class AirportWorldResetController : MonoBehaviour
         {
             Debug.LogError(
                 $"AirportWorldResetController: Save failed for slot " +
-                $"{slot}. {error}"
-            );
+                $"{slot}. {error}");
 
             return false;
         }
@@ -320,12 +335,10 @@ public class AirportWorldResetController : MonoBehaviour
             $"Road cells: {data.roadCells.Count}, " +
             $"Taxiway cells: {data.taxiwayCells.Count}, " +
             $"Scheduled flights: {data.flightSchedule.Count}, " +
-            $"Balance: ${data.balance:N0}."
-        );
+            $"Balance: ${data.balance:N0}.");
 
         return true;
     }
-
 
     /// <summary>
     /// Validates a save slot without changing the current airport.
@@ -344,8 +357,7 @@ public class AirportWorldResetController : MonoBehaviour
                 out string error))
         {
             Debug.LogError(
-                $"Could not read save slot {slot}: {error}"
-            );
+                $"Could not read save slot {slot}: {error}");
 
             return false;
         }
@@ -362,16 +374,14 @@ public class AirportWorldResetController : MonoBehaviour
             $"Taxiway cells: {data.taxiwayCells.Count}, " +
             $"Scheduled flights: {data.flightSchedule.Count}, " +
             $"Balance: ${data.balance:N0}. " +
-            "The airport has not been changed."
-        );
+            "The airport has not been changed.");
 
         return true;
     }
 
-
     /// <summary>
     /// Replaces the current airport layout and restores its buildings,
-    /// foundations, roads, taxiways, game time, speed, economy balance,
+    /// foundations, boundary ownership, roads, taxiways, time, economy,
     /// and flight schedule.
     /// </summary>
     public bool TryRestoreBuildingsAndFoundations(int slot)
@@ -388,7 +398,6 @@ public class AirportWorldResetController : MonoBehaviour
         if (!EnsureEconomyManager())
             return false;
 
-        // Load and validate the save before clearing the current airport.
         if (!AirportSaveFileStore.TryLoad(
                 slot,
                 out AirportSaveData data,
@@ -396,8 +405,7 @@ public class AirportWorldResetController : MonoBehaviour
         {
             Debug.LogError(
                 $"Could not load slot {slot}: {error}. " +
-                "The current airport has not been changed."
-            );
+                "The current airport has not been changed.");
 
             return false;
         }
@@ -407,7 +415,6 @@ public class AirportWorldResetController : MonoBehaviour
         if (!ValidateSavedDefinitions(data, true))
             return false;
 
-        // Check taxiway tile mappings before clearing the current airport.
         foreach (TaxiwayCellSaveData savedTaxiway in data.taxiwayCells)
         {
             BuildableDefinition definition =
@@ -419,14 +426,12 @@ public class AirportWorldResetController : MonoBehaviour
                 Debug.LogError(
                     $"Cannot restore taxiway definition " +
                     $"'{savedTaxiway.definitionId}': no taxiway tile mapping " +
-                    "was found. The current airport has not been changed."
-                );
+                    "was found. The current airport has not been changed.");
 
                 return false;
             }
         }
 
-        // Replace the current layout rather than merging with it.
         if (!ResetAirportLayout())
             return false;
 
@@ -437,10 +442,10 @@ public class AirportWorldResetController : MonoBehaviour
         int restoredTaxiwayCells = 0;
         int restoredCenterlineCells = 0;
 
-        // ---------------------------------------------------------
-        // 1. Restore placed objects, foundations, and edge ownership.
-        // ---------------------------------------------------------
+        List<FoundationBoundaryOwnership> restoredOwnershipComponents =
+            new List<FoundationBoundaryOwnership>();
 
+        // 1. Restore placed objects and logical grid/edge occupancy.
         foreach (PlacedBuildingSaveData saved in data.placedBuildings)
         {
             BuildableDefinition definition =
@@ -449,8 +454,7 @@ public class AirportWorldResetController : MonoBehaviour
             if (definition == null || definition.prefab == null)
             {
                 Debug.LogError(
-                    $"Cannot restore definition '{saved.definitionId}'."
-                );
+                    $"Cannot restore definition '{saved.definitionId}'.");
 
                 return false;
             }
@@ -458,27 +462,23 @@ public class AirportWorldResetController : MonoBehaviour
             Vector3 position = new Vector3(
                 saved.positionX,
                 saved.positionY,
-                saved.positionZ
-            );
+                saved.positionZ);
 
             Quaternion rotation = new Quaternion(
                 saved.rotationX,
                 saved.rotationY,
                 saved.rotationZ,
-                saved.rotationW
-            );
+                saved.rotationW);
 
             GameObject placedObject = Instantiate(
                 definition.prefab,
                 position,
-                rotation
-            );
+                rotation);
 
             placedObject.transform.localScale = new Vector3(
                 saved.scaleX,
                 saved.scaleY,
-                saved.scaleZ
-            );
+                saved.scaleZ);
 
             PlacedBuilding placedBuilding =
                 placedObject.GetComponent<PlacedBuilding>();
@@ -488,8 +488,7 @@ public class AirportWorldResetController : MonoBehaviour
 
             Vector2Int origin = new Vector2Int(
                 saved.originX,
-                saved.originZ
-            );
+                saved.originZ);
 
             bool isFoundation =
                 definition.placementType == PlacementType.Area;
@@ -506,8 +505,7 @@ public class AirportWorldResetController : MonoBehaviour
                     definition,
                     origin,
                     Mathf.Max(1, saved.edgeLength),
-                    edgeDirection
-                );
+                    edgeDirection);
             }
             else
             {
@@ -516,24 +514,67 @@ public class AirportWorldResetController : MonoBehaviour
                     origin,
                     Mathf.Max(1, saved.width),
                     Mathf.Max(1, saved.depth),
-                    saved.rotation
-                );
+                    saved.rotation);
             }
+
+            // Recreate the ownership component when the saved object
+            // had one. Empty fields on older saves remain compatible.
+            if (!string.IsNullOrWhiteSpace(saved.boundaryOwnershipId) ||
+                (saved.boundaryOwnerIds != null &&
+                 saved.boundaryOwnerIds.Count > 0))
+            {
+                FoundationBoundaryOwnership ownership =
+                    placedObject.GetComponent<FoundationBoundaryOwnership>();
+
+                if (ownership == null)
+                {
+                    ownership =
+                        placedObject.AddComponent<FoundationBoundaryOwnership>();
+                }
+
+                ownership.Initialize(edgeOccupancy);
+                ownership.RestoreOwnershipData(
+                    saved.boundaryOwnershipId,
+                    saved.boundaryOwnerIds);
+
+                restoredOwnershipComponents.Add(ownership);
+            }
+
 
             if (isFoundation)
             {
                 DisableFoundationVisuals(placedObject);
 
-                gridSurface.SetSurfaceArea(
-                    origin,
-                    Mathf.Max(1, saved.width),
-                    Mathf.Max(1, saved.depth),
-                    BuildSurface.Foundation,
-                    placedObject
-                );
+                if (saved.hasCustomFoundationFootprint)
+                {
+                    // New saves store the actual remaining cells.
+                    foreach (Vector2Int cell in saved.foundationCells)
+                    {
+                        gridSurface.SetSurfaceArea(
+                            cell,
+                            1,
+                            1,
+                            BuildSurface.Foundation,
+                            placedObject
+                        );
+                    }
+                }
+                else
+                {
+                    // Backward compatibility for saves created before
+                    // individual foundation cells were stored.
+                    gridSurface.SetSurfaceArea(
+                        origin,
+                        Mathf.Max(1, saved.width),
+                        Mathf.Max(1, saved.depth),
+                        BuildSurface.Foundation,
+                        placedObject
+                    );
+                }
 
                 restoredFoundations++;
             }
+
             else if (isEdgeObject)
             {
                 // Wall-mounted fixtures reference an edge but do not own it.
@@ -552,8 +593,7 @@ public class AirportWorldResetController : MonoBehaviour
 
                         edgeOccupancy.Occupy(
                             new GridEdge(edgeCell, edgeDirection),
-                            placedObject
-                        );
+                            placedObject);
                     }
 
                     restoredEdges++;
@@ -565,23 +605,23 @@ public class AirportWorldResetController : MonoBehaviour
                     origin,
                     Mathf.Max(1, saved.width),
                     Mathf.Max(1, saved.depth),
-                    placedObject
-                );
+                    placedObject);
             }
 
             restoredBuildings++;
         }
 
-        // ---------------------------------------------------------
-        // 2. Restore roads and their visible tiles.
-        // ---------------------------------------------------------
+        // Resolve relationships only after every saved object has been
+        // instantiated, regardless of the order in the save file.
+        FoundationBoundaryOwnership.ResolveSavedOwnership(
+            restoredOwnershipComponents);
 
+        // 2. Restore roads and their visible tiles.
         foreach (RoadCellSaveData savedRoad in data.roadCells)
         {
             Vector2Int cell = new Vector2Int(
                 savedRoad.x,
-                savedRoad.z
-            );
+                savedRoad.z);
 
             RoadDirection direction;
 
@@ -609,8 +649,7 @@ public class AirportWorldResetController : MonoBehaviour
             {
                 Debug.LogError(
                     $"Invalid saved road direction at cell {cell}: " +
-                    $"({savedRoad.directionX}, {savedRoad.directionZ})."
-                );
+                    $"({savedRoad.directionX}, {savedRoad.directionZ}).");
 
                 return false;
             }
@@ -621,17 +660,13 @@ public class AirportWorldResetController : MonoBehaviour
             restoredRoadCells++;
         }
 
-        // ---------------------------------------------------------
         // 3. Restore taxiway definitions, network cells, tiles,
-        //    and centerline membership.
-        // ---------------------------------------------------------
-
+        // and centerline membership.
         foreach (TaxiwayCellSaveData savedTaxiway in data.taxiwayCells)
         {
             Vector2Int cell = new Vector2Int(
                 savedTaxiway.x,
-                savedTaxiway.z
-            );
+                savedTaxiway.z);
 
             BuildableDefinition definition =
                 FindDefinition(savedTaxiway.definitionId);
@@ -640,8 +675,7 @@ public class AirportWorldResetController : MonoBehaviour
             {
                 Debug.LogError(
                     $"Cannot restore taxiway definition " +
-                    $"'{savedTaxiway.definitionId}'."
-                );
+                    $"'{savedTaxiway.definitionId}'.");
 
                 return false;
             }
@@ -652,8 +686,7 @@ public class AirportWorldResetController : MonoBehaviour
             if (tile == null)
             {
                 Debug.LogError(
-                    $"No taxiway tile mapping for '{savedTaxiway.definitionId}'."
-                );
+                    $"No taxiway tile mapping for '{savedTaxiway.definitionId}'.");
 
                 return false;
             }
@@ -670,15 +703,12 @@ public class AirportWorldResetController : MonoBehaviour
             restoredTaxiwayCells++;
         }
 
-        // Rebuild foundation visuals from the restored logical surfaces.
         foundationTilemapController.RefreshFromGridSurface();
 
-        // Restore saved game time, speed, and economy balance.
-        // Do not grant new-game starting money when loading a save.
+        // Restore saved game time, speed, and balance.
         gameTimeManager.SetGameTimeSeconds(data.gameTimeSeconds);
         gameTimeManager.SetSpeed(
-            Mathf.RoundToInt(data.gameSpeedMultiplier)
-        );
+            Mathf.RoundToInt(data.gameSpeedMultiplier));
 
         economyManager.RestoreBalanceFromSave(data.balance);
 
@@ -686,16 +716,14 @@ public class AirportWorldResetController : MonoBehaviour
         // replace the active schedule with this slot's saved schedule.
         bool scheduleRestored =
             flightManagementUIController.LoadScheduleForAirportSave(
-                data.flightSchedule
-            );
+                data.flightSchedule);
 
         if (!scheduleRestored)
         {
             Debug.LogError(
                 $"AirportWorldResetController: Airport slot {slot} was " +
                 "restored, but its flight schedule could not be loaded. " +
-                "The active schedule may be empty."
-            );
+                "The active schedule may be empty.");
         }
 
         Debug.Log(
@@ -709,12 +737,10 @@ public class AirportWorldResetController : MonoBehaviour
             $"scheduled flights saved: {data.flightSchedule.Count}. " +
             $"Balance: ${economyManager.Balance:N0}. " +
             $"Game time: {gameTimeManager.FormattedTime}, " +
-            $"speed: {gameTimeManager.CurrentSpeedMultiplier}x."
-        );
+            $"speed: {gameTimeManager.CurrentSpeedMultiplier}x.");
 
         return scheduleRestored;
     }
-
 
     private bool ValidateBuildCatalog()
     {
@@ -722,15 +748,13 @@ public class AirportWorldResetController : MonoBehaviour
         {
             Debug.LogError(
                 "AirportWorldResetController: BuildCatalog is missing " +
-                "or has no buildables assigned."
-            );
+                "or has no buildables assigned.");
 
             return false;
         }
 
         return true;
     }
-
 
     private bool ValidateSavedDefinitions(
         AirportSaveData data,
@@ -745,8 +769,7 @@ public class AirportWorldResetController : MonoBehaviour
             {
                 Debug.LogError(
                     $"Save references missing building definition ID " +
-                    $"'{saved.definitionId}'. The airport has not been changed."
-                );
+                    $"'{saved.definitionId}'. The airport has not been changed.");
 
                 return false;
             }
@@ -754,8 +777,7 @@ public class AirportWorldResetController : MonoBehaviour
             if (definition.prefab == null)
             {
                 Debug.LogError(
-                    $"BuildableDefinition '{saved.definitionId}' has no prefab."
-                );
+                    $"BuildableDefinition '{saved.definitionId}' has no prefab.");
 
                 return false;
             }
@@ -764,8 +786,7 @@ public class AirportWorldResetController : MonoBehaviour
             {
                 Debug.LogError(
                     $"Saved object '{saved.definitionId}' has no saved " +
-                    "world transform. The airport has not been changed."
-                );
+                    "world transform. The airport has not been changed.");
 
                 return false;
             }
@@ -778,8 +799,7 @@ public class AirportWorldResetController : MonoBehaviour
                 Debug.LogError(
                     $"Save references missing taxiway definition ID " +
                     $"'{savedTaxiway.definitionId}'. The airport has not " +
-                    "been changed."
-                );
+                    "been changed.");
 
                 return false;
             }
@@ -787,7 +807,6 @@ public class AirportWorldResetController : MonoBehaviour
 
         return true;
     }
-
 
     private BuildableDefinition FindDefinition(string definitionId)
     {
@@ -807,12 +826,10 @@ public class AirportWorldResetController : MonoBehaviour
         return null;
     }
 
-
     private bool HasDefinition(string definitionId)
     {
         return FindDefinition(definitionId) != null;
     }
-
 
     private void DisableFoundationVisuals(GameObject foundationObject)
     {
