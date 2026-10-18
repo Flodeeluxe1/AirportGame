@@ -31,6 +31,10 @@ public class AirportWorldResetController : MonoBehaviour
     [Header("Flight Schedule")]
     [SerializeField] private FlightManagementUIController flightManagementUIController;
 
+    [Header("Room Assignments")]
+    [SerializeField] private RoomPurposeController roomPurposeController;
+    [SerializeField] private RoomDetectionController roomDetectionController;
+
     [ContextMenu("TEST - Reset Airport Layout")]
     private void TestResetAirportLayout()
     {
@@ -56,14 +60,19 @@ public class AirportWorldResetController : MonoBehaviour
     }
 
     /// <summary>
-    /// Removes the current airport layout.
-    /// Does not reset the game clock, economy, active flight schedule,
-    /// or delete any save files.
+    /// Removes the current airport layout and clears room-purpose
+    /// assignments. Does not reset the game clock, economy, active
+    /// flight schedule, or delete any save files.
     /// </summary>
     public bool ResetAirportLayout()
     {
         if (!ValidateReferences())
             return false;
+
+        ResolveRoomPurposeReferences();
+
+        if (roomPurposeController != null)
+            roomPurposeController.ClearAssignments();
 
         buildController.CancelBuilding();
 
@@ -90,6 +99,9 @@ public class AirportWorldResetController : MonoBehaviour
 
         foundationTilemapController.RefreshFromGridSurface();
 
+        if (roomDetectionController != null)
+            roomDetectionController.RefreshRooms();
+
         Debug.Log(
             "AirportWorldResetController: Airport layout reset.");
 
@@ -98,8 +110,8 @@ public class AirportWorldResetController : MonoBehaviour
 
     /// <summary>
     /// Starts a fresh airport with an empty layout, cleared active
-    /// flight schedule, reset clock, and new-game starting balance.
-    /// Existing airport save slots are left untouched.
+    /// flight schedule and room assignments, reset clock, and new-game
+    /// starting balance. Existing airport save slots remain untouched.
     /// </summary>
     public bool StartNewGame()
     {
@@ -121,8 +133,8 @@ public class AirportWorldResetController : MonoBehaviour
 
         Debug.Log(
             "AirportWorldResetController: New game initialized. " +
-            "Airport layout and active flight schedule cleared; " +
-            "game clock reset; starting balance granted. " +
+            "Airport layout, room assignments, and active flight schedule " +
+            "cleared; game clock reset; starting balance granted. " +
             "Existing saves were preserved.");
 
         return true;
@@ -149,6 +161,21 @@ public class AirportWorldResetController : MonoBehaviour
         }
 
         return true;
+    }
+
+    private void ResolveRoomPurposeReferences()
+    {
+        if (roomPurposeController == null)
+        {
+            roomPurposeController =
+                FindFirstObjectByType<RoomPurposeController>();
+        }
+
+        if (roomDetectionController == null)
+        {
+            roomDetectionController =
+                FindFirstObjectByType<RoomDetectionController>();
+        }
     }
 
     private bool EnsureFlightManagementController()
@@ -196,7 +223,7 @@ public class AirportWorldResetController : MonoBehaviour
     /// <summary>
     /// Saves the airport layout, roads, taxiways, game time,
     /// simulation speed, economy balance, object transforms,
-    /// boundary ownership, and flight schedule.
+    /// boundary ownership, flight schedule, and room-purpose assignments.
     /// </summary>
     public bool TrySaveSlot(int slot, string saveName)
     {
@@ -209,6 +236,8 @@ public class AirportWorldResetController : MonoBehaviour
         if (!EnsureEconomyManager())
             return false;
 
+        ResolveRoomPurposeReferences();
+
         AirportSaveData data = new AirportSaveData
         {
             saveName = string.IsNullOrWhiteSpace(saveName)
@@ -220,7 +249,12 @@ public class AirportWorldResetController : MonoBehaviour
             balance = economyManager.Balance,
 
             flightSchedule =
-                flightManagementUIController.GetScheduleForAirportSave()
+                flightManagementUIController.GetScheduleForAirportSave(),
+
+            roomPurposeAssignments =
+                roomPurposeController != null
+                    ? roomPurposeController.GetAssignmentsForSave()
+                    : new List<RoomPurposeAssignmentSaveData>()
         };
 
         PlacedBuilding[] buildings =
@@ -243,7 +277,6 @@ public class AirportWorldResetController : MonoBehaviour
 
                 return false;
             }
-
 
             PlacedBuildingSaveData savedBuilding = new PlacedBuildingSaveData
             {
@@ -275,7 +308,6 @@ public class AirportWorldResetController : MonoBehaviour
                 scaleZ = building.transform.localScale.z
             };
 
-
             FoundationBoundaryOwnership boundaryOwnership =
                 building.GetComponent<FoundationBoundaryOwnership>();
 
@@ -290,7 +322,6 @@ public class AirportWorldResetController : MonoBehaviour
                     new List<string>(boundaryOwnership.SavedOwnerIds);
             }
 
-
             if (building.Definition.placementType == PlacementType.Area)
             {
                 savedBuilding.hasCustomFoundationFootprint = true;
@@ -302,14 +333,17 @@ public class AirportWorldResetController : MonoBehaviour
                         Vector2Int cell =
                             building.Origin + new Vector2Int(x, z);
 
-                        if (gridSurface.IsSurfaceOwner(cell, building.gameObject))
+                        if (gridSurface.IsSurfaceOwner(
+                                cell,
+                                building.gameObject))
+                        {
                             savedBuilding.foundationCells.Add(cell);
+                        }
                     }
                 }
             }
 
             data.placedBuildings.Add(savedBuilding);
-
         }
 
         data.roadCells = roadNetwork.GetSaveData();
@@ -335,6 +369,7 @@ public class AirportWorldResetController : MonoBehaviour
             $"Road cells: {data.roadCells.Count}, " +
             $"Taxiway cells: {data.taxiwayCells.Count}, " +
             $"Scheduled flights: {data.flightSchedule.Count}, " +
+            $"Room assignments: {data.roomPurposeAssignments.Count}, " +
             $"Balance: ${data.balance:N0}.");
 
         return true;
@@ -373,6 +408,7 @@ public class AirportWorldResetController : MonoBehaviour
             $"Road cells: {data.roadCells.Count}, " +
             $"Taxiway cells: {data.taxiwayCells.Count}, " +
             $"Scheduled flights: {data.flightSchedule.Count}, " +
+            $"Room assignments: {data.roomPurposeAssignments.Count}, " +
             $"Balance: ${data.balance:N0}. " +
             "The airport has not been changed.");
 
@@ -381,8 +417,8 @@ public class AirportWorldResetController : MonoBehaviour
 
     /// <summary>
     /// Replaces the current airport layout and restores its buildings,
-    /// foundations, boundary ownership, roads, taxiways, time, economy,
-    /// and flight schedule.
+    /// foundations, boundary ownership, roads, taxiways, room assignments,
+    /// time, economy, and flight schedule.
     /// </summary>
     public bool TryRestoreBuildingsAndFoundations(int slot)
     {
@@ -517,8 +553,8 @@ public class AirportWorldResetController : MonoBehaviour
                     saved.rotation);
             }
 
-            // Recreate the ownership component when the saved object
-            // had one. Empty fields on older saves remain compatible.
+            // Recreate ownership data when the saved object had it.
+            // Empty fields on older saves remain compatible.
             if (!string.IsNullOrWhiteSpace(saved.boundaryOwnershipId) ||
                 (saved.boundaryOwnerIds != null &&
                  saved.boundaryOwnerIds.Count > 0))
@@ -540,7 +576,6 @@ public class AirportWorldResetController : MonoBehaviour
                 restoredOwnershipComponents.Add(ownership);
             }
 
-
             if (isFoundation)
             {
                 DisableFoundationVisuals(placedObject);
@@ -555,26 +590,22 @@ public class AirportWorldResetController : MonoBehaviour
                             1,
                             1,
                             BuildSurface.Foundation,
-                            placedObject
-                        );
+                            placedObject);
                     }
                 }
                 else
                 {
-                    // Backward compatibility for saves created before
-                    // individual foundation cells were stored.
+                    // Backward compatibility for older saves.
                     gridSurface.SetSurfaceArea(
                         origin,
                         Mathf.Max(1, saved.width),
                         Mathf.Max(1, saved.depth),
                         BuildSurface.Foundation,
-                        placedObject
-                    );
+                        placedObject);
                 }
 
                 restoredFoundations++;
             }
-
             else if (isEdgeObject)
             {
                 // Wall-mounted fixtures reference an edge but do not own it.
@@ -611,8 +642,7 @@ public class AirportWorldResetController : MonoBehaviour
             restoredBuildings++;
         }
 
-        // Resolve relationships only after every saved object has been
-        // instantiated, regardless of the order in the save file.
+        // Resolve relationships after every saved object is instantiated.
         FoundationBoundaryOwnership.ResolveSavedOwnership(
             restoredOwnershipComponents);
 
@@ -705,7 +735,27 @@ public class AirportWorldResetController : MonoBehaviour
 
         foundationTilemapController.RefreshFromGridSurface();
 
-        // Restore saved game time, speed, and balance.
+        // 4. Refresh room detection and restore room-purpose assignments
+        // only after the saved foundations and boundaries are back in place.
+        ResolveRoomPurposeReferences();
+
+        if (roomDetectionController != null)
+            roomDetectionController.RefreshRooms();
+
+        if (roomPurposeController != null)
+        {
+            roomPurposeController.RestoreAssignments(
+                data.roomPurposeAssignments);
+        }
+        else
+        {
+            Debug.LogWarning(
+                "AirportWorldResetController: RoomPurposeController was " +
+                "not found. The airport loaded, but room-purpose assignments " +
+                "could not be restored.");
+        }
+
+        // 5. Restore saved game time, speed, and balance.
         gameTimeManager.SetGameTimeSeconds(data.gameTimeSeconds);
         gameTimeManager.SetSpeed(
             Mathf.RoundToInt(data.gameSpeedMultiplier));
@@ -734,6 +784,7 @@ public class AirportWorldResetController : MonoBehaviour
             $"road cells: {restoredRoadCells}, " +
             $"taxiway cells: {restoredTaxiwayCells}, " +
             $"centerline cells: {restoredCenterlineCells}, " +
+            $"room assignments saved: {data.roomPurposeAssignments.Count}, " +
             $"scheduled flights saved: {data.flightSchedule.Count}. " +
             $"Balance: ${economyManager.Balance:N0}. " +
             $"Game time: {gameTimeManager.FormattedTime}, " +

@@ -26,9 +26,11 @@ public class AirportSaveData
     public List<TaxiwayCellSaveData> taxiwayCells =
         new List<TaxiwayCellSaveData>();
 
-    // The flight schedule belongs to this airport save slot.
     public List<FlightScheduleSaveData> flightSchedule =
         new List<FlightScheduleSaveData>();
+
+    public List<RoomPurposeAssignmentSaveData> roomPurposeAssignments =
+        new List<RoomPurposeAssignmentSaveData>();
 
     public void EnsureCollections()
     {
@@ -43,6 +45,9 @@ public class AirportSaveData
 
         if (flightSchedule == null)
             flightSchedule = new List<FlightScheduleSaveData>();
+
+        if (roomPurposeAssignments == null)
+            roomPurposeAssignments = new List<RoomPurposeAssignmentSaveData>();
     }
 }
 
@@ -76,17 +81,11 @@ public class PlacedBuildingSaveData
     public float scaleY = 1f;
     public float scaleZ = 1f;
 
-    // Present only on foundations and boundary objects that use
-    // FoundationBoundaryOwnership.
     public string boundaryOwnershipId = "";
-
-    // On a boundary object, these are the IDs of its owning foundations.
-    // On a foundation, this list is normally empty.
     public List<string> boundaryOwnerIds = new List<string>();
+
     public bool hasCustomFoundationFootprint;
     public List<Vector2Int> foundationCells = new List<Vector2Int>();
-
-    
 }
 
 [Serializable]
@@ -120,4 +119,12 @@ public class FlightScheduleSaveData
     public string flightNumber = "";
     public string gateStableId = "";
     public int startMinute;
+}
+
+[Serializable]
+public class RoomPurposeAssignmentSaveData
+{
+    public int anchorX;
+    public int anchorZ;
+    public int purpose;
 }

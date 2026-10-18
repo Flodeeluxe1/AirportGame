@@ -217,6 +217,150 @@ public class RoomPurposeController : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Creates serializable copies of the current room-purpose assignments.
+    /// The room's minimum cell is used as its stable anchor.
+    /// </summary>
+    public List<RoomPurposeAssignmentSaveData> GetAssignmentsForSave()
+    {
+        List<RoomPurposeAssignmentSaveData> savedAssignments =
+            new List<RoomPurposeAssignmentSaveData>();
+
+        foreach (KeyValuePair<Vector2Int, RoomPurpose> assignment in assignments)
+        {
+            if (assignment.Value == RoomPurpose.None)
+                continue;
+
+            savedAssignments.Add(new RoomPurposeAssignmentSaveData
+            {
+                anchorX = assignment.Key.x,
+                anchorZ = assignment.Key.y,
+                purpose = (int)assignment.Value
+            });
+        }
+
+        return savedAssignments;
+    }
+
+    /// <summary>
+    /// Clears all room-purpose assignments.
+    /// </summary>
+    public void ClearAssignments()
+    {
+        assignments.Clear();
+
+        previousClickCell = Vector2Int.zero;
+        previousClickTime = -10f;
+
+        Debug.Log("RoomPurposeController: Room-purpose assignments cleared.");
+    }
+
+    /// <summary>
+    /// Restores assignments after the airport foundations and boundaries
+    /// have been recreated and room detection has been refreshed.
+    /// Each saved anchor must belong to a currently detected enclosed room.
+    /// </summary>
+    public void RestoreAssignments(
+        List<RoomPurposeAssignmentSaveData> savedAssignments)
+    {
+        assignments.Clear();
+        ResolveReferences();
+
+        if (roomDetection == null)
+        {
+            Debug.LogWarning(
+                "RoomPurposeController: Cannot restore room assignments " +
+                "because RoomDetectionController was not found.");
+            return;
+        }
+
+        roomDetection.RefreshRooms();
+
+        if (savedAssignments == null || savedAssignments.Count == 0)
+        {
+            Debug.Log(
+                "RoomPurposeController: No saved room-purpose assignments to restore.");
+            return;
+        }
+
+        int restoredCount = 0;
+
+        foreach (RoomPurposeAssignmentSaveData saved in savedAssignments)
+        {
+            if (saved == null)
+                continue;
+
+            RoomPurpose purpose = (RoomPurpose)saved.purpose;
+
+            if (purpose == RoomPurpose.None ||
+                !System.Enum.IsDefined(typeof(RoomPurpose), purpose))
+            {
+                Debug.LogWarning(
+                    $"RoomPurposeController: Skipped invalid saved room purpose " +
+                    $"'{saved.purpose}' at ({saved.anchorX}, {saved.anchorZ}).");
+                continue;
+            }
+
+            Vector2Int anchor = new Vector2Int(
+                saved.anchorX,
+                saved.anchorZ);
+
+            RoomDetectionController.DetectedRoom matchedRoom = null;
+
+            foreach (RoomDetectionController.DetectedRoom room in roomDetection.Rooms)
+            {
+                if (room == null ||
+                    room.cells == null ||
+                    room.cells.Count == 0)
+                {
+                    continue;
+                }
+
+                if (room.cells.Contains(anchor))
+                {
+                    matchedRoom = room;
+                    break;
+                }
+            }
+
+            if (matchedRoom == null)
+            {
+                Debug.LogWarning(
+                    $"RoomPurposeController: Could not restore assignment " +
+                    $"'{purpose}' at anchor {anchor}. No detected enclosed room " +
+                    "contains that cell. The assignment was skipped.");
+                continue;
+            }
+
+            Vector2Int currentAnchor = GetAnchor(matchedRoom);
+            assignments[currentAnchor] = purpose;
+            restoredCount++;
+
+            if (purpose == RoomPurpose.FlightSchool)
+            {
+                bool valid = ValidateFlightSchool(
+                    matchedRoom,
+                    out string reason);
+
+                Debug.Log(
+                    valid
+                        ? $"RoomPurposeController: Restored Flight School at " +
+                          $"{currentAnchor}: VALID."
+                        : $"RoomPurposeController: Restored Flight School at " +
+                          $"{currentAnchor}: INVALID — {reason}");
+            }
+            else
+            {
+                Debug.Log(
+                    $"RoomPurposeController: Restored '{purpose}' at {currentAnchor}.");
+            }
+        }
+
+        Debug.Log(
+            $"RoomPurposeController: Restored {restoredCount} of " +
+            $"{savedAssignments.Count} saved room-purpose assignment(s).");
+    }
+
     public bool ValidateFlightSchool(
         RoomDetectionController.DetectedRoom room,
         out string reason)
@@ -367,9 +511,11 @@ public class RoomPurposeController : MonoBehaviour
             return new GridEdge(cell, EdgeDirection.Horizontal);
 
         if (direction == Vector2Int.up)
+        {
             return new GridEdge(
                 cell + Vector2Int.up,
                 EdgeDirection.Horizontal);
+        }
 
         if (direction == Vector2Int.left)
             return new GridEdge(cell, EdgeDirection.Vertical);

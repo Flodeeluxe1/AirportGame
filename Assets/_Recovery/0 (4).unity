@@ -2173,6 +2173,8 @@ MonoBehaviour:
   gameTimeManager: {fileID: 449210932}
   economyManager: {fileID: 1048131944}
   flightManagementUIController: {fileID: 0}
+  roomPurposeController: {fileID: 1399790236}
+  roomDetectionController: {fileID: 0}
 --- !u!4 &1332688659
 Transform:
   m_ObjectHideFlags: 0
@@ -2486,6 +2488,11 @@ MonoBehaviour:
   panelPadding: 18
   highlightColor: {r: 1, g: 0.82, b: 0, a: 0.28}
   highlightHeight: 0.06
+  panelBackgroundColor: {r: 0.1, g: 0.12, b: 0.15, a: 0.98}
+  primaryTextColor: {r: 1, g: 1, b: 1, a: 1}
+  secondaryTextColor: {r: 0.88, g: 0.9, b: 0.93, a: 1}
+  assignButtonColor: {r: 0.18, g: 0.48, b: 0.28, a: 1}
+  cancelButtonColor: {r: 0.25, g: 0.28, b: 0.33, a: 1}
 --- !u!1 &1577763651
 GameObject:
   m_ObjectHideFlags: 0
