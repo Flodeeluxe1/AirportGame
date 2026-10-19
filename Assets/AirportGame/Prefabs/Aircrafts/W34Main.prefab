@@ -104,19 +104,19 @@ MonoBehaviour:
   weather: {fileID: 0}
   approachDistance: 60
   glideAngleDegrees: 3
-  approachSpeedKnots: 140
-  touchdownSpeedKnots: 120
-  rolloutTargetSpeedKnots: 30
-  worldUnitsPerSecondPerKnot: 0.05
-  speedChangeRate: 3
-  rolloutDeceleration: 1.2
+  approachSpeedKnots: 110
+  touchdownSpeedKnots: 90
+  rolloutTargetSpeedKnots: 15
+  worldUnitsPerSecondPerKnot: 0.08
+  speedChangeRate: 2
+  rolloutDeceleration: 1
   flareHeight: 1.5
-  noseRaiseDegrees: 3
+  noseRaiseDegrees: 8
   noseLoweringDuration: 1.5
   maximumSidewindComponentKnots: 15
-  goAroundNoseUpDegrees: 20
+  goAroundNoseUpDegrees: 15
   goAroundAltitudeAboveRunway: 30
-  rotationSpeed: 3
+  rotationSpeed: 2
   modelRotationOffset: {x: 0, y: 0, z: 0}
   debugLandingState: Initializing
   debugSelectedRunway: None
@@ -150,15 +150,16 @@ MonoBehaviour:
   minimumExitForwardDistance: 0.5
   runwayEndTolerance: 1
   maximumParkingConnectorDistance: 4
-  taxiSpeedKnots: 10
-  worldUnitsPerSecondPerKnot: 0.05
-  rotationSpeed: 3
+  taxiSpeedKnots: 15
+  worldUnitsPerSecondPerKnot: 0.08
+  rotationSpeed: 2
+  parkingRotationSpeed: 10
   waypointArrivalDistance: 0.2
   parkingArrivalDistance: 0.5
   taxiHeightOffset: 0.05
   modelRotationOffset: {x: 0, y: 0, z: 0}
   turningRadiusInCells: 2
-  turnCurveResolution: 8
+  turnCurveResolution: 16
   taxiPathPointTolerance: 0.02
   logTaxiProgress: 1
   debugStatus: Waiting for sightseeing landing completion.
@@ -175,10 +176,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AircraftSSTurnaroundController
   landingTaxiController: {fileID: 0}
+  passengerCapacity: 6
   boardingDurationSeconds: 10
   logProgress: 1
   state: 0
   boardingTimeRemaining: 0
+  passengersOnBoard: 0
 --- !u!114 &-4306488516855404423
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -204,12 +207,12 @@ MonoBehaviour:
   maximumStartCandidates: 10
   runwaySafetyMarginInCells: 1
   taxiSpeedKnots: 15
-  worldUnitsPerSecondPerKnot: 0.05
+  worldUnitsPerSecondPerKnot: 0.08
   rotationSpeedDegreesPerSecond: 45
   waypointArrivalDistance: 0.15
   modelRotationOffset: {x: 0, y: 0, z: 0}
-  turningRadiusInCells: 1
-  turnCurveResolution: 8
+  turningRadiusInCells: 2
+  turnCurveResolution: 16
   lineUpSafetyMarginInCells: 0.25
   currentState: 0
   selectedRunway: {fileID: 0}
@@ -237,24 +240,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AircraftSSTakeoffController
   departureController: {fileID: 0}
+  turnaroundController: {fileID: 0}
   trafficManager: {fileID: 0}
   gameTimeManager: {fileID: 0}
   gridManager: {fileID: 0}
   economyManager: {fileID: 0}
   aircraftCollider: {fileID: 0}
-  ticketPrice: 100
-  passengerCapacity: 6
-  referenceDemand: 4
-  demandVariation: 0.25
-  airportCommissionRate: 0.2
-  takeoffSpeedKnots: 65
-  groundAccelerationKnotsPerSecond: 12
+  takeoffSpeedKnots: 80
+  groundAccelerationKnotsPerSecond: 25
   airborneAccelerationKnotsPerSecond: 3
-  worldUnitsPerSecondPerKnot: 0.05
+  worldUnitsPerSecondPerKnot: 0.08
   rotationStartSpeedFraction: 0.8
   rotationRateDegreesPerSecond: 3
-  targetNoseUpDegrees: 20
-  liftoffStartNoseUpDegrees: 8
+  targetNoseUpDegrees: 15
+  liftoffStartNoseUpDegrees: 2
   modelRotationOffset: {x: 0, y: 0, z: 0}
   targetAltitudeAboveRunway: 60
   runwayClearanceBuffer: 1

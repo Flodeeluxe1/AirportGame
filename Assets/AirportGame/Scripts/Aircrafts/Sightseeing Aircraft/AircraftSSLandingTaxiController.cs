@@ -5,7 +5,8 @@ using UnityEngine;
 /// <summary>
 /// Sightseeing aircraft taxi controller.
 /// Finds a connected taxiway route from the runway exit to the
-/// reserved SightseeingAircraftParkingSpot.
+/// reserved SightseeingAircraftParkingSpot, then slowly rotates
+/// the aircraft to its configured parking heading.
 /// </summary>
 [DisallowMultipleComponent]
 public class AircraftSSLandingTaxiController : MonoBehaviour
@@ -39,6 +40,8 @@ public class AircraftSSLandingTaxiController : MonoBehaviour
     [SerializeField] private float worldUnitsPerSecondPerKnot = 0.05f;
     [Min(0.1f)]
     [SerializeField] private float rotationSpeed = 3f;
+    [Min(1f)]
+    [SerializeField] private float parkingRotationSpeed = 10f;
     [Min(0.05f)]
     [SerializeField] private float waypointArrivalDistance = 0.2f;
     [Min(0.1f)]
@@ -67,6 +70,7 @@ public class AircraftSSLandingTaxiController : MonoBehaviour
         JoiningTaxiway,
         FollowingTaxiway,
         ApproachingParking,
+        RotatingToParking,
         Parked,
         Failed
     }
@@ -78,7 +82,9 @@ public class AircraftSSLandingTaxiController : MonoBehaviour
         public float LateralDistance;
 
         public ExitCandidate(
-            Vector2Int cell, float forwardDistance, float lateralDistance)
+            Vector2Int cell,
+            float forwardDistance,
+            float lateralDistance)
         {
             Cell = cell;
             ForwardDistance = forwardDistance;
@@ -121,6 +127,7 @@ public class AircraftSSLandingTaxiController : MonoBehaviour
         phase == TaxiPhase.FollowingTaxiway ||
         phase == TaxiPhase.ApproachingParking;
 
+    // Becomes true only after the aircraft finishes its parking turn.
     public bool HasArrivedAtParking => phase == TaxiPhase.Parked;
 
     private void Awake()
@@ -176,10 +183,12 @@ public class AircraftSSLandingTaxiController : MonoBehaviour
             case TaxiPhase.ApproachingParking:
                 MoveToParkingSpot();
                 break;
+
+            case TaxiPhase.RotatingToParking:
+                RotateToParkingHeading();
+                break;
         }
     }
-
-
 
     private void TryBuildTaxiRoute()
     {
@@ -370,26 +379,12 @@ public class AircraftSSLandingTaxiController : MonoBehaviour
         {
             foreach (TargetCandidate target in targets)
             {
-                Vector3 targetWorld =
-                    gridManager.GridToWorldCenter(target.Cell);
-
-                targetWorld.y = taxiWorldY;
-
                 float distanceToFootprintEdge =
                     GetDistanceToParkingFootprintEdge(target.Cell);
 
                 if (distanceToFootprintEdge > connectorDistance)
                 {
                     skippedByDistance++;
-
-                    Debug.Log(
-                        $"[SS TAXI DIAG] SKIP PAIR | Exit={exit.Cell} | " +
-                        $"Target={target.Cell} | " +
-                        $"Reason=Too far from parking footprint edge | " +
-                        $"Distance={distanceToFootprintEdge:F2} | " +
-                        $"Limit={connectorDistance:F2}",
-                        this);
-
                     continue;
                 }
 
@@ -401,17 +396,7 @@ public class AircraftSSLandingTaxiController : MonoBehaviour
                         target.Cell,
                         minimumTaxiwayWidth);
 
-                bool pathFound =
-                    candidatePath != null && candidatePath.Count > 0;
-
-                Debug.Log(
-                    $"[SS TAXI DIAG] PATH TEST {attempts} | " +
-                    $"Exit={exit.Cell} -> Target={target.Cell} | " +
-                    $"Found={pathFound} | " +
-                    $"PathCells={(pathFound ? candidatePath.Count : 0)}",
-                    this);
-
-                if (!pathFound)
+                if (candidatePath == null || candidatePath.Count == 0)
                 {
                     failedPaths++;
                     continue;
@@ -484,12 +469,11 @@ public class AircraftSSLandingTaxiController : MonoBehaviour
     }
 
 
-
     private void BuildSmoothedTaxiMovementPath()
     {
         taxiMovementPath.Clear();
 
-        if (route.Count == 0)
+        if (route == null || route.Count == 0)
             return;
 
         List<Vector3> points = new List<Vector3>(route.Count);
@@ -501,90 +485,179 @@ public class AircraftSSLandingTaxiController : MonoBehaviour
             points.Add(point);
         }
 
-        if (points.Count == 1)
+        if (points.Count < 3)
         {
-            AddMovementPoint(points[0]);
+            foreach (Vector3 point in points)
+                AddMovementPoint(point);
+
             return;
         }
 
-        float desiredRadius =
-            Mathf.Max(0.01f, turningRadiusInCells) * gridManager.CellSize;
-
-        AddMovementPoint(points[0]);
+        // Detect turns using the same logic as the departure taxi controller.
+        List<int> turns = new List<int>();
 
         for (int i = 1; i < points.Count - 1; i++)
         {
-            Vector3 previous = points[i - 1];
-            Vector3 corner = points[i];
-            Vector3 next = points[i + 1];
-
-            Vector3 incoming = corner - previous;
-            Vector3 outgoing = next - corner;
+            Vector3 incoming = points[i] - points[i - 1];
+            Vector3 outgoing = points[i + 1] - points[i];
 
             incoming.y = 0f;
             outgoing.y = 0f;
 
-            float incomingLength = incoming.magnitude;
-            float outgoingLength = outgoing.magnitude;
-
-            if (incomingLength < 0.001f || outgoingLength < 0.001f)
+            if (incoming.sqrMagnitude < 0.0001f ||
+                outgoing.sqrMagnitude < 0.0001f)
             {
-                AddMovementPoint(corner);
                 continue;
             }
 
-            incoming /= incomingLength;
-            outgoing /= outgoingLength;
+            incoming.Normalize();
+            outgoing.Normalize();
 
-            float directionDot = Vector3.Dot(incoming, outgoing);
+            float dot = Vector3.Dot(incoming, outgoing);
 
-            if (Mathf.Abs(directionDot) > 0.01f)
+            // Ignore straight sections and near-180-degree reversals.
+            if (dot > 0.99f || dot < -0.99f)
+                continue;
+
+            turns.Add(i);
+        }
+
+        if (turns.Count == 0)
+        {
+            AddStraightMovementPoints(points[0], points[points.Count - 1]);
+            return;
+        }
+
+        // Calculate each turn radius using the distance between corners,
+        // matching the departure taxi controller's approach.
+        float[] radii = new float[points.Count];
+
+        for (int t = 0; t < turns.Count; t++)
+        {
+            int index = turns[t];
+
+            int previousTurn = t > 0
+                ? turns[t - 1]
+                : 0;
+
+            int nextTurn = t < turns.Count - 1
+                ? turns[t + 1]
+                : points.Count - 1;
+
+            float previousDistance = Vector3.Distance(
+                points[previousTurn],
+                points[index]);
+
+            float nextDistance = Vector3.Distance(
+                points[index],
+                points[nextTurn]);
+
+            float requestedRadius =
+                Mathf.Max(0.01f, turningRadiusInCells) *
+                gridManager.CellSize;
+
+            radii[index] = Mathf.Min(
+                requestedRadius,
+                previousDistance * 0.5f,
+                nextDistance * 0.5f);
+        }
+
+        const float bezierFactor = 0.55228475f;
+
+        Vector3 current = points[0];
+        AddMovementPoint(current);
+
+        foreach (int index in turns)
+        {
+            float radius = radii[index];
+
+            if (radius <= 0.01f)
+                continue;
+
+            Vector3 incoming = points[index] - points[index - 1];
+            Vector3 outgoing = points[index + 1] - points[index];
+
+            incoming.y = 0f;
+            outgoing.y = 0f;
+
+            if (incoming.sqrMagnitude < 0.0001f ||
+                outgoing.sqrMagnitude < 0.0001f)
             {
-                AddMovementPoint(corner);
                 continue;
             }
 
-            float radius = Mathf.Min(
-                desiredRadius,
-                incomingLength * 0.45f,
-                outgoingLength * 0.45f);
+            incoming.Normalize();
+            outgoing.Normalize();
 
-            if (radius < 0.01f)
-            {
-                AddMovementPoint(corner);
-                continue;
-            }
-
-            Vector3 entry = corner - incoming * radius;
-            Vector3 exit = corner + outgoing * radius;
+            // Start the curve before the corner and finish it beyond it.
+            Vector3 entry = points[index] - incoming * radius;
+            Vector3 exit = points[index] + outgoing * radius;
 
             entry.y = taxiWorldY;
             exit.y = taxiWorldY;
 
-            AddMovementPoint(entry);
+            // Straight taxiway section leading into this turn.
+            AddStraightMovementPoints(current, entry);
 
             Vector3 control1 =
-                entry + incoming * (radius * BezierCircleFactor);
+                entry + incoming * radius * bezierFactor;
 
             Vector3 control2 =
-                exit - outgoing * (radius * BezierCircleFactor);
+                exit - outgoing * radius * bezierFactor;
 
             int resolution = Mathf.Clamp(turnCurveResolution, 4, 16);
 
-            for (int step = 1; step <= resolution; step++)
+            for (int sample = 1; sample <= resolution; sample++)
             {
-                float t = step / (float)resolution;
+                float t = sample / (float)resolution;
+                float u = 1f - t;
 
-                Vector3 curvePoint = EvaluateCubicBezier(
-                    entry, control1, control2, exit, t);
+                Vector3 point =
+                    u * u * u * entry +
+                    3f * u * u * t * control1 +
+                    3f * u * t * t * control2 +
+                    t * t * t * exit;
 
-                curvePoint.y = taxiWorldY;
-                AddMovementPoint(curvePoint);
+                point.y = taxiWorldY;
+                AddMovementPoint(point);
             }
+
+            current = exit;
         }
 
-        AddMovementPoint(points[points.Count - 1]);
+        // Finish the final straight section after the last corner.
+        AddStraightMovementPoints(
+            current,
+            points[points.Count - 1]);
     }
+
+    private void AddStraightMovementPoints(Vector3 start, Vector3 end)
+    {
+        start.y = taxiWorldY;
+        end.y = taxiWorldY;
+
+        float distance = Vector3.Distance(start, end);
+
+        float maximumStep = Mathf.Max(
+            0.1f,
+            gridManager.CellSize * 0.5f);
+
+        int steps = Mathf.Max(
+            1,
+            Mathf.CeilToInt(distance / maximumStep));
+
+        for (int i = 1; i <= steps; i++)
+        {
+            Vector3 point = Vector3.Lerp(
+                start,
+                end,
+                i / (float)steps);
+
+            point.y = taxiWorldY;
+            AddMovementPoint(point);
+        }
+    }
+
 
     private void AddMovementPoint(Vector3 point)
     {
@@ -631,43 +704,37 @@ public class AircraftSSLandingTaxiController : MonoBehaviour
         return null;
     }
 
-
     private float GetDistanceToParkingFootprintEdge(Vector2Int taxiwayCell)
     {
         if (reservedSpot == null || gridManager == null)
             return float.PositiveInfinity;
 
-        PlacedBuilding building = reservedSpot.GetComponent<PlacedBuilding>();
+        PlacedBuilding building =
+            reservedSpot.GetComponent<PlacedBuilding>();
 
         if (building == null || building.Width <= 0 || building.Depth <= 0)
             return float.PositiveInfinity;
 
-        // Building dimensions describe its placed footprint in grid cells.
         float footprintMinX = building.Origin.x;
         float footprintMaxX = building.Origin.x + building.Width;
         float footprintMinZ = building.Origin.y;
         float footprintMaxZ = building.Origin.y + building.Depth;
 
-        // Measure from the taxiway cell centre to the nearest point
-        // on the outside edge of the complete parking footprint.
         float cellCenterX = taxiwayCell.x + 0.5f;
         float cellCenterZ = taxiwayCell.y + 0.5f;
 
         float dx = Mathf.Max(
             footprintMinX - cellCenterX,
             0f,
-            cellCenterX - footprintMaxX
-        );
+            cellCenterX - footprintMaxX);
 
         float dz = Mathf.Max(
             footprintMinZ - cellCenterZ,
             0f,
-            cellCenterZ - footprintMaxZ
-        );
+            cellCenterZ - footprintMaxZ);
 
         return Mathf.Sqrt(dx * dx + dz * dz) * gridManager.CellSize;
     }
-
 
     private List<ExitCandidate> FindForwardRunwayExits(
         Vector3 aircraftPosition,
@@ -845,7 +912,8 @@ public class AircraftSSLandingTaxiController : MonoBehaviour
         }
 
         phase = TaxiPhase.ApproachingParking;
-        debugStatus = $"Taxiway route complete. Approaching {reservedSpot.name}.";
+        debugStatus =
+            $"Taxiway route complete. Approaching {reservedSpot.name}.";
     }
 
     private void MoveToParkingSpot()
@@ -862,10 +930,45 @@ public class AircraftSSLandingTaxiController : MonoBehaviour
         if (MoveToward(parkingTarget, parkingArrivalDistance))
         {
             SetPositionAt(parkingTarget);
-            transform.rotation = reservedSpot.ParkingWorldRotation;
-            phase = TaxiPhase.Parked;
 
-            debugStatus = $"Sightseeing aircraft parked at {reservedSpot.name}.";
+            // Do not snap to the parking heading.
+            // Rotate in place at a controlled speed instead.
+            phase = TaxiPhase.RotatingToParking;
+            debugStatus =
+                $"At {reservedSpot.name}. Slowly turning to parking heading.";
+
+            if (logTaxiProgress)
+            {
+                Debug.Log(
+                    $"SIGHTSEEING AIRCRAFT STARTING PARKING TURN | " +
+                    $"Aircraft: {name} | Parking: {reservedSpot.name} | " +
+                    $"Rotation speed: {parkingRotationSpeed:F1} degrees/second",
+                    this);
+            }
+        }
+    }
+
+    private void RotateToParkingHeading()
+    {
+        if (reservedSpot == null || !reservedSpot.IsPlacedBuilding)
+        {
+            Fail("The reserved sightseeing parking spot was removed during the parking turn.");
+            return;
+        }
+
+        Quaternion targetRotation = reservedSpot.ParkingWorldRotation;
+
+        transform.rotation = Quaternion.RotateTowards(
+            transform.rotation,
+            targetRotation,
+            Mathf.Max(1f, parkingRotationSpeed) * Time.deltaTime);
+
+        if (Quaternion.Angle(transform.rotation, targetRotation) <= 0.5f)
+        {
+            transform.rotation = targetRotation;
+            phase = TaxiPhase.Parked;
+            debugStatus =
+                $"Sightseeing aircraft parked at {reservedSpot.name}.";
 
             if (logTaxiProgress)
             {

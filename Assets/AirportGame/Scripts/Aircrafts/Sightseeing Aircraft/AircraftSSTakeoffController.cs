@@ -3,8 +3,7 @@ using UnityEngine;
 
 /// <summary>
 /// Handles takeoff for sightseeing aircraft only.
-/// Waits for runway line-up, performs the takeoff roll and climb,
-/// pays sightseeing revenue after a successful departure, then despawns.
+/// Pays the airport's sightseeing commission after successful climb.
 /// </summary>
 [DisallowMultipleComponent]
 public class AircraftSSTakeoffController : MonoBehaviour
@@ -20,32 +19,12 @@ public class AircraftSSTakeoffController : MonoBehaviour
 
     [Header("References")]
     [SerializeField] private AircraftSSDepartureTaxiController departureController;
+    [SerializeField] private AircraftSSTurnaroundController turnaroundController;
     [SerializeField] private AircraftRunwayTrafficManager trafficManager;
     [SerializeField] private GameTimeManager gameTimeManager;
     [SerializeField] private GridManager gridManager;
     [SerializeField] private AirportEconomyManager economyManager;
     [SerializeField] private BoxCollider aircraftCollider;
-
-    [Header("Sightseeing Tickets")]
-    [Tooltip("Ticket price per passenger.")]
-    [Min(1)]
-    [SerializeField] private int ticketPrice = 100;
-
-    [Tooltip("Maximum passenger capacity of this sightseeing aircraft.")]
-    [Min(1)]
-    [SerializeField] private int passengerCapacity = 6;
-
-    [Tooltip("Expected passengers at the reference ticket price of $100.")]
-    [Min(0)]
-    [SerializeField] private int referenceDemand = 4;
-
-    [Tooltip("Random demand variation around expected demand.")]
-    [Range(0f, 0.5f)]
-    [SerializeField] private float demandVariation = 0.25f;
-
-    [Tooltip("Airport commission as a fraction of ticket revenue.")]
-    [Range(0f, 1f)]
-    [SerializeField] private float airportCommissionRate = 0.20f;
 
     [Header("Takeoff Speed")]
     [Min(1f)]
@@ -97,6 +76,7 @@ public class AircraftSSTakeoffController : MonoBehaviour
     [SerializeField] private bool runwayReservationReleased;
     [SerializeField] private string debugStatus = "Waiting for line-up";
 
+    private SightseeingFlightEconomy sightseeingEconomy;
     private AircraftRunway selectedRunway;
     private Vector3 takeoffDirection;
     private Vector3 runwayCenter;
@@ -106,6 +86,7 @@ public class AircraftSSTakeoffController : MonoBehaviour
     private float rotationTriggerSpeedKnots;
 
     public TakeoffState CurrentState => currentState;
+
     public bool IsTakingOff =>
         currentState == TakeoffState.TakeoffRoll ||
         currentState == TakeoffState.Rotating ||
@@ -164,6 +145,10 @@ public class AircraftSSTakeoffController : MonoBehaviour
             departureController =
                 GetComponent<AircraftSSDepartureTaxiController>();
 
+        if (turnaroundController == null)
+            turnaroundController =
+                GetComponent<AircraftSSTurnaroundController>();
+
         if (trafficManager == null)
             trafficManager =
                 FindFirstObjectByType<AircraftRunwayTrafficManager>();
@@ -179,6 +164,9 @@ public class AircraftSSTakeoffController : MonoBehaviour
 
         if (aircraftCollider == null)
             aircraftCollider = GetComponentInChildren<BoxCollider>(true);
+
+        if (sightseeingEconomy == null)
+            sightseeingEconomy = SightseeingFlightEconomy.Instance;
     }
 
     private float GetSimulationDeltaTime()
@@ -198,9 +186,13 @@ public class AircraftSSTakeoffController : MonoBehaviour
     {
         if (departureController == null ||
             trafficManager == null ||
-            gridManager == null)
+            gridManager == null ||
+            turnaroundController == null ||
+            !turnaroundController.IsBoardingComplete)
         {
-            debugStatus = "Cannot take off: required reference is missing.";
+            debugStatus =
+                "Cannot take off: required references or boarding are missing.";
+
             Debug.LogError($"{name}: {debugStatus}", this);
             return false;
         }
@@ -232,11 +224,13 @@ public class AircraftSSTakeoffController : MonoBehaviour
 
         takeoffDirection.Normalize();
 
-        passengersOnBoard = CalculatePassengerDemand();
+        // Use the passenger count allocated when boarding completed.
+        passengersOnBoard = turnaroundController.PassengersOnBoard;
 
         groundLevelY = transform.position.y;
         currentSpeedKnots = 0f;
         currentNoseUpDegrees = 0f;
+
         rotationTriggerSpeedKnots =
             takeoffSpeedKnots * rotationStartSpeedFraction;
 
@@ -248,32 +242,22 @@ public class AircraftSSTakeoffController : MonoBehaviour
         ApplyTakeoffOrientation(0f);
         currentState = TakeoffState.TakeoffRoll;
 
+        int ticketPrice = sightseeingEconomy != null
+            ? sightseeingEconomy.TicketPrice
+            : 0;
+
         debugStatus =
             $"Takeoff roll started with {passengersOnBoard} passengers.";
 
         Debug.Log(
             $"SIGHTSEEING TAKEOFF STARTED | Aircraft: {name} | " +
-            $"Runway: {selectedRunway.name} | Passengers: {passengersOnBoard} | " +
-            $"Ticket: ${ticketPrice} | Rotation at {rotationTriggerSpeedKnots:F1} knots",
+            $"Runway: {selectedRunway.name} | " +
+            $"Passengers: {passengersOnBoard} | " +
+            $"Ticket: ${ticketPrice} | " +
+            $"Rotation at {rotationTriggerSpeedKnots:F1} knots",
             this);
 
         return true;
-    }
-
-    private int CalculatePassengerDemand()
-    {
-        float expectedDemand =
-            referenceDemand * (100f / Mathf.Max(1, ticketPrice));
-
-        float variation = Random.Range(
-            1f - demandVariation,
-            1f + demandVariation);
-
-        int demand = Mathf.Max(
-            0,
-            Mathf.RoundToInt(expectedDemand * variation));
-
-        return Mathf.Min(demand, passengerCapacity);
     }
 
     private void UpdateTakeoffRoll(float deltaTime)
@@ -516,7 +500,6 @@ public class AircraftSSTakeoffController : MonoBehaviour
         UpdateAltitude();
         currentState = TakeoffState.Completed;
 
-        // Only pay after the aircraft successfully completes its climb.
         PaySightseeingCommissionOnce();
         ReleaseRunwayReservations();
 
@@ -536,15 +519,26 @@ public class AircraftSSTakeoffController : MonoBehaviour
         if (revenuePaid)
             return;
 
-        // Set the guard before calling the economy manager.
+        // Set the guard first so this aircraft cannot pay twice.
         revenuePaid = true;
 
         if (passengersOnBoard <= 0)
         {
             commissionPaid = 0;
+
             Debug.Log(
                 $"SIGHTSEEING NO-PASSENGER DEPARTURE | Aircraft: {name} | " +
                 "No ticket commission earned.",
+                this);
+
+            return;
+        }
+
+        if (sightseeingEconomy == null)
+        {
+            Debug.LogError(
+                $"{name}: SightseeingFlightEconomy is missing. " +
+                "Commission was not paid.",
                 this);
             return;
         }
@@ -552,16 +546,14 @@ public class AircraftSSTakeoffController : MonoBehaviour
         if (economyManager == null)
         {
             Debug.LogError(
-                $"{name}: Takeoff succeeded, but AirportEconomyManager " +
-                "could not be found. Commission was not paid.",
+                $"{name}: AirportEconomyManager could not be found. " +
+                "Commission was not paid.",
                 this);
             return;
         }
 
-        int commissionPerPassenger = Mathf.FloorToInt(
-            ticketPrice * airportCommissionRate);
-
-        commissionPaid = commissionPerPassenger * passengersOnBoard;
+        commissionPaid =
+            sightseeingEconomy.CalculateAirportCommission(passengersOnBoard);
 
         if (commissionPaid <= 0)
             return;
@@ -573,6 +565,7 @@ public class AircraftSSTakeoffController : MonoBehaviour
         if (!paid)
         {
             commissionPaid = 0;
+
             Debug.LogWarning(
                 $"{name}: Sightseeing commission payment failed.",
                 this);
