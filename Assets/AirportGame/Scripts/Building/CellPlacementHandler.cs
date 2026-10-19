@@ -1,3 +1,4 @@
+
 using UnityEngine;
 
 public class CellPlacementHandler : IPlacementHandler
@@ -10,6 +11,7 @@ public class CellPlacementHandler : IPlacementHandler
     private BuildableDefinition definition;
     private GameObject previewObject;
     private PlacementPreview placementPreview;
+    private Renderer[] previewRenderers;
 
     private Vector2Int currentGridPosition;
     private int currentRotation;
@@ -36,6 +38,9 @@ public class CellPlacementHandler : IPlacementHandler
         this.previewObject = previewObject;
         this.placementPreview = placementPreview;
 
+        previewRenderers =
+            previewObject.GetComponentsInChildren<Renderer>(true);
+
         currentRotation = 0;
         currentGridPosition = Vector2Int.zero;
     }
@@ -60,7 +65,8 @@ public class CellPlacementHandler : IPlacementHandler
             depth = temp;
         }
 
-        Vector3 position = gridManager.GridToWorld(currentGridPosition);
+        Vector3 position =
+            gridManager.GridToWorld(currentGridPosition);
 
         position += new Vector3(
             width * gridManager.CellSize * 0.5f,
@@ -68,9 +74,38 @@ public class CellPlacementHandler : IPlacementHandler
             depth * gridManager.CellSize * 0.5f
         );
 
-        previewObject.transform.position = position;
+        // Begin at the grid's ground height.
         previewObject.transform.rotation =
             Quaternion.Euler(0f, currentRotation, 0f);
+
+        previewObject.transform.position = position;
+
+        // Find the lowest point of the actual visible model.
+        float lowestY = float.PositiveInfinity;
+
+        if (previewRenderers != null)
+        {
+            foreach (Renderer renderer in previewRenderers)
+            {
+                if (renderer == null || !renderer.enabled)
+                    continue;
+
+                lowestY = Mathf.Min(
+                    lowestY,
+                    renderer.bounds.min.y
+                );
+            }
+        }
+
+        // Raise or lower the model only as much as necessary
+        // to bring its lowest rendered point to ground height.
+        if (!float.IsPositiveInfinity(lowestY))
+        {
+            float verticalOffset = position.y - lowestY;
+            position.y += verticalOffset;
+        }
+
+        previewObject.transform.position = position;
     }
 
     private void UpdatePreviewValidity()
@@ -160,7 +195,6 @@ public class CellPlacementHandler : IPlacementHandler
         UpdatePreviewValidity();
     }
 
-
     public void TryPlace()
     {
         int width = definition.width;
@@ -239,7 +273,6 @@ public class CellPlacementHandler : IPlacementHandler
         );
     }
 
-
     public void Cancel()
     {
     }
@@ -249,6 +282,7 @@ public class CellPlacementHandler : IPlacementHandler
         definition = null;
         previewObject = null;
         placementPreview = null;
+        previewRenderers = null;
 
         currentGridPosition = Vector2Int.zero;
         currentRotation = 0;
