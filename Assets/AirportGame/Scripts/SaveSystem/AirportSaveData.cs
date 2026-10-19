@@ -86,6 +86,12 @@ public class PlacedBuildingSaveData
 
     public bool hasCustomFoundationFootprint;
     public List<Vector2Int> foundationCells = new List<Vector2Int>();
+
+    // Flight School parking designation.
+    // The has-field flag allows older saves to load without overwriting
+    // the prefab's existing default designation.
+    public bool hasFlightSchoolParkingDesignation;
+    public bool reservedForFlightSchool;
 }
 
 [Serializable]

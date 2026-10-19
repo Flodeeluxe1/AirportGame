@@ -12,6 +12,7 @@ public class TrainingFlightController : MonoBehaviour
         Landing,
         WaitingForTouchAndGoClearance,
         TaxiingBackToSchool,
+        TurningAtParking,
         Completed,
         Failed
     }
@@ -31,6 +32,15 @@ public class TrainingFlightController : MonoBehaviour
 
     [SerializeField, Min(0.1f)]
     private float waypointArrivalDistance = 2f;
+
+    [Header("Parking Turn")]
+    [Tooltip("Degrees the aircraft turns after reaching its parking spot.")]
+    [SerializeField, Range(0f, 360f)]
+    private float parkingTurnAngle = 180f;
+
+    [Tooltip("Speed of the turn in degrees per second.")]
+    [SerializeField, Min(1f)]
+    private float parkingTurnSpeed = 20f;
 
     [Header("Runtime Status")]
     [SerializeField] private int completedCircuits;
@@ -57,6 +67,9 @@ public class TrainingFlightController : MonoBehaviour
 
     private AircraftRunway touchAndGoRunway;
     private Vector3 touchAndGoDirection;
+
+    private Quaternion parkingTurnTargetRotation;
+    private Vector3 parkingTurnPosition;
 
     public bool DepartureRequested => departureRequested;
     public int CompletedCircuits => completedCircuits;
@@ -142,6 +155,10 @@ public class TrainingFlightController : MonoBehaviour
             case TrainingState.TaxiingBackToSchool:
                 UpdateTaxiingBackToSchool();
                 break;
+
+            case TrainingState.TurningAtParking:
+                UpdateTurningAtParking();
+                break;
         }
     }
 
@@ -190,9 +207,10 @@ public class TrainingFlightController : MonoBehaviour
         touchAndGoRunway = null;
         touchAndGoDirection = Vector3.zero;
 
-        // The training taxi controller is only needed after the final
-        // landing. Keeping it disabled prevents intermediate touchdowns
-        // from accidentally starting a taxi back to school.
+        parkingTurnTargetRotation = Quaternion.identity;
+        parkingTurnPosition = transform.position;
+
+        // The taxi controller is only needed after the final landing.
         taxiController.enabled = false;
 
         departureRequested = true;
@@ -370,8 +388,6 @@ public class TrainingFlightController : MonoBehaviour
 
     private void BeginLanding()
     {
-        // The landing controller is disabled during the touch-and-go
-        // takeoff and circuit, so re-enable it before starting an approach.
         landingController.enabled = true;
 
         if (!landingController.BeginTrainingLanding())
@@ -383,7 +399,6 @@ public class TrainingFlightController : MonoBehaviour
             return;
         }
 
-        // Only the final landing should trigger taxiing to school parking.
         if (completedCircuits >= requiredCircuits - 1)
             taxiController.enabled = true;
 
@@ -417,7 +432,6 @@ public class TrainingFlightController : MonoBehaviour
             );
         }
 
-        // The last landing is a full stop followed by taxiing to parking.
         if (completedCircuits >= requiredCircuits)
         {
             taxiController.enabled = true;
@@ -435,7 +449,6 @@ public class TrainingFlightController : MonoBehaviour
             return;
         }
 
-        // Preserve the runway and landing direction used for this landing.
         touchAndGoRunway = landingController.SelectedRunway;
         touchAndGoDirection = landingController.LandingDirection;
         touchAndGoDirection.y = 0f;
@@ -452,17 +465,10 @@ public class TrainingFlightController : MonoBehaviour
 
         touchAndGoDirection.Normalize();
 
-        // Remove the landing entry before reserving the runway for the
-        // same aircraft's immediate takeoff. The aircraft remains on
-        // the runway, so its own stale landing entry would block clearance.
         if (trafficManager != null)
             trafficManager.UnregisterLandingTraffic(landingController);
 
-        // Prevent the landing controller from registering that landing
-        // entry again while the aircraft takes off and flies its circuit.
         landingController.enabled = false;
-
-        // Taxiing is not part of intermediate touch-and-go landings.
         taxiController.enabled = false;
 
         ClearDepartureRequest();
@@ -500,9 +506,6 @@ public class TrainingFlightController : MonoBehaviour
             return;
         }
 
-        // Retries while another aircraft or reservation prevents clearance.
-        // The departure controller's new method places the aircraft in
-        // its lined-up state when runway clearance succeeds.
         if (!departureController.PrepareForTouchAndGo(
                 touchAndGoRunway,
                 touchAndGoDirection))
@@ -534,16 +537,64 @@ public class TrainingFlightController : MonoBehaviour
         if (!taxiController.HasArrivedAtParking)
             return;
 
+        // The taxi controller has reported arrival. Keep the aircraft at
+        // this position and rotate it in place before marking the lesson done.
+        parkingTurnPosition = transform.position;
+
+        parkingTurnTargetRotation =
+            Quaternion.AngleAxis(parkingTurnAngle, Vector3.up) *
+            transform.rotation;
+
+        currentState = TrainingState.TurningAtParking;
+
+        debugStatus =
+            $"Parked. Turning {parkingTurnAngle:0} degrees to face the taxiway.";
+
+        Debug.Log(
+            $"{name}: Arrived at school parking. Beginning a " +
+            $"{parkingTurnAngle:0}-degree turn in place.",
+            this
+        );
+
+        if (parkingTurnAngle <= 0.01f)
+            FinishParkingTurn();
+    }
+
+    private void UpdateTurningAtParking()
+    {
+        // Prevent any positional drift while the aircraft turns.
+        transform.position = parkingTurnPosition;
+
+        transform.rotation = Quaternion.RotateTowards(
+            transform.rotation,
+            parkingTurnTargetRotation,
+            parkingTurnSpeed * Time.deltaTime
+        );
+
+        if (Quaternion.Angle(
+                transform.rotation,
+                parkingTurnTargetRotation) <= 0.1f)
+        {
+            FinishParkingTurn();
+        }
+    }
+
+    private void FinishParkingTurn()
+    {
+        transform.position = parkingTurnPosition;
+        transform.rotation = parkingTurnTargetRotation;
+
         currentState = TrainingState.Completed;
         departureRequested = false;
 
         debugStatus =
             $"Lesson complete: {completedCircuits} circuits. " +
-            "Ready for Flight School Manager payout.";
+            "Aircraft turned at parking and is ready for Flight School Manager payout.";
 
         Debug.Log(
             $"{name}: TRAINING LESSON COMPLETE | " +
             $"Circuits: {completedCircuits}/{requiredCircuits}. " +
+            "Aircraft is parked and has finished turning toward the taxiway. " +
             "The Flight School Manager can now pay the lesson reward.",
             this
         );
@@ -587,14 +638,12 @@ public class TrainingFlightController : MonoBehaviour
             return false;
         }
 
-        // Reset the supporting controllers for a fresh departure.
         if (!takeoffController.ResetForTrainingCircuit())
             return false;
 
         if (!departureController.ResetForTrainingCircuit())
             return false;
 
-        // Clear the previous lesson's counters and circuit state.
         completedCircuits = 0;
         currentWaypointIndex = 0;
         landingCounted = false;
@@ -605,12 +654,11 @@ public class TrainingFlightController : MonoBehaviour
         touchAndGoRunway = null;
         touchAndGoDirection = Vector3.zero;
 
-        // Let the new lesson start its taxi-out sequence.
-        // Reset taxi state so the final landing of the next lesson
-        // can trigger a fresh route back to the reserved parking spot.
+        parkingTurnTargetRotation = Quaternion.identity;
+        parkingTurnPosition = transform.position;
+
         taxiController.ResetForNextTrainingLesson();
 
-        // Let the new lesson start its taxi-out sequence.
         landingController.enabled = true;
         taxiController.enabled = false;
 

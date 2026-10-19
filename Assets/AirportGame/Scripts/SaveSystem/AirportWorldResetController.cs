@@ -308,6 +308,17 @@ public class AirportWorldResetController : MonoBehaviour
                 scaleZ = building.transform.localScale.z
             };
 
+
+            HobbyAircraftParkingSpot parkingSpot =
+                building.GetComponent<HobbyAircraftParkingSpot>();
+
+            if (parkingSpot != null)
+            {
+                savedBuilding.hasFlightSchoolParkingDesignation = true;
+                savedBuilding.reservedForFlightSchool =
+                    parkingSpot.ReservedForFlightSchool;
+            }
+
             FoundationBoundaryOwnership boundaryOwnership =
                 building.GetComponent<FoundationBoundaryOwnership>();
 
@@ -551,6 +562,18 @@ public class AirportWorldResetController : MonoBehaviour
                     Mathf.Max(1, saved.width),
                     Mathf.Max(1, saved.depth),
                     saved.rotation);
+            }
+
+            if (saved.hasFlightSchoolParkingDesignation)
+            {
+                HobbyAircraftParkingSpot parkingSpot =
+                    placedObject.GetComponent<HobbyAircraftParkingSpot>();
+
+                if (parkingSpot != null)
+                {
+                    parkingSpot.RestoreFlightSchoolDesignation(
+                        saved.reservedForFlightSchool);
+                }
             }
 
             // Recreate ownership data when the saved object had it.

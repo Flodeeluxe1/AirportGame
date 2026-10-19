@@ -11,6 +11,7 @@ public class RoomInfoPanelUIController : MonoBehaviour
     [SerializeField] private UIDocument uiDocument;
     [SerializeField] private RoomPurposeController roomPurposeController;
     [SerializeField] private GridManager gridManager;
+    [SerializeField] private FlightSchoolAssessmentController flightSchoolAssessmentController;
 
     [Header("Panel")]
     [SerializeField] private float panelWidth = 320f;
@@ -46,12 +47,16 @@ public class RoomInfoPanelUIController : MonoBehaviour
 
     private VisualElement root;
     private VisualElement panel;
+    private VisualElement assessmentSection;
+
     private Label roomTitleLabel;
     private Label roomSizeLabel;
     private Label currentPurposeLabel;
     private DropdownField purposeDropdown;
     private Label requirementsLabel;
     private Label validationLabel;
+    private Label assessmentLabel;
+
     private Button assignButton;
     private Button cancelButton;
     private Button closeButton;
@@ -64,6 +69,9 @@ public class RoomInfoPanelUIController : MonoBehaviour
     private Material highlightMaterial;
 
     private bool isOpen;
+    private float nextAssessmentRefreshTime;
+
+    private const float AssessmentRefreshInterval = 0.5f;
 
     private void Awake()
     {
@@ -82,6 +90,24 @@ public class RoomInfoPanelUIController : MonoBehaviour
 
         BuildPanel();
         ClosePanel();
+    }
+
+    private void Update()
+    {
+        if (!isOpen || selectedRoom == null)
+        {
+            return;
+        }
+
+        if (Time.unscaledTime < nextAssessmentRefreshTime)
+        {
+            return;
+        }
+
+        nextAssessmentRefreshTime =
+            Time.unscaledTime + AssessmentRefreshInterval;
+
+        UpdateAssessmentDisplay();
     }
 
     private void OnDestroy()
@@ -111,6 +137,12 @@ public class RoomInfoPanelUIController : MonoBehaviour
         {
             gridManager = FindFirstObjectByType<GridManager>();
         }
+
+        if (flightSchoolAssessmentController == null)
+        {
+            flightSchoolAssessmentController =
+                FindFirstObjectByType<FlightSchoolAssessmentController>();
+        }
     }
 
     private void BuildPanel()
@@ -129,8 +161,8 @@ public class RoomInfoPanelUIController : MonoBehaviour
         panel.style.paddingBottom = panelPadding;
         panel.style.backgroundColor = panelBackgroundColor;
         panel.style.borderLeftWidth = 1;
-        panel.style.borderLeftColor = new Color(1f, 1f, 1f, 0.12f);
-
+        panel.style.borderLeftColor =
+            new Color(1f, 1f, 1f, 0.12f);
         panel.style.display = DisplayStyle.None;
 
         ScrollView scrollView = new ScrollView();
@@ -178,6 +210,11 @@ public class RoomInfoPanelUIController : MonoBehaviour
         purposeDropdown.style.marginBottom = 16;
         scrollView.Add(purposeDropdown);
 
+        // Register once when building the panel, not every time it opens.
+        purposeDropdown.RegisterValueChangedCallback(
+            OnPurposeDropdownChanged
+        );
+
         AddSectionTitle(scrollView, "Requirements");
 
         requirementsLabel = CreateLabel("", 13, false);
@@ -191,6 +228,23 @@ public class RoomInfoPanelUIController : MonoBehaviour
         validationLabel.style.whiteSpace = WhiteSpace.Normal;
         validationLabel.style.marginBottom = 20;
         scrollView.Add(validationLabel);
+
+        // Flight School assessment section.
+        assessmentSection = new VisualElement();
+        assessmentSection.name = "FlightSchoolAssessmentSection";
+        assessmentSection.style.marginBottom = 18;
+        assessmentSection.style.display = DisplayStyle.None;
+        scrollView.Add(assessmentSection);
+
+        AddSectionTitle(
+            assessmentSection,
+            "Flight School Assessment"
+        );
+
+        assessmentLabel = CreateLabel("", 13, false);
+        assessmentLabel.style.whiteSpace = WhiteSpace.Normal;
+        assessmentLabel.style.marginBottom = 12;
+        assessmentSection.Add(assessmentLabel);
 
         VisualElement buttonRow = new VisualElement();
         buttonRow.style.flexDirection = FlexDirection.Row;
@@ -237,6 +291,16 @@ public class RoomInfoPanelUIController : MonoBehaviour
         parent.Add(label);
     }
 
+    private void OnPurposeDropdownChanged(ChangeEvent<string> evt)
+    {
+        if (Enum.TryParse(evt.newValue, out RoomPurpose parsed))
+        {
+            pendingPurpose = parsed;
+            UpdateValidationDisplay();
+            UpdateAssessmentDisplay();
+        }
+    }
+
     public void OpenForRoom(
         RoomDetectionController.DetectedRoom room)
     {
@@ -248,6 +312,7 @@ public class RoomInfoPanelUIController : MonoBehaviour
         ResolveReferences();
 
         selectedRoom = room;
+
         pendingPurpose = roomPurposeController != null
             ? roomPurposeController.GetAssignedPurpose(room)
             : RoomPurpose.None;
@@ -257,18 +322,10 @@ public class RoomInfoPanelUIController : MonoBehaviour
             purposeDropdown.SetValueWithoutNotify(
                 pendingPurpose.ToString()
             );
-
-            purposeDropdown.RegisterValueChangedCallback(evt =>
-            {
-                if (Enum.TryParse(evt.newValue, out RoomPurpose parsed))
-                {
-                    pendingPurpose = parsed;
-                    UpdateValidationDisplay();
-                }
-            });
         }
 
         isOpen = true;
+        nextAssessmentRefreshTime = 0f;
 
         if (panel != null)
         {
@@ -276,6 +333,7 @@ public class RoomInfoPanelUIController : MonoBehaviour
         }
 
         UpdateRoomInformation();
+        UpdateAssessmentDisplay();
         BuildHighlight();
     }
 
@@ -310,6 +368,7 @@ public class RoomInfoPanelUIController : MonoBehaviour
         }
 
         roomTitleLabel.text = "Room Information";
+
         roomSizeLabel.text =
             $"Foundation cells: {selectedRoom.CellCount}";
 
@@ -317,6 +376,7 @@ public class RoomInfoPanelUIController : MonoBehaviour
             $"Current assignment: {GetCurrentPurposeName()}";
 
         UpdateValidationDisplay();
+        UpdateAssessmentDisplay();
     }
 
     private string GetCurrentPurposeName()
@@ -364,10 +424,11 @@ public class RoomInfoPanelUIController : MonoBehaviour
 
             if (roomPurposeController != null)
             {
-                bool valid = roomPurposeController.ValidateFlightSchool(
-                    selectedRoom,
-                    out string validationMessage
-                );
+                bool valid =
+                    roomPurposeController.ValidateFlightSchool(
+                        selectedRoom,
+                        out string validationMessage
+                    );
 
                 validationLabel.text = valid
                     ? "Valid: this room meets the requirements."
@@ -397,6 +458,111 @@ public class RoomInfoPanelUIController : MonoBehaviour
 
             validationLabel.style.color = secondaryTextColor;
         }
+    }
+
+    private void UpdateAssessmentDisplay()
+    {
+        if (assessmentSection == null)
+        {
+            return;
+        }
+
+        bool shouldShow =
+            selectedRoom != null &&
+            pendingPurpose == RoomPurpose.FlightSchool;
+
+        assessmentSection.style.display = shouldShow
+            ? DisplayStyle.Flex
+            : DisplayStyle.None;
+
+        if (!shouldShow)
+        {
+            return;
+        }
+
+        if (flightSchoolAssessmentController == null)
+        {
+            assessmentLabel.text =
+                "Assessment controller not found.\n\n" +
+                "Add FlightSchoolAssessmentController to a scene " +
+                "GameObject and ensure it references the room-purpose " +
+                "system.";
+
+            return;
+        }
+
+        if (selectedRoom.cells == null ||
+            selectedRoom.cells.Count == 0)
+        {
+            assessmentLabel.text =
+                "This room has no detected foundation cells.";
+
+            return;
+        }
+
+        // Assessment records use the room's minimum grid X/Z anchor.
+        int minX = int.MaxValue;
+        int minZ = int.MaxValue;
+
+        foreach (Vector2Int cell in selectedRoom.cells)
+        {
+            if (cell.x < minX)
+            {
+                minX = cell.x;
+            }
+
+            if (cell.y < minZ)
+            {
+                minZ = cell.y;
+            }
+        }
+
+        Vector2Int roomAnchor = new Vector2Int(minX, minZ);
+
+        if (!flightSchoolAssessmentController.TryGetAssessment(
+                roomAnchor,
+                out FlightSchoolRoomAssessment assessment))
+        {
+            assessmentLabel.text =
+                "No assessment record is available for this room yet.\n\n" +
+                "Assign the room as a Flight School and reopen this " +
+                "panel after the assessment refreshes.";
+
+            return;
+        }
+
+        string operationalStatus =
+            assessment.meetsMinimumOperationalRequirements
+                ? "OPERATIONAL"
+                : "NOT OPERATIONAL";
+
+        assessmentLabel.text =
+            $"FACILITY QUALITY\n" +
+            $"{assessment.facilityQualityScore}/100\n\n" +
+
+            $"Quality breakdown:\n" +
+            $"• Room area: {assessment.areaQualityPoints}/40\n" +
+            $"• Student seating: {assessment.seatingQualityPoints}/40\n" +
+            $"• Instructor desks: " +
+            $"{assessment.instructorDeskQualityPoints}/20\n\n" +
+
+            $"FACILITY DETAILS\n" +
+            $"• Foundation cells: {assessment.usableFoundationCells}\n" +
+            $"• Student seats: {assessment.studentSeatCount}\n" +
+            $"• Student capacity: {assessment.studentCapacity}\n" +
+            $"• Instructor desks: {assessment.instructorDeskCount}\n\n" +
+
+            $"OPERATIONAL STATUS\n" +
+            $"{operationalStatus}\n" +
+            $"{assessment.operationalRequirementMessage}\n\n" +
+
+            $"SHARED AIRPORT TRAINING PARKING\n" +
+            $"• Designated spots: " +
+            $"{assessment.designatedTrainingParkingSpotCount}\n" +
+            $"• Occupied: " +
+            $"{assessment.occupiedTrainingParkingSpotCount}\n" +
+            $"• Available: " +
+            $"{assessment.availableTrainingParkingSpotCount}";
     }
 
     private void ApplyAssignment()
@@ -437,9 +603,14 @@ public class RoomInfoPanelUIController : MonoBehaviour
 
         Vector3 gridOrigin = gridManager.transform.position;
 
-        Vector3 center00 = gridManager.GridToWorldCenter(Vector2Int.zero);
-        Vector3 center10 = gridManager.GridToWorldCenter(Vector2Int.right);
-        Vector3 center01 = gridManager.GridToWorldCenter(Vector2Int.up);
+        Vector3 center00 =
+            gridManager.GridToWorldCenter(Vector2Int.zero);
+
+        Vector3 center10 =
+            gridManager.GridToWorldCenter(Vector2Int.right);
+
+        Vector3 center01 =
+            gridManager.GridToWorldCenter(Vector2Int.up);
 
         float cellWidth = Vector3.Distance(center00, center10);
         float cellDepth = Vector3.Distance(center00, center01);
@@ -475,7 +646,6 @@ public class RoomInfoPanelUIController : MonoBehaviour
             vertices.Add(new Vector3(
                 center.x + halfWidth, y, center.z - halfDepth));
 
-            // Two triangles per foundation cell.
             triangles.Add(start);
             triangles.Add(start + 1);
             triangles.Add(start + 2);
@@ -525,7 +695,8 @@ public class RoomInfoPanelUIController : MonoBehaviour
 
     private void CreateHighlightMaterial()
     {
-        Shader shader = Shader.Find("Universal Render Pipeline/Unlit");
+        Shader shader =
+            Shader.Find("Universal Render Pipeline/Unlit");
 
         if (shader == null)
         {
@@ -551,6 +722,7 @@ public class RoomInfoPanelUIController : MonoBehaviour
         {
             Color color = highlightColor;
             color.a = 0.28f;
+
             highlightMaterial.SetColor("_BaseColor", color);
         }
 

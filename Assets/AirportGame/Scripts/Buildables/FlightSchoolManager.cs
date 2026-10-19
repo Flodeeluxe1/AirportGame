@@ -1,13 +1,25 @@
+
 using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
 /// Scene-level coordinator for all player-assigned Flight School rooms.
-/// Add one instance to a scene GameObject; it does not belong on a building
-/// prefab because rooms are created dynamically from foundations and walls.
+/// Each room has its own daily student demand, based on facility quality
+/// and capped by the number of student seats in that room.
+///
+/// Training operates from 08:00 up to (but not including) 18:00.
+/// Lessons already underway are allowed to finish after closing.
+///
+/// When an aircraft first spawns, it waits for the configured preparation
+/// period before its first lesson starts. After each completed lesson,
+/// it waits for the same period before the next lesson starts.
 /// </summary>
 public class FlightSchoolManager : MonoBehaviour
 {
+    private const int SecondsPerDay = 86400;
+    private const int OpeningTimeSeconds = 8 * 60 * 60;
+    private const int ClosingTimeSeconds = 18 * 60 * 60;
+
     [Header("Room Detection")]
     [SerializeField] private RoomPurposeController roomPurposeController;
     [SerializeField, Min(0.1f)] private float roomRefreshInterval = 0.5f;
@@ -17,6 +29,10 @@ public class FlightSchoolManager : MonoBehaviour
 
     [Header("Lesson Reward")]
     [SerializeField, Min(1)] private int lessonReward = 300;
+
+    [Header("Lesson Preparation and Turnaround")]
+    [Tooltip("In-game minutes the aircraft waits after spawning and between lessons.")]
+    [SerializeField, Min(0)] private int turnaroundMinutes = 30;
 
     [Header("Runtime Status")]
     [SerializeField]
@@ -30,16 +46,28 @@ public class FlightSchoolManager : MonoBehaviour
         public bool assigned;
         public bool valid;
         public string validationMessage;
+
         public GameObject aircraft;
         public HobbyAircraftParkingSpot parkingSpot;
+
         public bool rewardPaid;
         public bool lessonRestartPending;
+
+        // Used for both the initial preparation period and later turnarounds.
+        public bool turnaroundPending;
+        public long turnaroundReadyAtGameSeconds;
+
+        public long demandDay = -1;
+        public int studentsStartedToday;
     }
 
     private readonly Dictionary<Vector2Int, SchoolOperation> operations =
         new Dictionary<Vector2Int, SchoolOperation>();
 
     private AirportEconomyManager economyManager;
+    private FlightSchoolAssessmentController assessmentController;
+    private GameTimeManager gameTimeManager;
+
     private float nextRoomRefreshTime;
     private static FlightSchoolManager activeManager;
 
@@ -51,6 +79,7 @@ public class FlightSchoolManager : MonoBehaviour
                 "Only one scene-level FlightSchoolManager should be active. " +
                 "The duplicate manager has been disabled.",
                 this);
+
             enabled = false;
             return;
         }
@@ -76,16 +105,22 @@ public class FlightSchoolManager : MonoBehaviour
 
         foreach (SchoolOperation operation in operations.Values)
         {
-            // An active lesson is deliberately allowed to finish even if
-            // the room becomes invalid or stops being detected.
+            EnsureDailyDemandIsCurrent(operation);
+
+            // An active aircraft is managed here even during its initial
+            // preparation period, when its lesson has not started yet.
             if (operation.aircraft != null)
             {
                 CheckLessonCompletion(operation);
                 continue;
             }
 
-            if (!operation.assigned || !operation.valid || operation.rewardPaid)
+            if (!operation.assigned ||
+                !operation.valid ||
+                operation.rewardPaid)
+            {
                 continue;
+            }
 
             TrySpawnTrainingAircraft(operation);
         }
@@ -94,17 +129,151 @@ public class FlightSchoolManager : MonoBehaviour
     private void ResolveReferences()
     {
         if (roomPurposeController == null)
-            roomPurposeController = FindFirstObjectByType<RoomPurposeController>();
+            roomPurposeController =
+                FindFirstObjectByType<RoomPurposeController>();
 
         if (economyManager == null)
-            economyManager = FindFirstObjectByType<AirportEconomyManager>();
+            economyManager =
+                FindFirstObjectByType<AirportEconomyManager>();
+
+        if (assessmentController == null)
+            assessmentController =
+                FindFirstObjectByType<FlightSchoolAssessmentController>();
+
+        if (gameTimeManager == null)
+            gameTimeManager =
+                FindFirstObjectByType<GameTimeManager>();
+    }
+
+    private long GetAbsoluteGameTimeSeconds()
+    {
+        if (gameTimeManager == null)
+            return 0;
+
+        return
+            (gameTimeManager.CurrentDay - 1) * (long)SecondsPerDay +
+            gameTimeManager.GetGameTimeSeconds();
+    }
+
+    private void EnsureDailyDemandIsCurrent(SchoolOperation operation)
+    {
+        if (gameTimeManager == null)
+            return;
+
+        long currentDay = gameTimeManager.CurrentDay;
+
+        if (operation.demandDay == currentDay)
+            return;
+
+        operation.demandDay = currentDay;
+        operation.studentsStartedToday = 0;
+    }
+
+    private bool IsWithinOperatingHours()
+    {
+        if (gameTimeManager == null)
+            return false;
+
+        int currentSeconds = gameTimeManager.GetGameTimeSeconds();
+
+        return currentSeconds >= OpeningTimeSeconds &&
+               currentSeconds < ClosingTimeSeconds;
+    }
+
+    private bool TryGetDailyDemand(
+        SchoolOperation operation,
+        out int dailyDemand,
+        out string reason)
+    {
+        dailyDemand = 0;
+        reason = string.Empty;
+
+        if (assessmentController == null)
+        {
+            reason =
+                "FlightSchoolAssessmentController was not found in the scene.";
+            return false;
+        }
+
+        if (!assessmentController.TryGetAssessment(
+                operation.anchor,
+                out FlightSchoolRoomAssessment assessment))
+        {
+            reason =
+                "Waiting for the Flight School facility assessment.";
+            return false;
+        }
+
+        int qualityDemand;
+
+        if (assessment.facilityQualityScore < 20)
+            qualityDemand = 0;
+        else if (assessment.facilityQualityScore < 40)
+            qualityDemand = 2;
+        else if (assessment.facilityQualityScore < 60)
+            qualityDemand = 4;
+        else if (assessment.facilityQualityScore < 80)
+            qualityDemand = 6;
+        else
+            qualityDemand = 8;
+
+        int seatCount = Mathf.Max(0, assessment.studentSeatCount);
+        dailyDemand = Mathf.Min(qualityDemand, seatCount);
+
+        return true;
+    }
+
+    private bool CanStartNewLesson(
+        SchoolOperation operation,
+        out string reason)
+    {
+        reason = string.Empty;
+
+        if (gameTimeManager == null)
+        {
+            reason = "GameTimeManager was not found in the scene.";
+            return false;
+        }
+
+        if (!IsWithinOperatingHours())
+        {
+            reason =
+                "Flight School is closed. Operating hours are 08:00–18:00.";
+            return false;
+        }
+
+        if (!TryGetDailyDemand(
+                operation,
+                out int dailyDemand,
+                out string demandReason))
+        {
+            reason = demandReason;
+            return false;
+        }
+
+        if (dailyDemand <= 0)
+        {
+            reason =
+                "Daily student demand is 0. Improve facility quality and check student seats.";
+            return false;
+        }
+
+        if (operation.studentsStartedToday >= dailyDemand)
+        {
+            reason =
+                $"Daily student demand reached ({operation.studentsStartedToday}/{dailyDemand}). Waiting for the next day.";
+            return false;
+        }
+
+        return true;
     }
 
     private void RefreshSchoolRooms()
     {
         if (roomPurposeController == null)
         {
-            debugStatus = "RoomPurposeController was not found in the scene.";
+            debugStatus =
+                "RoomPurposeController was not found in the scene.";
             return;
         }
 
@@ -113,6 +282,7 @@ public class FlightSchoolManager : MonoBehaviour
             operation.assigned = false;
             operation.room = null;
             operation.valid = false;
+
             operation.validationMessage =
                 "Room is no longer detected as an assigned Flight School.";
         }
@@ -122,8 +292,12 @@ public class FlightSchoolManager : MonoBehaviour
 
         foreach (RoomDetectionController.DetectedRoom room in rooms)
         {
-            if (room == null || room.cells == null || room.cells.Count == 0)
+            if (room == null ||
+                room.cells == null ||
+                room.cells.Count == 0)
+            {
                 continue;
+            }
 
             Vector2Int anchor = GetAnchor(room);
 
@@ -140,8 +314,11 @@ public class FlightSchoolManager : MonoBehaviour
 
             operation.room = room;
             operation.assigned = true;
-            operation.valid = roomPurposeController.ValidateFlightSchool(
-                room, out string reason);
+
+            operation.valid =
+                roomPurposeController.ValidateFlightSchool(
+                    room,
+                    out string reason);
 
             operation.validationMessage = operation.valid
                 ? "Operational."
@@ -186,6 +363,12 @@ public class FlightSchoolManager : MonoBehaviour
 
     private void TrySpawnTrainingAircraft(SchoolOperation operation)
     {
+        if (!CanStartNewLesson(operation, out string reason))
+        {
+            operation.validationMessage = reason;
+            return;
+        }
+
         if (trainingAircraftPrefab == null)
         {
             operation.validationMessage =
@@ -244,26 +427,23 @@ public class FlightSchoolManager : MonoBehaviour
 
             identity.InitializeTrainingFlight(trainingNumber, 0, 0);
 
-            if (!trainingController.StartTrainingLesson())
-            {
-                Debug.LogError(
-                    $"{name}: The training lesson could not start for " +
-                    $"Flight School room at {operation.anchor}.",
-                    this);
-
-                spot.Release(aircraft);
-                Destroy(aircraft);
-                return;
-            }
-
+            // Do not start the lesson yet. First allow time for the student
+            // to board and for the aircraft to be prepared.
             operation.aircraft = aircraft;
             operation.parkingSpot = spot;
+            operation.rewardPaid = false;
+            operation.lessonRestartPending = false;
+
+            BeginTurnaround(operation);
+
             operation.validationMessage =
-                $"Training aircraft active at parking spot '{spot.name}'.";
+                $"Aircraft spawned at '{spot.name}'. Initial preparation: " +
+                $"{turnaroundMinutes} in-game minute(s) remaining.";
 
             Debug.Log(
-                $"{name}: Started a training lesson for Flight School room " +
-                $"at {operation.anchor}; aircraft spawned at {spot.name}.",
+                $"{name}: Training aircraft spawned for Flight School room " +
+                $"at {operation.anchor}, parking at '{spot.name}'. " +
+                $"Waiting {turnaroundMinutes} in-game minutes before the first lesson.",
                 this);
 
             return;
@@ -271,6 +451,48 @@ public class FlightSchoolManager : MonoBehaviour
 
         operation.validationMessage =
             "Waiting for an unoccupied parking spot designated for flight school.";
+    }
+
+    private void BeginTurnaround(SchoolOperation operation)
+    {
+        if (operation.turnaroundPending || gameTimeManager == null)
+            return;
+
+        long turnaroundSeconds =
+            Mathf.Max(0, turnaroundMinutes) * 60L;
+
+        operation.turnaroundPending = true;
+        operation.turnaroundReadyAtGameSeconds =
+            GetAbsoluteGameTimeSeconds() + turnaroundSeconds;
+
+        Debug.Log(
+            $"{name}: Flight School room at {operation.anchor} began its " +
+            $"{turnaroundMinutes}-minute preparation/turnaround period.",
+            this);
+    }
+
+    private bool IsTurnaroundComplete(SchoolOperation operation)
+    {
+        if (!operation.turnaroundPending || gameTimeManager == null)
+            return false;
+
+        return GetAbsoluteGameTimeSeconds() >=
+               operation.turnaroundReadyAtGameSeconds;
+    }
+
+    private int GetTurnaroundMinutesRemaining(SchoolOperation operation)
+    {
+        if (!operation.turnaroundPending || gameTimeManager == null)
+            return turnaroundMinutes;
+
+        long remainingSeconds =
+            operation.turnaroundReadyAtGameSeconds -
+            GetAbsoluteGameTimeSeconds();
+
+        if (remainingSeconds <= 0)
+            return 0;
+
+        return (int)((remainingSeconds + 59L) / 60L);
     }
 
     private void CheckLessonCompletion(SchoolOperation operation)
@@ -295,15 +517,78 @@ public class FlightSchoolManager : MonoBehaviour
             return;
         }
 
-        if (!trainingController.IsLessonComplete && !operation.lessonRestartPending)
-            return;
+        // Initial preparation: the aircraft exists, but its first lesson
+        // has not started yet. Wait for the game-clock timer to expire.
+        if (!trainingController.IsLessonComplete &&
+            !operation.lessonRestartPending &&
+            !operation.rewardPaid)
+        {
+            if (!IsTurnaroundComplete(operation))
+            {
+                operation.validationMessage =
+                    $"Aircraft parked for initial student boarding and preparation. " +
+                    $"Remaining: {GetTurnaroundMinutesRemaining(operation)} in-game minute(s).";
+                return;
+            }
 
-        // Pay once for each completed lesson. Keep rewardPaid true until the
-        // next lesson successfully starts, preventing duplicate payouts.
+            if (!operation.assigned || !operation.valid)
+            {
+                operation.validationMessage =
+                    "Initial preparation complete. Waiting for the Flight School room to be valid again.";
+                return;
+            }
+
+            if (!CanStartNewLesson(operation, out string initialReason))
+            {
+                operation.validationMessage =
+                    "Initial preparation complete. " + initialReason;
+                return;
+            }
+
+            if (!trainingController.StartTrainingLesson())
+            {
+                operation.validationMessage =
+                    "Initial preparation complete. Retrying the first lesson start.";
+                return;
+            }
+
+            operation.studentsStartedToday++;
+            operation.turnaroundPending = false;
+            operation.turnaroundReadyAtGameSeconds = 0;
+
+            operation.validationMessage =
+                $"First lesson started after preparation. Daily students: " +
+                $"{operation.studentsStartedToday}. Same aircraft and parking retained.";
+
+            Debug.Log(
+                $"{name}: Started the first training lesson for Flight School " +
+                $"room at {operation.anchor} after its {turnaroundMinutes}-minute " +
+                $"initial preparation. Daily students started: " +
+                $"{operation.studentsStartedToday}.",
+                this);
+
+            return;
+        }
+
+        if (!trainingController.IsLessonComplete &&
+            !operation.lessonRestartPending)
+        {
+            return;
+        }
+
+        // Start the turnaround clock when a completed lesson is detected.
+        if (trainingController.IsLessonComplete &&
+            !operation.turnaroundPending)
+        {
+            BeginTurnaround(operation);
+        }
+
+        // Pay once for each completed lesson. Payment failures are retried.
         if (trainingController.IsLessonComplete && !operation.rewardPaid)
         {
             if (economyManager == null)
-                economyManager = FindFirstObjectByType<AirportEconomyManager>();
+                economyManager =
+                    FindFirstObjectByType<AirportEconomyManager>();
 
             if (economyManager == null)
             {
@@ -322,6 +607,7 @@ public class FlightSchoolManager : MonoBehaviour
             }
 
             operation.rewardPaid = true;
+
             Debug.Log(
                 $"{name}: Flight School room at {operation.anchor} paid " +
                 lessonReward + " for the completed lesson.",
@@ -331,13 +617,36 @@ public class FlightSchoolManager : MonoBehaviour
         if (!operation.rewardPaid && !operation.lessonRestartPending)
             return;
 
-        // Existing lessons may finish after a room becomes invalid. Keep the
-        // aircraft parked and paid for, but do not start a new lesson until
-        // the room has been detected and validated as operational again.
         if (!operation.assigned || !operation.valid)
         {
             operation.validationMessage =
                 "Lesson reward paid. Aircraft remains parked until the Flight School room is valid again.";
+            return;
+        }
+
+        if (!operation.turnaroundPending)
+        {
+            operation.validationMessage =
+                "Lesson reward paid. Waiting for the game clock before starting turnaround.";
+            return;
+        }
+
+        if (!IsTurnaroundComplete(operation))
+        {
+            int remainingMinutes =
+                GetTurnaroundMinutesRemaining(operation);
+
+            operation.validationMessage =
+                $"Lesson reward paid. Aircraft is parked for student transfer and preparation. " +
+                $"Turnaround remaining: {remainingMinutes} in-game minute(s).";
+
+            return;
+        }
+
+        if (!CanStartNewLesson(operation, out string reason))
+        {
+            operation.validationMessage =
+                "Lesson reward paid. Turnaround complete. " + reason;
             return;
         }
 
@@ -346,29 +655,37 @@ public class FlightSchoolManager : MonoBehaviour
             if (!trainingController.ResetForNextLesson())
             {
                 operation.validationMessage =
-                    "Lesson reward paid. Waiting to reset the parked aircraft for the next lesson.";
+                    "Turnaround complete. Waiting to reset the parked aircraft for the next lesson.";
                 return;
             }
 
             operation.lessonRestartPending = true;
         }
 
-        // Retry a failed start without resetting again or paying twice.
+        // Retry a failed lesson start without resetting again or paying twice.
         if (!trainingController.StartTrainingLesson())
         {
             operation.validationMessage =
-                "Lesson reward paid. Retrying the next lesson start.";
+                "Turnaround complete. Retrying the next lesson start.";
             return;
         }
 
+        // Consume demand only when the next lesson successfully starts.
+        operation.studentsStartedToday++;
+
         operation.rewardPaid = false;
         operation.lessonRestartPending = false;
+        operation.turnaroundPending = false;
+        operation.turnaroundReadyAtGameSeconds = 0;
+
         operation.validationMessage =
-            "Next lesson started; the same aircraft and parking reservation are retained.";
+            $"Next lesson started after turnaround. Daily students: " +
+            $"{operation.studentsStartedToday}. Same aircraft and parking retained.";
 
         Debug.Log(
-            $"{name}: Automatically started the next lesson for Flight School room " +
-            $"at {operation.anchor}; aircraft and parking reservation were retained.",
+            $"{name}: Started the next lesson for Flight School room " +
+            $"{operation.anchor} after its {turnaroundMinutes}-minute turnaround. " +
+            $"Daily students started: {operation.studentsStartedToday}.",
             this);
     }
 
@@ -377,8 +694,6 @@ public class FlightSchoolManager : MonoBehaviour
         if (activeManager == this)
             activeManager = null;
 
-        // Preserve the previous manager's cleanup behavior if the scene
-        // manager itself is intentionally removed.
         foreach (SchoolOperation operation in operations.Values)
         {
             if (operation.aircraft == null)

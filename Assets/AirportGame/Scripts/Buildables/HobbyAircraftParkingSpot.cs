@@ -24,17 +24,9 @@ public class HobbyAircraftParkingSpot : MonoBehaviour
 
     private PlacedBuilding placedBuilding;
 
-    /// <summary>
-    /// Whether this spot is manually designated for flight-school use.
-    /// The player controls this setting.
-    /// </summary>
     public bool ReservedForFlightSchool =>
         reservedForFlightSchool;
 
-    /// <summary>
-    /// Whether an aircraft currently occupies or has reserved this spot.
-    /// A destroyed aircraft does not leave the spot permanently occupied.
-    /// </summary>
     public bool IsOccupied
     {
         get
@@ -74,11 +66,14 @@ public class HobbyAircraftParkingSpot : MonoBehaviour
     }
 
     /// <summary>
-    /// Reserves this spot for an aircraft.
-    /// Flight-school aircraft must explicitly identify themselves
-    /// when reserving a school-designated spot.
-    /// The manual designation is never modified here.
+    /// Restores the manually chosen designation from a save file.
+    /// Does not restore aircraft occupancy.
     /// </summary>
+    public void RestoreFlightSchoolDesignation(bool isDesignated)
+    {
+        reservedForFlightSchool = isDesignated;
+    }
+
     public bool TryReserve(
         GameObject aircraft,
         bool isFlightSchoolAircraft = false)
@@ -88,19 +83,15 @@ public class HobbyAircraftParkingSpot : MonoBehaviour
 
         FindPlacedBuildingIfNeeded();
 
-        // Only an actual placed building can be used as a parking spot.
         if (placedBuilding == null)
             return false;
 
-        // Hobby and other ordinary aircraft cannot use school-designated spots.
         if (reservedForFlightSchool && !isFlightSchoolAircraft)
             return false;
 
-        // Allow repeated reservation by the same aircraft.
         if (reservedAircraft == aircraft)
             return true;
 
-        // Never overwrite another aircraft's reservation.
         if (IsOccupied)
             return false;
 
@@ -116,10 +107,6 @@ public class HobbyAircraftParkingSpot : MonoBehaviour
         return true;
     }
 
-    /// <summary>
-    /// Releases the aircraft's occupancy reservation.
-    /// Does not change the manual flight-school designation.
-    /// </summary>
     public bool Release(GameObject aircraft)
     {
         if (aircraft == null || reservedAircraft != aircraft)

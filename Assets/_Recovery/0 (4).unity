@@ -1254,6 +1254,73 @@ MonoBehaviour:
   edgeOccupancy: {fileID: 751787733}
   refreshInterval: 0.5
   logRoomChanges: 1
+--- !u!1 &732156761
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 732156762}
+  - component: {fileID: 732156763}
+  - component: {fileID: 732156764}
+  m_Layer: 0
+  m_Name: FlightSchoolManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &732156762
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 732156761}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 38.17003, y: -0, z: 35.97208}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &732156763
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 732156761}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: defbdb8f5a3a303468ec841b18de9736, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FlightSchoolManager
+  roomPurposeController: {fileID: 0}
+  roomRefreshInterval: 0.5
+  trainingAircraftPrefab: {fileID: 2931056182657766213, guid: 8afccdf60d37e4246b1afa298d184735, type: 3}
+  lessonReward: 300
+  turnaroundMinutes: 30
+  debugStatus: Waiting for an assigned Flight School room.
+--- !u!114 &732156764
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 732156761}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8f7987af2dd35d8448ee2ded07eb1ef6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FlightSchoolAssessmentController
+  roomPurposeController: {fileID: 0}
+  refreshInterval: 0.5
+  assessments: []
+  debugStatus: Waiting for Flight School rooms.
 --- !u!1 &732953584
 GameObject:
   m_ObjectHideFlags: 0
@@ -2484,6 +2551,7 @@ MonoBehaviour:
   uiDocument: {fileID: 762824360}
   roomPurposeController: {fileID: 1399790236}
   gridManager: {fileID: 728659359}
+  flightSchoolAssessmentController: {fileID: 0}
   panelWidth: 320
   panelPadding: 18
   highlightColor: {r: 1, g: 0.82, b: 0, a: 0.28}
@@ -2673,6 +2741,63 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1001 &1692175396
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: -8679921383154817045, guid: 0ad4309063bfe4846afbb978625aac3b, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 41.700146
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 0ad4309063bfe4846afbb978625aac3b, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.00000006220705
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 0ad4309063bfe4846afbb978625aac3b, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 34.701912
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 0ad4309063bfe4846afbb978625aac3b, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 0ad4309063bfe4846afbb978625aac3b, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 0ad4309063bfe4846afbb978625aac3b, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 0ad4309063bfe4846afbb978625aac3b, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 0ad4309063bfe4846afbb978625aac3b, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 0ad4309063bfe4846afbb978625aac3b, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 0ad4309063bfe4846afbb978625aac3b, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 0ad4309063bfe4846afbb978625aac3b, type: 3}
+      propertyPath: m_Name
+      value: desk resp
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 0ad4309063bfe4846afbb978625aac3b, type: 3}
 --- !u!1 &1705385915
 GameObject:
   m_ObjectHideFlags: 0
@@ -4308,6 +4433,7 @@ SceneRoots:
   - {fileID: 732953586}
   - {fileID: 5633136184725958524}
   - {fileID: 865406823227924243}
+  - {fileID: 732156762}
   - {fileID: 2134991058}
   - {fileID: 1009875349}
   - {fileID: 756627278}
@@ -4330,3 +4456,4 @@ SceneRoots:
   - {fileID: 5618210661003509659}
   - {fileID: 5563758338144555459}
   - {fileID: 2206400020603114989}
+  - {fileID: 1692175396}
