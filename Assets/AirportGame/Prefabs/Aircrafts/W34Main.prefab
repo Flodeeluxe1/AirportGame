@@ -1,0 +1,239 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &753756043139321930
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7383888018508700293}
+  - component: {fileID: 2423156278310145653}
+  - component: {fileID: 2058485056701865831}
+  - component: {fileID: 8664738503010462070}
+  - component: {fileID: 5153398351784972899}
+  - component: {fileID: -3780748238844713195}
+  m_Layer: 0
+  m_Name: W34Main
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7383888018508700293
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 753756043139321930}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 36.2169, y: -0, z: 19.26023}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 3906438659846040324}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &2423156278310145653
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 753756043139321930}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 2, y: 1, z: 2}
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &2058485056701865831
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 753756043139321930}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: db4052f87d2eb79448f793591e583f1d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AircraftFlightIdentity
+  flightNumber: 
+  plannedGateStableId: 
+  actualGateStableId: 
+--- !u!114 &8664738503010462070
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 753756043139321930}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 03afd6a5301d25e4fa7cef7aa0ee0a5f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AircraftStatus
+--- !u!114 &5153398351784972899
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 753756043139321930}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0eff5b2534f448848a4d5ab33aa74564, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AircraftSSLandingController
+  gridManager: {fileID: 0}
+  weather: {fileID: 0}
+  approachDistance: 60
+  glideAngleDegrees: 3
+  approachSpeedKnots: 140
+  touchdownSpeedKnots: 120
+  rolloutTargetSpeedKnots: 30
+  worldUnitsPerSecondPerKnot: 0.05
+  speedChangeRate: 3
+  rolloutDeceleration: 1.2
+  flareHeight: 1.5
+  noseRaiseDegrees: 3
+  noseLoweringDuration: 1.5
+  maximumSidewindComponentKnots: 15
+  goAroundNoseUpDegrees: 20
+  goAroundAltitudeAboveRunway: 30
+  rotationSpeed: 3
+  modelRotationOffset: {x: 0, y: 0, z: 0}
+  debugLandingState: Initializing
+  debugSelectedRunway: None
+  debugLandingHeading: None
+  debugStatus: Waiting for initialization
+  debugHeadwindComponentKnots: 0
+  debugSidewindComponentKnots: 0
+  debugCurrentSpeedKnots: 0
+  debugDistanceToThreshold: 0
+  debugGoAroundTargetAltitude: 0
+--- !u!114 &-3780748238844713195
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 753756043139321930}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 08f570a14310b4e43b443c2f39570a65, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AircraftSSLandingTaxiController
+  landingController: {fileID: 0}
+  gridManager: {fileID: 0}
+  taxiwayNetwork: {fileID: 0}
+  taxiwayPathfinder: {fileID: 0}
+  connectionSearchRadiusCells: 12
+  maximumRouteAttempts: 32
+  minimumTaxiwayWidth: 3
+  maximumRunwayExitLateralDistance: 12
+  minimumExitForwardDistance: 0.5
+  runwayEndTolerance: 1
+  maximumParkingConnectorDistance: 4
+  taxiSpeedKnots: 10
+  worldUnitsPerSecondPerKnot: 0.05
+  rotationSpeed: 3
+  waypointArrivalDistance: 0.2
+  parkingArrivalDistance: 0.5
+  taxiHeightOffset: 0.05
+  modelRotationOffset: {x: 0, y: 0, z: 0}
+  turningRadiusInCells: 2
+  turnCurveResolution: 8
+  taxiPathPointTolerance: 0.02
+  logTaxiProgress: 1
+  debugStatus: Waiting for sightseeing landing completion.
+--- !u!1001 &3583963974137580783
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 7383888018508700293}
+    m_Modifications:
+    - target: {fileID: -8679921383154817045, guid: 1d30f23e6abae104a88e073f0a20be03, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 0.35
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 1d30f23e6abae104a88e073f0a20be03, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 0.35
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 1d30f23e6abae104a88e073f0a20be03, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 0.35
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 1d30f23e6abae104a88e073f0a20be03, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 1d30f23e6abae104a88e073f0a20be03, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.6
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 1d30f23e6abae104a88e073f0a20be03, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 1d30f23e6abae104a88e073f0a20be03, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.7071068
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 1d30f23e6abae104a88e073f0a20be03, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 1d30f23e6abae104a88e073f0a20be03, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0.7071068
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 1d30f23e6abae104a88e073f0a20be03, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 1d30f23e6abae104a88e073f0a20be03, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 1d30f23e6abae104a88e073f0a20be03, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: -90
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 1d30f23e6abae104a88e073f0a20be03, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 1d30f23e6abae104a88e073f0a20be03, type: 3}
+      propertyPath: m_ConstrainProportionsScale
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 1d30f23e6abae104a88e073f0a20be03, type: 3}
+      propertyPath: m_Name
+      value: w34
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 1d30f23e6abae104a88e073f0a20be03, type: 3}
+--- !u!4 &3906438659846040324 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 1d30f23e6abae104a88e073f0a20be03, type: 3}
+  m_PrefabInstance: {fileID: 3583963974137580783}
+  m_PrefabAsset: {fileID: 0}
