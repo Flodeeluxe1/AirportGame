@@ -179,14 +179,25 @@ public class AircraftSSLandingTaxiController : MonoBehaviour
         }
     }
 
+
+
     private void TryBuildTaxiRoute()
     {
+        Debug.Log(
+            $"[SS TAXI DIAG] START | Aircraft={name} | " +
+            $"Position={transform.position}",
+            this);
+
         if (gridManager == null ||
             taxiwayNetwork == null ||
             taxiwayPathfinder == null ||
             landingController == null)
         {
-            Fail("GridManager, TaxiwayNetwork, TaxiwayPathfinder or landing controller is missing.");
+            Fail(
+                $"Missing references | GridManager={gridManager != null} | " +
+                $"TaxiwayNetwork={taxiwayNetwork != null} | " +
+                $"TaxiwayPathfinder={taxiwayPathfinder != null} | " +
+                $"LandingController={landingController != null}");
             return;
         }
 
@@ -198,6 +209,24 @@ public class AircraftSSLandingTaxiController : MonoBehaviour
             return;
         }
 
+        PlacedBuilding parkingBuilding =
+            reservedSpot.GetComponent<PlacedBuilding>();
+
+        if (parkingBuilding == null)
+        {
+            Fail("Sightseeing parking spot has no PlacedBuilding component.");
+            return;
+        }
+
+        Debug.Log(
+            $"[SS TAXI DIAG] PARKING | Spot={reservedSpot.name} | " +
+            $"Position={reservedSpot.ParkingWorldPosition} | " +
+            $"GridCell={gridManager.WorldToGrid(reservedSpot.ParkingWorldPosition)} | " +
+            $"Origin={parkingBuilding.Origin} | " +
+            $"Width={parkingBuilding.Width} | Depth={parkingBuilding.Depth} | " +
+            $"Rotation={parkingBuilding.Rotation}",
+            this);
+
         selectedRunway = landingController.SelectedRunway;
         landingDirection = landingController.LandingDirection;
         landingDirection.y = 0f;
@@ -205,7 +234,7 @@ public class AircraftSSLandingTaxiController : MonoBehaviour
         if (selectedRunway == null ||
             landingDirection.sqrMagnitude < 0.0001f)
         {
-            Fail("The selected runway or landing direction is invalid.");
+            Fail("Selected runway or landing direction is invalid.");
             return;
         }
 
@@ -218,7 +247,7 @@ public class AircraftSSLandingTaxiController : MonoBehaviour
                 out float runwayLength,
                 out float runwaySurfaceY))
         {
-            Fail("Could not retrieve the selected runway geometry.");
+            Fail("Could not retrieve selected runway geometry.");
             return;
         }
 
@@ -227,9 +256,18 @@ public class AircraftSSLandingTaxiController : MonoBehaviour
 
         if (runwayBuilding == null)
         {
-            Fail("The selected runway has no PlacedBuilding component.");
+            Fail("Selected runway has no PlacedBuilding component.");
             return;
         }
+
+        Debug.Log(
+            $"[SS TAXI DIAG] RUNWAY | Name={selectedRunway.name} | " +
+            $"Center={runwayCenter} | Axis={runwayAxis} | " +
+            $"Length={runwayLength} | SurfaceY={runwaySurfaceY} | " +
+            $"Direction={landingDirection} | " +
+            $"Origin={runwayBuilding.Origin} | " +
+            $"Width={runwayBuilding.Width} | Depth={runwayBuilding.Depth}",
+            this);
 
         taxiWorldY = runwaySurfaceY + taxiHeightOffset;
 
@@ -242,9 +280,15 @@ public class AircraftSSLandingTaxiController : MonoBehaviour
         float remainingRunwayDistance =
             Vector3.Dot(runwayEnd - aircraftPosition, landingDirection);
 
+        Debug.Log(
+            $"[SS TAXI DIAG] RUNWAY POSITION | AircraftAt={aircraftPosition} | " +
+            $"RunwayEnd={runwayEnd} | " +
+            $"RemainingDistance={remainingRunwayDistance}",
+            this);
+
         if (remainingRunwayDistance <= 0f)
         {
-            Fail("The aircraft is at or beyond the runway end; no forward runway exit is available.");
+            Fail("Aircraft is at or beyond the runway end.");
             return;
         }
 
@@ -252,6 +296,22 @@ public class AircraftSSLandingTaxiController : MonoBehaviour
             aircraftPosition,
             remainingRunwayDistance,
             runwayBuilding);
+
+        Debug.Log(
+            $"[SS TAXI DIAG] EXITS FOUND | Count={exits.Count} | " +
+            $"MinimumWidth={minimumTaxiwayWidth}",
+            this);
+
+        for (int i = 0; i < exits.Count; i++)
+        {
+            ExitCandidate e = exits[i];
+
+            Debug.Log(
+                $"[SS TAXI DIAG] EXIT {i} | Cell={e.Cell} | " +
+                $"Forward={e.ForwardDistance:F2} | " +
+                $"Lateral={e.LateralDistance:F2}",
+                this);
+        }
 
         if (exits.Count == 0)
         {
@@ -265,9 +325,36 @@ public class AircraftSSLandingTaxiController : MonoBehaviour
         List<TargetCandidate> targets =
             FindNearbyTaxiwayTargets(parkingTarget);
 
+        float connectorDistance =
+            maximumParkingConnectorDistance * gridManager.CellSize;
+
+        Debug.Log(
+            $"[SS TAXI DIAG] TARGET SEARCH | ParkingTarget={parkingTarget} | " +
+            $"SearchRadius={connectionSearchRadiusCells} cells | " +
+            $"CellSize={gridManager.CellSize} | " +
+            $"MaxConnectorDistance={connectorDistance:F2} | " +
+            $"TargetsFound={targets.Count}",
+            this);
+
+        for (int i = 0; i < targets.Count; i++)
+        {
+            TargetCandidate t = targets[i];
+            Vector3 world = gridManager.GridToWorldCenter(t.Cell);
+
+            float edgeDistance = GetDistanceToParkingFootprintEdge(t.Cell);
+
+            Debug.Log(
+                $"[SS TAXI DIAG] TARGET {i} | Cell={t.Cell} | " +
+                $"World={world} | " +
+                $"DistanceToFootprintEdge={edgeDistance:F2} | " +
+                $"DistanceToParkingRoot={HorizontalDistance(world, parkingTarget):F2} | " +
+                $"TaxiwayWidth={taxiwayNetwork.GetTaxiwayWidth(t.Cell)}",
+                this);
+        }
+
         if (targets.Count == 0)
         {
-            Fail("No suitable taxiway centerline was found near the sightseeing parking spot.");
+            Fail("No suitable taxiway centerline was found near sightseeing parking.");
             return;
         }
 
@@ -276,31 +363,33 @@ public class AircraftSSLandingTaxiController : MonoBehaviour
         TargetCandidate chosenTarget = default;
         List<Vector2Int> chosenPath = null;
         int attempts = 0;
+        int skippedByDistance = 0;
+        int failedPaths = 0;
 
-        // Try each runway exit before moving on to a second target
-        // for any exit. This prevents one exit from consuming every attempt.
-        for (int targetIndex = 0;
-             targetIndex < targets.Count && attempts < maximumRouteAttempts;
-             targetIndex++)
+        foreach (ExitCandidate exit in exits)
         {
-            for (int exitIndex = 0;
-                 exitIndex < exits.Count && attempts < maximumRouteAttempts;
-                 exitIndex++)
+            foreach (TargetCandidate target in targets)
             {
-                ExitCandidate exit = exits[exitIndex];
-                TargetCandidate target = targets[targetIndex];
-
                 Vector3 targetWorld =
                     gridManager.GridToWorldCenter(target.Cell);
 
                 targetWorld.y = taxiWorldY;
 
-                float connectorDistance =
-                    maximumParkingConnectorDistance * gridManager.CellSize;
+                float distanceToFootprintEdge =
+                    GetDistanceToParkingFootprintEdge(target.Cell);
 
-                if (HorizontalDistance(targetWorld, parkingTarget) >
-                    connectorDistance)
+                if (distanceToFootprintEdge > connectorDistance)
                 {
+                    skippedByDistance++;
+
+                    Debug.Log(
+                        $"[SS TAXI DIAG] SKIP PAIR | Exit={exit.Cell} | " +
+                        $"Target={target.Cell} | " +
+                        $"Reason=Too far from parking footprint edge | " +
+                        $"Distance={distanceToFootprintEdge:F2} | " +
+                        $"Limit={connectorDistance:F2}",
+                        this);
+
                     continue;
                 }
 
@@ -312,8 +401,21 @@ public class AircraftSSLandingTaxiController : MonoBehaviour
                         target.Cell,
                         minimumTaxiwayWidth);
 
-                if (candidatePath == null || candidatePath.Count == 0)
+                bool pathFound =
+                    candidatePath != null && candidatePath.Count > 0;
+
+                Debug.Log(
+                    $"[SS TAXI DIAG] PATH TEST {attempts} | " +
+                    $"Exit={exit.Cell} -> Target={target.Cell} | " +
+                    $"Found={pathFound} | " +
+                    $"PathCells={(pathFound ? candidatePath.Count : 0)}",
+                    this);
+
+                if (!pathFound)
+                {
+                    failedPaths++;
                     continue;
+                }
 
                 chosenExit = exit;
                 chosenTarget = target;
@@ -326,9 +428,20 @@ public class AircraftSSLandingTaxiController : MonoBehaviour
                 break;
         }
 
+        Debug.Log(
+            $"[SS TAXI DIAG] SEARCH SUMMARY | " +
+            $"Exits={exits.Count} | Targets={targets.Count} | " +
+            $"PairsTested={attempts} | SkippedByDistance={skippedByDistance} | " +
+            $"FailedPaths={failedPaths} | RouteFound={foundRoute}",
+            this);
+
         if (!foundRoute)
         {
-            Fail("No connected taxiway route was found between the runway exit and sightseeing parking.");
+            Fail(
+                "No connected taxiway route was found. " +
+                $"Diagnostic: exits={exits.Count}, targets={targets.Count}, " +
+                $"pairs tested={attempts}, distance skips={skippedByDistance}, " +
+                $"pathfinder failures={failedPaths}.");
             return;
         }
 
@@ -362,15 +475,15 @@ public class AircraftSSLandingTaxiController : MonoBehaviour
             $"Sightseeing taxi route found. Exit {chosenExit.Cell}, " +
             $"target {chosenTarget.Cell}, {route.Count} route cells.";
 
-        if (logTaxiProgress)
-        {
-            Debug.Log(
-                $"SIGHTSEEING TAXI ROUTE FOUND | Aircraft: {name} | " +
-                $"Parking: {reservedSpot.name} | Exit: {chosenExit.Cell} | " +
-                $"Target: {chosenTarget.Cell} | Cells: {route.Count}",
-                this);
-        }
+        Debug.Log(
+            $"[SS TAXI DIAG] ROUTE FOUND | Exit={chosenExit.Cell} | " +
+            $"Target={chosenTarget.Cell} | Cells={route.Count} | " +
+            $"RunwayExitPoint={runwayExitPoint} | " +
+            $"TaxiwayJoinPoint={taxiwayJoinPoint}",
+            this);
     }
+
+
 
     private void BuildSmoothedTaxiMovementPath()
     {
@@ -517,6 +630,44 @@ public class AircraftSSLandingTaxiController : MonoBehaviour
 
         return null;
     }
+
+
+    private float GetDistanceToParkingFootprintEdge(Vector2Int taxiwayCell)
+    {
+        if (reservedSpot == null || gridManager == null)
+            return float.PositiveInfinity;
+
+        PlacedBuilding building = reservedSpot.GetComponent<PlacedBuilding>();
+
+        if (building == null || building.Width <= 0 || building.Depth <= 0)
+            return float.PositiveInfinity;
+
+        // Building dimensions describe its placed footprint in grid cells.
+        float footprintMinX = building.Origin.x;
+        float footprintMaxX = building.Origin.x + building.Width;
+        float footprintMinZ = building.Origin.y;
+        float footprintMaxZ = building.Origin.y + building.Depth;
+
+        // Measure from the taxiway cell centre to the nearest point
+        // on the outside edge of the complete parking footprint.
+        float cellCenterX = taxiwayCell.x + 0.5f;
+        float cellCenterZ = taxiwayCell.y + 0.5f;
+
+        float dx = Mathf.Max(
+            footprintMinX - cellCenterX,
+            0f,
+            cellCenterX - footprintMaxX
+        );
+
+        float dz = Mathf.Max(
+            footprintMinZ - cellCenterZ,
+            0f,
+            cellCenterZ - footprintMaxZ
+        );
+
+        return Mathf.Sqrt(dx * dx + dz * dz) * gridManager.CellSize;
+    }
+
 
     private List<ExitCandidate> FindForwardRunwayExits(
         Vector3 aircraftPosition,

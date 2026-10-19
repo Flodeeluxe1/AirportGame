@@ -14,6 +14,9 @@ GameObject:
   - component: {fileID: 8664738503010462070}
   - component: {fileID: 5153398351784972899}
   - component: {fileID: -3780748238844713195}
+  - component: {fileID: 1572968075970986140}
+  - component: {fileID: -4306488516855404423}
+  - component: {fileID: -5519792594675222361}
   m_Layer: 0
   m_Name: W34Main
   m_TagString: Untagged
@@ -159,6 +162,111 @@ MonoBehaviour:
   taxiPathPointTolerance: 0.02
   logTaxiProgress: 1
   debugStatus: Waiting for sightseeing landing completion.
+--- !u!114 &1572968075970986140
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 753756043139321930}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 28da917ece2de554284df742b9735529, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AircraftSSTurnaroundController
+  landingTaxiController: {fileID: 0}
+  boardingDurationSeconds: 10
+  logProgress: 1
+  state: 0
+  boardingTimeRemaining: 0
+--- !u!114 &-4306488516855404423
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 753756043139321930}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: db11a78bd044c224f8fe1afcf4e1e75a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AircraftSSDepartureTaxiController
+  turnaroundController: {fileID: 0}
+  gridManager: {fileID: 0}
+  weather: {fileID: 0}
+  trafficManager: {fileID: 0}
+  taxiwayNetwork: {fileID: 0}
+  taxiwayPathfinder: {fileID: 0}
+  aircraftCollider: {fileID: 0}
+  maximumSidewindComponentKnots: 15
+  runwaySelectionRetryInterval: 3
+  startSearchRadiusCells: 4
+  maximumStartCandidates: 10
+  runwaySafetyMarginInCells: 1
+  taxiSpeedKnots: 15
+  worldUnitsPerSecondPerKnot: 0.05
+  rotationSpeedDegreesPerSecond: 45
+  waypointArrivalDistance: 0.15
+  modelRotationOffset: {x: 0, y: 0, z: 0}
+  turningRadiusInCells: 1
+  turnCurveResolution: 8
+  lineUpSafetyMarginInCells: 0.25
+  currentState: 0
+  selectedRunway: {fileID: 0}
+  takeoffDirection: {x: 0, y: 0, z: 0}
+  departureThreshold: {x: 0, y: 0, z: 0}
+  holdingCell: {x: 0, y: 0}
+  hasHoldingCell: 0
+  debugSelectedRunway: None
+  debugTakeoffHeading: None
+  debugStatus: Waiting for boarding
+  debugTaxiRouteLength: 0
+  debugRunwayTrafficCount: 0
+  debugHeadwindKnots: 0
+  debugSidewindKnots: 0
+--- !u!114 &-5519792594675222361
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 753756043139321930}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2fb67cae97e7a584491079231b616264, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AircraftSSTakeoffController
+  departureController: {fileID: 0}
+  trafficManager: {fileID: 0}
+  gameTimeManager: {fileID: 0}
+  gridManager: {fileID: 0}
+  economyManager: {fileID: 0}
+  aircraftCollider: {fileID: 0}
+  ticketPrice: 100
+  passengerCapacity: 6
+  referenceDemand: 4
+  demandVariation: 0.25
+  airportCommissionRate: 0.2
+  takeoffSpeedKnots: 65
+  groundAccelerationKnotsPerSecond: 12
+  airborneAccelerationKnotsPerSecond: 3
+  worldUnitsPerSecondPerKnot: 0.05
+  rotationStartSpeedFraction: 0.8
+  rotationRateDegreesPerSecond: 3
+  targetNoseUpDegrees: 20
+  liftoffStartNoseUpDegrees: 8
+  modelRotationOffset: {x: 0, y: 0, z: 0}
+  targetAltitudeAboveRunway: 60
+  runwayClearanceBuffer: 1
+  currentState: 0
+  currentSpeedKnots: 0
+  currentNoseUpDegrees: 0
+  currentAltitudeAboveRunway: 0
+  passengersOnBoard: 0
+  commissionPaid: 0
+  revenuePaid: 0
+  runwayReservationReleased: 0
+  debugStatus: Waiting for line-up
 --- !u!1001 &3583963974137580783
 PrefabInstance:
   m_ObjectHideFlags: 0
