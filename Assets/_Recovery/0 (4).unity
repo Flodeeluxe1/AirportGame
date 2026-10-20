@@ -2595,6 +2595,7 @@ GameObject:
   - component: {fileID: 1478484324}
   - component: {fileID: 1478484325}
   - component: {fileID: 1478484326}
+  - component: {fileID: 1478484329}
   - component: {fileID: 1478484328}
   m_Layer: 0
   m_Name: AirportUI
@@ -2775,6 +2776,25 @@ MonoBehaviour:
   secondaryTextColor: {r: 0.88, g: 0.9, b: 0.93, a: 1}
   assignButtonColor: {r: 0.18, g: 0.48, b: 0.28, a: 1}
   cancelButtonColor: {r: 0.25, g: 0.28, b: 0.33, a: 1}
+--- !u!114 &1478484329
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1478484321}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f7fe911e66a361145870d71b5517541c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FlightScheduleBoardPanel
+  uiDocument: {fileID: 762824360}
+  gameTimeManager: {fileID: 449210932}
+  flightCatalog: {fileID: 1712716984}
+  gateRegistry: {fileID: 335832197}
+  refreshInterval: 0.5
+  boardHeight: 320
+  onTimeToleranceMinutes: 5
 --- !u!1 &1577763651
 GameObject:
   m_ObjectHideFlags: 0
@@ -3806,7 +3826,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1868255e799cf5b43bfacf0088763717, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TrafficTestSpawner
-  trafficVehiclePrefab: {fileID: 4960917508695158463, guid: 8926cefb14c3c74478bc6a2ad2011201, type: 3}
+  trafficVehiclePrefab: {fileID: 2154428240389558112, guid: 9150906fb3da9b049807bba55795f99b, type: 3}
   cargoTruckPrefab: {fileID: 8049238051121985674, guid: 739ed671cc5ea6c459769b72b223d80d, type: 3}
   gridManager: {fileID: 728659359}
   spawnMode: 1

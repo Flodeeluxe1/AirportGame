@@ -587,6 +587,18 @@ public class AircraftCargoPaxTakeoffController : MonoBehaviour
                 if (passengerRevenue != null)
                     passengerRevenue.RecordSuccessfulDeparture();
 
+
+        AircraftFlightIdentity flightIdentity =
+            GetComponent<AircraftFlightIdentity>();
+
+        if (FlightOperationsBoardUI.Instance != null)
+        {
+            FlightOperationsBoardUI.Instance.MarkDeparted(flightIdentity);
+        }
+
+        FlightScheduleBoardPanel.RecordDeparture(
+            GetComponent<AircraftFlightIdentity>());
+
         Destroy(gameObject);
     }
 
