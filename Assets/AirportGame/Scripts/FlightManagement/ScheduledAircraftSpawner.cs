@@ -8,6 +8,7 @@ public class ScheduledAircraftSpawner : MonoBehaviour
 {
     [Header("References")]
     [SerializeField] private GameObject aircraftPrefab;
+    [SerializeField] private GameObject passengerAircraftPrefab;
     [SerializeField] private Transform spawnPoint;
     [SerializeField] private TestFlightCatalog flightCatalog;
     [SerializeField] private GameTimeManager gameTimeManager;
@@ -23,7 +24,7 @@ public class ScheduledAircraftSpawner : MonoBehaviour
     [SerializeField] private bool logQueueChanges = true;
 
     private const int ScheduleFileVersion = 1;
-    private const int MinutesBeforeScheduledTime = 10;
+    private const int MinutesBeforeScheduledTime = 1;
     private const string ScheduleFileName = "flight_schedule.json";
     private const int SecondsPerDay = 86400;
     private const int MinutesPerDay = 1440;
@@ -359,8 +360,58 @@ public class ScheduledAircraftSpawner : MonoBehaviour
 
         ScheduledSpawn scheduled = queuedFlight.Scheduled;
 
+        GameObject prefabToSpawn;
+
+        switch (scheduled.Definition.OperationType)
+        {
+            case FlightOperationType.CargoOnly:
+                prefabToSpawn = aircraftPrefab;
+                break;
+
+            case FlightOperationType.PassengerOnly:
+                prefabToSpawn = passengerAircraftPrefab;
+
+                if (prefabToSpawn == null)
+                {
+                    Debug.LogError(
+                        $"Cannot spawn passenger flight " +
+                        $"{scheduled.Definition.FlightNumber}: assign " +
+                        "Passenger Aircraft Prefab on ScheduledAircraftSpawner.",
+                        this
+                    );
+                    return;
+                }
+                break;
+
+            case FlightOperationType.CargoAndPassengers:
+                Debug.LogError(
+                    $"Cannot spawn flight {scheduled.Definition.FlightNumber}: " +
+                    "Cargo + passengers is not supported by the spawner yet.",
+                    this
+                );
+                return;
+
+            default:
+                Debug.LogError(
+                    $"Cannot spawn flight {scheduled.Definition.FlightNumber}: " +
+                    $"unknown operation type {scheduled.Definition.OperationType}.",
+                    this
+                );
+                return;
+        }
+
+        if (prefabToSpawn == null)
+        {
+            Debug.LogError(
+                $"Cannot spawn flight {scheduled.Definition.FlightNumber}: " +
+                "the selected aircraft prefab is not assigned.",
+                this
+            );
+            return;
+        }
+
         GameObject aircraft = Instantiate(
-            aircraftPrefab,
+            prefabToSpawn,
             spawnPoint.position,
             spawnPoint.rotation
         );
@@ -393,6 +444,8 @@ public class ScheduledAircraftSpawner : MonoBehaviour
             Debug.Log(
                 $"Scheduled flight spawned | " +
                 $"Flight: {scheduled.Definition.FlightNumber} | " +
+                $"Operation: {scheduled.Definition.OperationLabel} | " +
+                $"Aircraft prefab: {prefabToSpawn.name} | " +
                 $"Planned gate: {scheduled.GateStableId} | " +
                 $"Planned time: {FormatTime(scheduled.StartMinute)} | " +
                 $"Game time: {gameTimeManager.FormattedTime}",
@@ -530,12 +583,13 @@ public class ScheduledAircraftSpawner : MonoBehaviour
                         continue;
                     }
 
-                    if (definition.OperationType != FlightOperationType.CargoOnly)
+                    if (definition.OperationType ==
+                        FlightOperationType.CargoAndPassengers)
                     {
                         Debug.LogWarning(
                             $"Skipping scheduled flight {saved.flightNumber}: " +
-                            $"operation type {definition.OperationLabel} is not yet " +
-                            "supported by ScheduledAircraftSpawner.",
+                            "cargo + passengers is not supported by " +
+                            "ScheduledAircraftSpawner yet.",
                             this
                         );
                         continue;

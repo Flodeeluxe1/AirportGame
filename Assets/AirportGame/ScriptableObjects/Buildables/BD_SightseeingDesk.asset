@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b707bf0339cdddd48ac715a8e271822e, type: 3}
   m_Name: BD_SightseeingDesk
   m_EditorClassIdentifier: Assembly-CSharp::BuildableDefinition
-  id: airport.sightseeing.desk
+  id: airport.sightseeing.ticketdesk
   displayName: Sightseeing Desk
   prefab: {fileID: 583526246293957199, guid: e9bbf99025477214da714ca1e7e2c954, type: 3}
   placementType: 0

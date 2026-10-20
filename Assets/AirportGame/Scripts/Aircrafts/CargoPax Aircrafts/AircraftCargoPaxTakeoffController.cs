@@ -581,6 +581,12 @@ public class AircraftCargoPaxTakeoffController : MonoBehaviour
             this
         );
 
+        PassengerFlightRevenue passengerRevenue =
+            GetComponent<PassengerFlightRevenue>();
+
+                if (passengerRevenue != null)
+                    passengerRevenue.RecordSuccessfulDeparture();
+
         Destroy(gameObject);
     }
 
