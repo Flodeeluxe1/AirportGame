@@ -50,12 +50,23 @@ public class SightseeingFlightEconomy : MonoBehaviour
     /// Generates passenger demand when boarding completes.
     /// The final count cannot exceed the aircraft's capacity.
     /// </summary>
+
     public int CalculatePassengerDemand(int aircraftCapacity)
     {
         aircraftCapacity = Mathf.Max(0, aircraftCapacity);
 
         if (aircraftCapacity == 0)
             return 0;
+
+        // Sightseeing tickets cannot be sold without a placed ticket desk.
+        if (!SightseeingAircraftSpawner.HasTicketDeskPlaced())
+        {
+            Debug.Log(
+                "SIGHTSEEING NO TICKET DESK | Passenger demand set to zero.",
+                this);
+
+            return 0;
+        }
 
         float expectedDemand =
             referenceDemand * (100f / TicketPrice);
@@ -70,6 +81,7 @@ public class SightseeingFlightEconomy : MonoBehaviour
 
         return Mathf.Min(demand, aircraftCapacity);
     }
+
 
     /// <summary>
     /// Calculates the airport's share of ticket revenue.

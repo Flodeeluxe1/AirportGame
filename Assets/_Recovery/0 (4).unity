@@ -320,6 +320,54 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AircraftRunwayTrafficManager
   runwayOccupancyBuffer: 0.5
   gridManager: {fileID: 0}
+--- !u!1 &133712789
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 133712791}
+  - component: {fileID: 133712790}
+  m_Layer: 0
+  m_Name: Sightseeing Flight Economy
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &133712790
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 133712789}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a1390c25e297e1c42a27af34ec3fae65, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SightseeingFlightEconomy
+  ticketPrice: 100
+  referenceDemand: 4
+  demandVariation: 0.25
+  airportCommissionRate: 0.2
+--- !u!4 &133712791
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 133712789}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 70.05757, y: -0, z: 25.81229}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &330585543
 GameObject:
   m_ObjectHideFlags: 0
@@ -966,11 +1014,15 @@ MonoBehaviour:
   sightseeingAircraftPrefab: {fileID: 753756043139321930, guid: 73bbd05b27119c540aea09ff477ca1cb, type: 3}
   spawnPoint: {fileID: 549940485}
   gameTimeManager: {fileID: 449210932}
+  hourlyScheduleEnabled: 1
+  parkingRetryIntervalSeconds: 2
   spawnOnStart: 0
   logSpawnDetails: 1
-  spawnAutomatically: 0
-  spawnIntervalSeconds: 5
   nextFlightNumber: 1
+  flightPending: 0
+  lastObservedHourSlot: 0
+  retryTimer: 0
+  scheduleStatus: Initializing
 --- !u!65 &549940482
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -3470,6 +3522,79 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1001 &2045430547
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 2675361429882964898, guid: da1203547328fdb41974e0b5334e799a, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 0.38
+      objectReference: {fileID: 0}
+    - target: {fileID: 2675361429882964898, guid: da1203547328fdb41974e0b5334e799a, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 0.38
+      objectReference: {fileID: 0}
+    - target: {fileID: 2675361429882964898, guid: da1203547328fdb41974e0b5334e799a, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 0.38
+      objectReference: {fileID: 0}
+    - target: {fileID: 2675361429882964898, guid: da1203547328fdb41974e0b5334e799a, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 36.45861
+      objectReference: {fileID: 0}
+    - target: {fileID: 2675361429882964898, guid: da1203547328fdb41974e0b5334e799a, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.000000040996824
+      objectReference: {fileID: 0}
+    - target: {fileID: 2675361429882964898, guid: da1203547328fdb41974e0b5334e799a, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 38.08162
+      objectReference: {fileID: 0}
+    - target: {fileID: 2675361429882964898, guid: da1203547328fdb41974e0b5334e799a, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2675361429882964898, guid: da1203547328fdb41974e0b5334e799a, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2675361429882964898, guid: da1203547328fdb41974e0b5334e799a, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2675361429882964898, guid: da1203547328fdb41974e0b5334e799a, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2675361429882964898, guid: da1203547328fdb41974e0b5334e799a, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2675361429882964898, guid: da1203547328fdb41974e0b5334e799a, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2675361429882964898, guid: da1203547328fdb41974e0b5334e799a, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2675361429882964898, guid: da1203547328fdb41974e0b5334e799a, type: 3}
+      propertyPath: m_ConstrainProportionsScale
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3344797552917926168, guid: da1203547328fdb41974e0b5334e799a, type: 3}
+      propertyPath: m_Name
+      value: Man_03
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: da1203547328fdb41974e0b5334e799a, type: 3}
 --- !u!1 &2059796009
 GameObject:
   m_ObjectHideFlags: 0
@@ -4494,6 +4619,7 @@ SceneRoots:
   - {fileID: 1681732909}
   - {fileID: 88094026}
   - {fileID: 1399790237}
+  - {fileID: 449210933}
   - {fileID: 1048131945}
   - {fileID: 1478484322}
   - {fileID: 413444875}
@@ -4521,15 +4647,16 @@ SceneRoots:
   - {fileID: 1964681761}
   - {fileID: 598322431}
   - {fileID: 2136825552}
+  - {fileID: 133712791}
   - {fileID: 118956866}
-  - {fileID: 449210933}
   - {fileID: 335832196}
-  - {fileID: 1712716985}
   - {fileID: 818626683}
+  - {fileID: 1712716985}
   - {fileID: 1332688659}
-  - {fileID: 7188063114622879089}
   - {fileID: 525498719}
+  - {fileID: 7188063114622879089}
   - {fileID: 1414144046}
   - {fileID: 5618210661003509659}
   - {fileID: 5563758338144555459}
   - {fileID: 2206400020603114989}
+  - {fileID: 2045430547}

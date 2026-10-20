@@ -9,6 +9,13 @@ public enum FlightTimeWindow
     Evening
 }
 
+public enum FlightOperationType
+{
+    CargoOnly,
+    PassengerOnly,
+    CargoAndPassengers
+}
+
 [System.Serializable]
 public class FlightDefinition
 {
@@ -18,6 +25,25 @@ public class FlightDefinition
     public AircraftGateSize RequiredGateSize { get; }
     public FlightTimeWindow TimeWindow { get; }
     public Color StripColor { get; }
+    public FlightOperationType OperationType { get; }
+
+    public string OperationLabel
+    {
+        get
+        {
+            switch (OperationType)
+            {
+                case FlightOperationType.PassengerOnly:
+                    return "PAX";
+
+                case FlightOperationType.CargoAndPassengers:
+                    return "PAX+CARGO";
+
+                default:
+                    return "CARGO";
+            }
+        }
+    }
 
     public FlightDefinition(
         string flightNumber,
@@ -25,7 +51,9 @@ public class FlightDefinition
         int turnaroundMinutes,
         AircraftGateSize requiredGateSize,
         FlightTimeWindow timeWindow,
-        Color stripColor)
+        Color stripColor,
+        FlightOperationType operationType =
+            FlightOperationType.CargoOnly)
     {
         FlightNumber = flightNumber;
         AirlineName = airlineName;
@@ -33,6 +61,7 @@ public class FlightDefinition
         RequiredGateSize = requiredGateSize;
         TimeWindow = timeWindow;
         StripColor = stripColor;
+        OperationType = operationType;
     }
 
     public static void GetWindowBounds(

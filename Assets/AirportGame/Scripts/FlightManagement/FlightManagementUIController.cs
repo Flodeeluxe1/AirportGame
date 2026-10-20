@@ -608,17 +608,19 @@ public class FlightManagementUIController : MonoBehaviour
         return false;
     }
 
+
+
     private VisualElement CreateFlightStrip(FlightDefinition flight)
     {
         VisualElement strip = new VisualElement();
         strip.name = $"flight-strip-{flight.FlightNumber}";
 
         float stripWidth =
-            Mathf.Max(105f, flight.TurnaroundMinutes * 3f);
+            Mathf.Max(125f, flight.TurnaroundMinutes * 3f);
 
         strip.style.width = stripWidth;
         strip.style.minWidth = stripWidth;
-        strip.style.height = 78;
+        strip.style.height = 52;
         strip.style.flexShrink = 0;
         strip.style.backgroundColor = (Color)flight.StripColor;
         strip.style.paddingLeft = 8;
@@ -632,38 +634,58 @@ public class FlightManagementUIController : MonoBehaviour
         strip.style.borderBottomLeftRadius = 5;
         strip.style.borderBottomRightRadius = 5;
 
+        // First line: flight number and operation type.
+        VisualElement firstLine = new VisualElement();
+        firstLine.style.flexDirection = FlexDirection.Row;
+        firstLine.style.alignItems = Align.Center;
+
         Label flightNumber = new Label(flight.FlightNumber);
-        flightNumber.style.fontSize = 15;
+        flightNumber.style.fontSize = 13;
         flightNumber.style.unityFontStyleAndWeight = FontStyle.Bold;
         flightNumber.style.color = PreviewTextColor;
 
-        Label turnaround =
-            new Label($"{flight.TurnaroundMinutes} min");
-        turnaround.style.fontSize = 12;
-        turnaround.style.color = PreviewTextColor;
+        Label operationType = new Label(flight.OperationLabel);
+        operationType.style.fontSize = 11;
+        operationType.style.unityFontStyleAndWeight = FontStyle.Bold;
+        operationType.style.color = PreviewTextColor;
+        operationType.style.marginLeft = 10;
 
-        Label timeframe = new Label(flight.TimeWindow.ToString());
-        timeframe.style.fontSize = 10;
-        timeframe.style.color = PreviewTextColor;
+        firstLine.Add(flightNumber);
+        firstLine.Add(operationType);
 
-        Label gateSize =
-            new Label($"Gate size: {flight.RequiredGateSize}");
-        gateSize.style.fontSize = 10;
+        // Second line: gate size and turnaround time.
+        VisualElement secondLine = new VisualElement();
+        secondLine.style.flexDirection = FlexDirection.Row;
+        secondLine.style.alignItems = Align.Center;
+
+        Label gateSize = new Label(flight.RequiredGateSize.ToString());
+        gateSize.style.fontSize = 11;
         gateSize.style.color = PreviewTextColor;
 
-        strip.tooltip =
-            $"{flight.FlightNumber} | {flight.TurnaroundMinutes} min | " +
-            $"{flight.TimeWindow} | Requires {flight.RequiredGateSize} gate";
+        Label turnaround =
+            new Label($"{flight.TurnaroundMinutes} min");
+        turnaround.style.fontSize = 11;
+        turnaround.style.color = PreviewTextColor;
+        turnaround.style.marginLeft = 10;
 
-        strip.Add(flightNumber);
-        strip.Add(turnaround);
-        strip.Add(timeframe);
-        strip.Add(gateSize);
+        secondLine.Add(gateSize);
+        secondLine.Add(turnaround);
+
+        strip.tooltip =
+            $"{flight.FlightNumber} | {flight.OperationLabel} | " +
+            $"{flight.TimeWindow} | " +
+            $"{flight.TurnaroundMinutes} min | " +
+            $"Requires {flight.RequiredGateSize} gate";
+
+        strip.Add(firstLine);
+        strip.Add(secondLine);
 
         RegisterDragEvents(strip, flight, null);
 
         return strip;
     }
+
+
 
     private void CreateScheduleSection()
     {
@@ -978,6 +1000,7 @@ public class FlightManagementUIController : MonoBehaviour
         );
     }
 
+
     private VisualElement CreateScheduledFlightStrip(
         ScheduledFlight scheduled)
     {
@@ -1006,6 +1029,7 @@ public class FlightManagementUIController : MonoBehaviour
         strip.style.paddingRight = 2;
         strip.style.justifyContent = Justify.Center;
         strip.style.backgroundColor = (Color)flight.StripColor;
+        strip.style.flexDirection = FlexDirection.Column;
 
         strip.style.borderTopLeftRadius = 3;
         strip.style.borderTopRightRadius = 3;
@@ -1018,10 +1042,17 @@ public class FlightManagementUIController : MonoBehaviour
                 : string.Empty;
 
         strip.tooltip =
-            $"{flight.FlightNumber} | " +
+            $"{flight.FlightNumber} | {flight.OperationLabel} | " +
             $"{FormatTime(scheduled.StartMinute)} | " +
             $"{flight.TurnaroundMinutes} min | " +
             $"{flight.RequiredGateSize} gate{endInfo}";
+
+        Label operationType = new Label(flight.OperationLabel);
+        operationType.style.fontSize = 8;
+        operationType.style.unityFontStyleAndWeight = FontStyle.Bold;
+        operationType.style.color = PreviewTextColor;
+        operationType.style.overflow = Overflow.Hidden;
+        operationType.style.whiteSpace = WhiteSpace.NoWrap;
 
         Label label = new Label(flight.FlightNumber);
         label.style.fontSize = 9;
@@ -1030,12 +1061,14 @@ public class FlightManagementUIController : MonoBehaviour
         label.style.overflow = Overflow.Hidden;
         label.style.whiteSpace = WhiteSpace.NoWrap;
 
+        strip.Add(operationType);
         strip.Add(label);
 
         RegisterDragEvents(strip, flight, scheduled);
 
         return strip;
     }
+
 
     private VisualElement CreateScheduledFlightOverflowStrip(
         ScheduledFlight scheduled,

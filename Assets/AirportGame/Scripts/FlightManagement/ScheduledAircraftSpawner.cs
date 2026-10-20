@@ -530,6 +530,17 @@ public class ScheduledAircraftSpawner : MonoBehaviour
                         continue;
                     }
 
+                    if (definition.OperationType != FlightOperationType.CargoOnly)
+                    {
+                        Debug.LogWarning(
+                            $"Skipping scheduled flight {saved.flightNumber}: " +
+                            $"operation type {definition.OperationLabel} is not yet " +
+                            "supported by ScheduledAircraftSpawner.",
+                            this
+                        );
+                        continue;
+                    }
+
                     int triggerMinute = ModuloDay(
                         saved.startMinute -
                         MinutesBeforeScheduledTime

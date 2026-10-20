@@ -4,9 +4,10 @@ using UnityEngine;
 /// <summary>
 /// Airport-wide sightseeing flight scheduler and aircraft spawner.
 ///
-/// Schedules one flight at each new in-game hour. If no parking spot
-/// is available, keeps one pending flight and retries until it can spawn.
-/// Missed hourly slots never accumulate into a queue.
+/// Schedules one flight at each new in-game hour. Flights are only
+/// scheduled and spawned while at least one sightseeing ticket desk
+/// is placed. If no parking spot is available, one pending flight
+/// retries until it can spawn. Missed hourly slots never accumulate.
 /// </summary>
 [DisallowMultipleComponent]
 public class SightseeingAircraftSpawner : MonoBehaviour
@@ -14,10 +15,14 @@ public class SightseeingAircraftSpawner : MonoBehaviour
     private enum SpawnAttemptResult
     {
         Spawned,
+        TicketDeskUnavailable,
         WaitingForParking,
         RetryableFailure,
         FatalFailure
     }
+
+    private const string TicketDeskDefinitionId =
+        "airport.sightseeing.ticketdesk";
 
     private static SightseeingAircraftSpawner activeSpawner;
 
@@ -55,10 +60,32 @@ public class SightseeingAircraftSpawner : MonoBehaviour
     public bool HourlyScheduleEnabled => hourlyScheduleEnabled;
     public string ScheduleStatus => scheduleStatus;
 
+    /// <summary>
+    /// True if at least one placed building uses the sightseeing ticket
+    /// desk definition. Uses the runtime PlacedBuilding component, so
+    /// no additional prefab component is required.
+    /// </summary>
+    public static bool HasTicketDeskPlaced()
+    {
+        PlacedBuilding[] buildings =
+            FindObjectsByType<PlacedBuilding>(
+                FindObjectsSortMode.None);
+
+        foreach (PlacedBuilding building in buildings)
+        {
+            if (building == null || building.Definition == null)
+                continue;
+
+            if (building.Definition.id == TicketDeskDefinitionId)
+                return true;
+        }
+
+        return false;
+    }
+
     private void Awake()
     {
-        // This component represents the airport-wide schedule.
-        // Prevent accidental duplicate schedulers in the scene.
+        // Keep one airport-wide scheduler.
         if (activeSpawner != null && activeSpawner != this)
         {
             Debug.LogError(
@@ -95,9 +122,11 @@ public class SightseeingAircraftSpawner : MonoBehaviour
         // The first scheduled flight becomes due at the next hour boundary.
         lastObservedHourSlot = GetCurrentHourSlot();
 
-        scheduleStatus = hourlyScheduleEnabled
-            ? "Waiting for the next hourly departure"
-            : "Hourly schedule disabled";
+        scheduleStatus = HasTicketDeskPlaced()
+            ? (hourlyScheduleEnabled
+                ? "Waiting for the next hourly departure"
+                : "Hourly schedule disabled")
+            : "Waiting for a sightseeing ticket desk";
 
         if (logSpawnDetails)
         {
@@ -105,19 +134,38 @@ public class SightseeingAircraftSpawner : MonoBehaviour
                 $"SIGHTSEEING SCHEDULE READY | Day: " +
                 $"{gameTimeManager.CurrentDay} | " +
                 $"Time: {gameTimeManager.FormattedTime} | " +
-                $"Next flight at the next in-game hour.",
+                $"Ticket desk present: {HasTicketDeskPlaced()}",
                 this);
         }
 
         // Optional manual testing convenience.
-        // This test spawn does not create an additional scheduled flight.
+        // The spawn method also checks for a ticket desk.
         if (spawnOnStart)
             SpawnSightseeingAircraft();
     }
 
     private void Update()
     {
-        if (!hourlyScheduleEnabled || gameTimeManager == null)
+        if (gameTimeManager == null)
+            return;
+
+        // Without a ticket desk, do not retain a pending flight or
+        // accumulate missed hourly slots.
+        if (!HasTicketDeskPlaced())
+        {
+            flightPending = false;
+            retryTimer = 0f;
+            waitingMessageLogged = false;
+
+            // Keep the hour baseline current so placing a desk later
+            // does not trigger an immediate catch-up flight.
+            lastObservedHourSlot = GetCurrentHourSlot();
+
+            scheduleStatus = "Waiting for a sightseeing ticket desk";
+            return;
+        }
+
+        if (!hourlyScheduleEnabled)
             return;
 
         // Do not schedule or retry departures while game time is paused.
@@ -147,8 +195,8 @@ public class SightseeingAircraftSpawner : MonoBehaviour
         if (currentSlot <= lastObservedHourSlot)
             return;
 
-        // Record the newest slot even if several hours were skipped
-        // between updates. Never queue one flight per missed hour.
+        // Record the newest slot even if several hours were skipped.
+        // Never queue one flight per missed hour.
         lastObservedHourSlot = currentSlot;
 
         if (flightPending)
@@ -203,6 +251,13 @@ public class SightseeingAircraftSpawner : MonoBehaviour
                 scheduleStatus = "Flight spawned; waiting for next hour";
                 break;
 
+            case SpawnAttemptResult.TicketDeskUnavailable:
+                flightPending = false;
+                retryTimer = 0f;
+                waitingMessageLogged = false;
+                scheduleStatus = "Waiting for a sightseeing ticket desk";
+                break;
+
             case SpawnAttemptResult.WaitingForParking:
             case SpawnAttemptResult.RetryableFailure:
                 retryTimer = Mathf.Max(
@@ -211,8 +266,7 @@ public class SightseeingAircraftSpawner : MonoBehaviour
                 break;
 
             case SpawnAttemptResult.FatalFailure:
-                // Stop automatic attempts when the prefab or configuration
-                // is invalid, rather than repeatedly creating broken aircraft.
+                // Stop automatic attempts when configuration is invalid.
                 hourlyScheduleEnabled = false;
                 flightPending = false;
                 scheduleStatus =
@@ -223,10 +277,19 @@ public class SightseeingAircraftSpawner : MonoBehaviour
 
     /// <summary>
     /// Manual test spawn. Does not alter the hourly schedule.
+    /// Still requires a placed ticket desk.
     /// </summary>
     [ContextMenu("Spawn Sightseeing Aircraft")]
     public void SpawnSightseeingAircraft()
     {
+        if (!HasTicketDeskPlaced())
+        {
+            Debug.LogWarning(
+                "Manual sightseeing spawn skipped: no sightseeing ticket desk is placed.",
+                this);
+            return;
+        }
+
         if (gameTimeManager == null ||
             sightseeingAircraftPrefab == null ||
             spawnPoint == null)
@@ -239,7 +302,13 @@ public class SightseeingAircraftSpawner : MonoBehaviour
 
         SpawnAttemptResult result = TrySpawnSightseeingAircraft();
 
-        if (result == SpawnAttemptResult.WaitingForParking)
+        if (result == SpawnAttemptResult.TicketDeskUnavailable)
+        {
+            Debug.LogWarning(
+                "Manual sightseeing spawn skipped: no sightseeing ticket desk is placed.",
+                this);
+        }
+        else if (result == SpawnAttemptResult.WaitingForParking)
         {
             Debug.LogWarning(
                 "Manual sightseeing spawn skipped because no parking " +
@@ -257,6 +326,11 @@ public class SightseeingAircraftSpawner : MonoBehaviour
 
     private SpawnAttemptResult TrySpawnSightseeingAircraft()
     {
+        // Check this immediately before spawning, including manual spawns
+        // and retries of previously pending flights.
+        if (!HasTicketDeskPlaced())
+            return SpawnAttemptResult.TicketDeskUnavailable;
+
         if (sightseeingAircraftPrefab == null ||
             spawnPoint == null ||
             gameTimeManager == null)

@@ -55,6 +55,8 @@ public class TestFlightCatalog : MonoBehaviour
             FlightTimeWindow.Evening,
             2
         );
+
+        AddPassengerTestFlights();
     }
 
     private void AddFlights(
@@ -90,6 +92,48 @@ public class TestFlightCatalog : MonoBehaviour
 
             flights.Add(flight);
         }
+    }
+
+    private void AddPassengerTestFlights()
+    {
+        Color morningStripColor =
+            GetStripColor(FlightTimeWindow.Morning);
+
+        flights.Add(
+            new FlightDefinition(
+                "PAX201",
+                testAirlineName,
+                45,
+                AircraftGateSize.Grass,
+                FlightTimeWindow.Morning,
+                morningStripColor,
+                FlightOperationType.PassengerOnly
+            )
+        );
+
+        flights.Add(
+            new FlightDefinition(
+                "PAX202",
+                testAirlineName,
+                50,
+                AircraftGateSize.Grass,
+                FlightTimeWindow.Morning,
+                morningStripColor,
+                FlightOperationType.PassengerOnly
+            )
+        );
+
+        flights.Add(
+            new FlightDefinition(
+                "PAX203",
+                testAirlineName,
+                55,
+                AircraftGateSize.Grass,
+                FlightTimeWindow.Morning,
+                morningStripColor,
+                FlightOperationType.PassengerOnly
+            )
+        );
     }
 
     private Color GetStripColor(
@@ -134,6 +178,7 @@ public class TestFlightCatalog : MonoBehaviour
 
             Debug.Log(
                 $"Flight: {flight.FlightNumber} | " +
+                $"Type: {flight.OperationLabel} | " +
                 $"Airline: {flight.AirlineName} | " +
                 $"Window: {flight.TimeWindow} " +
                 $"({FormatMinutes(startMinutes)}–{FormatMinutes(endMinutes)}) | " +
