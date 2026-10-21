@@ -1,3 +1,4 @@
+
 using UnityEngine;
 
 public class TrafficStuckFailsafe : MonoBehaviour
@@ -8,6 +9,11 @@ public class TrafficStuckFailsafe : MonoBehaviour
 
     [Min(0.001f)]
     public float movementThreshold = 0.05f;
+
+    [Header("Parking Wait Failsafe")]
+    [Tooltip("Destroy the vehicle if it waits this long for a parking space.")]
+    [Min(0.1f)]
+    public float parkingWaitDestroyTime = 10f;
 
     [Header("Collider Recovery")]
     [Tooltip("Colliders stay disabled until movement is detected.")]
@@ -22,6 +28,7 @@ public class TrafficStuckFailsafe : MonoBehaviour
 
     public bool debugCollidersDisabled;
     public float debugStationaryTime;
+    public float debugParkingWaitTime;
 
     private Collider[] vehicleColliders;
     private bool[] previousColliderStates;
@@ -30,7 +37,11 @@ public class TrafficStuckFailsafe : MonoBehaviour
     private Vector3 disabledPosition;
 
     private float stationaryTimer;
+    private float parkingWaitTimer;
+
     private bool collidersTemporarilyDisabled;
+
+    private TrafficTestVehicle trafficVehicle;
 
     private void Awake()
     {
@@ -39,6 +50,9 @@ public class TrafficStuckFailsafe : MonoBehaviour
 
         previousColliderStates =
             new bool[vehicleColliders.Length];
+
+        trafficVehicle =
+            GetComponent<TrafficTestVehicle>();
 
         stationaryAnchor = transform.position;
 
@@ -50,17 +64,54 @@ public class TrafficStuckFailsafe : MonoBehaviour
         }
         else
         {
+            SetFailsafeLog("Monitoring movement.");
+        }
+
+        if (trafficVehicle == null)
+        {
             SetFailsafeLog(
-                "Monitoring movement."
+                "WARNING: TrafficTestVehicle component not found. " +
+                "Parking-wait failsafe will not work."
             );
         }
     }
 
     private void Update()
     {
+        // Special failsafe: destroy vehicles that wait too long
+        // for a parking space.
+        if (trafficVehicle != null &&
+            trafficVehicle.CurrentState ==
+                TrafficTestVehicle.VehicleState.WaitingForParking)
+        {
+            parkingWaitTimer += Time.deltaTime;
+            debugParkingWaitTime = parkingWaitTimer;
+
+            if (parkingWaitTimer >= parkingWaitDestroyTime)
+            {
+                SetFailsafeLog(
+                    $"PARKING FAILSAFE: Waiting for parking for " +
+                    $"{parkingWaitDestroyTime:F1}s. Destroying vehicle."
+                );
+
+                Destroy(gameObject);
+                return;
+            }
+        }
+        else
+        {
+            parkingWaitTimer = 0f;
+            debugParkingWaitTime = 0f;
+        }
+
+        // Preserve the existing collider recovery behavior.
         if (collidersTemporarilyDisabled)
         {
-            CheckForMovementAfterFailsafe();
+            if (disableCollidersUntilMoving)
+            {
+                CheckForMovementAfterFailsafe();
+            }
+
             return;
         }
 
@@ -83,7 +134,15 @@ public class TrafficStuckFailsafe : MonoBehaviour
 
         if (stationaryTimer >= stuckTime)
         {
-            DisableColliders();
+            if (disableCollidersUntilMoving)
+            {
+                DisableColliders();
+            }
+            else
+            {
+                stationaryTimer = 0f;
+                stationaryAnchor = transform.position;
+            }
         }
     }
 

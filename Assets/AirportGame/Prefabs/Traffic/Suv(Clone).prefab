@@ -250,15 +250,22 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TrafficTestVehicle
   roadNetwork: {fileID: 0}
   gridManager: {fileID: 0}
+  intersectionManager: {fileID: 0}
+  intersectionLookAheadModules: 1
+  intersectionClearModules: 2
   speed: 2
-  rotationSpeed: 10
+  rotationSpeed: 5
   heightOffset: 0.2
+  turningRadiusInCells: 2
+  turnCurveResolution: 8
   parkingDuration: 5
+  parkingEntryClearance: 0.75
+  parkingWaypointTolerance: 0.03
   trafficLayer:
     serializedVersion: 2
     m_Bits: 128
-  trafficDetectionDistance: 3
-  safeFollowingDistance: 0.7
+  trafficDetectionDistance: 4
+  safeFollowingDistance: 2
   rayOriginHeight: 0.15
   rayOriginForwardOffset: 0.3
   acceleration: 4
@@ -286,13 +293,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 31e2fdefd1f606a4295bc97849d4440b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TrafficStuckFailsafe
-  stuckTime: 10
+  stuckTime: 30
   movementThreshold: 0.05
+  parkingWaitDestroyTime: 10
   disableCollidersUntilMoving: 1
   logFailsafe: 1
   debugFailsafeLog: Monitoring movement.
   debugCollidersDisabled: 0
   debugStationaryTime: 0
+  debugParkingWaitTime: 0
 --- !u!1 &5891662375066281055
 GameObject:
   m_ObjectHideFlags: 0

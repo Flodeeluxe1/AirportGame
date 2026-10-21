@@ -1,4 +1,3 @@
-
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -39,16 +38,12 @@ public class RoadNetwork : MonoBehaviour
         );
     }
 
-    public Vector3 GetRoadCenterWorldPosition(
-        Vector2Int cell,
-        GridManager gridManager)
+    public Vector3 GetRoadCenterWorldPosition(Vector2Int cell, GridManager gridManager)
     {
         Vector2Int anchor = GetRoadAnchor(cell);
-
         Vector3 position = gridManager.GridToWorld(anchor);
         position.x += gridManager.CellSize;
         position.z += gridManager.CellSize;
-
         return position;
     }
 
@@ -70,10 +65,8 @@ public class RoadNetwork : MonoBehaviour
     public void RemoveRoad(Vector2Int position)
     {
         position = GetRoadAnchor(position);
-
         if (!roadCells.Remove(position))
             return;
-
         UpdateConnectionsAround(position);
     }
 
@@ -85,18 +78,38 @@ public class RoadNetwork : MonoBehaviour
     public int GetConnectionMask(Vector2Int position)
     {
         position = GetRoadAnchor(position);
-
         if (!roadCells.TryGetValue(position, out RoadCell cell))
             return 0;
 
         int mask = 0;
-
         if (cell.ConnectNorth) mask |= 1;
         if (cell.ConnectEast) mask |= 2;
         if (cell.ConnectSouth) mask |= 4;
         if (cell.ConnectWest) mask |= 8;
-
         return mask;
+    }
+
+    /// <summary>True when a road module has three or four connected exits.</summary>
+    public bool IsIntersection(Vector2Int position)
+    {
+        int mask = GetConnectionMask(position);
+        int connectionCount = 0;
+        if ((mask & 1) != 0) connectionCount++;
+        if ((mask & 2) != 0) connectionCount++;
+        if ((mask & 4) != 0) connectionCount++;
+        if ((mask & 8) != 0) connectionCount++;
+        return connectionCount >= 3;
+    }
+
+    public List<Vector2Int> GetIntersectionPositions()
+    {
+        var result = new List<Vector2Int>();
+        foreach (Vector2Int position in roadCells.Keys)
+        {
+            if (IsIntersection(position))
+                result.Add(position);
+        }
+        return result;
     }
 
     public List<Vector2Int> GetRoadPositions()
@@ -129,24 +142,16 @@ public class RoadNetwork : MonoBehaviour
         UpdateConnection(cell, RoadDirection.West, West);
     }
 
-    private void UpdateConnection(
-        RoadCell cell,
-        RoadDirection direction,
-        Vector2Int offset)
+    private void UpdateConnection(RoadCell cell, RoadDirection direction, Vector2Int offset)
     {
         Vector2Int neighborPosition = cell.Position + offset;
-
         if (!roadCells.TryGetValue(neighborPosition, out RoadCell neighbor))
             return;
-
         SetConnection(cell, direction, true);
         SetConnection(neighbor, GetOpposite(direction), true);
     }
 
-    private void SetConnection(
-        RoadCell cell,
-        RoadDirection direction,
-        bool connected)
+    private void SetConnection(RoadCell cell, RoadDirection direction, bool connected)
     {
         switch (direction)
         {
@@ -173,12 +178,10 @@ public class RoadNetwork : MonoBehaviour
     {
         start = GetRoadAnchor(start);
         target = GetRoadAnchor(target);
-
         List<Vector2Int> empty = new List<Vector2Int>();
 
         if (!roadCells.ContainsKey(start) || !roadCells.ContainsKey(target))
             return empty;
-
         if (start == target)
             return new List<Vector2Int> { start };
 
@@ -193,76 +196,53 @@ public class RoadNetwork : MonoBehaviour
         while (openSet.Count > 0)
         {
             Vector2Int current = openSet.Dequeue();
-
             if (closedSet.Contains(current))
                 continue;
-
             if (current == target)
                 return ReconstructPath(cameFrom, start, target);
 
             closedSet.Add(current);
-
             foreach (Vector2Int next in GetValidNextRoadCells(current))
             {
                 if (closedSet.Contains(next))
                     continue;
-
                 int tentative = gScore[current] + 1;
-
-                if (gScore.TryGetValue(next, out int oldScore) &&
-                    tentative >= oldScore)
+                if (gScore.TryGetValue(next, out int oldScore) && tentative >= oldScore)
                     continue;
-
                 cameFrom[next] = current;
                 gScore[next] = tentative;
-
                 openSet.Enqueue(next, tentative + GetHeuristic(next, target));
             }
         }
-
         return empty;
     }
 
     private int GetHeuristic(Vector2Int current, Vector2Int target)
     {
-        return (Mathf.Abs(current.x - target.x) +
-                Mathf.Abs(current.y - target.y)) / RoadModuleSize;
+        return (Mathf.Abs(current.x - target.x) + Mathf.Abs(current.y - target.y)) / RoadModuleSize;
     }
 
     private List<Vector2Int> GetValidNextRoadCells(Vector2Int current)
     {
         var result = new List<Vector2Int>();
-
         if (!roadCells.TryGetValue(current, out RoadCell cell))
             return result;
-
         AddIfValid(result, cell, RoadDirection.North, North);
         AddIfValid(result, cell, RoadDirection.East, East);
         AddIfValid(result, cell, RoadDirection.South, South);
         AddIfValid(result, cell, RoadDirection.West, West);
-
         return result;
     }
 
-    private void AddIfValid(
-        List<Vector2Int> result,
-        RoadCell cell,
-        RoadDirection direction,
-        Vector2Int offset)
+    private void AddIfValid(List<Vector2Int> result, RoadCell cell, RoadDirection direction, Vector2Int offset)
     {
         if (!IsConnected(cell, direction))
             return;
-
         Vector2Int next = cell.Position + offset;
-
         if (!roadCells.TryGetValue(next, out RoadCell nextCell))
             return;
-
-        // Preserve the existing one-way rule:
-        // either the current road or the next road must support this direction.
         bool currentSupportsMovement = cell.Direction == direction;
         bool nextSupportsMovement = nextCell.Direction == direction;
-
         if (currentSupportsMovement || nextSupportsMovement)
             result.Add(next);
     }
@@ -279,24 +259,18 @@ public class RoadNetwork : MonoBehaviour
         }
     }
 
-    private List<Vector2Int> ReconstructPath(
-        Dictionary<Vector2Int, Vector2Int> cameFrom,
-        Vector2Int start,
-        Vector2Int target)
+    private List<Vector2Int> ReconstructPath(Dictionary<Vector2Int, Vector2Int> cameFrom, Vector2Int start, Vector2Int target)
     {
         var path = new List<Vector2Int>();
         Vector2Int current = target;
         path.Add(current);
-
         while (current != start)
         {
             if (!cameFrom.TryGetValue(current, out Vector2Int previous))
                 return new List<Vector2Int>();
-
             current = previous;
             path.Add(current);
         }
-
         path.Reverse();
         return path;
     }
@@ -305,14 +279,10 @@ public class RoadNetwork : MonoBehaviour
     private void DebugAllRoadCells()
     {
         Debug.Log($"========== ROAD NETWORK: {roadCells.Count} MODULES ==========");
-
         foreach (var entry in roadCells)
         {
             RoadCell cell = entry.Value;
-
-            Debug.Log(
-                $"ROAD MODULE {cell.Position} | Direction: {cell.Direction} | " +
-                $"Connections: {GetConnectionMask(cell.Position)}");
+            Debug.Log($"ROAD MODULE {cell.Position} | Direction: {cell.Direction} | Connections: {GetConnectionMask(cell.Position)}");
         }
     }
 
@@ -324,14 +294,11 @@ public class RoadNetwork : MonoBehaviour
     public List<RoadCellSaveData> GetSaveData()
     {
         var result = new List<RoadCellSaveData>();
-
         foreach (var entry in roadCells)
         {
             RoadCell cell = entry.Value;
-
             int directionX = 0;
             int directionZ = 0;
-
             switch (cell.Direction)
             {
                 case RoadDirection.North: directionZ = 1; break;
@@ -339,7 +306,6 @@ public class RoadNetwork : MonoBehaviour
                 case RoadDirection.South: directionZ = -1; break;
                 case RoadDirection.West: directionX = -1; break;
             }
-
             result.Add(new RoadCellSaveData
             {
                 x = cell.Position.x,
@@ -352,7 +318,6 @@ public class RoadNetwork : MonoBehaviour
                 connectWest = cell.ConnectWest
             });
         }
-
         return result;
     }
 
@@ -363,7 +328,6 @@ public class RoadNetwork : MonoBehaviour
             public Vector2Int Position;
             public int Priority;
             public int Order;
-
             public Node(Vector2Int position, int priority, int order)
             {
                 Position = position;
@@ -374,28 +338,20 @@ public class RoadNetwork : MonoBehaviour
 
         private readonly List<Node> nodes = new List<Node>();
         private int orderCounter;
-
         public int Count => nodes.Count;
-
         public void Enqueue(Vector2Int position, int priority)
         {
             nodes.Add(new Node(position, priority, orderCounter++));
         }
-
         public Vector2Int Dequeue()
         {
             int bestIndex = 0;
-
             for (int i = 1; i < nodes.Count; i++)
             {
                 if (nodes[i].Priority < nodes[bestIndex].Priority ||
-                    (nodes[i].Priority == nodes[bestIndex].Priority &&
-                     nodes[i].Order < nodes[bestIndex].Order))
-                {
+                    (nodes[i].Priority == nodes[bestIndex].Priority && nodes[i].Order < nodes[bestIndex].Order))
                     bestIndex = i;
-                }
             }
-
             Vector2Int result = nodes[bestIndex].Position;
             nodes.RemoveAt(bestIndex);
             return result;
