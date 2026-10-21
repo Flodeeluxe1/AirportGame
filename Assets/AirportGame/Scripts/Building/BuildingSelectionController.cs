@@ -20,6 +20,7 @@ public class BuildingSelectionController : MonoBehaviour
     [Header("Road Selection")]
     [SerializeField] private RoadNetwork roadNetwork;
     [SerializeField] private RoadTilemapController roadTilemapController;
+    [SerializeField] private RoadModuleRuleManager roadModuleRuleManager;
 
     [Header("Taxiway Selection")]
     [SerializeField] private TaxiwayNetwork taxiwayNetwork;
@@ -102,6 +103,12 @@ public class BuildingSelectionController : MonoBehaviour
 
         if (roadNetwork == null)
             roadNetwork = FindFirstObjectByType<RoadNetwork>();
+
+        if (roadModuleRuleManager == null)
+        {
+            roadModuleRuleManager =
+                FindFirstObjectByType<RoadModuleRuleManager>();
+        }
 
         if (roadTilemapController == null)
             roadTilemapController = FindFirstObjectByType<RoadTilemapController>();
@@ -827,16 +834,24 @@ public class BuildingSelectionController : MonoBehaviour
         deleteSelectionMode = false;
     }
 
+
     private void DeleteRoadCell(Vector2Int cell)
     {
         if (roadNetwork != null)
             roadNetwork.RemoveRoad(cell);
 
+        // Clean up any legacy tile at this position, if one remains.
         if (roadTilemapController != null)
             roadTilemapController.RemoveRoadTile(cell);
 
+        // The removed cell disappears, and neighboring modules
+        // change shape to reflect their new connections.
+        if (roadModuleRuleManager != null)
+            roadModuleRuleManager.RefreshCellAndNeighbors(cell);
+
         Debug.Log($"Deleted road cell: {cell}");
     }
+
 
     private void DeleteTaxiwayCell(Vector2Int cell)
     {

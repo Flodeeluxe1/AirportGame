@@ -63,6 +63,30 @@ public class RoadNetwork : MonoBehaviour
         UpdateConnectionsAround(position);
     }
 
+
+
+    public int GetConnectionMask(Vector2Int position)
+    {
+        if (!roadCells.TryGetValue(position, out RoadCell cell))
+            return 0;
+
+        int mask = 0;
+
+        if (cell.ConnectNorth) mask |= 1;
+        if (cell.ConnectEast) mask |= 2;
+        if (cell.ConnectSouth) mask |= 4;
+        if (cell.ConnectWest) mask |= 8;
+
+        return mask;
+    }
+
+    public List<Vector2Int> GetRoadPositions()
+    {
+        return new List<Vector2Int>(roadCells.Keys);
+    }
+
+
+
     public void RemoveRoad(
         Vector2Int position)
     {

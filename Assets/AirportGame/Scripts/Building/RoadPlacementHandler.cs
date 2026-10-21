@@ -8,7 +8,7 @@ public class RoadPlacementHandler : IPlacementHandler
     private EdgeOccupancy edgeOccupancy;
 
     private RoadNetwork roadNetwork;
-    private RoadTilemapController roadTilemapController;
+    private RoadModuleRuleManager roadModuleRuleManager;
 
     private BuildableDefinition definition;
 
@@ -38,9 +38,6 @@ public class RoadPlacementHandler : IPlacementHandler
         roadNetwork =
             Object.FindFirstObjectByType<RoadNetwork>();
 
-        roadTilemapController =
-            Object.FindFirstObjectByType<RoadTilemapController>();
-
         if (roadNetwork == null)
         {
             Debug.LogError(
@@ -49,12 +46,13 @@ public class RoadPlacementHandler : IPlacementHandler
             );
         }
 
-        if (roadTilemapController == null)
+        roadModuleRuleManager =
+            Object.FindFirstObjectByType<RoadModuleRuleManager>();
+
+        if (roadModuleRuleManager == null)
         {
             Debug.LogError(
-                "RoadPlacementHandler: " +
-                "No RoadTilemapController was found in the scene."
-            );
+                "RoadPlacementHandler: No RoadModuleRuleManager was found in the scene.");
         }
     }
 
@@ -465,6 +463,7 @@ public class RoadPlacementHandler : IPlacementHandler
     }
 
 
+
     public void TryPlace()
     {
         if (roadNetwork == null)
@@ -473,12 +472,10 @@ public class RoadPlacementHandler : IPlacementHandler
             return;
         }
 
-        if (roadTilemapController == null)
+        if (roadModuleRuleManager == null)
         {
             Debug.LogError(
-                "Cannot place road: RoadTilemapController is missing."
-            );
-
+                "Cannot place road: RoadModuleRuleManager is missing.");
             return;
         }
 
@@ -487,8 +484,7 @@ public class RoadPlacementHandler : IPlacementHandler
         GetRoadArea(
             out Vector2Int origin,
             out int width,
-            out int depth
-        );
+            out int depth);
 
         bool inside = IsInsideGrid(origin, width, depth);
         bool free = AreRoadCellsFree(origin, width, depth);
@@ -502,9 +498,7 @@ public class RoadPlacementHandler : IPlacementHandler
         if (!free)
         {
             Debug.Log(
-                "Cannot place road: one or more cells already contain a road."
-            );
-
+                "Cannot place road: one or more cells already contain a road.");
             return;
         }
 
@@ -518,6 +512,7 @@ public class RoadPlacementHandler : IPlacementHandler
 
         RoadDirection direction = GetRoadDirection();
 
+        // First create every logical road cell.
         for (int x = 0; x < width; x++)
         {
             for (int z = 0; z < depth; z++)
@@ -525,23 +520,33 @@ public class RoadPlacementHandler : IPlacementHandler
                 Vector2Int cell = origin + new Vector2Int(x, z);
 
                 roadNetwork.AddRoad(cell, direction);
-                roadTilemapController.SetRoadTile(cell, direction);
 
                 Debug.Log(
-                    $"ROAD PLACED | Cell: {cell} | Direction: {direction}"
-                );
+                    $"ROAD PLACED | Cell: {cell} | Direction: {direction}");
+            }
+        }
+
+        // Then update each new module and its neighboring modules.
+        // This lets the manager select the correct connection shapes.
+        for (int x = 0; x < width; x++)
+        {
+            for (int z = 0; z < depth; z++)
+            {
+                Vector2Int cell = origin + new Vector2Int(x, z);
+                roadModuleRuleManager.RefreshCellAndNeighbors(cell);
             }
         }
 
         Debug.Log(
-            $"Placed road: {width} x {depth}, Direction: {direction}"
-        );
+            $"Placed road: {width} x {depth}, Direction: {direction}");
 
         startPosition = currentGridPosition;
         endPosition = currentGridPosition;
 
-        previewObject.transform.localScale = Vector3.one;
+        if (previewObject != null)
+            previewObject.transform.localScale = Vector3.one;
     }
+
 
 
     private RoadDirection GetRoadDirection()

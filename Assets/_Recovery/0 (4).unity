@@ -2783,17 +2783,16 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1478484321}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f7fe911e66a361145870d71b5517541c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FlightScheduleBoardPanel
   uiDocument: {fileID: 762824360}
-  gameTimeManager: {fileID: 449210932}
   flightCatalog: {fileID: 1712716984}
   gateRegistry: {fileID: 335832197}
+  gameTimeManager: {fileID: 449210932}
   refreshInterval: 0.5
-  boardHeight: 320
   onTimeToleranceMinutes: 5
 --- !u!1 &1577763651
 GameObject:

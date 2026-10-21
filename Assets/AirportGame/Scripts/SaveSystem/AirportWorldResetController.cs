@@ -14,6 +14,7 @@ public class AirportWorldResetController : MonoBehaviour
     [Header("Roads")]
     [SerializeField] private RoadNetwork roadNetwork;
     [SerializeField] private RoadTilemapController roadTilemapController;
+    [SerializeField] private RoadModuleRuleManager roadModuleRuleManager;
 
     [Header("Taxiways")]
     [SerializeField] private TaxiwayNetwork taxiwayNetwork;
@@ -92,7 +93,11 @@ public class AirportWorldResetController : MonoBehaviour
         gridSurface.ResetAllSurfaces();
 
         roadNetwork.Clear();
-        roadTilemapController.ClearAllRoadTiles();
+
+        if (roadTilemapController != null)
+            roadTilemapController.ClearAllRoadTiles();
+
+        roadModuleRuleManager.ClearAllRoadModules();
 
         taxiwayNetwork.Clear();
         taxiwayTilemapController.ClearAllTaxiwayTiles();
@@ -142,12 +147,18 @@ public class AirportWorldResetController : MonoBehaviour
 
     private bool ValidateReferences()
     {
+        if (roadModuleRuleManager == null)
+        {
+            roadModuleRuleManager =
+                FindFirstObjectByType<RoadModuleRuleManager>();
+        }
+
         if (buildController == null ||
             gridOccupancy == null ||
             edgeOccupancy == null ||
             gridSurface == null ||
             roadNetwork == null ||
-            roadTilemapController == null ||
+            roadModuleRuleManager == null ||
             taxiwayNetwork == null ||
             taxiwayTilemapController == null ||
             foundationTilemapController == null ||
@@ -708,10 +719,12 @@ public class AirportWorldResetController : MonoBehaviour
             }
 
             roadNetwork.AddRoad(cell, direction);
-            roadTilemapController.SetRoadTile(cell, direction);
 
             restoredRoadCells++;
         }
+
+        // Rebuild the road visuals only after all logical connections exist.
+        roadModuleRuleManager.RefreshAllRoadModules();
 
         // 3. Restore taxiway definitions, network cells, tiles,
         // and centerline membership.
