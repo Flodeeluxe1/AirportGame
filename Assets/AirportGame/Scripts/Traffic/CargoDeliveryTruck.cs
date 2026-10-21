@@ -30,6 +30,11 @@ public class CargoDeliveryTruck : MonoBehaviour
     [SerializeField] private Vector2Int exitCell;
     [SerializeField] private bool snapToStartCell = true;
 
+    [Header("Road Module Settings")]
+    [Tooltip("Road modules cover this many grid cells in each direction.")]
+    [Min(1)]
+    [SerializeField] private int roadModuleSize = 2;
+
     [Header("Movement")]
     [Min(0.1f)]
     [SerializeField] private float movementSpeed = 5f;
@@ -135,8 +140,11 @@ public class CargoDeliveryTruck : MonoBehaviour
         string operationId,
         string flightNumber)
     {
-        startCell = newStartCell;
-        exitCell = newExitCell;
+        roadModuleSize = Mathf.Max(1, roadModuleSize);
+
+        startCell = GetRoadModuleAnchor(newStartCell);
+        exitCell = GetRoadModuleAnchor(newExitCell);
+
         deliveryOperationId = operationId ?? string.Empty;
         deliveryFlightNumber = flightNumber ?? string.Empty;
         routeInitializedBySpawner = true;
@@ -149,6 +157,8 @@ public class CargoDeliveryTruck : MonoBehaviour
 
     private void Awake()
     {
+        roadModuleSize = Mathf.Max(1, roadModuleSize);
+
         if (roadNetwork == null)
             roadNetwork = FindFirstObjectByType<RoadNetwork>();
 
@@ -159,10 +169,12 @@ public class CargoDeliveryTruck : MonoBehaviour
         truckColliders = GetComponentsInChildren<Collider>(true);
 
         originalRendererEnabled = new bool[truckRenderers.Length];
+
         for (int i = 0; i < truckRenderers.Length; i++)
             originalRendererEnabled[i] = truckRenderers[i].enabled;
 
         originalColliderEnabled = new bool[truckColliders.Length];
+
         for (int i = 0; i < truckColliders.Length; i++)
             originalColliderEnabled[i] = truckColliders[i].enabled;
 
@@ -264,22 +276,25 @@ public class CargoDeliveryTruck : MonoBehaviour
             return;
         }
 
+        startCell = GetRoadModuleAnchor(startCell);
+        exitCell = GetRoadModuleAnchor(exitCell);
+
         if (!roadNetwork.IsRoad(startCell))
         {
-            FinishRoute($"Start cell {startCell} is not a road.");
+            FinishRoute($"Start road module {startCell} is not a road.");
             return;
         }
 
         if (!roadNetwork.IsRoad(exitCell))
         {
-            FinishRoute($"Exit cell {exitCell} is not a road.");
+            FinishRoute($"Exit road module {exitCell} is not a road.");
             return;
         }
 
         if (snapToStartCell)
         {
             Vector3 startPosition =
-                gridManager.GridToWorldCenter(startCell);
+                GetRoadModuleWorldPosition(startCell);
 
             startPosition.y += heightOffset;
             transform.position = startPosition;
@@ -337,7 +352,9 @@ public class CargoDeliveryTruck : MonoBehaviour
         }
 
         Vector2Int approachCell =
-            gridManager.WorldToGrid(approachWorldPosition);
+            GetRoadModuleAnchor(
+                gridManager.WorldToGrid(approachWorldPosition)
+            );
 
         currentPath = roadNetwork.FindPath(startCell, approachCell);
 
@@ -345,9 +362,11 @@ public class CargoDeliveryTruck : MonoBehaviour
         {
             ReleaseCargoZone();
             EnterCargoZoneWaitingState();
+
             debugMessage =
                 "Could not create a path to the reserved cargo zone. " +
                 "Waiting to retry.";
+
             return;
         }
 
@@ -359,7 +378,7 @@ public class CargoDeliveryTruck : MonoBehaviour
         SetState(TruckState.DrivingToCargoZone);
 
         debugMessage = routeInitializedBySpawner
-            ? "Route initialized using cells from spawner."
+            ? "Route initialized using road module anchors from spawner."
             : "Route initialized using Inspector route cells.";
 
         Debug.Log(
@@ -421,10 +440,12 @@ public class CargoDeliveryTruck : MonoBehaviour
             );
 
         int shortestPathLength = int.MaxValue;
+
         PlacedBuilding bestBuilding = null;
         CargoZone bestCargoZone = null;
         Transform bestVanStopPoint = null;
         Transform bestCargoAreaPoint = null;
+
         Vector2Int bestApproachCell = default;
         List<Vector2Int> bestPath = null;
 
@@ -463,8 +484,11 @@ public class CargoDeliveryTruck : MonoBehaviour
             List<Vector2Int> approachCells =
                 GetApproachCells(building);
 
-            foreach (Vector2Int approachCell in approachCells)
+            foreach (Vector2Int rawApproachCell in approachCells)
             {
+                Vector2Int approachCell =
+                    GetRoadModuleAnchor(rawApproachCell);
+
                 if (!roadNetwork.IsRoad(approachCell))
                     continue;
 
@@ -507,7 +531,7 @@ public class CargoDeliveryTruck : MonoBehaviour
         ReservedCargoZones.Add(reservedCargoZone);
 
         approachWorldPosition =
-            gridManager.GridToWorldCenter(bestApproachCell);
+            GetRoadModuleWorldPosition(bestApproachCell);
 
         approachWorldPosition.y += heightOffset;
 
@@ -556,6 +580,7 @@ public class CargoDeliveryTruck : MonoBehaviour
                 "in the Inspector.",
                 this
             );
+
             return;
         }
 
@@ -569,6 +594,7 @@ public class CargoDeliveryTruck : MonoBehaviour
                 "CargoDeliveryTruck: CargoZone or CargoAreaPoint is missing.",
                 this
             );
+
             return;
         }
 
@@ -634,7 +660,7 @@ public class CargoDeliveryTruck : MonoBehaviour
                 if (package == null)
                 {
                     Debug.LogError(
-                        $"CargoDeliveryTruck: CargoBox prefab is missing " +
+                        "CargoDeliveryTruck: CargoBox prefab is missing " +
                         $"CargoPackage. Box {i + 1} is not registered.",
                         cargoBox
                     );
@@ -770,8 +796,10 @@ public class CargoDeliveryTruck : MonoBehaviour
             transform.forward * rayOriginForwardOffset;
 
         Vector3 forward = transform.forward;
+
         Vector3 left45 =
             Quaternion.Euler(0f, -45f, 0f) * forward;
+
         Vector3 right45 =
             Quaternion.Euler(0f, 45f, 0f) * forward;
 
@@ -852,6 +880,7 @@ public class CargoDeliveryTruck : MonoBehaviour
             debugRaycastSummary +=
                 $"{rayName}: {rayHit.collider.name} " +
                 $"({rayHit.distance:F2}m) - not a recognized vehicle\n";
+
             return;
         }
 
@@ -859,6 +888,7 @@ public class CargoDeliveryTruck : MonoBehaviour
         {
             debugRaycastSummary +=
                 $"{rayName}: self, ignored\n";
+
             return;
         }
 
@@ -895,13 +925,17 @@ public class CargoDeliveryTruck : MonoBehaviour
         Vector3 fromWorldPosition,
         Vector2Int destinationCell)
     {
-        Vector2Int fromCell =
-            gridManager.WorldToGrid(fromWorldPosition);
+        Vector2Int fromCell = GetRoadModuleAnchor(
+            gridManager.WorldToGrid(fromWorldPosition)
+        );
+
+        destinationCell = GetRoadModuleAnchor(destinationCell);
 
         if (!roadNetwork.IsRoad(fromCell))
         {
             debugMessage =
-                $"Current approach cell {fromCell} is not a road.";
+                $"Current approach module {fromCell} is not a road.";
+
             return false;
         }
 
@@ -921,9 +955,40 @@ public class CargoDeliveryTruck : MonoBehaviour
 
     private Vector3 GetRoadWorldPosition(Vector2Int cell)
     {
-        Vector3 position = gridManager.GridToWorldCenter(cell);
+        Vector3 position =
+            GetRoadModuleWorldPosition(cell);
+
         position.y += heightOffset;
+
         return position;
+    }
+
+    private Vector3 GetRoadModuleWorldPosition(Vector2Int anchor)
+    {
+        anchor = GetRoadModuleAnchor(anchor);
+
+        Vector3 position = gridManager.GridToWorld(anchor);
+
+        float moduleWorldSize =
+            gridManager.CellSize * roadModuleSize;
+
+        position.x += moduleWorldSize * 0.5f;
+        position.z += moduleWorldSize * 0.5f;
+
+        return position;
+    }
+
+    private Vector2Int GetRoadModuleAnchor(Vector2Int cell)
+    {
+        int size = Mathf.Max(1, roadModuleSize);
+
+        int anchorX =
+            Mathf.FloorToInt((float)cell.x / size) * size;
+
+        int anchorY =
+            Mathf.FloorToInt((float)cell.y / size) * size;
+
+        return new Vector2Int(anchorX, anchorY);
     }
 
     private Vector3 GetVanStopWorldPosition()
@@ -1007,6 +1072,7 @@ public class CargoDeliveryTruck : MonoBehaviour
     private void FinishRoute(string message)
     {
         debugMessage = message;
+
         Debug.LogWarning(
             $"CargoDeliveryTruck: {message} " +
             $"Flight: {GetFlightLabel()} | " +
@@ -1015,6 +1081,7 @@ public class CargoDeliveryTruck : MonoBehaviour
         );
 
         ReleaseCargoZone();
+
         state = TruckState.Arrived;
         debugState = state.ToString();
 

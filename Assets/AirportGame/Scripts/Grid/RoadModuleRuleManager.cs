@@ -58,6 +58,8 @@ public class RoadModuleRuleManager : MonoBehaviour
             return;
         }
 
+        cell = roadNetwork.GetRoadAnchor(cell);
+
         if (!roadNetwork.IsRoad(cell))
         {
             RemoveModule(cell);
@@ -74,25 +76,25 @@ public class RoadModuleRuleManager : MonoBehaviour
         if (prefab == null)
         {
             Debug.LogError(
-                $"RoadModuleRuleManager: Missing prefab for road cell {cell}, " +
+                $"RoadModuleRuleManager: Missing prefab for module {cell}, " +
                 $"connection mask {mask}.");
 
             RemoveModule(cell);
             return;
         }
 
-        Quaternion rotation = Quaternion.Euler(
-            0f, rotationSteps * 90f, 0f) *
+        Quaternion rotation =
+            Quaternion.Euler(0f, rotationSteps * 90f, 0f) *
             Quaternion.Euler(rotationOffset);
 
-        Vector3 position = gridManager.GridToWorldCenter(cell);
+        Vector3 position =
+            roadNetwork.GetRoadCenterWorldPosition(cell, gridManager);
 
         if (modules.TryGetValue(cell, out RoadModule existing) &&
             existing.Instance != null &&
             existing.Prefab == prefab)
         {
-            existing.Instance.transform.SetPositionAndRotation(
-                position, rotation);
+            existing.Instance.transform.SetPositionAndRotation(position, rotation);
             return;
         }
 
@@ -112,19 +114,23 @@ public class RoadModuleRuleManager : MonoBehaviour
 
     public void RefreshCellAndNeighbors(Vector2Int cell)
     {
+        if (roadNetwork == null)
+            return;
+
+        cell = roadNetwork.GetRoadAnchor(cell);
+
         RefreshCell(cell);
-        RefreshCell(cell + Vector2Int.up);
-        RefreshCell(cell + Vector2Int.right);
-        RefreshCell(cell + Vector2Int.down);
-        RefreshCell(cell + Vector2Int.left);
+        RefreshCell(cell + Vector2Int.up * RoadNetwork.RoadModuleSize);
+        RefreshCell(cell + Vector2Int.right * RoadNetwork.RoadModuleSize);
+        RefreshCell(cell + Vector2Int.down * RoadNetwork.RoadModuleSize);
+        RefreshCell(cell + Vector2Int.left * RoadNetwork.RoadModuleSize);
     }
 
     public void RefreshAllRoadModules()
     {
         if (roadNetwork == null)
         {
-            Debug.LogError(
-                "RoadModuleRuleManager: RoadNetwork is missing.");
+            Debug.LogError("RoadModuleRuleManager: RoadNetwork is missing.");
             return;
         }
 
@@ -158,6 +164,10 @@ public class RoadModuleRuleManager : MonoBehaviour
 
     private void RemoveModule(Vector2Int cell)
     {
+        cell = roadNetwork != null
+            ? roadNetwork.GetRoadAnchor(cell)
+            : cell;
+
         if (!modules.TryGetValue(cell, out RoadModule module))
             return;
 
@@ -205,9 +215,7 @@ public class RoadModuleRuleManager : MonoBehaviour
 
         if (count == 3)
         {
-            rotationSteps = FindRotation(
-                mask, North | East | South);
-
+            rotationSteps = FindRotation(mask, North | East | South);
             rotationOffset = tJunctionRotationOffset;
             return tJunctionPrefab;
         }
@@ -219,12 +227,10 @@ public class RoadModuleRuleManager : MonoBehaviour
     private static int CountConnections(int mask)
     {
         int count = 0;
-
         if ((mask & North) != 0) count++;
         if ((mask & East) != 0) count++;
         if ((mask & South) != 0) count++;
         if ((mask & West) != 0) count++;
-
         return count;
     }
 

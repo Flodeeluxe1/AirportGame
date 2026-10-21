@@ -872,14 +872,12 @@ public class TrafficTestVehicle : MonoBehaviour
         return true;
     }
 
-    private Vector3 GetRoadWorldPosition(
-        Vector2Int cell)
+    private Vector3 GetRoadWorldPosition(Vector2Int cell)
     {
         Vector3 position =
-            gridManager.GridToWorldCenter(cell);
+            roadNetwork.GetRoadCenterWorldPosition(cell, gridManager);
 
         position.y += heightOffset;
-
         return position;
     }
 

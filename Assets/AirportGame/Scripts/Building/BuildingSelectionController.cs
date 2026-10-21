@@ -490,10 +490,23 @@ public class BuildingSelectionController : MonoBehaviour
     private void SelectSingleRoad(Vector2Int cell)
     {
         ClearSelection();
-        selectedRoadCells.Add(cell);
-        RefreshHighlights();
 
-        Debug.Log($"Selected road cell: {cell}");
+        if (roadNetwork == null)
+            return;
+
+        Vector2Int anchor = roadNetwork.GetRoadAnchor(cell);
+
+        for (int x = 0; x < RoadNetwork.RoadModuleSize; x++)
+        {
+            for (int z = 0; z < RoadNetwork.RoadModuleSize; z++)
+            {
+                selectedRoadCells.Add(
+                    anchor + new Vector2Int(x, z));
+            }
+        }
+
+        RefreshHighlights();
+        Debug.Log($"Selected road module: {anchor}");
     }
 
     private void SelectSingleTaxiway(Vector2Int cell)

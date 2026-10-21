@@ -13,6 +13,11 @@ public class ScheduledCargoDeliverySpawner : MonoBehaviour
     [SerializeField] private FlightManagementUIController flightManagement;
     [SerializeField] private GameTimeManager gameTimeManager;
 
+    [Header("Road Module Settings")]
+    [Tooltip("Road modules cover 2x2 grid cells.")]
+    [Min(1)]
+    [SerializeField] private int roadModuleSize = 2;
+
     [Header("Schedule")]
     [Min(0)]
     [SerializeField] private int minutesBeforeDeparture = 30;
@@ -63,10 +68,11 @@ public class ScheduledCargoDeliverySpawner : MonoBehaviour
     private readonly HashSet<string> queuedOperationIds =
         new HashSet<string>();
 
+    private RoadNetwork roadNetwork;
+
     private bool initialized;
     private int lastGameSecond;
     private long gameDayIndex;
-
     private long nextAllowedSpawnGameSecond = -1;
 
     private float scheduleRefreshTimer;
@@ -80,6 +86,7 @@ public class ScheduledCargoDeliverySpawner : MonoBehaviour
                 "ScheduledCargoDeliverySpawner: Cargo Truck Prefab is missing.",
                 this
             );
+
             enabled = false;
             return;
         }
@@ -91,6 +98,7 @@ public class ScheduledCargoDeliverySpawner : MonoBehaviour
                 "and Exit Point.",
                 this
             );
+
             enabled = false;
             return;
         }
@@ -107,21 +115,27 @@ public class ScheduledCargoDeliverySpawner : MonoBehaviour
         if (gameTimeManager == null)
             gameTimeManager = FindFirstObjectByType<GameTimeManager>();
 
+        roadNetwork = FindFirstObjectByType<RoadNetwork>();
+
         if (gridManager == null ||
             flightManagement == null ||
-            gameTimeManager == null)
+            gameTimeManager == null ||
+            roadNetwork == null)
         {
             Debug.LogError(
                 "ScheduledCargoDeliverySpawner: GridManager, " +
-                "FlightManagementUIController, and GameTimeManager " +
-                "are required.",
+                "FlightManagementUIController, GameTimeManager, and " +
+                "RoadNetwork are required.",
                 this
             );
+
             enabled = false;
             return;
         }
 
+        roadModuleSize = Mathf.Max(1, roadModuleSize);
         spawnIntervalGameSeconds = Mathf.Max(1, spawnIntervalGameSeconds);
+        scheduleRefreshInterval = Mathf.Max(0.1f, scheduleRefreshInterval);
 
         RefreshSchedule();
 
@@ -131,6 +145,7 @@ public class ScheduledCargoDeliverySpawner : MonoBehaviour
                 "ScheduledCargoDeliverySpawner: Could not read game time.",
                 this
             );
+
             enabled = false;
             return;
         }
@@ -143,7 +158,8 @@ public class ScheduledCargoDeliverySpawner : MonoBehaviour
             $"Game time: {gameTimeManager.FormattedTime}. " +
             $"Scheduled deliveries: {scheduledDeliveries.Count}. " +
             $"Truck lead time: {minutesBeforeDeparture} in-game minutes. " +
-            $"Spawn interval: {spawnIntervalGameSeconds} game seconds.",
+            $"Spawn interval: {spawnIntervalGameSeconds} game seconds. " +
+            $"Road module size: {roadModuleSize}x{roadModuleSize}.",
             this
         );
     }
@@ -229,11 +245,12 @@ public class ScheduledCargoDeliverySpawner : MonoBehaviour
                     saved.startMinute >= MinutesPerDay)
                 {
                     Debug.LogWarning(
-                        $"ScheduledCargoDeliverySpawner: Skipping " +
+                        "ScheduledCargoDeliverySpawner: Skipping " +
                         $"{saved.flightNumber}; invalid departure minute " +
                         $"{saved.startMinute}.",
                         this
                     );
+
                     continue;
                 }
 
@@ -330,7 +347,6 @@ public class ScheduledCargoDeliverySpawner : MonoBehaviour
             triggeredDeliveries.Add(scheduled);
         }
 
-        // Process deliveries in chronological order.
         triggeredDeliveries.Sort(
             (a, b) => a.TriggerMinute.CompareTo(b.TriggerMinute)
         );
@@ -372,7 +388,7 @@ public class ScheduledCargoDeliverySpawner : MonoBehaviour
         if (logQueueChanges)
         {
             Debug.Log(
-                $"Cargo delivery added to queue | " +
+                "Cargo delivery added to queue | " +
                 $"Flight: {scheduled.FlightNumber} | " +
                 $"Departure: {FormatTime(scheduled.StartMinute)} | " +
                 $"Queue position: {deliveryQueue.Count}",
@@ -395,11 +411,11 @@ public class ScheduledCargoDeliverySpawner : MonoBehaviour
             return;
         }
 
-        // Spawn at most one truck during this Update.
+        // Process no more than one truck spawn per Update.
         QueuedDelivery queuedDelivery = deliveryQueue.Peek();
 
-        // If the road setup is temporarily unavailable, keep this delivery
-        // at the front of the queue and try again on a later Update.
+        // If the road setup is temporarily unavailable, retain the delivery
+        // and retry it on a later Update.
         if (!TrySpawnQueuedDelivery(queuedDelivery))
             return;
 
@@ -412,7 +428,7 @@ public class ScheduledCargoDeliverySpawner : MonoBehaviour
         if (logQueueChanges)
         {
             Debug.Log(
-                $"Cargo truck spawn interval started. Next truck can " +
+                "Cargo truck spawn interval started. Next truck can " +
                 $"spawn after {spawnIntervalGameSeconds} game seconds. " +
                 $"Trucks remaining in queue: {deliveryQueue.Count}.",
                 this
@@ -431,28 +447,42 @@ public class ScheduledCargoDeliverySpawner : MonoBehaviour
         if (spawnedOperationIds.Contains(queuedDelivery.OperationId))
             return true;
 
-        Vector2Int startCell =
-            gridManager.WorldToGrid(spawnPoint.position);
+        if (roadNetwork == null)
+            roadNetwork = FindFirstObjectByType<RoadNetwork>();
 
-        Vector2Int exitCell =
-            gridManager.WorldToGrid(exitPoint.position);
-
-        if (!IsRoadCell(startCell) || !IsRoadCell(exitCell))
+        if (roadNetwork == null || gridManager == null)
         {
-            Debug.LogError(
-                $"ScheduledCargoDeliverySpawner: Cannot spawn delivery " +
-                $"for {queuedDelivery.Scheduled.FlightNumber}. The spawn " +
-                $"cell {startCell} or exit cell {exitCell} is not a road.",
-                this
+            LogSpawnRetry(
+                "RoadNetwork or GridManager is unavailable.",
+                queuedDelivery
             );
 
-            // Keep it queued, but avoid spamming the same error every frame.
             return false;
         }
 
-        Vector3 spawnPosition =
-            gridManager.GridToWorldCenter(startCell);
+        // Convert marker positions to their containing 2x2 road module.
+        Vector2Int startCell = GetRoadModuleAnchor(
+            gridManager.WorldToGrid(spawnPoint.position)
+        );
 
+        Vector2Int exitCell = GetRoadModuleAnchor(
+            gridManager.WorldToGrid(exitPoint.position)
+        );
+
+        if (!IsRoadModule(startCell) || !IsRoadModule(exitCell))
+        {
+            LogSpawnRetry(
+                $"Spawn module {startCell} or exit module {exitCell} " +
+                "is not a road.",
+                queuedDelivery
+            );
+
+            return false;
+        }
+
+        // Position at the center of the full road module, not the center
+        // of its first grid cell.
+        Vector3 spawnPosition = GetRoadModuleCenter(startCell);
         spawnPosition.y += spawnHeightOffset;
 
         GameObject truckObject = Instantiate(
@@ -474,16 +504,14 @@ public class ScheduledCargoDeliverySpawner : MonoBehaviour
                 truckObject
             );
 
-            Debug.LogWarning(
-                $"CARGO TRUCK DESTROYED BY SPAWNER | " +
-                $"Flight: {queuedDelivery.Scheduled.FlightNumber} | " +
-                $"Operation: {queuedDelivery.OperationId} | " +
-                $"Reason: Missing CargoDeliveryTruck component.",
-                this
-            );
-
             Destroy(truckObject);
-            return false;
+
+            // This is a prefab setup error, not a temporary road issue.
+            // Remove the failed operation from the queue so it does not
+            // instantiate and destroy a truck every frame.
+            spawnedOperationIds.Add(queuedDelivery.OperationId);
+
+            return true;
         }
 
         truck.InitializeRoute(
@@ -501,6 +529,8 @@ public class ScheduledCargoDeliverySpawner : MonoBehaviour
                 "SCHEDULED CARGO TRUCK SPAWNED | " +
                 $"Flight: {queuedDelivery.Scheduled.FlightNumber} | " +
                 $"Operation: {queuedDelivery.OperationId} | " +
+                $"Start module: {startCell} | " +
+                $"Exit module: {exitCell} | " +
                 $"Departure: {FormatTime(queuedDelivery.Scheduled.StartMinute)} | " +
                 $"Triggered: {gameTimeManager.FormattedTime}",
                 truckObject
@@ -510,12 +540,53 @@ public class ScheduledCargoDeliverySpawner : MonoBehaviour
         return true;
     }
 
-    private bool IsRoadCell(Vector2Int cell)
+    private Vector2Int GetRoadModuleAnchor(Vector2Int cell)
     {
-        RoadNetwork roadNetwork =
-            FindFirstObjectByType<RoadNetwork>();
+        int anchorX =
+            Mathf.FloorToInt((float)cell.x / roadModuleSize) *
+            roadModuleSize;
 
-        return roadNetwork != null && roadNetwork.IsRoad(cell);
+        int anchorY =
+            Mathf.FloorToInt((float)cell.y / roadModuleSize) *
+            roadModuleSize;
+
+        return new Vector2Int(anchorX, anchorY);
+    }
+
+    private bool IsRoadModule(Vector2Int anchor)
+    {
+        // Check the anchor node used by the road network.
+        return roadNetwork != null && roadNetwork.IsRoad(anchor);
+    }
+
+    private Vector3 GetRoadModuleCenter(Vector2Int anchor)
+    {
+        Vector3 moduleOrigin = gridManager.GridToWorld(anchor);
+
+        float moduleWorldSize =
+            gridManager.CellSize * roadModuleSize;
+
+        moduleOrigin.x += moduleWorldSize * 0.5f;
+        moduleOrigin.z += moduleWorldSize * 0.5f;
+
+        return moduleOrigin;
+    }
+
+    private void LogSpawnRetry(
+        string reason,
+        QueuedDelivery queuedDelivery)
+    {
+        // Avoid producing an error message every frame while the road setup
+        // is unavailable. The queued delivery remains pending.
+        if (!logQueueChanges)
+            return;
+
+        Debug.LogWarning(
+            "ScheduledCargoDeliverySpawner: Delivery remains queued. " +
+            $"Flight: {queuedDelivery.Scheduled.FlightNumber}. " +
+            $"Reason: {reason}",
+            this
+        );
     }
 
     private int ModuloDay(int minutes)

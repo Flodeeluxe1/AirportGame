@@ -1,3 +1,4 @@
+
 using UnityEngine;
 
 public class RoadPlacementHandler : IPlacementHandler
@@ -11,18 +12,17 @@ public class RoadPlacementHandler : IPlacementHandler
     private RoadModuleRuleManager roadModuleRuleManager;
 
     private BuildableDefinition definition;
-
     private GameObject previewObject;
     private PlacementPreview placementPreview;
 
     private Vector2Int currentGridPosition;
-
     private Vector2Int startPosition;
     private Vector2Int endPosition;
 
     private bool isDragging;
-
     private int rotation;
+
+    private const int ModuleSize = RoadNetwork.RoadModuleSize;
 
     public void Initialize(
         BuildController controller,
@@ -35,25 +35,15 @@ public class RoadPlacementHandler : IPlacementHandler
         this.gridOccupancy = gridOccupancy;
         this.edgeOccupancy = edgeOccupancy;
 
-        roadNetwork =
-            Object.FindFirstObjectByType<RoadNetwork>();
-
-        if (roadNetwork == null)
-        {
-            Debug.LogError(
-                "RoadPlacementHandler: " +
-                "No RoadNetwork was found in the scene."
-            );
-        }
-
+        roadNetwork = Object.FindFirstObjectByType<RoadNetwork>();
         roadModuleRuleManager =
             Object.FindFirstObjectByType<RoadModuleRuleManager>();
 
+        if (roadNetwork == null)
+            Debug.LogError("RoadPlacementHandler: No RoadNetwork was found.");
+
         if (roadModuleRuleManager == null)
-        {
-            Debug.LogError(
-                "RoadPlacementHandler: No RoadModuleRuleManager was found in the scene.");
-        }
+            Debug.LogError("RoadPlacementHandler: No RoadModuleRuleManager was found.");
     }
 
     public void BeginPlacement(
@@ -65,66 +55,56 @@ public class RoadPlacementHandler : IPlacementHandler
         this.previewObject = previewObject;
         this.placementPreview = placementPreview;
 
-        currentGridPosition =
-            Vector2Int.zero;
-
-        startPosition =
-            Vector2Int.zero;
-
-        endPosition =
-            Vector2Int.zero;
-
+        currentGridPosition = Vector2Int.zero;
+        startPosition = Vector2Int.zero;
+        endPosition = Vector2Int.zero;
         isDragging = false;
-
-        // Prefab arrow initially points South.
         rotation = 0;
 
-        previewObject.transform.rotation =
-            GetPreviewRotation();
+        if (previewObject != null)
+            previewObject.transform.rotation = GetPreviewRotation();
     }
 
-    public void UpdatePlacement(
-        Vector3 hitPoint)
+    public void UpdatePlacement(Vector3 hitPoint)
     {
-        currentGridPosition =
-            gridManager.WorldToGrid(
-                hitPoint
-            );
+        currentGridPosition = roadNetwork != null
+            ? roadNetwork.GetRoadAnchor(gridManager.WorldToGrid(hitPoint))
+            : SnapToModule(gridManager.WorldToGrid(hitPoint));
 
         if (!isDragging)
         {
-            previewObject.transform.position =
-                gridManager.GridToWorldCenter(
-                    currentGridPosition
-                );
+            if (previewObject != null)
+            {
+                previewObject.transform.position =
+                    roadNetwork != null
+                        ? roadNetwork.GetRoadCenterWorldPosition(
+                            currentGridPosition, gridManager)
+                        : GetModuleCenter(currentGridPosition);
 
-            previewObject.transform.rotation =
-                GetPreviewRotation();
+                previewObject.transform.rotation = GetPreviewRotation();
+                previewObject.transform.localScale =
+                    new Vector3(ModuleSize, 1f, ModuleSize);
+            }
 
-            placementPreview.SetValid(
-                gridManager.IsInsideGrid(
-                    currentGridPosition
-                )
-            );
+            bool inside = IsInsideGrid(
+                currentGridPosition, 1, 1);
 
+            bool free = AreRoadCellsFree(
+                currentGridPosition, 1, 1);
+
+            placementPreview.SetValid(inside && free);
             return;
         }
 
-        endPosition =
-            GetDirectionalEndPosition();
-
+        endPosition = GetDirectionalEndPosition();
         UpdatePreview();
         UpdatePreviewValidity();
     }
 
     public void BeginRoad()
     {
-        startPosition =
-            currentGridPosition;
-
-        endPosition =
-            currentGridPosition;
-
+        startPosition = currentGridPosition;
+        endPosition = currentGridPosition;
         isDragging = true;
 
         UpdatePreview();
@@ -137,8 +117,22 @@ public class RoadPlacementHandler : IPlacementHandler
             return;
 
         isDragging = false;
-
         TryPlace();
+    }
+
+    private Vector2Int SnapToModule(Vector2Int cell)
+    {
+        return new Vector2Int(
+            Mathf.FloorToInt(cell.x / (float)ModuleSize) * ModuleSize,
+            Mathf.FloorToInt(cell.y / (float)ModuleSize) * ModuleSize);
+    }
+
+    private Vector3 GetModuleCenter(Vector2Int anchor)
+    {
+        Vector3 position = gridManager.GridToWorld(anchor);
+        position.x += gridManager.CellSize;
+        position.z += gridManager.CellSize;
+        return position;
     }
 
     private Vector2Int GetDirectionalEndPosition()
@@ -148,76 +142,28 @@ public class RoadPlacementHandler : IPlacementHandler
         switch (GetRoadDirection())
         {
             case RoadDirection.East:
-
-                distance =
-                    currentGridPosition.x -
-                    startPosition.x;
-
-                distance =
-                    Mathf.Max(
-                        0,
-                        distance
-                    );
-
-                return startPosition +
-                       new Vector2Int(
-                           distance,
-                           0
-                       );
+                distance = Mathf.Max(0,
+                    currentGridPosition.x - startPosition.x);
+                return startPosition + new Vector2Int(
+                    distance / ModuleSize * ModuleSize, 0);
 
             case RoadDirection.West:
-
-                distance =
-                    startPosition.x -
-                    currentGridPosition.x;
-
-                distance =
-                    Mathf.Max(
-                        0,
-                        distance
-                    );
-
-                return startPosition +
-                       new Vector2Int(
-                           -distance,
-                           0
-                       );
+                distance = Mathf.Max(0,
+                    startPosition.x - currentGridPosition.x);
+                return startPosition + new Vector2Int(
+                    -(distance / ModuleSize * ModuleSize), 0);
 
             case RoadDirection.North:
-
-                distance =
-                    currentGridPosition.y -
-                    startPosition.y;
-
-                distance =
-                    Mathf.Max(
-                        0,
-                        distance
-                    );
-
-                return startPosition +
-                       new Vector2Int(
-                           0,
-                           distance
-                       );
+                distance = Mathf.Max(0,
+                    currentGridPosition.y - startPosition.y);
+                return startPosition + new Vector2Int(
+                    0, distance / ModuleSize * ModuleSize);
 
             case RoadDirection.South:
-
-                distance =
-                    startPosition.y -
-                    currentGridPosition.y;
-
-                distance =
-                    Mathf.Max(
-                        0,
-                        distance
-                    );
-
-                return startPosition +
-                       new Vector2Int(
-                           0,
-                           -distance
-                       );
+                distance = Mathf.Max(0,
+                    startPosition.y - currentGridPosition.y);
+                return startPosition + new Vector2Int(
+                    0, -(distance / ModuleSize * ModuleSize));
         }
 
         return startPosition;
@@ -225,67 +171,28 @@ public class RoadPlacementHandler : IPlacementHandler
 
     private void UpdatePreview()
     {
-        GetRoadArea(
-            out Vector2Int origin,
-            out int width,
-            out int depth
-        );
+        GetRoadArea(out Vector2Int origin, out int width, out int depth);
 
-        Vector3 position =
-            gridManager.GridToWorld(
-                origin
-            );
+        if (previewObject == null)
+            return;
 
-        position += new Vector3(
-            width *
-            gridManager.CellSize *
-            0.5f,
-            0f,
-            depth *
-            gridManager.CellSize *
-            0.5f
-        );
+        Vector3 position = gridManager.GridToWorld(origin);
+        position.x += width * ModuleSize * gridManager.CellSize * 0.5f;
+        position.z += depth * ModuleSize * gridManager.CellSize * 0.5f;
 
-        previewObject.transform.position =
-            position;
-
-        previewObject.transform.rotation =
-            GetPreviewRotation();
-
+        previewObject.transform.position = position;
+        previewObject.transform.rotation = GetPreviewRotation();
         previewObject.transform.localScale =
-            new Vector3(
-                width,
-                1f,
-                depth
-            );
+            new Vector3(width * ModuleSize, 1f, depth * ModuleSize);
     }
 
     private void UpdatePreviewValidity()
     {
-        GetRoadArea(
-            out Vector2Int origin,
-            out int width,
-            out int depth
-        );
-
-        bool inside =
-            IsInsideGrid(
-                origin,
-                width,
-                depth
-            );
-
-        bool free =
-            AreRoadCellsFree(
-                origin,
-                width,
-                depth
-            );
+        GetRoadArea(out Vector2Int origin, out int width, out int depth);
 
         placementPreview.SetValid(
-            inside &&
-            free
-        );
+            IsInsideGrid(origin, width, depth) &&
+            AreRoadCellsFree(origin, width, depth));
     }
 
     private void GetRoadArea(
@@ -293,45 +200,14 @@ public class RoadPlacementHandler : IPlacementHandler
         out int width,
         out int depth)
     {
-        int minX =
-            Mathf.Min(
-                startPosition.x,
-                endPosition.x
-            );
+        int minX = Mathf.Min(startPosition.x, endPosition.x);
+        int minZ = Mathf.Min(startPosition.y, endPosition.y);
+        int maxX = Mathf.Max(startPosition.x, endPosition.x);
+        int maxZ = Mathf.Max(startPosition.y, endPosition.y);
 
-        int minZ =
-            Mathf.Min(
-                startPosition.y,
-                endPosition.y
-            );
-
-        int maxX =
-            Mathf.Max(
-                startPosition.x,
-                endPosition.x
-            );
-
-        int maxZ =
-            Mathf.Max(
-                startPosition.y,
-                endPosition.y
-            );
-
-        origin =
-            new Vector2Int(
-                minX,
-                minZ
-            );
-
-        width =
-            maxX -
-            minX +
-            1;
-
-        depth =
-            maxZ -
-            minZ +
-            1;
+        origin = new Vector2Int(minX, minZ);
+        width = (maxX - minX) / ModuleSize + 1;
+        depth = (maxZ - minZ) / ModuleSize + 1;
     }
 
     private bool IsInsideGrid(
@@ -343,17 +219,17 @@ public class RoadPlacementHandler : IPlacementHandler
         {
             for (int z = 0; z < depth; z++)
             {
-                Vector2Int cell =
-                    origin +
-                    new Vector2Int(
-                        x,
-                        z
-                    );
+                Vector2Int anchor = origin +
+                    new Vector2Int(x * ModuleSize, z * ModuleSize);
 
-                if (!gridManager.IsInsideGrid(
-                        cell))
+                for (int dx = 0; dx < ModuleSize; dx++)
                 {
-                    return false;
+                    for (int dz = 0; dz < ModuleSize; dz++)
+                    {
+                        if (!gridManager.IsInsideGrid(
+                                anchor + new Vector2Int(dx, dz)))
+                            return false;
+                    }
                 }
             }
         }
@@ -373,17 +249,11 @@ public class RoadPlacementHandler : IPlacementHandler
         {
             for (int z = 0; z < depth; z++)
             {
-                Vector2Int cell =
-                    origin +
-                    new Vector2Int(
-                        x,
-                        z
-                    );
+                Vector2Int anchor = origin +
+                    new Vector2Int(x * ModuleSize, z * ModuleSize);
 
-                if (roadNetwork.IsRoad(cell))
-                {
+                if (roadNetwork.IsRoad(anchor))
                     return false;
-                }
             }
         }
 
@@ -392,22 +262,14 @@ public class RoadPlacementHandler : IPlacementHandler
 
     public void Rotate()
     {
-        rotation += 90;
-
-        if (rotation >= 360)
-            rotation = 0;
+        rotation = (rotation + 90) % 360;
 
         if (previewObject != null)
-        {
-            previewObject.transform.rotation =
-                GetPreviewRotation();
-        }
+            previewObject.transform.rotation = GetPreviewRotation();
 
         if (isDragging)
         {
-            endPosition =
-                GetDirectionalEndPosition();
-
+            endPosition = GetDirectionalEndPosition();
             UpdatePreview();
         }
 
@@ -416,161 +278,96 @@ public class RoadPlacementHandler : IPlacementHandler
 
     private Quaternion GetPreviewRotation()
     {
-        /*
-         * The prefab arrow points South at 0°.
-         *
-         * Logical directions:
-         *
-         * 0°   = South
-         * 90°  = West
-         * 180° = North
-         * 270° = East
-         *
-         * North/South previews are already correct.
-         * West/East require a 90° visual correction.
-         */
-
         switch (rotation)
         {
             case 90:
-                return Quaternion.Euler(
-                    0f,
-                    180f,
-                    0f
-                );
-
-            case 270:
-                return Quaternion.Euler(
-                    0f,
-                    0f,
-                    0f
-                );
-
             case 180:
-                return Quaternion.Euler(
-                    0f,
-                    180f,
-                    0f
-                );
+                return Quaternion.Euler(0f, 180f, 0f);
 
             default:
-                return Quaternion.Euler(
-                    0f,
-                    0f,
-                    0f
-                );
+                return Quaternion.Euler(0f, 0f, 0f);
         }
     }
 
-
-
     public void TryPlace()
     {
-        if (roadNetwork == null)
-        {
-            Debug.LogError("Cannot place road: RoadNetwork is missing.");
-            return;
-        }
-
-        if (roadModuleRuleManager == null)
+        if (roadNetwork == null || roadModuleRuleManager == null)
         {
             Debug.LogError(
-                "Cannot place road: RoadModuleRuleManager is missing.");
+                "Cannot place road: RoadNetwork or RoadModuleRuleManager is missing.");
             return;
         }
 
         endPosition = GetDirectionalEndPosition();
+        GetRoadArea(out Vector2Int origin, out int width, out int depth);
 
-        GetRoadArea(
-            out Vector2Int origin,
-            out int width,
-            out int depth);
-
-        bool inside = IsInsideGrid(origin, width, depth);
-        bool free = AreRoadCellsFree(origin, width, depth);
-
-        if (!inside)
+        if (!IsInsideGrid(origin, width, depth))
         {
             Debug.Log("Cannot place road: outside grid.");
             return;
         }
 
-        if (!free)
+        if (!AreRoadCellsFree(origin, width, depth))
         {
-            Debug.Log(
-                "Cannot place road: one or more cells already contain a road.");
+            Debug.Log("Cannot place road: one or more modules are already occupied.");
             return;
         }
 
-        int quantity = width * depth;
+        // Preserve the previous per-grid-cell construction cost.
+        int quantity = width * depth * ModuleSize * ModuleSize;
 
         if (!ConstructionCostUtility.TryPay(
                 definition, quantity, "Road construction"))
-        {
             return;
-        }
 
         RoadDirection direction = GetRoadDirection();
 
-        // First create every logical road cell.
+        // Create all logical modules first so connections can be calculated.
         for (int x = 0; x < width; x++)
         {
             for (int z = 0; z < depth; z++)
             {
-                Vector2Int cell = origin + new Vector2Int(x, z);
+                Vector2Int anchor = origin +
+                    new Vector2Int(x * ModuleSize, z * ModuleSize);
 
-                roadNetwork.AddRoad(cell, direction);
-
-                Debug.Log(
-                    $"ROAD PLACED | Cell: {cell} | Direction: {direction}");
+                roadNetwork.AddRoad(anchor, direction);
+                Debug.Log($"ROAD MODULE PLACED | Anchor: {anchor} | Direction: {direction}");
             }
         }
 
-        // Then update each new module and its neighboring modules.
-        // This lets the manager select the correct connection shapes.
+        // Refresh after the entire logical road is present.
         for (int x = 0; x < width; x++)
         {
             for (int z = 0; z < depth; z++)
             {
-                Vector2Int cell = origin + new Vector2Int(x, z);
-                roadModuleRuleManager.RefreshCellAndNeighbors(cell);
+                Vector2Int anchor = origin +
+                    new Vector2Int(x * ModuleSize, z * ModuleSize);
+
+                roadModuleRuleManager.RefreshCellAndNeighbors(anchor);
             }
         }
 
         Debug.Log(
-            $"Placed road: {width} x {depth}, Direction: {direction}");
+            $"Placed road modules: {width} x {depth}, Direction: {direction}");
 
         startPosition = currentGridPosition;
         endPosition = currentGridPosition;
 
         if (previewObject != null)
-            previewObject.transform.localScale = Vector3.one;
+            previewObject.transform.localScale =
+                new Vector3(ModuleSize, 1f, ModuleSize);
     }
-
-
 
     private RoadDirection GetRoadDirection()
     {
-        /*
-         * Prefab arrow starts pointing South.
-         */
-
         switch (rotation)
         {
-            case 0:
-                return RoadDirection.South;
-
-            case 90:
-                return RoadDirection.West;
-
-            case 180:
-                return RoadDirection.North;
-
-            case 270:
-                return RoadDirection.East;
+            case 0: return RoadDirection.South;
+            case 90: return RoadDirection.West;
+            case 180: return RoadDirection.North;
+            case 270: return RoadDirection.East;
+            default: return RoadDirection.South;
         }
-
-        return RoadDirection.South;
     }
 
     public void Cancel()
@@ -578,10 +375,8 @@ public class RoadPlacementHandler : IPlacementHandler
         isDragging = false;
 
         if (previewObject != null)
-        {
             previewObject.transform.localScale =
-                Vector3.one;
-        }
+                new Vector3(ModuleSize, 1f, ModuleSize);
     }
 
     public void Reset()
@@ -590,17 +385,11 @@ public class RoadPlacementHandler : IPlacementHandler
         previewObject = null;
         placementPreview = null;
 
-        currentGridPosition =
-            Vector2Int.zero;
-
-        startPosition =
-            Vector2Int.zero;
-
-        endPosition =
-            Vector2Int.zero;
+        currentGridPosition = Vector2Int.zero;
+        startPosition = Vector2Int.zero;
+        endPosition = Vector2Int.zero;
 
         isDragging = false;
-
         rotation = 0;
     }
 }
