@@ -4,11 +4,13 @@ using UnityEngine;
 
 public class CargoDeliveryTruck : MonoBehaviour
 {
-    private enum TruckState
+    public enum TruckState
     {
         Idle,
         WaitingForCargoZone,
         DrivingToCargoZone,
+        AligningVanStopApproach,
+        ApproachingVanStopEntry,
         DrivingToVanStop,
         Unloading,
         ReturningToRoad,
@@ -24,6 +26,14 @@ public class CargoDeliveryTruck : MonoBehaviour
     [Header("References")]
     [SerializeField] private RoadNetwork roadNetwork;
     [SerializeField] private GridManager gridManager;
+    [SerializeField] private IntersectionManager intersectionManager;
+
+    [Header("Intersection Control")]
+    [Tooltip("How many road modules before an intersection the truck should begin waiting.")]
+    [SerializeField, Min(0)] private int intersectionLookAheadModules = 1;
+
+    [Tooltip("How many road modules beyond an intersection the truck must travel before releasing it.")]
+    [SerializeField, Min(1)] private int intersectionClearModules = 2;
 
     [Header("Route")]
     [SerializeField] private Vector2Int startCell;
@@ -57,6 +67,20 @@ public class CargoDeliveryTruck : MonoBehaviour
         new List<Vector3>();
 
     private int currentSmoothedWaypointIndex;
+
+    [Header("Cargo Zone Parking Maneuver")]
+    [Tooltip("Distance outside VanStopPoint for the straight entry approach.")]
+    [Min(0.01f)]
+    [SerializeField] private float vanStopEntryClearance = 0.75f;
+
+    [Tooltip("Tolerance for reaching cargo parking waypoints.")]
+    [Min(0.01f)]
+    [SerializeField] private float vanStopWaypointTolerance = 0.03f;
+
+    private Vector3 vanStopAlignmentPosition;
+    private Vector3 vanStopPreEntryPosition;
+    private Vector3 vanStopOutwardDirection;
+    private int returningFromCargoZoneStep;
 
     [Header("Traffic Following")]
     [SerializeField] private LayerMask trafficLayer;
@@ -117,6 +141,20 @@ public class CargoDeliveryTruck : MonoBehaviour
     [SerializeField] private string debugDestructionReason = "Not destroyed";
 
     private TruckState state = TruckState.Idle;
+    public TruckState CurrentState => state;
+
+    // Intersection reservation currently held by this truck.
+    private bool hasIntersectionReservation;
+    private Vector2Int reservedIntersection;
+    private int reservedIntersectionPathIndex = -1;
+
+    // Intersection this truck is currently waiting to enter.
+    private bool waitingForIntersection;
+    private Vector2Int requestedIntersection;
+    private int requestedIntersectionPathIndex = -1;
+    public bool IsWaitingForIntersection => waitingForIntersection;
+    public Vector2Int RequestedIntersection => requestedIntersection;
+
 
     private List<Vector2Int> currentPath = new List<Vector2Int>();
 
@@ -189,6 +227,9 @@ public class CargoDeliveryTruck : MonoBehaviour
         if (gridManager == null)
             gridManager = FindFirstObjectByType<GridManager>();
 
+        if (intersectionManager == null)
+            intersectionManager = FindFirstObjectByType<IntersectionManager>();
+
         truckRenderers = GetComponentsInChildren<Renderer>(true);
         truckColliders = GetComponentsInChildren<Collider>(true);
 
@@ -223,23 +264,16 @@ public class CargoDeliveryTruck : MonoBehaviour
                 MoveAlongPath(TruckState.DrivingToVanStop);
                 break;
 
+            case TruckState.AligningVanStopApproach:
+                MoveToVanStopAlignment();
+                break;
+
+            case TruckState.ApproachingVanStopEntry:
+                MoveToVanStopPreEntry();
+                break;
+
             case TruckState.DrivingToVanStop:
-                if (MoveToPoint(
-                        GetVanStopWorldPosition(),
-                        movementSpeed))
-                {
-                    currentSpeed = 0f;
-
-                    if (!cargoUnloaded)
-                        UnloadCargoBoxes();
-
-                    unloadingTimer = unloadingDuration;
-                    SetState(TruckState.Unloading);
-
-                    debugMessage =
-                        $"Arrived at VanStopPoint. " +
-                        $"{debugBoxesUnloaded} boxes unloaded.";
-                }
+                MoveIntoVanStop();
                 break;
 
             case TruckState.Unloading:
@@ -248,15 +282,14 @@ public class CargoDeliveryTruck : MonoBehaviour
 
                 if (unloadingTimer <= 0f)
                 {
+                    returningFromCargoZoneStep = 0;
                     SetState(TruckState.ReturningToRoad);
-                    debugMessage = "Unloading finished.";
+                    debugMessage = "Unloading finished. Leaving cargo zone.";
                 }
                 break;
 
             case TruckState.ReturningToRoad:
-                if (MoveToPoint(
-                        approachWorldPosition,
-                        movementSpeed))
+                if (MoveOutOfCargoZone())
                 {
                     ReleaseCargoZone();
 
@@ -273,6 +306,7 @@ public class CargoDeliveryTruck : MonoBehaviour
                     currentSpeed = movementSpeed;
 
                     SetState(TruckState.DrivingToExit);
+                    debugMessage = "Returning to road and continuing to exit.";
                 }
                 break;
 
@@ -320,10 +354,7 @@ public class CargoDeliveryTruck : MonoBehaviour
         }
 
         if (snapToStartCell)
-        {
-            Vector3 startPosition = GetRoadWorldPosition(startCell);
-            transform.position = startPosition;
-        }
+            transform.position = GetRoadWorldPosition(startCell);
 
         if (!TryReserveCargoZone())
         {
@@ -576,6 +607,251 @@ public class CargoDeliveryTruck : MonoBehaviour
         return string.IsNullOrWhiteSpace(deliveryOperationId)
             ? "Unassigned"
             : deliveryOperationId;
+    }
+
+    // ---------------------------------------------------------
+    // CARGO ZONE PARKING MANEUVER
+    // ---------------------------------------------------------
+
+    private bool ConfigureVanStopManeuver()
+    {
+        if (reservedCargoZone == null ||
+            vanStopPoint == null ||
+            gridManager == null)
+        {
+            return false;
+        }
+
+        Vector3 stopPosition = GetVanStopWorldPosition();
+
+        Vector3 directionToRoad =
+            approachWorldPosition - stopPosition;
+
+        directionToRoad.y = 0f;
+
+        if (directionToRoad.sqrMagnitude < 0.001f)
+        {
+            Debug.LogError(
+                "CargoDeliveryTruck: Cannot determine the cargo-zone " +
+                "approach direction. Check VanStopPoint and road placement.",
+                this);
+
+            return false;
+        }
+
+        // Choose the cardinal direction facing the road, as the
+        // TrafficTestVehicle parking maneuver does.
+        if (Mathf.Abs(directionToRoad.x) >
+            Mathf.Abs(directionToRoad.z))
+        {
+            vanStopOutwardDirection =
+                directionToRoad.x >= 0f
+                    ? Vector3.right
+                    : Vector3.left;
+        }
+        else
+        {
+            vanStopOutwardDirection =
+                directionToRoad.z >= 0f
+                    ? Vector3.forward
+                    : Vector3.back;
+        }
+
+        float clearance = Mathf.Max(
+            0.01f,
+            vanStopEntryClearance);
+
+        // Position outside the designated stop point. The final
+        // leg from this position to VanStopPoint is straight.
+        vanStopPreEntryPosition =
+            stopPosition +
+            vanStopOutwardDirection * clearance;
+
+        vanStopPreEntryPosition.y = stopPosition.y;
+
+        // Align laterally with the pre-entry point while staying
+        // on the road approach position's other axis.
+        vanStopAlignmentPosition = approachWorldPosition;
+
+        if (Mathf.Abs(vanStopOutwardDirection.x) > 0.5f)
+        {
+            vanStopAlignmentPosition.z =
+                vanStopPreEntryPosition.z;
+        }
+        else
+        {
+            vanStopAlignmentPosition.x =
+                vanStopPreEntryPosition.x;
+        }
+
+        vanStopAlignmentPosition.y = approachWorldPosition.y;
+
+        debugMessage =
+            $"Parking maneuver configured. Outward direction: " +
+            $"{vanStopOutwardDirection}";
+
+        return true;
+    }
+
+    private void BeginVanStopEntry()
+    {
+        if (!ConfigureVanStopManeuver())
+        {
+            FinishRoute(
+                "Could not configure the cargo-zone parking maneuver.");
+            return;
+        }
+
+        returningFromCargoZoneStep = 0;
+        currentSpeed = movementSpeed;
+
+        SetState(TruckState.AligningVanStopApproach);
+
+        debugMessage =
+            "Aligning for perpendicular cargo-zone parking.";
+    }
+
+    private void MoveToVanStopAlignment()
+    {
+        MoveToPoint(
+            vanStopAlignmentPosition,
+            movementSpeed);
+
+        if (!ReachedVanStopPosition(vanStopAlignmentPosition))
+            return;
+
+        transform.position = vanStopAlignmentPosition;
+
+        SetState(TruckState.ApproachingVanStopEntry);
+        debugMessage = "Cargo-zone approach aligned.";
+    }
+
+    private void MoveToVanStopPreEntry()
+    {
+        MoveToPoint(
+            vanStopPreEntryPosition,
+            movementSpeed);
+
+        if (!ReachedVanStopPosition(vanStopPreEntryPosition))
+            return;
+
+        transform.position = vanStopPreEntryPosition;
+
+        SetState(TruckState.DrivingToVanStop);
+        debugMessage = "Reached cargo-zone pre-entry position.";
+    }
+
+    private void MoveIntoVanStop()
+    {
+        Vector3 stopPosition = GetVanStopWorldPosition();
+
+        MoveToPoint(stopPosition, movementSpeed);
+
+        if (!ReachedVanStopPosition(stopPosition))
+            return;
+
+        transform.position = stopPosition;
+        currentSpeed = 0f;
+
+        // Finish facing into the cargo zone before unloading.
+        Vector3 inwardDirection = -vanStopOutwardDirection;
+
+        if (inwardDirection.sqrMagnitude > 0.001f)
+        {
+            transform.rotation = Quaternion.LookRotation(
+                inwardDirection,
+                Vector3.up);
+        }
+
+        if (!cargoUnloaded)
+            UnloadCargoBoxes();
+
+        unloadingTimer = unloadingDuration;
+
+        SetState(TruckState.Unloading);
+
+        debugMessage =
+            $"Parked at VanStopPoint. " +
+            $"{debugBoxesUnloaded} boxes unloaded.";
+    }
+
+    private bool MoveOutOfCargoZone()
+    {
+        // Step 0: rotate outward, matching TrafficTestVehicle.
+        if (returningFromCargoZoneStep == 0)
+        {
+            if (!RotateTowardsDirection(vanStopOutwardDirection))
+                return false;
+
+            returningFromCargoZoneStep = 1;
+        }
+
+        Vector3 targetPosition;
+
+        switch (returningFromCargoZoneStep)
+        {
+            case 1:
+                targetPosition = vanStopPreEntryPosition;
+                break;
+
+            case 2:
+                targetPosition = vanStopAlignmentPosition;
+                break;
+
+            case 3:
+                targetPosition = approachWorldPosition;
+                break;
+
+            default:
+                returningFromCargoZoneStep = 0;
+                return true;
+        }
+
+        MoveToPoint(targetPosition, movementSpeed);
+
+        if (!ReachedVanStopPosition(targetPosition))
+            return false;
+
+        transform.position = targetPosition;
+        returningFromCargoZoneStep++;
+
+        if (returningFromCargoZoneStep > 3)
+        {
+            returningFromCargoZoneStep = 0;
+            currentSpeed = movementSpeed;
+            return true;
+        }
+
+        return false;
+    }
+
+    private bool ReachedVanStopPosition(Vector3 targetPosition)
+    {
+        return Vector3.Distance(
+            transform.position,
+            targetPosition) <= vanStopWaypointTolerance;
+    }
+
+    private bool RotateTowardsDirection(Vector3 direction)
+    {
+        direction.y = 0f;
+
+        if (direction.sqrMagnitude < 0.001f)
+            return true;
+
+        Quaternion targetRotation =
+            Quaternion.LookRotation(
+                direction.normalized,
+                Vector3.up);
+
+        transform.rotation = Quaternion.RotateTowards(
+            transform.rotation,
+            targetRotation,
+            rotationSpeed * 100f * Time.deltaTime);
+
+        return Quaternion.Angle(
+            transform.rotation,
+            targetRotation) < 2f;
     }
 
     // ---------------------------------------------------------
@@ -886,6 +1162,11 @@ public class CargoDeliveryTruck : MonoBehaviour
             return;
         }
 
+        // Only road driving uses intersection reservations.
+        // Cargo-zone entry and unloading are handled by separate states.
+        if (HandleIntersectionControl())
+            return;
+
         if (smoothedMovementWaypoints == null ||
             smoothedMovementWaypoints.Count == 0)
         {
@@ -896,7 +1177,16 @@ public class CargoDeliveryTruck : MonoBehaviour
             smoothedMovementWaypoints.Count)
         {
             currentSpeed = 0f;
-            SetState(stateAfterPath);
+
+            if (stateAfterPath == TruckState.DrivingToVanStop)
+            {
+                BeginVanStopEntry();
+            }
+            else
+            {
+                SetState(stateAfterPath);
+            }
+
             return;
         }
 
@@ -907,7 +1197,9 @@ public class CargoDeliveryTruck : MonoBehaviour
 
         MoveToPoint(targetPosition, trafficAwareSpeed);
 
-        if (Vector3.Distance(transform.position, targetPosition) <= 0.03f)
+        if (Vector3.Distance(
+                transform.position,
+                targetPosition) <= 0.03f)
         {
             transform.position = targetPosition;
             currentSmoothedWaypointIndex++;
@@ -916,8 +1208,7 @@ public class CargoDeliveryTruck : MonoBehaviour
 
     // ---------------------------------------------------------
     // TRAFFIC FOLLOWING
-    // Uses the same five sensor directions and closest-hit rule
-    // as TrafficTestVehicle.
+    // Uses five sensor directions and the closest-hit rule.
     // ---------------------------------------------------------
 
     private float GetTrafficFollowingSpeed()
@@ -965,6 +1256,7 @@ public class CargoDeliveryTruck : MonoBehaviour
         return currentSpeed;
     }
 
+
     private bool TryGetVehicleAhead(out RaycastHit hit)
     {
         debugLastRayHitCollider = "None";
@@ -986,40 +1278,28 @@ public class CargoDeliveryTruck : MonoBehaviour
 
         Vector3 forward = transform.forward;
 
-        Vector3 left60 =
-            Quaternion.Euler(0f, -60f, 0f) * forward;
-
-        Vector3 left30 =
-            Quaternion.Euler(0f, -30f, 0f) * forward;
-
-        Vector3 right30 =
-            Quaternion.Euler(0f, 30f, 0f) * forward;
-
-        Vector3 right60 =
-            Quaternion.Euler(0f, 60f, 0f) * forward;
+        Vector3 left60 = Quaternion.Euler(0f, -60f, 0f) * forward;
+        Vector3 left30 = Quaternion.Euler(0f, -30f, 0f) * forward;
+        Vector3 right30 = Quaternion.Euler(0f, 30f, 0f) * forward;
+        Vector3 right60 = Quaternion.Euler(0f, 60f, 0f) * forward;
 
         bool foundVehicle = false;
         float closestDistance = float.MaxValue;
         RaycastHit closestHit = default;
 
-        CheckTrafficRay(
-            origin, left60, "Left 60",
+        CheckTrafficRay(origin, left60, "Left 60",
             ref foundVehicle, ref closestDistance, ref closestHit);
 
-        CheckTrafficRay(
-            origin, left30, "Left 30",
+        CheckTrafficRay(origin, left30, "Left 30",
             ref foundVehicle, ref closestDistance, ref closestHit);
 
-        CheckTrafficRay(
-            origin, forward, "Forward",
+        CheckTrafficRay(origin, forward, "Forward",
             ref foundVehicle, ref closestDistance, ref closestHit);
 
-        CheckTrafficRay(
-            origin, right30, "Right 30",
+        CheckTrafficRay(origin, right30, "Right 30",
             ref foundVehicle, ref closestDistance, ref closestHit);
 
-        CheckTrafficRay(
-            origin, right60, "Right 60",
+        CheckTrafficRay(origin, right60, "Right 60",
             ref foundVehicle, ref closestDistance, ref closestHit);
 
         hit = closestHit;
@@ -1037,9 +1317,15 @@ public class CargoDeliveryTruck : MonoBehaviour
             debugTrafficDecision =
                 $"Blocking vehicle at {closestHit.distance:F2}m";
         }
+        else
+        {
+            debugTrafficDecision = "No blocking vehicle detected";
+        }
 
         return foundVehicle;
     }
+
+
 
     private void CheckTrafficRay(
         Vector3 origin,
@@ -1084,17 +1370,36 @@ public class CargoDeliveryTruck : MonoBehaviour
             return;
         }
 
-        if (!ShouldDetectVehicle(detectedVehicle))
+        // Apply the existing traffic rules to normal vehicles.
+        if (detectedVehicle is TrafficTestVehicle normalVehicle)
         {
-            debugRaycastSummary +=
-                $" — ignored by traffic rules " +
-                $"({GetVehicleStateLabel(detectedVehicle)})\n";
+            if (!ShouldDetectVehicle(normalVehicle))
+            {
+                debugRaycastSummary +=
+                    $" — ignored by traffic rules " +
+                    $"({normalVehicle.CurrentState})\n";
+                return;
+            }
+        }
+        // Cargo trucks use their own state machine.
+        else if (detectedVehicle is CargoDeliveryTruck cargoTruck)
+        {
+            if (!ShouldDetectVehicle(cargoTruck))
+            {
+                debugRaycastSummary +=
+                    $" — ignored cargo truck " +
+                    $"({cargoTruck.CurrentState})\n";
+                return;
+            }
+        }
+        else
+        {
+            debugRaycastSummary += " — unsupported vehicle type\n";
             return;
         }
 
         debugRaycastSummary +=
-            $" — blocking vehicle " +
-            $"({GetVehicleStateLabel(detectedVehicle)})\n";
+            $" — blocking vehicle ({GetVehicleStateLabel(detectedVehicle)})\n";
 
         if (rayHit.distance < closestDistance)
         {
@@ -1103,6 +1408,8 @@ public class CargoDeliveryTruck : MonoBehaviour
             foundVehicle = true;
         }
     }
+
+
 
     private Component GetVehicleComponent(Collider hitCollider)
     {
@@ -1124,10 +1431,20 @@ public class CargoDeliveryTruck : MonoBehaviour
         return null;
     }
 
+
+
+
     private bool ShouldDetectVehicle(Component vehicle)
     {
         if (vehicle == null || vehicle.gameObject == gameObject)
             return false;
+
+        bool thisTruckIsLeavingCargoZone =
+            state == TruckState.ReturningToRoad;
+
+        bool thisTruckIsOnRoad =
+            state == TruckState.DrivingToCargoZone ||
+            state == TruckState.DrivingToExit;
 
         TrafficTestVehicle normalVehicle =
             vehicle as TrafficTestVehicle;
@@ -1137,11 +1454,44 @@ public class CargoDeliveryTruck : MonoBehaviour
             TrafficTestVehicle.VehicleState otherState =
                 normalVehicle.CurrentState;
 
+            // Ignore normal vehicles that are parked, idle, or finished.
             if (otherState == TrafficTestVehicle.VehicleState.Parked ||
                 otherState == TrafficTestVehicle.VehicleState.Idle ||
                 otherState == TrafficTestVehicle.VehicleState.Arrived)
             {
                 return false;
+            }
+
+            // Ignore a normal vehicle waiting for the same intersection
+            // when this cargo truck already owns the reservation.
+            if (ShouldIgnoreIntersectionWaitingVehicle(normalVehicle))
+            {
+                return false;
+            }
+
+            // Preserve the normal-traffic parking priority:
+            // a cargo truck leaving its cargo zone must not wait for
+            // normal vehicles that are themselves parking.
+            if (thisTruckIsLeavingCargoZone)
+            {
+                if (IsNormalVehicleParking(otherState))
+                    return false;
+
+                if (otherState ==
+                        TrafficTestVehicle.VehicleState.DrivingToParking ||
+                    otherState ==
+                        TrafficTestVehicle.VehicleState.DrivingToExit)
+                {
+                    return false;
+                }
+            }
+
+            // Road traffic must detect normal vehicles leaving parking.
+            if (thisTruckIsOnRoad &&
+                otherState ==
+                    TrafficTestVehicle.VehicleState.LeavingParking)
+            {
+                return true;
             }
 
             return true;
@@ -1152,20 +1502,77 @@ public class CargoDeliveryTruck : MonoBehaviour
 
         if (otherTruck != null)
         {
-            if (otherTruck.state == TruckState.Idle ||
-                otherTruck.state == TruckState.WaitingForCargoZone ||
-                otherTruck.state == TruckState.Arrived)
+            TruckState otherState = otherTruck.state;
+
+            // Ignore a cargo truck waiting for the same intersection
+            // when this cargo truck already owns the reservation.
+            if (ShouldIgnoreIntersectionWaitingVehicle(otherTruck))
             {
                 return false;
             }
 
-            // An unloading truck is stationary but may still occupy
-            // a traffic lane, so it remains a detectable obstacle.
+            // A parked or unloading cargo truck must not block traffic.
+            if (otherState == TruckState.Idle ||
+                otherState == TruckState.WaitingForCargoZone ||
+                otherState == TruckState.Unloading ||
+                otherState == TruckState.Arrived)
+            {
+                return false;
+            }
+
+            // When this truck is leaving its cargo zone, do not let
+            // vehicles entering or leaving other cargo zones block it.
+            if (thisTruckIsLeavingCargoZone)
+            {
+                if (IsCargoTruckParking(otherState))
+                    return false;
+
+                if (otherState == TruckState.DrivingToCargoZone ||
+                    otherState == TruckState.DrivingToExit)
+                {
+                    return false;
+                }
+            }
+
+            // Road traffic must still detect another cargo truck
+            // actively pulling out of its cargo zone.
+            if (thisTruckIsOnRoad &&
+                otherState == TruckState.ReturningToRoad)
+            {
+                return true;
+            }
+
             return true;
         }
 
         return false;
     }
+
+
+    private bool IsNormalVehicleParking(
+        TrafficTestVehicle.VehicleState vehicleState)
+    {
+        return
+            vehicleState ==
+                TrafficTestVehicle.VehicleState.WaitingForParking ||
+            vehicleState ==
+                TrafficTestVehicle.VehicleState.AligningParkingApproach ||
+            vehicleState ==
+                TrafficTestVehicle.VehicleState.ApproachingParkingEntry ||
+            vehicleState ==
+                TrafficTestVehicle.VehicleState.EnteringParking ||
+            vehicleState ==
+                TrafficTestVehicle.VehicleState.MovingIntoParking;
+    }
+
+    private bool IsCargoTruckParking(TruckState truckState)
+    {
+        return
+            truckState == TruckState.AligningVanStopApproach ||
+            truckState == TruckState.ApproachingVanStopEntry ||
+            truckState == TruckState.DrivingToVanStop;
+    }
+
 
     private string GetVehicleStateLabel(Component vehicle)
     {
@@ -1186,6 +1593,232 @@ public class CargoDeliveryTruck : MonoBehaviour
 
         return "Unknown";
     }
+
+    private bool ShouldIgnoreIntersectionWaitingVehicle(
+    Component other)
+    {
+        if (other == null)
+            return false;
+
+        if (!hasIntersectionReservation)
+            return false;
+
+        if (intersectionManager == null)
+            return false;
+
+        bool otherIsWaiting;
+        Vector2Int otherIntersection;
+
+        TrafficTestVehicle normalVehicle =
+            other.GetComponent<TrafficTestVehicle>();
+
+        CargoDeliveryTruck cargoTruck =
+            other.GetComponent<CargoDeliveryTruck>();
+
+        if (normalVehicle != null)
+        {
+            otherIsWaiting = normalVehicle.IsWaitingForIntersection;
+            otherIntersection = normalVehicle.RequestedIntersection;
+        }
+        else if (cargoTruck != null)
+        {
+            otherIsWaiting = cargoTruck.IsWaitingForIntersection;
+            otherIntersection = cargoTruck.RequestedIntersection;
+        }
+        else
+        {
+            return false;
+        }
+
+        if (!otherIsWaiting)
+            return false;
+
+        if (reservedIntersection != otherIntersection)
+            return false;
+
+        return intersectionManager.HasReservation(
+            reservedIntersection,
+            this);
+    }
+
+    // ---------------------------------------------------------
+    // INTERSECTION CONTROL
+    // ---------------------------------------------------------
+    private bool HandleIntersectionControl()
+    {
+        if (intersectionManager == null ||
+            roadNetwork == null ||
+            gridManager == null ||
+            currentPath == null ||
+            currentPath.Count == 0)
+        {
+            return false;
+        }
+
+        int nearestPathIndex = GetNearestPathIndex();
+        bool releasedReservationThisFrame = false;
+
+        // Keep the reservation until the truck has cleared the junction.
+        if (hasIntersectionReservation)
+        {
+            int releaseIndex =
+                reservedIntersectionPathIndex +
+                Mathf.Max(1, intersectionClearModules);
+
+            bool routeCleared = nearestPathIndex >= releaseIndex;
+            bool pathEnded = nearestPathIndex >= currentPath.Count - 1;
+
+            if (routeCleared || pathEnded)
+            {
+                intersectionManager.Release(
+                    reservedIntersection,
+                    this);
+
+                hasIntersectionReservation = false;
+                reservedIntersectionPathIndex = -1;
+                releasedReservationThisFrame = true;
+
+                debugMessage =
+                    $"Released intersection {reservedIntersection}.";
+            }
+            else
+            {
+                // Continue through the intersection this truck owns.
+                return false;
+            }
+        }
+
+        int nextIntersectionIndex = -1;
+        Vector2Int nextIntersection = Vector2Int.zero;
+
+        int scanStart = Mathf.Max(
+            0,
+            nearestPathIndex + (releasedReservationThisFrame ? 1 : 0));
+
+        for (int i = scanStart; i < currentPath.Count; i++)
+        {
+            Vector2Int anchor =
+                roadNetwork.GetRoadAnchor(currentPath[i]);
+
+            if (!roadNetwork.IsIntersection(anchor))
+                continue;
+
+            nextIntersectionIndex = i;
+            nextIntersection = anchor;
+            break;
+        }
+
+        if (nextIntersectionIndex < 0)
+        {
+            if (waitingForIntersection)
+            {
+                intersectionManager.CancelRequest(this);
+                waitingForIntersection = false;
+                requestedIntersectionPathIndex = -1;
+            }
+
+            return false;
+        }
+
+        int holdingPathIndex = Mathf.Max(
+            0,
+            nextIntersectionIndex -
+            Mathf.Max(0, intersectionLookAheadModules));
+
+        // Continue driving until reaching the holding point.
+        if (nearestPathIndex < holdingPathIndex)
+            return false;
+
+        // Cancel an outdated request if the next intersection changed.
+        if (waitingForIntersection &&
+            requestedIntersection != nextIntersection)
+        {
+            intersectionManager.CancelRequest(this);
+            waitingForIntersection = false;
+            requestedIntersectionPathIndex = -1;
+        }
+
+        if (!waitingForIntersection)
+        {
+            requestedIntersection = nextIntersection;
+            requestedIntersectionPathIndex = nextIntersectionIndex;
+            waitingForIntersection = true;
+
+            intersectionManager.RequestEntry(
+                requestedIntersection,
+                this);
+
+            debugMessage =
+                $"Waiting for intersection {requestedIntersection}.";
+        }
+
+        if (intersectionManager.HasReservation(
+                requestedIntersection,
+                this))
+        {
+            reservedIntersection = requestedIntersection;
+            reservedIntersectionPathIndex =
+                requestedIntersectionPathIndex;
+
+            hasIntersectionReservation = true;
+            waitingForIntersection = false;
+            requestedIntersectionPathIndex = -1;
+
+            debugMessage =
+                $"Granted intersection {reservedIntersection}.";
+
+            // Permission granted; normal movement may continue this frame.
+            return false;
+        }
+
+        // Hold position while waiting for permission.
+        currentSpeed = Mathf.MoveTowards(
+            currentSpeed,
+            0f,
+            braking * Time.deltaTime);
+
+        debugTrafficDecision =
+            $"Waiting for intersection {requestedIntersection}";
+
+        return true;
+    }
+
+    private int GetNearestPathIndex()
+    {
+        if (currentPath == null ||
+            currentPath.Count == 0 ||
+            roadNetwork == null ||
+            gridManager == null)
+        {
+            return 0;
+        }
+
+        int nearestIndex = 0;
+        float nearestDistance = float.MaxValue;
+
+        Vector3 currentPosition = transform.position;
+        currentPosition.y = 0f;
+
+        for (int i = 0; i < currentPath.Count; i++)
+        {
+            Vector3 roadPosition =
+                GetRoadWorldPosition(currentPath[i]);
+
+            roadPosition.y = 0f;
+
+            float distance =
+                (roadPosition - currentPosition).sqrMagnitude;
+
+            if (distance < nearestDistance)
+            {
+                nearestDistance = distance;
+                nearestIndex = i;
+            }
+        }
+
+        return nearestIndex;
+    }
+
 
     // ---------------------------------------------------------
     // RETURN PATH TO EXIT
@@ -1271,19 +1904,15 @@ public class CargoDeliveryTruck : MonoBehaviour
     {
         Vector3 direction = targetPosition - transform.position;
 
-        if (direction.sqrMagnitude <= 0.01f)
-        {
-            transform.position = targetPosition;
-            return true;
-        }
-
         Vector3 flatDirection = direction;
         flatDirection.y = 0f;
 
         if (flatDirection.sqrMagnitude > 0.001f)
         {
             Quaternion targetRotation =
-                Quaternion.LookRotation(flatDirection.normalized);
+                Quaternion.LookRotation(
+                    flatDirection.normalized,
+                    Vector3.up);
 
             transform.rotation = Quaternion.Slerp(
                 transform.rotation,
@@ -1374,6 +2003,23 @@ public class CargoDeliveryTruck : MonoBehaviour
 
     private void OnDisable()
     {
+        if (intersectionManager != null)
+        {
+            intersectionManager.CancelRequest(this);
+
+            if (hasIntersectionReservation)
+            {
+                intersectionManager.Release(
+                    reservedIntersection,
+                    this);
+            }
+        }
+
+        hasIntersectionReservation = false;
+        waitingForIntersection = false;
+        reservedIntersectionPathIndex = -1;
+        requestedIntersectionPathIndex = -1;
+
         ReleaseCargoZone();
     }
 

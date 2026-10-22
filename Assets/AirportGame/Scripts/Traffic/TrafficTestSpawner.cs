@@ -109,11 +109,37 @@ public class TrafficTestSpawner : MonoBehaviour
 
         spawnPosition.y += spawnHeightOffset;
 
+
         GameObject vehicle = Instantiate(
             selectedPrefab,
             spawnPosition,
             transform.rotation
         );
+
+        // Assign a unique ID shared by both vehicle types.
+        VehicleSpawnID spawnID =
+            vehicle.GetComponent<VehicleSpawnID>();
+
+        if (spawnID == null)
+        {
+            Debug.LogError(
+                "TrafficTestSpawner: Vehicle prefab must have " +
+                "VehicleSpawnID attached.",
+                vehicle
+            );
+
+            Destroy(vehicle);
+            return;
+        }
+
+        spawnID.InitializeID();
+
+        Debug.Log(
+            $"VEHICLE SPAWNED | ID: {spawnID.SpawnID} | " +
+            $"Type: {(spawnCargoTruck ? "Cargo Truck" : "Normal Traffic")}",
+            vehicle
+        );
+
 
         if (spawnCargoTruck)
         {

@@ -466,6 +466,7 @@ GameObject:
   m_Component:
   - component: {fileID: 3692427183042440984}
   - component: {fileID: 2398520516101683270}
+  - component: {fileID: 5973243325742863285}
   - component: {fileID: 6219903941184170259}
   m_Layer: 7
   m_Name: CargoTruck
@@ -511,6 +512,18 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1, y: 1, z: 1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &5973243325742863285
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7704799895376171895}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 27bf15b4a1e7b5b49abb4a144e3a8fe1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::VehicleSpawnID
 --- !u!114 &6219903941184170259
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -525,6 +538,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CargoDeliveryTruck
   roadNetwork: {fileID: 0}
   gridManager: {fileID: 0}
+  intersectionManager: {fileID: 0}
+  intersectionLookAheadModules: 1
+  intersectionClearModules: 2
   startCell: {x: 0, y: 0}
   exitCell: {x: 0, y: 0}
   snapToStartCell: 1
@@ -532,13 +548,15 @@ MonoBehaviour:
   movementSpeed: 3
   rotationSpeed: 5
   heightOffset: 0.2
+  turningRadiusInCells: 2
+  turnCurveResolution: 8
   vanStopEntryClearance: 0.75
   vanStopWaypointTolerance: 0.03
   trafficLayer:
     serializedVersion: 2
     m_Bits: 128
-  trafficDetectionDistance: 4
-  safeFollowingDistance: 2
+  trafficDetectionDistance: 5
+  safeFollowingDistance: 3
   rayOriginHeight: 0.15
   rayOriginForwardOffset: 0.3
   acceleration: 4
@@ -558,9 +576,11 @@ MonoBehaviour:
   debugLastRayDirection: None
   debugLastRayDistance: 0
   debugBlockingCollider: None
+  debugBlockingVehicleState: None
   debugBlockingDistance: 0
   debugRaycastSummary: Not tested
   debugTrafficDecision: Not tested
+  debugLastSensorUpdateTime: 0
   debugDestructionReason: Not destroyed
 --- !u!1 &8759557518540487684
 GameObject:

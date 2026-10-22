@@ -1,18 +1,22 @@
+
 using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// Serializes access to each intersection. Add this component to the same
-/// RoadManager GameObject as RoadNetwork.
+/// Serializes access to each intersection for both normal traffic
+/// and cargo delivery trucks.
+///
+/// Add this component to the same RoadManager GameObject as RoadNetwork.
+/// Lower entity IDs have priority. Equal IDs are resolved FIFO.
 /// </summary>
 public class IntersectionManager : MonoBehaviour
 {
     private class EntryRequest
     {
-        public TrafficTestVehicle Vehicle;
+        public Component Vehicle;
         public long RequestOrder;
 
-        public EntryRequest(TrafficTestVehicle vehicle, long requestOrder)
+        public EntryRequest(Component vehicle, long requestOrder)
         {
             Vehicle = vehicle;
             RequestOrder = requestOrder;
@@ -21,8 +25,10 @@ public class IntersectionManager : MonoBehaviour
 
     private class IntersectionState
     {
-        public TrafficTestVehicle ReservedBy;
-        public readonly List<EntryRequest> Waiting = new List<EntryRequest>();
+        public Component ReservedBy;
+
+        public readonly List<EntryRequest> Waiting =
+            new List<EntryRequest>();
     }
 
     private readonly Dictionary<Vector2Int, IntersectionState> intersections =
@@ -30,9 +36,11 @@ public class IntersectionManager : MonoBehaviour
 
     private long nextRequestOrder;
 
-    public void RequestEntry(Vector2Int intersection, TrafficTestVehicle vehicle)
+    public void RequestEntry(
+        Vector2Int intersection,
+        Component vehicle)
     {
-        if (vehicle == null)
+        if (!IsValidVehicle(vehicle))
             return;
 
         IntersectionState state = GetState(intersection);
@@ -46,25 +54,42 @@ public class IntersectionManager : MonoBehaviour
                 return;
         }
 
-        state.Waiting.Add(new EntryRequest(vehicle, nextRequestOrder++));
+        state.Waiting.Add(
+            new EntryRequest(vehicle, nextRequestOrder++));
     }
 
-    public bool HasReservation(Vector2Int intersection, TrafficTestVehicle vehicle)
+    public bool HasReservation(
+        Vector2Int intersection,
+        Component vehicle)
     {
-        return intersections.TryGetValue(intersection, out IntersectionState state)
-            && state.ReservedBy == vehicle;
+        return vehicle != null &&
+               intersections.TryGetValue(
+                   intersection,
+                   out IntersectionState state) &&
+               state.ReservedBy == vehicle;
     }
 
     public bool IsReserved(Vector2Int intersection)
     {
-        return intersections.TryGetValue(intersection, out IntersectionState state)
-            && state.ReservedBy != null;
+        return intersections.TryGetValue(
+                   intersection,
+                   out IntersectionState state) &&
+               state.ReservedBy != null;
     }
 
-    public void Release(Vector2Int intersection, TrafficTestVehicle vehicle)
+    public void Release(
+        Vector2Int intersection,
+        Component vehicle)
     {
-        if (!intersections.TryGetValue(intersection, out IntersectionState state))
+        if (vehicle == null)
             return;
+
+        if (!intersections.TryGetValue(
+                intersection,
+                out IntersectionState state))
+        {
+            return;
+        }
 
         if (state.ReservedBy == vehicle)
             state.ReservedBy = null;
@@ -72,7 +97,7 @@ public class IntersectionManager : MonoBehaviour
         RemoveRequest(state, vehicle);
     }
 
-    public void CancelRequest(TrafficTestVehicle vehicle)
+    public void CancelRequest(Component vehicle)
     {
         if (vehicle == null)
             return;
@@ -81,7 +106,7 @@ public class IntersectionManager : MonoBehaviour
         {
             RemoveRequest(state, vehicle);
 
-            // Also clean up reservations if a vehicle is disabled/destroyed.
+            // Clean up reservations if a vehicle is disabled or destroyed.
             if (state.ReservedBy == vehicle)
                 state.ReservedBy = null;
         }
@@ -89,20 +114,20 @@ public class IntersectionManager : MonoBehaviour
 
     private void LateUpdate()
     {
-        foreach (KeyValuePair<Vector2Int, IntersectionState> pair in intersections)
+        foreach (KeyValuePair<Vector2Int, IntersectionState> pair
+                 in intersections)
         {
             IntersectionState state = pair.Value;
 
             if (state.ReservedBy != null)
                 continue;
 
-            state.Waiting.RemoveAll(request => request.Vehicle == null);
+            state.Waiting.RemoveAll(
+                request => !IsValidVehicle(request.Vehicle));
 
             if (state.Waiting.Count == 0)
                 continue;
 
-            // Match the vehicle's existing entity-ID priority rule:
-            // lower entity ID wins. Equal IDs are resolved FIFO.
             state.Waiting.Sort((a, b) =>
             {
                 if (a.Vehicle == null)
@@ -112,7 +137,7 @@ public class IntersectionManager : MonoBehaviour
                     return -1;
 
                 int priorityComparison =
-                    a.Vehicle.CompareIntersectionPriority(b.Vehicle);
+                    CompareVehiclePriority(a.Vehicle, b.Vehicle);
 
                 if (priorityComparison != 0)
                     return priorityComparison;
@@ -122,13 +147,50 @@ public class IntersectionManager : MonoBehaviour
 
             EntryRequest winner = state.Waiting[0];
             state.Waiting.RemoveAt(0);
-            state.ReservedBy = winner.Vehicle;
+
+            if (IsValidVehicle(winner.Vehicle))
+                state.ReservedBy = winner.Vehicle;
         }
+    }
+
+
+    private int CompareVehiclePriority(
+        Component a,
+        Component b)
+    {
+        VehicleSpawnID aSpawnID =
+            a.GetComponent<VehicleSpawnID>();
+
+        VehicleSpawnID bSpawnID =
+            b.GetComponent<VehicleSpawnID>();
+
+        if (aSpawnID == null || bSpawnID == null)
+        {
+            Debug.LogError(
+                "IntersectionManager: A vehicle is missing VehicleSpawnID."
+            );
+
+            return 0;
+        }
+
+        return aSpawnID.SpawnID.CompareTo(bSpawnID.SpawnID);
+    }
+
+
+    private bool IsValidVehicle(Component vehicle)
+    {
+        if (vehicle == null || !vehicle.gameObject.activeInHierarchy)
+            return false;
+
+        return vehicle is TrafficTestVehicle ||
+               vehicle is CargoDeliveryTruck;
     }
 
     private IntersectionState GetState(Vector2Int intersection)
     {
-        if (!intersections.TryGetValue(intersection, out IntersectionState state))
+        if (!intersections.TryGetValue(
+                intersection,
+                out IntersectionState state))
         {
             state = new IntersectionState();
             intersections.Add(intersection, state);
@@ -137,9 +199,12 @@ public class IntersectionManager : MonoBehaviour
         return state;
     }
 
-    private void RemoveRequest(IntersectionState state, TrafficTestVehicle vehicle)
+    private void RemoveRequest(
+        IntersectionState state,
+        Component vehicle)
     {
-        state.Waiting.RemoveAll(request =>
-            request.Vehicle == null || request.Vehicle == vehicle);
+        state.Waiting.RemoveAll(
+            request => request.Vehicle == null ||
+                       request.Vehicle == vehicle);
     }
 }

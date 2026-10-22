@@ -3759,7 +3759,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6761c6dde941eb843a4e03767420dd01, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ScheduledCargoDeliverySpawner
-  cargoTruckPrefab: {fileID: 8049238051121985674, guid: 739ed671cc5ea6c459769b72b223d80d, type: 3}
+  cargoTruckPrefab: {fileID: 7704799895376171895, guid: 739ed671cc5ea6c459769b72b223d80d, type: 3}
   spawnPoint: {fileID: 2134991058}
   exitPoint: {fileID: 1964681761}
   gridManager: {fileID: 728659359}
@@ -3899,9 +3899,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TrafficTestSpawner
   trafficVehiclePrefab: {fileID: 2154428240389558112, guid: 9150906fb3da9b049807bba55795f99b, type: 3}
-  cargoTruckPrefab: {fileID: 8049238051121985674, guid: 739ed671cc5ea6c459769b72b223d80d, type: 3}
+  cargoTruckPrefab: {fileID: 7704799895376171895, guid: 739ed671cc5ea6c459769b72b223d80d, type: 3}
   gridManager: {fileID: 728659359}
-  spawnMode: 0
+  spawnMode: 2
   randomizeWhenBoth: 1
   spawnInterval: 3
   spawnHeightOffset: 0.2

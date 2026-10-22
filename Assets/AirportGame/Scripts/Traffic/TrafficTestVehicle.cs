@@ -120,9 +120,13 @@ public class TrafficTestVehicle : MonoBehaviour
     private int reservedIntersectionPathIndex = -1;
 
     // Intersection this vehicle is currently waiting to enter.
-    private bool waitingForIntersection;
-    private Vector2Int requestedIntersection;
+    public bool waitingForIntersection;
+    public Vector2Int requestedIntersection;
     private int requestedIntersectionPathIndex = -1;
+    public bool IsWaitingForIntersection => waitingForIntersection;
+    public Vector2Int RequestedIntersection => requestedIntersection;
+
+    
 
     // ---------------------------------------------------------
     // INITIALIZATION
@@ -1536,6 +1540,7 @@ public class TrafficTestVehicle : MonoBehaviour
         return foundVehicle;
     }
 
+
     private void CheckTrafficRay(
         Vector3 origin,
         Vector3 direction,
@@ -1552,9 +1557,7 @@ public class TrafficTestVehicle : MonoBehaviour
                 trafficLayer,
                 QueryTriggerInteraction.Ignore))
         {
-            debugRaycastSummary +=
-                $"{rayName}: no hit\n";
-
+            debugRaycastSummary += $"{rayName}: no hit\n";
             return;
         }
 
@@ -1566,45 +1569,63 @@ public class TrafficTestVehicle : MonoBehaviour
             $"{rayName}: {rayHit.collider.name} " +
             $"({rayHit.distance:F2}m)";
 
-        TrafficTestVehicle vehicle =
-            rayHit.collider
-                .GetComponentInParent<TrafficTestVehicle>();
+        TrafficTestVehicle normalVehicle =
+            rayHit.collider.GetComponentInParent<TrafficTestVehicle>();
 
-        if (vehicle == null)
-        {
-            debugRaycastSummary +=
-                " — no TrafficTestVehicle component\n";
+        CargoDeliveryTruck cargoTruck =
+            rayHit.collider.GetComponentInParent<CargoDeliveryTruck>();
 
-            return;
-        }
-
-        if (vehicle == this)
+        if (normalVehicle == this)
         {
             debugRaycastSummary += " — self, ignored\n";
             return;
         }
 
-        // A car waiting for this same intersection must not block
-        // the vehicle that currently owns its reservation.
-        if (ShouldIgnoreIntersectionWaitingVehicle(vehicle))
+        // Normal traffic vehicle.
+        if (normalVehicle != null)
+        {
+            if (ShouldIgnoreIntersectionWaitingVehicle(normalVehicle))
+            {
+                debugRaycastSummary +=
+                    " — intersection reservation holder, ignored\n";
+                return;
+            }
+
+            if (!ShouldDetectVehicle(normalVehicle))
+            {
+                debugRaycastSummary +=
+                    $" — ignored by traffic rules ({normalVehicle.CurrentState})\n";
+                return;
+            }
+
+            debugRaycastSummary +=
+                $" — blocking normal vehicle ({normalVehicle.CurrentState})\n";
+        }
+        // Cargo delivery truck.
+        else if (cargoTruck != null)
+        {
+            CargoDeliveryTruck.TruckState truckState =
+                cargoTruck.CurrentState;
+
+            if (truckState == CargoDeliveryTruck.TruckState.Idle ||
+                truckState == CargoDeliveryTruck.TruckState.WaitingForCargoZone ||
+                truckState == CargoDeliveryTruck.TruckState.Unloading ||
+                truckState == CargoDeliveryTruck.TruckState.Arrived)
+            {
+                debugRaycastSummary +=
+                    $" — ignored cargo truck ({truckState})\n";
+                return;
+            }
+
+            debugRaycastSummary +=
+                $" — blocking cargo truck ({truckState})\n";
+        }
+        else
         {
             debugRaycastSummary +=
-                $" — intersection reservation holder, ignored " +
-                $"({vehicle.state})\n";
-
+                " — hit has no recognized vehicle component\n";
             return;
         }
-
-        if (!ShouldDetectVehicle(vehicle))
-        {
-            debugRaycastSummary +=
-                $" — ignored by traffic rules ({vehicle.state})\n";
-
-            return;
-        }
-
-        debugRaycastSummary +=
-            $" — blocking vehicle ({vehicle.state})\n";
 
         if (rayHit.distance < closestDistance)
         {
@@ -1613,6 +1634,7 @@ public class TrafficTestVehicle : MonoBehaviour
             foundVehicle = true;
         }
     }
+
 
     private bool ShouldDetectVehicle(TrafficTestVehicle vehicle)
     {
