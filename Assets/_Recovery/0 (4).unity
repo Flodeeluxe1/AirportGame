@@ -246,6 +246,7 @@ MonoBehaviour:
   foundationTilemapController: {fileID: 0}
   roadNetwork: {fileID: 0}
   roadTilemapController: {fileID: 0}
+  roadModuleRuleManager: {fileID: 0}
   taxiwayNetwork: {fileID: 0}
   taxiwayTilemapController: {fileID: 0}
   highlightColor: {r: 0.1, g: 0.85, b: 1, a: 0.45}
@@ -2448,6 +2449,7 @@ MonoBehaviour:
   gridSurface: {fileID: 728659360}
   roadNetwork: {fileID: 401526682}
   roadTilemapController: {fileID: 401526683}
+  roadModuleRuleManager: {fileID: 0}
   taxiwayNetwork: {fileID: 405670568}
   taxiwayTilemapController: {fileID: 405670567}
   foundationTilemapController: {fileID: 1832935780}
@@ -3228,6 +3230,76 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1832806716
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1832806717}
+  - component: {fileID: 1832806718}
+  - component: {fileID: 1832806719}
+  m_Layer: 0
+  m_Name: RoadManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1832806717
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1832806716}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: -216.37097, y: -387.02908, z: 434.30972}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1832806718
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1832806716}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 82f53cf8d5d1a234baacf5c345649de2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RoadModuleRuleManager
+  gridManager: {fileID: 728659359}
+  roadNetwork: {fileID: 401526682}
+  moduleParent: {fileID: 0}
+  deadEndPrefab: {fileID: 5888904387460860299, guid: 47c9ce3a8a6d37443b73f6699b9b4c84, type: 3}
+  straightPrefab: {fileID: 353065534898351786, guid: b5c5344dee85fa448a70be9c14b6f310, type: 3}
+  cornerPrefab: {fileID: 4790630373302071781, guid: ae4eabf13d08057489bbd75c1b9e4695, type: 3}
+  tJunctionPrefab: {fileID: 524735474715085092, guid: dc006ef32419ddd428b8bd4463862e53, type: 3}
+  crossroadsPrefab: {fileID: 1518849532948393524, guid: 0a026f07af704fe43b8e32bcc471a5a1, type: 3}
+  deadEndRotationOffset: {x: 0, y: 90, z: 0}
+  straightRotationOffset: {x: 0, y: 0, z: 0}
+  cornerRotationOffset: {x: 0, y: 180, z: 0}
+  tJunctionRotationOffset: {x: 0, y: 0, z: 0}
+  crossroadsRotationOffset: {x: 0, y: 0, z: 0}
+--- !u!114 &1832806719
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1832806716}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 888f3d32f7c80d0428e7736d374bd65d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::IntersectionManager
 --- !u!1 &1832935775
 GameObject:
   m_ObjectHideFlags: 0
@@ -3693,6 +3765,7 @@ MonoBehaviour:
   gridManager: {fileID: 728659359}
   flightManagement: {fileID: 1478484325}
   gameTimeManager: {fileID: 449210932}
+  roadModuleSize: 2
   minutesBeforeDeparture: 30
   scheduleRefreshInterval: 1
   spawnIntervalGameSeconds: 2
@@ -3828,9 +3901,9 @@ MonoBehaviour:
   trafficVehiclePrefab: {fileID: 2154428240389558112, guid: 9150906fb3da9b049807bba55795f99b, type: 3}
   cargoTruckPrefab: {fileID: 8049238051121985674, guid: 739ed671cc5ea6c459769b72b223d80d, type: 3}
   gridManager: {fileID: 728659359}
-  spawnMode: 1
+  spawnMode: 0
   randomizeWhenBoth: 1
-  spawnInterval: 5
+  spawnInterval: 3
   spawnHeightOffset: 0.2
   exitPoint: {fileID: 1964681761}
 --- !u!1 &2136825550
@@ -4669,6 +4742,7 @@ SceneRoots:
   - {fileID: 1399790237}
   - {fileID: 449210933}
   - {fileID: 1048131945}
+  - {fileID: 1832806717}
   - {fileID: 1478484322}
   - {fileID: 413444875}
   - {fileID: 3827033538174232110}

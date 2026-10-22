@@ -294,7 +294,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TrafficStuckFailsafe
   stuckTime: 30
-  movementThreshold: 0.05
+  movementThreshold: 0.02
   parkingWaitDestroyTime: 10
   disableCollidersUntilMoving: 1
   logFailsafe: 1

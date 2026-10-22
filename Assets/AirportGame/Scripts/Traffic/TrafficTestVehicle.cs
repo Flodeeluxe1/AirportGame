@@ -1338,6 +1338,15 @@ public class TrafficTestVehicle : MonoBehaviour
 
     private void OnDisable()
     {
+        // Clean up parking reservations when this vehicle
+        // is disabled or destroyed.
+        if (parkingSpace != null)
+        {
+            parkingSpace.CancelReservation(gameObject);
+            parkingSpace.ReleaseVehicle(gameObject);
+        }
+
+
         if (intersectionManager != null)
         {
             intersectionManager.CancelRequest(this);
@@ -1436,6 +1445,23 @@ public class TrafficTestVehicle : MonoBehaviour
         debugRaycastSummary = "";
         debugTrafficDecision = "Checking traffic";
         debugLastSensorUpdateTime = Time.time;
+
+        // Ignore traffic-following raycasts while holding a valid
+        // intersection reservation. Intersection control still runs normally.
+        if (hasIntersectionReservation &&
+            intersectionManager != null &&
+            intersectionManager.HasReservation(reservedIntersection, this))
+        {
+            hit = default;
+
+            debugRaycastSummary =
+                "Traffic raycasts skipped: holding intersection reservation.";
+
+            debugTrafficDecision =
+                "Continuing through reserved intersection";
+
+            return false;
+        }
 
         Vector3 origin =
             transform.position +
