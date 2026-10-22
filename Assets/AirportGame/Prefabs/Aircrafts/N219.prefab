@@ -9,6 +9,18 @@ PrefabInstance:
     m_TransformParent: {fileID: 0}
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: 329bd202958094e408464039e61f03d4, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 329bd202958094e408464039e61f03d4, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 329bd202958094e408464039e61f03d4, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 329bd202958094e408464039e61f03d4, type: 3}
       propertyPath: m_LocalPosition.x
       value: 3.7972887
       objectReference: {fileID: 0}
@@ -47,6 +59,10 @@ PrefabInstance:
     - target: {fileID: -8679921383154817045, guid: 329bd202958094e408464039e61f03d4, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 329bd202958094e408464039e61f03d4, type: 3}
+      propertyPath: m_ConstrainProportionsScale
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: 329bd202958094e408464039e61f03d4, type: 3}
       propertyPath: m_Name
@@ -462,7 +478,5 @@ MonoBehaviour:
   parkingIntervalMinutes: 15
   economyManager: {fileID: 0}
   gameTimeManager: {fileID: 0}
-  cargoPaxLandingController: {fileID: 0}
-  trainingLandingController: {fileID: 0}
-  hobbyLandingController: {fileID: 0}
+  aircraftStatus: {fileID: 0}
   turnaroundController: {fileID: 0}
