@@ -362,7 +362,11 @@ public class BuildingSelectionController : MonoBehaviour
                     Vector2Int cell = new Vector2Int(x, z);
 
                     if (taxiwayNetwork.IsTaxiway(cell))
-                        newTaxiwaySelection.Add(cell);
+                    {
+                        AddTaxiwayModuleCells(
+                            cell,
+                            newTaxiwaySelection);
+                    }
                 }
             }
         }
@@ -509,14 +513,49 @@ public class BuildingSelectionController : MonoBehaviour
         Debug.Log($"Selected road module: {anchor}");
     }
 
+
     private void SelectSingleTaxiway(Vector2Int cell)
     {
         ClearSelection();
-        selectedTaxiwayCells.Add(cell);
+
+        AddTaxiwayModuleCells(cell, selectedTaxiwayCells);
+
         RefreshHighlights();
 
-        Debug.Log($"Selected taxiway cell: {cell}");
+        Debug.Log(
+            $"Selected taxiway module containing cell {cell}. " +
+            $"Selected cells: {selectedTaxiwayCells.Count}");
     }
+
+
+    private void AddTaxiwayModuleCells(
+        Vector2Int cell,
+        HashSet<Vector2Int> destination)
+    {
+        if (taxiwayPrefabRuleManager != null &&
+            taxiwayPrefabRuleManager.TryGetVisualModuleAtCell(
+                cell,
+                out Vector2Int origin,
+                out int width,
+                out int depth))
+        {
+            for (int x = 0; x < width; x++)
+            {
+                for (int z = 0; z < depth; z++)
+                {
+                    destination.Add(
+                        origin + new Vector2Int(x, z));
+                }
+            }
+
+            return;
+        }
+
+        // Fallback if the cell has network data but no visual module.
+        destination.Add(cell);
+    }
+
+
 
     private void SetSelection(
         List<GameObject> newSelection,
@@ -837,11 +876,33 @@ public class BuildingSelectionController : MonoBehaviour
         foreach (GameObject building in buildingsToDelete)
             DeleteBuilding(building);
 
+
         foreach (Vector2Int cell in roadsToDelete)
             DeleteRoadCell(cell);
 
-        foreach (Vector2Int cell in taxiwaysToDelete)
-            DeleteTaxiwayCell(cell);
+        // Remove all selected visual modules as one batch before changing
+        // the network. This prevents a rebuild from merging neighboring
+        // modules partway through the deletion.
+        if (taxiwaysToDelete.Count > 0)
+        {
+            bool visualsRemoved =
+                taxiwayPrefabRuleManager != null &&
+                taxiwayPrefabRuleManager.RemoveVisualModulesAtCells(
+                    taxiwaysToDelete);
+
+            if (visualsRemoved)
+            {
+                foreach (Vector2Int cell in taxiwaysToDelete)
+                    DeleteTaxiwayCell(cell);
+            }
+            else
+            {
+                Debug.LogWarning(
+                    "Taxiway deletion was cancelled because the visual " +
+                    "modules could not be removed safely.");
+            }
+        }
+
 
         ClearSelection();
         deleteSelectionMode = false;
@@ -866,19 +927,15 @@ public class BuildingSelectionController : MonoBehaviour
     }
 
 
+
     private void DeleteTaxiwayCell(Vector2Int cell)
     {
         if (taxiwayNetwork != null)
             taxiwayNetwork.RemoveTaxiwayCell(cell);
 
-        if (taxiwayPrefabRuleManager != null)
-        {
-            //taxiwayPrefabRuleManager.UnregisterCell(cell);
-            //taxiwayPrefabRuleManager.RefreshAllTaxiwayVisuals();
-        }
-
         Debug.Log($"Deleted taxiway cell: {cell}");
     }
+
 
 
 

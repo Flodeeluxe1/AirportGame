@@ -1,14 +1,11 @@
 
 using System.Collections.Generic;
+using System.Text;
 using UnityEngine;
 
 /// <summary>
 /// Builds taxiway visuals from registered placement areas.
-///
-/// Junction footprints are identified before straight modules are
-/// generated. Junctions may cross the original 5x5 module boundaries.
-/// Straight areas displaced by a junction are filled with 5x1 prefabs.
-///
+/// Junctions are identified before straight modules are generated.
 /// This component does not modify TaxiwayNetwork, pathfinding,
 /// centerline data, Tilemaps, or save data.
 /// </summary>
@@ -18,7 +15,6 @@ public sealed class TaxiwayPrefabRuleManager : MonoBehaviour
     private const int East = 2;
     private const int South = 4;
     private const int West = 8;
-
     private const int ModuleSize = 5;
 
     [Header("Grid")]
@@ -40,6 +36,9 @@ public sealed class TaxiwayPrefabRuleManager : MonoBehaviour
     [SerializeField] private int curvedRotationOffset;
     [SerializeField] private int tSectionRotationOffset;
     [SerializeField] private int intersectionRotationOffset;
+
+    [Header("Diagnostics")]
+    [SerializeField] private bool logJunctionDiagnostics = true;
 
     private readonly List<PlacementArea> placementAreas =
         new List<PlacementArea>();
@@ -65,17 +64,28 @@ public sealed class TaxiwayPrefabRuleManager : MonoBehaviour
             Width = width;
             Depth = depth;
         }
+
+        public override string ToString()
+        {
+            return $"Origin={Origin}, Size={Width}x{Depth}, " +
+                   $"MaxX={MaxX}, MaxZ={MaxZ}";
+        }
     }
 
     private sealed class JunctionCandidate
     {
         public Vector2Int Origin;
         public int ConnectionMask;
+        public string DetectionReason;
 
-        public JunctionCandidate(Vector2Int origin, int connectionMask)
+        public JunctionCandidate(
+            Vector2Int origin,
+            int connectionMask,
+            string detectionReason)
         {
             Origin = origin;
             ConnectionMask = connectionMask;
+            DetectionReason = detectionReason;
         }
     }
 
@@ -113,10 +123,6 @@ public sealed class TaxiwayPrefabRuleManager : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Registers a successfully placed taxiway rectangle.
-    /// One dimension must be five cells.
-    /// </summary>
     public void RegisterTaxiwayArea(
         Vector2Int origin,
         int areaWidth,
@@ -125,8 +131,7 @@ public sealed class TaxiwayPrefabRuleManager : MonoBehaviour
         if (gridManager == null)
         {
             Debug.LogError(
-                "TaxiwayPrefabRuleManager: GridManager is missing.",
-                this);
+                "TaxiwayPrefabRuleManager: GridManager is missing.", this);
             return;
         }
 
@@ -143,8 +148,7 @@ public sealed class TaxiwayPrefabRuleManager : MonoBehaviour
             Debug.LogWarning(
                 "TaxiwayPrefabRuleManager: Expected a 5-cell-wide " +
                 "or 5-cell-deep area. Received " +
-                areaWidth + "x" + areaDepth + ".",
-                this);
+                areaWidth + "x" + areaDepth + ".", this);
             return;
         }
 
@@ -154,44 +158,27 @@ public sealed class TaxiwayPrefabRuleManager : MonoBehaviour
         RebuildVisuals();
     }
 
-    /// <summary>
-    /// Rebuilds all taxiway visuals from the registered areas.
-    /// </summary>
     public void RebuildVisuals()
     {
         ClearSpawnedVisuals();
         modules.Clear();
 
-        // First find junctions independently of the old 5x5 boundaries.
         List<JunctionCandidate> junctions = FindJunctionCandidates();
 
-        // Build the normal 5x5 modules and 5x1 remainders.
         foreach (PlacementArea area in placementAreas)
-        {
             BuildModulesForArea(area);
-        }
 
         RemoveExactDuplicateModules();
-
-        // Remove straight modules that overlap junction footprints.
-        // The uncovered portions of affected 5x5 modules become 5x1s.
         ApplyJunctionFootprints(junctions);
-
-        // Merge complete groups of five 5x1 strips into 5x5 modules.
-        // Junction footprints and incomplete areas are left untouched.
         MergeCompleteStraightBlocks();
-
-        // Determine final connections after the layout is rebuilt.
         CalculateConnectionMasks();
 
-        // Spawn junctions first so their visuals take priority.
+        if (logJunctionDiagnostics)
+            LogFinalJunctionDecisions();
+
         SpawnAllModules();
     }
 
-    /// <summary>
-    /// Clears this manager's placement records and spawned visuals.
-    /// Does not clear other taxiway or gameplay data.
-    /// </summary>
     public void ClearAllTaxiwayAreas()
     {
         placementAreas.Clear();
@@ -202,7 +189,6 @@ public sealed class TaxiwayPrefabRuleManager : MonoBehaviour
     private void BuildModulesForArea(PlacementArea area)
     {
         bool vertical = area.Width == ModuleSize;
-
         int length = vertical ? area.Depth : area.Width;
         int fullModules = length / ModuleSize;
         int remainder = length % ModuleSize;
@@ -216,12 +202,7 @@ public sealed class TaxiwayPrefabRuleManager : MonoBehaviour
             else
                 origin.x += i * ModuleSize;
 
-            AddModule(
-                origin,
-                ModuleSize,
-                ModuleSize,
-                false,
-                vertical);
+            AddModule(origin, ModuleSize, ModuleSize, false, vertical);
         }
 
         int remainderStart = fullModules * ModuleSize;
@@ -233,24 +214,12 @@ public sealed class TaxiwayPrefabRuleManager : MonoBehaviour
             if (vertical)
             {
                 origin.y += remainderStart + i;
-
-                AddModule(
-                    origin,
-                    ModuleSize,
-                    1,
-                    true,
-                    true);
+                AddModule(origin, ModuleSize, 1, true, true);
             }
             else
             {
                 origin.x += remainderStart + i;
-
-                AddModule(
-                    origin,
-                    1,
-                    ModuleSize,
-                    true,
-                    false);
+                AddModule(origin, 1, ModuleSize, true, false);
             }
         }
     }
@@ -262,13 +231,8 @@ public sealed class TaxiwayPrefabRuleManager : MonoBehaviour
         bool isSmallStraight,
         bool isVerticalRun = false)
     {
-        modules.Add(
-            new VisualModule(
-                origin,
-                width,
-                depth,
-                isSmallStraight,
-                isVerticalRun));
+        modules.Add(new VisualModule(
+            origin, width, depth, isSmallStraight, isVerticalRun));
     }
 
     private List<JunctionCandidate> FindJunctionCandidates()
@@ -286,8 +250,6 @@ public sealed class TaxiwayPrefabRuleManager : MonoBehaviour
                 bool aSquare = IsSquareArea(a);
                 bool bSquare = IsSquareArea(b);
 
-                // Treat one square area as the vertical run when the
-                // other area is horizontal, and vice versa.
                 bool aCanBeVertical = a.Width == ModuleSize;
                 bool aCanBeHorizontal = a.Depth == ModuleSize;
                 bool bCanBeVertical = b.Width == ModuleSize;
@@ -296,13 +258,19 @@ public sealed class TaxiwayPrefabRuleManager : MonoBehaviour
                 if (aCanBeVertical && bCanBeHorizontal &&
                     !(aSquare && bSquare))
                 {
-                    TryAddJunctionCandidate(a, b, candidates);
+                    TryAddJunctionCandidate(
+                        a, b, candidates,
+                        $"Area A treated as vertical and area B as " +
+                        $"horizontal. Pair indices {i} and {j}.");
                 }
 
                 if (bCanBeVertical && aCanBeHorizontal &&
                     !(aSquare && bSquare))
                 {
-                    TryAddJunctionCandidate(b, a, candidates);
+                    TryAddJunctionCandidate(
+                        b, a, candidates,
+                        $"Area B treated as vertical and area A as " +
+                        $"horizontal. Pair indices {j} and {i}.");
                 }
             }
         }
@@ -316,52 +284,37 @@ public sealed class TaxiwayPrefabRuleManager : MonoBehaviour
                area.Depth == ModuleSize;
     }
 
-    /// <summary>
-    /// The first area is treated as a vertical run (width 5).
-    /// The second is treated as a horizontal run (depth 5).
-    ///
-    /// A junction can be inside their overlap, or inside the main
-    /// corridor where the perpendicular branch meets its side.
-    /// </summary>
     private void TryAddJunctionCandidate(
         PlacementArea vertical,
         PlacementArea horizontal,
-        List<JunctionCandidate> candidates)
+        List<JunctionCandidate> candidates,
+        string pairReason)
     {
-        Vector2Int candidateOrigin;
-
         int overlapMinX = Mathf.Max(
-            vertical.Origin.x,
-            horizontal.Origin.x);
-
+            vertical.Origin.x, horizontal.Origin.x);
         int overlapMaxX = Mathf.Min(
-            vertical.MaxX,
-            horizontal.MaxX);
-
+            vertical.MaxX, horizontal.MaxX);
         int overlapMinZ = Mathf.Max(
-            vertical.Origin.y,
-            horizontal.Origin.y);
-
+            vertical.Origin.y, horizontal.Origin.y);
         int overlapMaxZ = Mathf.Min(
-            vertical.MaxZ,
-            horizontal.MaxZ);
+            vertical.MaxZ, horizontal.MaxZ);
 
         int overlapWidth = overlapMaxX - overlapMinX;
         int overlapDepth = overlapMaxZ - overlapMinZ;
 
-        // Crossing or overlapping placement areas.
         if (overlapWidth >= ModuleSize &&
             overlapDepth >= ModuleSize)
         {
-            candidateOrigin = new Vector2Int(
-                overlapMinX,
-                overlapMinZ);
+            Vector2Int candidateOrigin =
+                new Vector2Int(overlapMinX, overlapMinZ);
 
-            TryAddCandidateAtOrigin(candidateOrigin, candidates);
+            TryAddCandidateAtOrigin(
+                candidateOrigin, candidates,
+                "Crossing/overlap: intersection is at least 5x5. " +
+                pairReason, vertical, horizontal);
             return;
         }
 
-        // Horizontal branch touches the side of a vertical corridor.
         bool touchesVerticalSide =
             horizontal.MaxX == vertical.Origin.x ||
             horizontal.Origin.x == vertical.MaxX;
@@ -373,15 +326,18 @@ public sealed class TaxiwayPrefabRuleManager : MonoBehaviour
 
         if (touchesVerticalSide && horizontalSpanInsideVertical)
         {
-            candidateOrigin = new Vector2Int(
-                vertical.Origin.x,
-                horizontal.Origin.y);
+            Vector2Int candidateOrigin =
+                new Vector2Int(
+                    vertical.Origin.x, horizontal.Origin.y);
 
-            TryAddCandidateAtOrigin(candidateOrigin, candidates);
+            TryAddCandidateAtOrigin(
+                candidateOrigin, candidates,
+                "Horizontal branch touches the side of a vertical " +
+                "corridor and its 5-cell depth is within that corridor. " +
+                pairReason, vertical, horizontal);
             return;
         }
 
-        // Vertical branch touches the end of a horizontal corridor.
         bool touchesHorizontalEnd =
             vertical.MaxZ == horizontal.Origin.y ||
             vertical.Origin.y == horizontal.MaxZ;
@@ -393,39 +349,86 @@ public sealed class TaxiwayPrefabRuleManager : MonoBehaviour
 
         if (touchesHorizontalEnd && verticalSpanInsideHorizontal)
         {
-            candidateOrigin = new Vector2Int(
-                vertical.Origin.x,
-                horizontal.Origin.y);
+            Vector2Int candidateOrigin =
+                new Vector2Int(
+                    vertical.Origin.x, horizontal.Origin.y);
 
-            TryAddCandidateAtOrigin(candidateOrigin, candidates);
+            TryAddCandidateAtOrigin(
+                candidateOrigin, candidates,
+                "Vertical branch touches the end of a horizontal " +
+                "corridor and its 5-cell width is within that corridor. " +
+                pairReason, vertical, horizontal);
         }
     }
 
     private void TryAddCandidateAtOrigin(
         Vector2Int origin,
-        List<JunctionCandidate> candidates)
+        List<JunctionCandidate> candidates,
+        string reason,
+        PlacementArea vertical,
+        PlacementArea horizontal)
     {
         foreach (JunctionCandidate existing in candidates)
         {
             if (existing.Origin == origin)
+            {
+                if (logJunctionDiagnostics)
+                {
+                    Debug.Log(
+                        "[Taxiway Junction Diagnostics] Candidate " +
+                        $"at {origin} was not added again. " +
+                        "A candidate at this origin already exists.\n" +
+                        $"Existing reason: {existing.DetectionReason}\n" +
+                        $"Additional reason: {reason}", this);
+                }
+
                 return;
+            }
         }
 
         int mask = CalculateAreaConnectionMask(origin);
 
-        // Do not reserve a junction footprint unless the registered
-        // areas actually describe a junction or corner here.
         if (!IsJunctionMask(mask))
-            return;
+        {
+            if (logJunctionDiagnostics)
+            {
+                Debug.Log(
+                    "[Taxiway Junction Diagnostics] Candidate REJECTED\n" +
+                    $"Origin: {origin}, footprint: 5x5\n" +
+                    $"Detection rule: {reason}\n" +
+                    $"Area-derived mask: {DescribeMask(mask)}\n" +
+                    $"Connection count: {CountConnections(mask)}\n" +
+                    "Reason rejected: mask is neither a T/intersection " +
+                    "with at least 3 connections nor a corner.", this);
+            }
 
-        candidates.Add(
-            new JunctionCandidate(origin, mask));
+            return;
+        }
+
+        JunctionCandidate candidate = new JunctionCandidate(
+            origin, mask, reason);
+
+        candidates.Add(candidate);
+
+        if (logJunctionDiagnostics)
+        {
+            Debug.Log(
+                "[Taxiway Junction Diagnostics] Candidate ACCEPTED\n" +
+                $"Origin: {origin}, footprint: 5x5\n" +
+                $"Detection rule: {reason}\n" +
+                $"Vertical area: {vertical}\n" +
+                $"Horizontal area: {horizontal}\n" +
+                $"Area-derived mask: {DescribeMask(mask)}\n" +
+                $"Connection count: {CountConnections(mask)}\n" +
+                $"Mask directions: {GetConnectionDirections(mask)}\n" +
+                $"Adjacent grid coordinates:\n" +
+                GetAdjacentGridCoordinates(origin) +
+                "Relevant registered areas:\n" +
+                GetRelevantPlacementAreas(origin), this);
+        }
     }
 
-    /// <summary>
-    /// Calculates the connections implied by the original placement
-    /// areas, including areas that touch the candidate at an edge.
-    /// </summary>
+
     private int CalculateAreaConnectionMask(Vector2Int origin)
     {
         int mask = 0;
@@ -443,50 +446,47 @@ public sealed class TaxiwayPrefabRuleManager : MonoBehaviour
                 area.Origin.x < maxX &&
                 area.MaxX > origin.x;
 
-            if (overlapsZ)
+            // West: the area must reach or cross the module's west edge.
+            if (overlapsZ &&
+                area.Origin.x < origin.x &&
+                area.MaxX >= origin.x)
             {
-                if (area.MaxX == origin.x ||
-                    area.Origin.x < origin.x)
-                {
-                    mask |= West;
-                }
-
-                if (area.Origin.x == maxX ||
-                    area.MaxX > maxX)
-                {
-                    mask |= East;
-                }
+                mask |= West;
             }
 
-            if (overlapsX)
+            // East: the area must reach or cross the module's east edge.
+            if (overlapsZ &&
+                area.Origin.x <= maxX &&
+                area.MaxX > maxX)
             {
-                if (area.MaxZ == origin.y ||
-                    area.Origin.y < origin.y)
-                {
-                    mask |= South;
-                }
+                mask |= East;
+            }
 
-                if (area.Origin.y == maxZ ||
-                    area.MaxZ > maxZ)
-                {
-                    mask |= North;
-                }
+            // South: the area must reach or cross the module's south edge.
+            if (overlapsX &&
+                area.Origin.y < origin.y &&
+                area.MaxZ >= origin.y)
+            {
+                mask |= South;
+            }
+
+            // North: the area must reach or cross the module's north edge.
+            if (overlapsX &&
+                area.Origin.y <= maxZ &&
+                area.MaxZ > maxZ)
+            {
+                mask |= North;
             }
         }
 
         return mask;
     }
 
-    /// <summary>
-    /// Removes straight modules overlapping junction footprints.
-    /// If a 5x5 module is cut by a junction, its remaining cells
-    /// are rebuilt as 5x1 strips along the original run direction.
-    /// </summary>
+
     private void ApplyJunctionFootprints(
         List<JunctionCandidate> junctions)
     {
-        List<VisualModule> rebuilt =
-            new List<VisualModule>();
+        List<VisualModule> rebuilt = new List<VisualModule>();
 
         foreach (VisualModule module in modules)
         {
@@ -495,12 +495,8 @@ public sealed class TaxiwayPrefabRuleManager : MonoBehaviour
             foreach (JunctionCandidate junction in junctions)
             {
                 if (RectanglesOverlap(
-                    module.Origin,
-                    module.Width,
-                    module.Depth,
-                    junction.Origin,
-                    ModuleSize,
-                    ModuleSize))
+                    module.Origin, module.Width, module.Depth,
+                    junction.Origin, ModuleSize, ModuleSize))
                 {
                     overlapsJunction = true;
                     break;
@@ -513,80 +509,51 @@ public sealed class TaxiwayPrefabRuleManager : MonoBehaviour
                 continue;
             }
 
-            // A small strip intersecting a junction is covered by it.
             if (module.IsSmallStraight)
                 continue;
 
-            // Split a vertical-run 5x5 module into 5x1 rows.
             if (module.IsVerticalRun)
             {
-                for (int z = module.Origin.y;
-                     z < module.MaxZ;
-                     z++)
+                for (int z = module.Origin.y; z < module.MaxZ; z++)
                 {
                     Vector2Int stripOrigin =
                         new Vector2Int(module.Origin.x, z);
 
                     if (OverlapsAnyJunction(
-                        stripOrigin,
-                        ModuleSize,
-                        1,
-                        junctions))
-                    {
+                        stripOrigin, ModuleSize, 1, junctions))
                         continue;
-                    }
 
-                    rebuilt.Add(
-                        new VisualModule(
-                            stripOrigin,
-                            ModuleSize,
-                            1,
-                            true,
-                            true));
+                    rebuilt.Add(new VisualModule(
+                        stripOrigin, ModuleSize, 1, true, true));
                 }
             }
             else
             {
-                // Split a horizontal-run 5x5 module into 1x5 columns.
-                for (int x = module.Origin.x;
-                     x < module.MaxX;
-                     x++)
+                for (int x = module.Origin.x; x < module.MaxX; x++)
                 {
                     Vector2Int stripOrigin =
                         new Vector2Int(x, module.Origin.y);
 
                     if (OverlapsAnyJunction(
-                        stripOrigin,
-                        1,
-                        ModuleSize,
-                        junctions))
-                    {
+                        stripOrigin, 1, ModuleSize, junctions))
                         continue;
-                    }
 
-                    rebuilt.Add(
-                        new VisualModule(
-                            stripOrigin,
-                            1,
-                            ModuleSize,
-                            true,
-                            false));
+                    rebuilt.Add(new VisualModule(
+                        stripOrigin, 1, ModuleSize, true, false));
                 }
             }
         }
 
-        // Add each junction exactly once.
         foreach (JunctionCandidate junction in junctions)
         {
-            rebuilt.Add(
-                new VisualModule(
-                    junction.Origin,
-                    ModuleSize,
-                    ModuleSize,
-                    false,
-                    false,
-                    true,
-                    junction.ConnectionMask));
+            rebuilt.Add(new VisualModule(
+                junction.Origin,
+                ModuleSize,
+                ModuleSize,
+                false,
+                false,
+                true,
+                junction.ConnectionMask));
         }
 
         modules.Clear();
@@ -602,15 +569,9 @@ public sealed class TaxiwayPrefabRuleManager : MonoBehaviour
         foreach (JunctionCandidate junction in junctions)
         {
             if (RectanglesOverlap(
-                origin,
-                width,
-                depth,
-                junction.Origin,
-                ModuleSize,
-                ModuleSize))
-            {
+                origin, width, depth,
+                junction.Origin, ModuleSize, ModuleSize))
                 return true;
-            }
         }
 
         return false;
@@ -655,39 +616,31 @@ public sealed class TaxiwayPrefabRuleManager : MonoBehaviour
         }
     }
 
-
     private void MergeCompleteStraightBlocks()
     {
         HashSet<Vector2Int> candidateOrigins =
             new HashSet<Vector2Int>();
 
-        // Generate possible 5x5 origins from every small straight strip.
         foreach (VisualModule module in modules)
         {
             if (!module.IsSmallStraight)
                 continue;
 
-            // Five horizontal 5x1 strips can form one 5x5 block.
             if (module.Width == ModuleSize && module.Depth == 1)
             {
                 for (int offset = 0; offset < ModuleSize; offset++)
                 {
-                    candidateOrigins.Add(
-                        new Vector2Int(
-                            module.Origin.x,
-                            module.Origin.y - offset));
+                    candidateOrigins.Add(new Vector2Int(
+                        module.Origin.x, module.Origin.y - offset));
                 }
             }
 
-            // Five vertical 1x5 strips can form one 5x5 block.
             if (module.Width == 1 && module.Depth == ModuleSize)
             {
                 for (int offset = 0; offset < ModuleSize; offset++)
                 {
-                    candidateOrigins.Add(
-                        new Vector2Int(
-                            module.Origin.x - offset,
-                            module.Origin.y));
+                    candidateOrigins.Add(new Vector2Int(
+                        module.Origin.x - offset, module.Origin.y));
                 }
             }
         }
@@ -697,7 +650,6 @@ public sealed class TaxiwayPrefabRuleManager : MonoBehaviour
             if (!CanMergeIntoStraightBlock(origin))
                 continue;
 
-            // Remove the five strips that completely fill this block.
             for (int i = modules.Count - 1; i >= 0; i--)
             {
                 VisualModule module = modules[i];
@@ -715,13 +667,8 @@ public sealed class TaxiwayPrefabRuleManager : MonoBehaviour
                     modules.RemoveAt(i);
             }
 
-            // Add one full-size straight module in their place.
-            modules.Add(
-                new VisualModule(
-                    origin,
-                    ModuleSize,
-                    ModuleSize,
-                    false));
+            modules.Add(new VisualModule(
+                origin, ModuleSize, ModuleSize, false));
         }
     }
 
@@ -730,17 +677,11 @@ public sealed class TaxiwayPrefabRuleManager : MonoBehaviour
         int maxX = origin.x + ModuleSize;
         int maxZ = origin.y + ModuleSize;
 
-        // First reject junctions, full-size modules, and strips that
-        // partially overlap the proposed block.
         foreach (VisualModule module in modules)
         {
             bool overlaps = RectanglesOverlap(
-                origin,
-                ModuleSize,
-                ModuleSize,
-                module.Origin,
-                module.Width,
-                module.Depth);
+                origin, ModuleSize, ModuleSize,
+                module.Origin, module.Width, module.Depth);
 
             if (!overlaps)
                 continue;
@@ -758,8 +699,6 @@ public sealed class TaxiwayPrefabRuleManager : MonoBehaviour
                 return false;
         }
 
-        // Verify that every cell in the 5x5 block is covered by
-        // exactly one small straight strip.
         for (int z = origin.y; z < maxZ; z++)
         {
             for (int x = origin.x; x < maxX; x++)
@@ -789,7 +728,6 @@ public sealed class TaxiwayPrefabRuleManager : MonoBehaviour
         return true;
     }
 
-
     private void CalculateConnectionMasks()
     {
         foreach (VisualModule module in modules)
@@ -801,21 +739,12 @@ public sealed class TaxiwayPrefabRuleManager : MonoBehaviour
                 if (module == neighbor)
                     continue;
 
-                if (TouchesEast(module, neighbor))
-                    mask |= East;
-
-                if (TouchesWest(module, neighbor))
-                    mask |= West;
-
-                if (TouchesNorth(module, neighbor))
-                    mask |= North;
-
-                if (TouchesSouth(module, neighbor))
-                    mask |= South;
+                if (TouchesEast(module, neighbor)) mask |= East;
+                if (TouchesWest(module, neighbor)) mask |= West;
+                if (TouchesNorth(module, neighbor)) mask |= North;
+                if (TouchesSouth(module, neighbor)) mask |= South;
             }
 
-            // The original placement areas provide the intended
-            // junction connections even if module boundaries changed.
             if (module.IsJunctionFootprint)
                 mask |= module.ForcedConnectionMask;
 
@@ -823,58 +752,37 @@ public sealed class TaxiwayPrefabRuleManager : MonoBehaviour
         }
     }
 
-    private bool TouchesEast(
-        VisualModule a,
-        VisualModule b)
+    private bool TouchesEast(VisualModule a, VisualModule b)
     {
         return a.MaxX == b.Origin.x &&
-               IntervalsOverlap(
-                   a.Origin.y, a.MaxZ,
-                   b.Origin.y, b.MaxZ);
+               IntervalsOverlap(a.Origin.y, a.MaxZ, b.Origin.y, b.MaxZ);
     }
 
-    private bool TouchesWest(
-        VisualModule a,
-        VisualModule b)
+    private bool TouchesWest(VisualModule a, VisualModule b)
     {
         return a.Origin.x == b.MaxX &&
-               IntervalsOverlap(
-                   a.Origin.y, a.MaxZ,
-                   b.Origin.y, b.MaxZ);
+               IntervalsOverlap(a.Origin.y, a.MaxZ, b.Origin.y, b.MaxZ);
     }
 
-    private bool TouchesNorth(
-        VisualModule a,
-        VisualModule b)
+    private bool TouchesNorth(VisualModule a, VisualModule b)
     {
         return a.MaxZ == b.Origin.y &&
-               IntervalsOverlap(
-                   a.Origin.x, a.MaxX,
-                   b.Origin.x, b.MaxX);
+               IntervalsOverlap(a.Origin.x, a.MaxX, b.Origin.x, b.MaxX);
     }
 
-    private bool TouchesSouth(
-        VisualModule a,
-        VisualModule b)
+    private bool TouchesSouth(VisualModule a, VisualModule b)
     {
         return a.Origin.y == b.MaxZ &&
-               IntervalsOverlap(
-                   a.Origin.x, a.MaxX,
-                   b.Origin.x, b.MaxX);
+               IntervalsOverlap(a.Origin.x, a.MaxX, b.Origin.x, b.MaxX);
     }
 
-    private bool IntervalsOverlap(
-        int aMin,
-        int aMax,
-        int bMin,
-        int bMax)
+    private bool IntervalsOverlap(int aMin, int aMax, int bMin, int bMax)
     {
         return aMin < bMax && bMin < aMax;
     }
 
     private void SpawnAllModules()
     {
-        // Junction footprints always spawn before the straight modules.
         foreach (VisualModule module in modules)
         {
             if (module.IsJunctionFootprint)
@@ -902,16 +810,33 @@ public sealed class TaxiwayPrefabRuleManager : MonoBehaviour
                 out rotationOffset);
 
             rotationY += rotationOffset;
+
+            if (logJunctionDiagnostics)
+            {
+                Debug.Log(
+                    "[Taxiway Junction Diagnostics] FINAL PREFAB\n" +
+                    $"Origin: {module.Origin}, size: " +
+                    $"{module.Width}x{module.Depth}\n" +
+                    $"Final mask: {DescribeMask(module.ConnectionMask)}\n" +
+                    $"Final connection count: " +
+                    $"{CountConnections(module.ConnectionMask)}\n" +
+                    $"Final directions: " +
+                    $"{GetConnectionDirections(module.ConnectionMask)}\n" +
+                    $"Prefab selected: " +
+                    $"{(prefab != null ? prefab.name : "NULL")}\n" +
+                    $"Base rotation: {rotationY - rotationOffset} degrees\n" +
+                    $"Rotation offset: {rotationOffset} degrees\n" +
+                    $"Final rotation: {rotationY} degrees\n" +
+                    $"Adjacent grid coordinates:\n" +
+                    GetAdjacentGridCoordinates(module.Origin), this);
+            }
         }
         else if (module.IsSmallStraight)
         {
             prefab = straight5x1Prefab;
 
-            if (module.Width == 1 &&
-                module.Depth == ModuleSize)
-            {
+            if (module.Width == 1 && module.Depth == ModuleSize)
                 rotationY = 90;
-            }
         }
         else
         {
@@ -925,8 +850,7 @@ public sealed class TaxiwayPrefabRuleManager : MonoBehaviour
         {
             Debug.LogError(
                 "TaxiwayPrefabRuleManager: Required prefab is missing. " +
-                "Module origin: " + module.Origin,
-                this);
+                "Module origin: " + module.Origin, this);
             return;
         }
 
@@ -937,10 +861,7 @@ public sealed class TaxiwayPrefabRuleManager : MonoBehaviour
             Quaternion.Euler(GetPrefabRotationOffset(prefab));
 
         GameObject instance = Instantiate(
-            prefab,
-            worldPosition,
-            rotation,
-            moduleParent);
+            prefab, worldPosition, rotation, moduleParent);
 
         Vector3 prefabScale = prefab.transform.localScale;
 
@@ -950,17 +871,6 @@ public sealed class TaxiwayPrefabRuleManager : MonoBehaviour
             prefabScale.z * gridManager.CellSize);
 
         spawnedVisuals.Add(instance);
-    }
-
-    private Vector3 GetPrefabRotationOffset(GameObject prefab)
-    {
-        if (prefab == straight5x1Prefab)
-            return straight5x1RotationOffset;
-
-        if (prefab == straight5x5Prefab)
-            return straight5x5RotationOffset;
-
-        return Vector3.zero;
     }
 
     private GameObject SelectPrefab(
@@ -981,50 +891,38 @@ public sealed class TaxiwayPrefabRuleManager : MonoBehaviour
 
         if (count == 3)
         {
-            rotationY = FindRotation(
-                mask,
-                North | East | South);
-
+            rotationY = FindRotation(mask, North | East | South);
             rotationOffset = tSectionRotationOffset;
             return tSectionPrefab;
         }
 
         if (IsCorner(mask))
         {
-            rotationY = FindRotation(
-                mask,
-                North | East);
-
+            rotationY = FindRotation(mask, North | East);
             rotationOffset = curvedRotationOffset;
             return curvedPrefab;
         }
 
-        // A junction footprint with an unexpected mask should not
-        // silently become a straight prefab.
         Debug.LogWarning(
             "TaxiwayPrefabRuleManager: Junction footprint at " +
             "mask " + mask + " does not describe a T, corner, or " +
-            "intersection. Check the placement areas.",
-            this);
+            "intersection. Check the placement areas.", this);
 
         return null;
     }
 
     private bool IsJunctionMask(int mask)
     {
-        int count = CountConnections(mask);
-        return count >= 3 || IsCorner(mask);
+        return CountConnections(mask) >= 3 || IsCorner(mask);
     }
 
     private int CountConnections(int mask)
     {
         int count = 0;
-
         if ((mask & North) != 0) count++;
         if ((mask & East) != 0) count++;
         if ((mask & South) != 0) count++;
         if ((mask & West) != 0) count++;
-
         return count;
     }
 
@@ -1072,6 +970,297 @@ public sealed class TaxiwayPrefabRuleManager : MonoBehaviour
             module.Width * gridManager.CellSize * 0.5f,
             0f,
             module.Depth * gridManager.CellSize * 0.5f);
+    }
+
+    private Vector3 GetPrefabRotationOffset(GameObject prefab)
+    {
+        if (prefab == straight5x1Prefab)
+            return straight5x1RotationOffset;
+
+        if (prefab == straight5x5Prefab)
+            return straight5x5RotationOffset;
+
+        return Vector3.zero;
+    }
+
+    private string DescribeMask(int mask)
+    {
+        return $"{mask} ({GetConnectionDirections(mask)})";
+    }
+
+    private string GetConnectionDirections(int mask)
+    {
+        List<string> directions = new List<string>();
+
+        if ((mask & North) != 0) directions.Add("North");
+        if ((mask & East) != 0) directions.Add("East");
+        if ((mask & South) != 0) directions.Add("South");
+        if ((mask & West) != 0) directions.Add("West");
+
+        return directions.Count == 0
+            ? "None"
+            : string.Join(", ", directions);
+    }
+
+    /// <summary>
+    /// Lists the five grid cells immediately outside each side of the
+    /// candidate footprint. These are coordinates, not occupancy claims.
+    /// </summary>
+    private string GetAdjacentGridCoordinates(Vector2Int origin)
+    {
+        StringBuilder result = new StringBuilder();
+
+        result.Append("North: ");
+        for (int x = origin.x; x < origin.x + ModuleSize; x++)
+            result.Append($"({x},{origin.y + ModuleSize}) ");
+        result.AppendLine();
+
+        result.Append("East: ");
+        for (int z = origin.y; z < origin.y + ModuleSize; z++)
+            result.Append($"({origin.x + ModuleSize},{z}) ");
+        result.AppendLine();
+
+        result.Append("South: ");
+        for (int x = origin.x; x < origin.x + ModuleSize; x++)
+            result.Append($"({x},{origin.y - 1}) ");
+        result.AppendLine();
+
+        result.Append("West: ");
+        for (int z = origin.y; z < origin.y + ModuleSize; z++)
+            result.Append($"({origin.x - 1},{z}) ");
+        result.AppendLine();
+
+        return result.ToString();
+    }
+
+    /// <summary>
+    /// Lists registered areas that overlap or touch the candidate
+    /// footprint. The mask logic uses these placement-area boundaries.
+    /// </summary>
+    private string GetRelevantPlacementAreas(Vector2Int origin)
+    {
+        StringBuilder result = new StringBuilder();
+        int maxX = origin.x + ModuleSize;
+        int maxZ = origin.y + ModuleSize;
+        int found = 0;
+
+        for (int i = 0; i < placementAreas.Count; i++)
+        {
+            PlacementArea area = placementAreas[i];
+
+            bool overlapsOrTouches =
+                area.Origin.x <= maxX &&
+                area.MaxX >= origin.x &&
+                area.Origin.y <= maxZ &&
+                area.MaxZ >= origin.y;
+
+            if (!overlapsOrTouches)
+                continue;
+
+            result.AppendLine($"  Area #{i}: {area}");
+            found++;
+        }
+
+        if (found == 0)
+            result.AppendLine("  No relevant registered areas found.");
+
+        return result.ToString();
+    }
+
+    private void LogFinalJunctionDecisions()
+    {
+        foreach (VisualModule module in modules)
+        {
+            if (!module.IsJunctionFootprint)
+                continue;
+
+            Debug.Log(
+                "[Taxiway Junction Diagnostics] FINAL JUNCTION MODULE\n" +
+                $"Origin: {module.Origin}, size: " +
+                $"{module.Width}x{module.Depth}\n" +
+                $"Forced mask from placement areas: " +
+                $"{DescribeMask(module.ForcedConnectionMask)}\n" +
+                $"Calculated final mask: " +
+                $"{DescribeMask(module.ConnectionMask)}\n" +
+                $"Final connection count: " +
+                $"{CountConnections(module.ConnectionMask)}\n" +
+                $"Adjacent grid coordinates:\n" +
+                GetAdjacentGridCoordinates(module.Origin), this);
+        }
+    }
+
+    public bool TryGetVisualModuleAtCell(
+        Vector2Int cell,
+        out Vector2Int origin,
+        out int width,
+        out int depth)
+    {
+        foreach (VisualModule module in modules)
+        {
+            if (cell.x >= module.Origin.x &&
+                cell.x < module.MaxX &&
+                cell.y >= module.Origin.y &&
+                cell.y < module.MaxZ)
+            {
+                origin = module.Origin;
+                width = module.Width;
+                depth = module.Depth;
+                return true;
+            }
+        }
+
+        origin = Vector2Int.zero;
+        width = 0;
+        depth = 0;
+        return false;
+    }
+
+    public bool RemoveVisualModulesAtCells(IEnumerable<Vector2Int> cells)
+    {
+        if (cells == null)
+            return true;
+
+        List<VisualModule> modulesToRemove =
+            new List<VisualModule>();
+
+        foreach (Vector2Int cell in cells)
+        {
+            foreach (VisualModule module in modules)
+            {
+                bool containsCell =
+                    cell.x >= module.Origin.x &&
+                    cell.x < module.MaxX &&
+                    cell.y >= module.Origin.y &&
+                    cell.y < module.MaxZ;
+
+                if (!containsCell)
+                    continue;
+
+                bool alreadyAdded = false;
+
+                foreach (VisualModule existing in modulesToRemove)
+                {
+                    if (existing.Origin == module.Origin &&
+                        existing.Width == module.Width &&
+                        existing.Depth == module.Depth)
+                    {
+                        alreadyAdded = true;
+                        break;
+                    }
+                }
+
+                if (!alreadyAdded)
+                    modulesToRemove.Add(module);
+
+                break;
+            }
+        }
+
+        if (modulesToRemove.Count == 0)
+            return true;
+
+        List<PlacementArea> updatedAreas =
+            new List<PlacementArea>(placementAreas);
+
+        foreach (VisualModule module in modulesToRemove)
+        {
+            List<PlacementArea> nextAreas =
+                new List<PlacementArea>();
+
+            foreach (PlacementArea area in updatedAreas)
+            {
+                if (!TrySubtractModuleFromArea(
+                    area, module, out List<PlacementArea> remainingAreas))
+                {
+                    Debug.LogWarning(
+                        "TaxiwayPrefabRuleManager: Cannot safely remove " +
+                        "module at " + module.Origin +
+                        ". No taxiway visuals were removed.", this);
+                    return false;
+                }
+
+                nextAreas.AddRange(remainingAreas);
+            }
+
+            updatedAreas = nextAreas;
+        }
+
+        placementAreas.Clear();
+        placementAreas.AddRange(updatedAreas);
+
+        RebuildVisuals();
+
+        Debug.Log(
+            "TaxiwayPrefabRuleManager: Removed " +
+            modulesToRemove.Count + " visual taxiway module(s).", this);
+
+        return true;
+    }
+
+    private bool TrySubtractModuleFromArea(
+        PlacementArea area,
+        VisualModule module,
+        out List<PlacementArea> remainingAreas)
+    {
+        remainingAreas = new List<PlacementArea>();
+
+        int overlapMinX = Mathf.Max(area.Origin.x, module.Origin.x);
+        int overlapMaxX = Mathf.Min(area.MaxX, module.MaxX);
+        int overlapMinZ = Mathf.Max(area.Origin.y, module.Origin.y);
+        int overlapMaxZ = Mathf.Min(area.MaxZ, module.MaxZ);
+
+        if (overlapMinX >= overlapMaxX ||
+            overlapMinZ >= overlapMaxZ)
+        {
+            remainingAreas.Add(area);
+            return true;
+        }
+
+        bool coversFullWidth =
+            overlapMinX == area.Origin.x &&
+            overlapMaxX == area.MaxX;
+
+        bool coversFullDepth =
+            overlapMinZ == area.Origin.y &&
+            overlapMaxZ == area.MaxZ;
+
+        if (coversFullWidth)
+        {
+            int beforeDepth = overlapMinZ - area.Origin.y;
+
+            if (beforeDepth > 0)
+                remainingAreas.Add(new PlacementArea(
+                    area.Origin, area.Width, beforeDepth));
+
+            int afterDepth = area.MaxZ - overlapMaxZ;
+
+            if (afterDepth > 0)
+                remainingAreas.Add(new PlacementArea(
+                    new Vector2Int(area.Origin.x, overlapMaxZ),
+                    area.Width, afterDepth));
+
+            return true;
+        }
+
+        if (coversFullDepth)
+        {
+            int beforeWidth = overlapMinX - area.Origin.x;
+
+            if (beforeWidth > 0)
+                remainingAreas.Add(new PlacementArea(
+                    area.Origin, beforeWidth, area.Depth));
+
+            int afterWidth = area.MaxX - overlapMaxX;
+
+            if (afterWidth > 0)
+                remainingAreas.Add(new PlacementArea(
+                    new Vector2Int(overlapMaxX, area.Origin.y),
+                    afterWidth, area.Depth));
+
+            return true;
+        }
+
+        return false;
     }
 
     private void ClearSpawnedVisuals()
