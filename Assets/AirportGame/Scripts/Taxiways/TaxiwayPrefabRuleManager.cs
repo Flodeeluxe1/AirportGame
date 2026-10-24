@@ -655,6 +655,141 @@ public sealed class TaxiwayPrefabRuleManager : MonoBehaviour
         }
     }
 
+
+    private void MergeCompleteStraightBlocks()
+    {
+        HashSet<Vector2Int> candidateOrigins =
+            new HashSet<Vector2Int>();
+
+        // Generate possible 5x5 origins from every small straight strip.
+        foreach (VisualModule module in modules)
+        {
+            if (!module.IsSmallStraight)
+                continue;
+
+            // Five horizontal 5x1 strips can form one 5x5 block.
+            if (module.Width == ModuleSize && module.Depth == 1)
+            {
+                for (int offset = 0; offset < ModuleSize; offset++)
+                {
+                    candidateOrigins.Add(
+                        new Vector2Int(
+                            module.Origin.x,
+                            module.Origin.y - offset));
+                }
+            }
+
+            // Five vertical 1x5 strips can form one 5x5 block.
+            if (module.Width == 1 && module.Depth == ModuleSize)
+            {
+                for (int offset = 0; offset < ModuleSize; offset++)
+                {
+                    candidateOrigins.Add(
+                        new Vector2Int(
+                            module.Origin.x - offset,
+                            module.Origin.y));
+                }
+            }
+        }
+
+        foreach (Vector2Int origin in candidateOrigins)
+        {
+            if (!CanMergeIntoStraightBlock(origin))
+                continue;
+
+            // Remove the five strips that completely fill this block.
+            for (int i = modules.Count - 1; i >= 0; i--)
+            {
+                VisualModule module = modules[i];
+
+                if (!module.IsSmallStraight)
+                    continue;
+
+                bool fullyInside =
+                    module.Origin.x >= origin.x &&
+                    module.Origin.y >= origin.y &&
+                    module.MaxX <= origin.x + ModuleSize &&
+                    module.MaxZ <= origin.y + ModuleSize;
+
+                if (fullyInside)
+                    modules.RemoveAt(i);
+            }
+
+            // Add one full-size straight module in their place.
+            modules.Add(
+                new VisualModule(
+                    origin,
+                    ModuleSize,
+                    ModuleSize,
+                    false));
+        }
+    }
+
+    private bool CanMergeIntoStraightBlock(Vector2Int origin)
+    {
+        int maxX = origin.x + ModuleSize;
+        int maxZ = origin.y + ModuleSize;
+
+        // First reject junctions, full-size modules, and strips that
+        // partially overlap the proposed block.
+        foreach (VisualModule module in modules)
+        {
+            bool overlaps = RectanglesOverlap(
+                origin,
+                ModuleSize,
+                ModuleSize,
+                module.Origin,
+                module.Width,
+                module.Depth);
+
+            if (!overlaps)
+                continue;
+
+            if (module.IsJunctionFootprint || !module.IsSmallStraight)
+                return false;
+
+            bool fullyInside =
+                module.Origin.x >= origin.x &&
+                module.Origin.y >= origin.y &&
+                module.MaxX <= maxX &&
+                module.MaxZ <= maxZ;
+
+            if (!fullyInside)
+                return false;
+        }
+
+        // Verify that every cell in the 5x5 block is covered by
+        // exactly one small straight strip.
+        for (int z = origin.y; z < maxZ; z++)
+        {
+            for (int x = origin.x; x < maxX; x++)
+            {
+                int coverageCount = 0;
+
+                foreach (VisualModule module in modules)
+                {
+                    if (!module.IsSmallStraight)
+                        continue;
+
+                    bool coversCell =
+                        x >= module.Origin.x &&
+                        x < module.MaxX &&
+                        z >= module.Origin.y &&
+                        z < module.MaxZ;
+
+                    if (coversCell)
+                        coverageCount++;
+                }
+
+                if (coverageCount != 1)
+                    return false;
+            }
+        }
+
+        return true;
+    }
+
+
     private void CalculateConnectionMasks()
     {
         foreach (VisualModule module in modules)
