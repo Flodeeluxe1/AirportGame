@@ -177,6 +177,10 @@ public sealed class TaxiwayPrefabRuleManager : MonoBehaviour
         // The uncovered portions of affected 5x5 modules become 5x1s.
         ApplyJunctionFootprints(junctions);
 
+        // Merge complete groups of five 5x1 strips into 5x5 modules.
+        // Junction footprints and incomplete areas are left untouched.
+        MergeCompleteStraightBlocks();
+
         // Determine final connections after the layout is rebuilt.
         CalculateConnectionMasks();
 
