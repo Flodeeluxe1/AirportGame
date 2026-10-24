@@ -248,7 +248,7 @@ MonoBehaviour:
   roadTilemapController: {fileID: 0}
   roadModuleRuleManager: {fileID: 0}
   taxiwayNetwork: {fileID: 0}
-  taxiwayTilemapController: {fileID: 0}
+  taxiwayPrefabRuleManager: {fileID: 0}
   highlightColor: {r: 0.1, g: 0.85, b: 1, a: 0.45}
   wallHighlightColor: {r: 0.1, g: 0.85, b: 1, a: 1}
   wallHighlightStrength: 0.75
@@ -3830,6 +3830,61 @@ MonoBehaviour:
   logScheduleChanges: 1
   logTruckSpawns: 1
   logQueueChanges: 1
+--- !u!1 &2112575485
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2112575486}
+  - component: {fileID: 2112575487}
+  m_Layer: 0
+  m_Name: TaxiwayManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2112575486
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2112575485}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 32.28366, y: -0, z: 78.49683}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2112575487
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2112575485}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 540d9b04bcbf9dc48bb2e62d7c095acc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TaxiwayPrefabRuleManager
+  gridManager: {fileID: 728659359}
+  moduleParent: {fileID: 0}
+  straight5x5Prefab: {fileID: 1615233932406022375, guid: 8fe46e16172794c40a135be2676962af, type: 3}
+  straight5x1Prefab: {fileID: 4849422693228690352, guid: a669a6ef9a7eb8b4dbbc615f4c86cae1, type: 3}
+  curvedPrefab: {fileID: 5398163211105150715, guid: 6d5d74f958ee78b40bd496c0260028b1, type: 3}
+  tSectionPrefab: {fileID: 582632434088753802, guid: 77faf2775ed12ff48b716e9a816f50dc, type: 3}
+  intersectionPrefab: {fileID: 347440729808145411, guid: c0bbc3b1abfe2704f8fddcf5f28c3f4f, type: 3}
+  straightRotationOffset: 0
+  curvedRotationOffset: 0
+  tSectionRotationOffset: 0
+  intersectionRotationOffset: 0
 --- !u!1 &2134991054
 GameObject:
   m_ObjectHideFlags: 0
@@ -4800,6 +4855,7 @@ SceneRoots:
   - {fileID: 449210933}
   - {fileID: 1048131945}
   - {fileID: 1832806717}
+  - {fileID: 2112575486}
   - {fileID: 1478484322}
   - {fileID: 413444875}
   - {fileID: 3827033538174232110}

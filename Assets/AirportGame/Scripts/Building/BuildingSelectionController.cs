@@ -24,7 +24,7 @@ public class BuildingSelectionController : MonoBehaviour
 
     [Header("Taxiway Selection")]
     [SerializeField] private TaxiwayNetwork taxiwayNetwork;
-    [SerializeField] private TaxiwayTilemapController taxiwayTilemapController;
+    [SerializeField] private TaxiwayPrefabRuleManager taxiwayPrefabRuleManager;
 
     [Header("Selection Highlight")]
     [SerializeField]
@@ -116,10 +116,10 @@ public class BuildingSelectionController : MonoBehaviour
         if (taxiwayNetwork == null)
             taxiwayNetwork = FindFirstObjectByType<TaxiwayNetwork>();
 
-        if (taxiwayTilemapController == null)
+        if (taxiwayPrefabRuleManager == null)
         {
-            taxiwayTilemapController =
-                FindFirstObjectByType<TaxiwayTilemapController>();
+            taxiwayPrefabRuleManager =
+                FindFirstObjectByType<TaxiwayPrefabRuleManager>();
         }
 
         CreateHighlightMaterial();
@@ -871,8 +871,11 @@ public class BuildingSelectionController : MonoBehaviour
         if (taxiwayNetwork != null)
             taxiwayNetwork.RemoveTaxiwayCell(cell);
 
-        if (taxiwayTilemapController != null)
-            taxiwayTilemapController.RemoveTaxiwayTile(cell);
+        if (taxiwayPrefabRuleManager != null)
+        {
+            //taxiwayPrefabRuleManager.UnregisterCell(cell);
+            //taxiwayPrefabRuleManager.RefreshAllTaxiwayVisuals();
+        }
 
         Debug.Log($"Deleted taxiway cell: {cell}");
     }

@@ -1,6 +1,5 @@
 
 using UnityEngine;
-using UnityEngine.Tilemaps;
 
 public class TaxiwayPlacementHandler : IPlacementHandler
 {
@@ -8,7 +7,7 @@ public class TaxiwayPlacementHandler : IPlacementHandler
     private GridOccupancy gridOccupancy;
     private GridSurface gridSurface;
 
-    private TaxiwayTilemapController tilemapController;
+    private TaxiwayPrefabRuleManager prefabRuleManager;
     private TaxiwayNetwork taxiwayNetwork;
 
     private BuildableDefinition definition;
@@ -33,32 +32,32 @@ public class TaxiwayPlacementHandler : IPlacementHandler
         this.gridManager = gridManager;
         this.gridOccupancy = gridOccupancy;
 
-        if (gridManager != null)
-        {
-            gridSurface =
-                gridManager.GetComponent<GridSurface>();
-        }
+        gridSurface = gridManager != null
+            ? gridManager.GetComponent<GridSurface>()
+            : null;
 
-        tilemapController =
-            Object.FindFirstObjectByType<TaxiwayTilemapController>();
+        prefabRuleManager =
+            Object.FindFirstObjectByType<TaxiwayPrefabRuleManager>();
 
         taxiwayNetwork =
             Object.FindFirstObjectByType<TaxiwayNetwork>();
 
-        if (tilemapController == null)
+        if (gridManager == null)
         {
             Debug.LogError(
-                "TaxiwayPlacementHandler: " +
-                "TaxiwayTilemapController was not found."
-            );
+                "TaxiwayPlacementHandler: GridManager was not found.");
+        }
+
+        if (prefabRuleManager == null)
+        {
+            Debug.LogError(
+                "TaxiwayPlacementHandler: TaxiwayPrefabRuleManager was not found.");
         }
 
         if (taxiwayNetwork == null)
         {
             Debug.LogError(
-                "TaxiwayPlacementHandler: " +
-                "TaxiwayNetwork was not found."
-            );
+                "TaxiwayPlacementHandler: TaxiwayNetwork was not found.");
         }
     }
 
@@ -71,8 +70,9 @@ public class TaxiwayPlacementHandler : IPlacementHandler
         this.previewObject = previewObject;
         this.placementPreview = placementPreview;
 
-        originalPrefabScale =
-            previewObject.transform.localScale;
+        originalPrefabScale = previewObject != null
+            ? previewObject.transform.localScale
+            : Vector3.one;
 
         rotation = 0;
         isDragging = false;
@@ -84,8 +84,10 @@ public class TaxiwayPlacementHandler : IPlacementHandler
 
     public void UpdatePlacement(Vector3 hitPoint)
     {
-        currentGridPosition =
-            gridManager.WorldToGrid(hitPoint);
+        if (gridManager == null || definition == null)
+            return;
+
+        currentGridPosition = gridManager.WorldToGrid(hitPoint);
 
         if (!isDragging)
         {
@@ -103,6 +105,9 @@ public class TaxiwayPlacementHandler : IPlacementHandler
 
     public void BeginTaxiway()
     {
+        if (definition == null || gridManager == null)
+            return;
+
         startPosition = currentGridPosition;
         endPosition = currentGridPosition;
 
@@ -128,47 +133,38 @@ public class TaxiwayPlacementHandler : IPlacementHandler
         out int areaWidth,
         out int areaDepth)
     {
-        int taxiwayWidth =
-            Mathf.Max(1, definition.width);
+        int taxiwayWidth = Mathf.Max(1, definition.width);
 
         if (rotation == 0)
         {
-            // Length along Z, fixed width along X.
+            // Fixed width along X; taxiway length along Z.
             int minZ = Mathf.Min(
                 startPosition.y,
-                endPosition.y
-            );
+                endPosition.y);
 
-            int length =
-                Mathf.Abs(
-                    endPosition.y - startPosition.y
-                ) + 1;
+            int length = Mathf.Abs(
+                endPosition.y - startPosition.y) + 1;
 
             origin = new Vector2Int(
                 startPosition.x - taxiwayWidth / 2,
-                minZ
-            );
+                minZ);
 
             areaWidth = taxiwayWidth;
             areaDepth = length;
         }
         else
         {
-            // Length along X, fixed width along Z.
+            // Taxiway length along X; fixed width along Z.
             int minX = Mathf.Min(
                 startPosition.x,
-                endPosition.x
-            );
+                endPosition.x);
 
-            int length =
-                Mathf.Abs(
-                    endPosition.x - startPosition.x
-                ) + 1;
+            int length = Mathf.Abs(
+                endPosition.x - startPosition.x) + 1;
 
             origin = new Vector2Int(
                 minX,
-                startPosition.y - taxiwayWidth / 2
-            );
+                startPosition.y - taxiwayWidth / 2);
 
             areaWidth = length;
             areaDepth = taxiwayWidth;
@@ -187,32 +183,25 @@ public class TaxiwayPlacementHandler : IPlacementHandler
         GetTaxiwayArea(
             out Vector2Int origin,
             out int areaWidth,
-            out int areaDepth
-        );
+            out int areaDepth);
 
-        Vector3 position =
-            gridManager.GridToWorld(origin);
+        Vector3 position = gridManager.GridToWorld(origin);
 
         position += new Vector3(
-            areaWidth *
-            gridManager.CellSize * 0.5f,
+            areaWidth * gridManager.CellSize * 0.5f,
             0f,
-            areaDepth *
-            gridManager.CellSize * 0.5f
-        );
+            areaDepth * gridManager.CellSize * 0.5f);
 
-        previewObject.transform.position =
-            position;
+        previewObject.transform.position = position;
 
-        previewObject.transform.rotation =
-            Quaternion.identity;
+        // The preview represents the rectangular footprint.
+        // Rotation is handled by changing the footprint dimensions.
+        previewObject.transform.rotation = Quaternion.identity;
 
-        previewObject.transform.localScale =
-            new Vector3(
-                areaWidth * gridManager.CellSize,
-                originalPrefabScale.y,
-                areaDepth * gridManager.CellSize
-            );
+        previewObject.transform.localScale = new Vector3(
+            areaWidth * gridManager.CellSize,
+            originalPrefabScale.y,
+            areaDepth * gridManager.CellSize);
     }
 
     private void UpdatePreviewValidity()
@@ -220,20 +209,23 @@ public class TaxiwayPlacementHandler : IPlacementHandler
         if (placementPreview == null)
             return;
 
+        if (definition == null || gridManager == null)
+        {
+            placementPreview.SetValid(false);
+            return;
+        }
+
         GetTaxiwayArea(
             out Vector2Int origin,
             out int areaWidth,
-            out int areaDepth
-        );
+            out int areaDepth);
 
         placementPreview.SetValid(
             ValidateArea(
                 origin,
                 areaWidth,
                 areaDepth,
-                out _
-            )
-        );
+                out _));
     }
 
     private bool ValidateArea(
@@ -242,7 +234,13 @@ public class TaxiwayPlacementHandler : IPlacementHandler
         int areaDepth,
         out string reason)
     {
-        reason = "";
+        reason = string.Empty;
+
+        if (definition == null)
+        {
+            reason = "Taxiway BuildableDefinition is missing.";
+            return false;
+        }
 
         if (gridManager == null)
         {
@@ -250,9 +248,9 @@ public class TaxiwayPlacementHandler : IPlacementHandler
             return false;
         }
 
-        if (tilemapController == null)
+        if (prefabRuleManager == null)
         {
-            reason = "Taxiway Tilemap is missing.";
+            reason = "TaxiwayPrefabRuleManager is missing.";
             return false;
         }
 
@@ -262,16 +260,18 @@ public class TaxiwayPlacementHandler : IPlacementHandler
             return false;
         }
 
-        TileBase taxiwayTile =
-            tilemapController.GetTileForDefinition(
-                definition
-            );
+        if (areaWidth <= 0 || areaDepth <= 0)
+        {
+            reason = "Taxiway footprint has invalid dimensions.";
+            return false;
+        }
 
-        if (taxiwayTile == null)
+        // The prefab rule manager registers rectangular taxiway areas
+        // with one dimension equal to the standard five-cell module width.
+        if (areaWidth != 5 && areaDepth != 5)
         {
             reason =
-                "No taxiway tile is mapped to this buildable definition.";
-
+                "Taxiway footprint must have a five-cell width in either orientation.";
             return false;
         }
 
@@ -284,44 +284,43 @@ public class TaxiwayPlacementHandler : IPlacementHandler
 
                 if (!gridManager.IsInsideGrid(cell))
                 {
-                    reason =
-                        "Taxiway extends outside the grid.";
-
+                    reason = "Taxiway extends outside the grid.";
                     return false;
                 }
 
                 if (gridOccupancy != null &&
                     gridOccupancy.IsOccupied(cell))
                 {
-                    reason =
-                        $"Cell {cell} is occupied by a building.";
-
+                    reason = $"Cell {cell} is occupied by a building.";
                     return false;
                 }
 
-                if (definition.requiredSurface !=
-                    BuildSurface.Any)
+                if (definition.requiredSurface != BuildSurface.Any)
                 {
                     if (gridSurface == null ||
                         !gridSurface.IsSurface(
                             cell,
                             definition.requiredSurface))
                     {
-                        reason =
-                            $"Cell {cell} has the wrong surface.";
-
+                        reason = $"Cell {cell} has the wrong surface.";
                         return false;
                     }
                 }
 
-                if (!tilemapController.CanSetTaxiwayTile(
-                        cell,
-                        taxiwayTile))
+                // Preserve the existing rule that a different taxiway
+                // definition cannot occupy an already registered cell.
+                // Same-definition overlap remains permitted here.
+                if (taxiwayNetwork.IsTaxiway(cell))
                 {
-                    reason =
-                        $"Cell {cell} already contains a different taxiway tile.";
+                    BuildableDefinition existingDefinition =
+                        taxiwayNetwork.GetDefinition(cell);
 
-                    return false;
+                    if (existingDefinition != definition)
+                    {
+                        reason =
+                            $"Cell {cell} already contains a different taxiway definition.";
+                        return false;
+                    }
                 }
             }
         }
@@ -337,14 +336,19 @@ public class TaxiwayPlacementHandler : IPlacementHandler
         UpdatePreviewValidity();
     }
 
-
     public void TryPlace()
     {
+        if (definition == null)
+        {
+            Debug.LogWarning(
+                "Cannot place taxiway: BuildableDefinition is missing.");
+            return;
+        }
+
         GetTaxiwayArea(
             out Vector2Int origin,
             out int areaWidth,
-            out int areaDepth
-        );
+            out int areaDepth);
 
         if (!ValidateArea(
                 origin,
@@ -358,42 +362,40 @@ public class TaxiwayPlacementHandler : IPlacementHandler
 
         int quantity = areaWidth * areaDepth;
 
+        // Do not charge unless the footprint passes validation and
+        // both the visual manager and network are available.
         if (!ConstructionCostUtility.TryPay(
-                definition, quantity, "Taxiway construction"))
+                definition,
+                quantity,
+                "Taxiway construction"))
         {
             return;
         }
 
-        TileBase taxiwayTile =
-            tilemapController.GetTileForDefinition(definition);
+        // Register the visual area. The manager is responsible for
+        // selecting, orienting and spawning the appropriate prefabs.
+        prefabRuleManager.RegisterTaxiwayArea(
+            origin,
+            areaWidth,
+            areaDepth);
 
-        // Paint the complete visual footprint.
-        for (int x = 0; x < areaWidth; x++)
-        {
-            for (int z = 0; z < areaDepth; z++)
-            {
-                Vector2Int cell = origin + new Vector2Int(x, z);
-
-                tilemapController.SetTaxiwayTile(cell, taxiwayTile);
-            }
-        }
-
-        // Register the complete footprint and centerline.
-        RegisterTaxiwayFootprint(origin, areaWidth, areaDepth);
+        // Keep the current network registrations in place for existing
+        // systems. The network redesign is a separate task.
+        RegisterTaxiwayFootprint(
+            origin,
+            areaWidth,
+            areaDepth);
 
         Debug.Log(
             $"TAXIWAY PLACED | {definition.displayName} | " +
             $"Origin: {origin} | Size: {areaWidth}x{areaDepth} | " +
-            $"Rotation: {rotation}"
-        );
+            $"Rotation: {rotation}");
 
         endPosition = currentGridPosition;
 
         UpdatePreview();
         UpdatePreviewValidity();
     }
-
-
 
     private void RegisterTaxiwayFootprint(
         Vector2Int origin,
@@ -403,7 +405,7 @@ public class TaxiwayPlacementHandler : IPlacementHandler
         if (taxiwayNetwork == null)
             return;
 
-        // Register every cell in the physical footprint.
+        // Register every cell in the placed footprint.
         for (int x = 0; x < areaWidth; x++)
         {
             for (int z = 0; z < areaDepth; z++)
@@ -413,48 +415,38 @@ public class TaxiwayPlacementHandler : IPlacementHandler
 
                 taxiwayNetwork.AddTaxiwayCell(
                     cell,
-                    definition
-                );
+                    definition);
             }
         }
 
-        // Register the centerline separately.
+        // Preserve the existing centerline registrations.
+        // These remain separate from prefab visual placement.
         if (rotation == 0)
         {
-            // Width is along X; taxiway length is along Z.
-            int centerX =
-                origin.x + areaWidth / 2;
+            int centerX = origin.x + areaWidth / 2;
 
             for (int z = 0; z < areaDepth; z++)
             {
-                Vector2Int centerCell =
-                    new Vector2Int(
-                        centerX,
-                        origin.y + z
-                    );
+                Vector2Int centerCell = new Vector2Int(
+                    centerX,
+                    origin.y + z);
 
                 taxiwayNetwork.AddTaxiwayCenterlineCell(
-                    centerCell
-                );
+                    centerCell);
             }
         }
         else
         {
-            // Width is along Z; taxiway length is along X.
-            int centerZ =
-                origin.y + areaDepth / 2;
+            int centerZ = origin.y + areaDepth / 2;
 
             for (int x = 0; x < areaWidth; x++)
             {
-                Vector2Int centerCell =
-                    new Vector2Int(
-                        origin.x + x,
-                        centerZ
-                    );
+                Vector2Int centerCell = new Vector2Int(
+                    origin.x + x,
+                    centerZ);
 
                 taxiwayNetwork.AddTaxiwayCenterlineCell(
-                    centerCell
-                );
+                    centerCell);
             }
         }
     }

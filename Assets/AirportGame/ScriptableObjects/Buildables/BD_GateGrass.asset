@@ -17,13 +17,15 @@ MonoBehaviour:
   prefab: {fileID: 1467511360092420718, guid: ff9968db9d7d78748a60ae0aab3e7e08, type: 3}
   placementType: 0
   requiredSurface: 0
-  width: 6
-  depth: 6
+  width: 12
+  depth: 12
   edgeLength: 1
   requiresExistingWall: 0
   isWallMounted: 0
   mountHeight: 2
   canRotate: 1
   buildCost: 1000
+  blocksPathfinding: 0
   category: 3
   icon: {fileID: 0}
+  roomFurnitureRole: 0

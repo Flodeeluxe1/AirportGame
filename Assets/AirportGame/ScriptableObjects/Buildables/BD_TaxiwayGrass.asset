@@ -14,10 +14,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BuildableDefinition
   id: taxiways.taxiway.grass
   displayName: Taxiway Grass
-  prefab: {fileID: 9344313534737377, guid: 1addbc0033f7c244199706821c9339a6, type: 3}
+  prefab: {fileID: 4849422693228690352, guid: a669a6ef9a7eb8b4dbbc615f4c86cae1, type: 3}
   placementType: 0
-  requiredSurface: 2
-  width: 3
+  requiredSurface: 0
+  width: 5
   depth: 1
   edgeLength: 1
   requiresExistingWall: 0
@@ -25,5 +25,7 @@ MonoBehaviour:
   mountHeight: 2
   canRotate: 1
   buildCost: 10
+  blocksPathfinding: 0
   category: 6
   icon: {fileID: 0}
+  roomFurnitureRole: 0

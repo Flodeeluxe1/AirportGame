@@ -71,10 +71,12 @@ public class AirportEconomyManager : MonoBehaviour
 
         SetBalance(balance - amount);
 
+        /*
         Debug.Log(
             $"AirportEconomyManager: Spent {FormatMoney(amount)} " +
             $"for '{reason}'. Remaining balance: {FormatMoney(balance)}."
         );
+        */
 
         return true;
     }

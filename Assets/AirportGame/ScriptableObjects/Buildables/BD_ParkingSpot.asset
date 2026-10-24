@@ -17,8 +17,8 @@ MonoBehaviour:
   prefab: {fileID: 3634051649525876682, guid: cbee6a7fcdaa8674c8ed9b33b7719567, type: 3}
   placementType: 0
   requiredSurface: 0
-  width: 5
-  depth: 4
+  width: 10
+  depth: 8
   edgeLength: 1
   requiresExistingWall: 0
   isWallMounted: 0
@@ -28,3 +28,4 @@ MonoBehaviour:
   blocksPathfinding: 0
   category: 3
   icon: {fileID: 0}
+  roomFurnitureRole: 0
