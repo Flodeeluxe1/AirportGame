@@ -28,7 +28,7 @@ public class AircraftHobbyTakeoffController : MonoBehaviour
 
     [Tooltip("Acceleration along the runway before rotation, in knots per second.")]
     [Min(0.1f)]
-    [SerializeField] private float groundAccelerationKnotsPerSecond = 12f;
+    [SerializeField] private float groundAccelerationKnotsPerSecond = 20f;
 
     [Tooltip("Acceleration during rotation and climb, in knots per second.")]
     [Min(0.1f)]
@@ -36,7 +36,7 @@ public class AircraftHobbyTakeoffController : MonoBehaviour
 
     [Tooltip("Converts knots to Unity world units per second.")]
     [Min(0.001f)]
-    [SerializeField] private float worldUnitsPerSecondPerKnot = 0.08f;
+    [SerializeField] private float worldUnitsPerSecondPerKnot = 0.15f;
 
     [Header("Rotation")]
     [Tooltip("Rotation begins at the specified fraction of takeoff speed.")]
@@ -45,11 +45,11 @@ public class AircraftHobbyTakeoffController : MonoBehaviour
 
     [Tooltip("Rate at which the aircraft's nose rotates upward.")]
     [Min(0.1f)]
-    [SerializeField] private float rotationRateDegreesPerSecond = 3f;
+    [SerializeField] private float rotationRateDegreesPerSecond = 2f;
 
     [Tooltip("Final nose-up attitude.")]
     [Range(1f, 45f)]
-    [SerializeField] private float targetNoseUpDegrees = 10f;
+    [SerializeField] private float targetNoseUpDegrees = 8f;
 
     [Tooltip("The aircraft starts gaining altitude gradually after reaching this nose-up angle.")]
     [Range(1f, 24f)]

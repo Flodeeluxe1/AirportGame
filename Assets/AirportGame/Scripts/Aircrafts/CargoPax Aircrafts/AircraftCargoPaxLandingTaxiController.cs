@@ -38,10 +38,10 @@ public class AircraftCargoPaxLandingTaxiController : MonoBehaviour
     [SerializeField] private float taxiSpeedKnots = 15f;
 
     [Min(0.001f)]
-    [SerializeField] private float worldUnitsPerSecondPerKnot = 0.05f;
+    [SerializeField] private float worldUnitsPerSecondPerKnot = 0.15f;
 
     [Min(0.1f)]
-    [SerializeField] private float rotationSpeed = 3f;
+    [SerializeField] private float rotationSpeed = 2f;
 
     [Min(0.05f)]
     [SerializeField] private float waypointArrivalDistance = 0.2f;
@@ -59,7 +59,7 @@ public class AircraftCargoPaxLandingTaxiController : MonoBehaviour
     [SerializeField] private float turningRadiusInCells = 2f;
 
     [Range(4, 16)]
-    [SerializeField] private int turnCurveResolution = 8;
+    [SerializeField] private int turnCurveResolution = 16;
 
     [Min(0.005f)]
     [SerializeField] private float taxiPathPointTolerance = 0.02f;

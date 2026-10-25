@@ -4680,13 +4680,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AircraftHobbyLandingController
   gridManager: {fileID: 0}
   weather: {fileID: 0}
-  approachDistance: 120
+  approachDistance: 60
   glideAngleDegrees: 3
-  approachSpeedKnots: 85
-  touchdownSpeedKnots: 60
-  rolloutTargetSpeedKnots: 15
+  touchdownOffset: 6
+  approachSpeedKnots: 75
+  touchdownSpeedKnots: 55
+  rolloutTargetSpeedKnots: 12
   worldUnitsPerSecondPerKnot: 0.15
-  speedChangeRate: 1
+  speedChangeRate: 3
   rolloutDeceleration: 1
   flareHeight: 1.5
   noseRaiseDegrees: 3
@@ -4705,6 +4706,8 @@ MonoBehaviour:
   debugDistanceToThreshold: 0
   debugGoAroundTargetAltitude: 0
   debugStatus: Waiting for initialization
+  showGlidePathForTesting: 1
+  glidePathLineWidth: 0.15
 --- !u!114 &4611748060777580918
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4728,8 +4731,8 @@ MonoBehaviour:
   minimumExitForwardDistance: 0.5
   runwayEndTolerance: 1
   maximumParkingConnectorDistance: 12
-  taxiSpeedKnots: 15
-  worldUnitsPerSecondPerKnot: 0.2
+  taxiSpeedKnots: 12
+  worldUnitsPerSecondPerKnot: 0.15
   rotationSpeed: 3
   waypointArrivalDistance: 0.2
   parkingArrivalDistance: 0.5
@@ -4783,16 +4786,16 @@ MonoBehaviour:
   aircraftCollider: {fileID: 0}
   maximumSidewindComponentKnots: 15
   runwaySelectionRetryInterval: 3
-  startSearchRadiusCells: 4
+  startSearchRadiusCells: 12
   maximumStartCandidates: 10
   runwaySafetyMarginInCells: 1
-  taxiSpeedKnots: 15
-  worldUnitsPerSecondPerKnot: 0.2
+  taxiSpeedKnots: 12
+  worldUnitsPerSecondPerKnot: 0.15
   rotationSpeedDegreesPerSecond: 45
   waypointArrivalDistance: 0.15
   modelRotationOffset: {x: 0, y: 0, z: 0}
-  turningRadiusInCells: 1
-  turnCurveResolution: 8
+  turningRadiusInCells: 2
+  turnCurveResolution: 16
   lineUpSafetyMarginInCells: 0.25
   currentState: 0
   selectedRunway: {fileID: 0}
@@ -4827,13 +4830,13 @@ MonoBehaviour:
   gameTimeManager: {fileID: 0}
   gridManager: {fileID: 0}
   aircraftCollider: {fileID: 0}
-  takeoffSpeedKnots: 60
-  groundAccelerationKnotsPerSecond: 12
+  takeoffSpeedKnots: 75
+  groundAccelerationKnotsPerSecond: 20
   airborneAccelerationKnotsPerSecond: 3
-  worldUnitsPerSecondPerKnot: 0.2
+  worldUnitsPerSecondPerKnot: 0.15
   rotationStartSpeedFraction: 0.8
-  rotationRateDegreesPerSecond: 3
-  targetNoseUpDegrees: 10
+  rotationRateDegreesPerSecond: 2
+  targetNoseUpDegrees: 8
   liftoffStartNoseUpDegrees: 2
   modelRotationOffset: {x: 0, y: 0, z: 0}
   targetAltitudeAboveRunway: 60

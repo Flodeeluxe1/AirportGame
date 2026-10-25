@@ -29,9 +29,9 @@ public class AircraftHobbyLandingTaxiController : MonoBehaviour
 
     [Header("Taxi Movement")]
     [Min(1f)]
-    [SerializeField] private float taxiSpeedKnots = 15f;
+    [SerializeField] private float taxiSpeedKnots = 12f;
     [Min(0.001f)]
-    [SerializeField] private float worldUnitsPerSecondPerKnot = 0.08f;
+    [SerializeField] private float worldUnitsPerSecondPerKnot = 0.15f;
     [Min(0.1f)]
     [SerializeField] private float rotationSpeed = 3f;
     [Min(0.05f)]

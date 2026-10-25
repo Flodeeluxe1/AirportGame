@@ -34,7 +34,7 @@ public class AircraftHobbyDepartureTaxiController : MonoBehaviour
 
     [Tooltip("Search radius for nearby taxiway starting cells.")]
     [Min(1)]
-    [SerializeField] private int startSearchRadiusCells = 4;
+    [SerializeField] private int startSearchRadiusCells = 12;
 
     [Tooltip("Maximum taxiway starting cells considered by A*.")]
     [Range(1, 20)]
@@ -47,11 +47,11 @@ public class AircraftHobbyDepartureTaxiController : MonoBehaviour
 
     [Header("Taxi Movement")]
     [Min(1f)]
-    [SerializeField] private float taxiSpeedKnots = 15f;
+    [SerializeField] private float taxiSpeedKnots = 12f;
 
     [Tooltip("Converts knots to Unity world units per second.")]
     [Min(0.001f)]
-    [SerializeField] private float worldUnitsPerSecondPerKnot = 0.05f;
+    [SerializeField] private float worldUnitsPerSecondPerKnot = 0.15f;
 
     [Min(1f)]
     [SerializeField] private float rotationSpeedDegreesPerSecond = 45f;
@@ -64,10 +64,10 @@ public class AircraftHobbyDepartureTaxiController : MonoBehaviour
 
     [Header("Smooth Taxi Turns")]
     [Min(0.1f)]
-    [SerializeField] private float turningRadiusInCells = 1f;
+    [SerializeField] private float turningRadiusInCells = 2f;
 
     [Range(4, 16)]
-    [SerializeField] private int turnCurveResolution = 8;
+    [SerializeField] private int turnCurveResolution = 16;
 
     [Header("Runway Line-Up")]
     [Tooltip("The aircraft is positioned fully on the runway before it reports lined up.")]

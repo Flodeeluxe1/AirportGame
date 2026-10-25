@@ -30,7 +30,7 @@ public class AircraftTrainingDepartureTaxiController : MonoBehaviour
     [Min(0.5f)]
     [SerializeField] private float runwaySelectionRetryInterval = 3f;
     [Min(1)]
-    [SerializeField] private int startSearchRadiusCells = 4;
+    [SerializeField] private int startSearchRadiusCells = 12;
     [Range(1, 20)]
     [SerializeField] private int maximumStartCandidates = 10;
 
@@ -40,9 +40,9 @@ public class AircraftTrainingDepartureTaxiController : MonoBehaviour
 
     [Header("Taxi Movement")]
     [Min(1f)]
-    [SerializeField] private float taxiSpeedKnots = 15f;
+    [SerializeField] private float taxiSpeedKnots = 10f;
     [Min(0.001f)]
-    [SerializeField] private float worldUnitsPerSecondPerKnot = 0.05f;
+    [SerializeField] private float worldUnitsPerSecondPerKnot = 0.15f;
     [Min(1f)]
     [SerializeField] private float rotationSpeedDegreesPerSecond = 45f;
     [Min(0.01f)]
@@ -51,9 +51,9 @@ public class AircraftTrainingDepartureTaxiController : MonoBehaviour
 
     [Header("Smooth Taxi Turns")]
     [Min(0.1f)]
-    [SerializeField] private float turningRadiusInCells = 1f;
+    [SerializeField] private float turningRadiusInCells = 2f;
     [Range(4, 16)]
-    [SerializeField] private int turnCurveResolution = 8;
+    [SerializeField] private int turnCurveResolution = 16;
 
     [Header("Runway Line-Up")]
     [Min(0f)]

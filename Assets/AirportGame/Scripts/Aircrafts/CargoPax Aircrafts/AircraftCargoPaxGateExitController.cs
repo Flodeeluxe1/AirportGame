@@ -39,7 +39,7 @@ public class AircraftCargoPaxGateExitController : MonoBehaviour
     [Tooltip("Speed for moving straight out of the gate, in world units per second.")]
     [Min(0.1f)]
     [SerializeField]
-    private float forwardExitSpeed = 2f;
+    private float forwardExitSpeed = 1f;
 
     [Min(0.01f)]
     [SerializeField]

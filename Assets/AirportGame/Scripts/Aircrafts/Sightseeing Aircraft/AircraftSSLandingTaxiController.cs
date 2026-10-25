@@ -31,15 +31,15 @@ public class AircraftSSLandingTaxiController : MonoBehaviour
     [Min(0f)]
     [SerializeField] private float runwayEndTolerance = 1f;
     [Min(0.1f)]
-    [SerializeField] private float maximumParkingConnectorDistance = 4f;
+    [SerializeField] private float maximumParkingConnectorDistance = 12f;
 
     [Header("Taxi Movement")]
     [Min(1f)]
-    [SerializeField] private float taxiSpeedKnots = 10f;
+    [SerializeField] private float taxiSpeedKnots = 15f;
     [Min(0.001f)]
-    [SerializeField] private float worldUnitsPerSecondPerKnot = 0.05f;
+    [SerializeField] private float worldUnitsPerSecondPerKnot = 0.15f;
     [Min(0.1f)]
-    [SerializeField] private float rotationSpeed = 3f;
+    [SerializeField] private float rotationSpeed = 2f;
     [Min(1f)]
     [SerializeField] private float parkingRotationSpeed = 10f;
     [Min(0.05f)]
@@ -54,7 +54,7 @@ public class AircraftSSLandingTaxiController : MonoBehaviour
     [Range(0.1f, 3f)]
     [SerializeField] private float turningRadiusInCells = 2f;
     [Range(4, 16)]
-    [SerializeField] private int turnCurveResolution = 8;
+    [SerializeField] private int turnCurveResolution = 16;
     [Min(0.005f)]
     [SerializeField] private float taxiPathPointTolerance = 0.02f;
 

@@ -762,6 +762,9 @@ public class AirportWorldResetController : MonoBehaviour
 
             taxiwayNetwork.AddTaxiwayCell(cell, definition);
 
+            if (taxiwayNetwork.IsTaxiway(cell))
+                gridSurface.RegisterTaxiwayCell(cell);
+
             if (savedTaxiway.isCenterline)
             {
                 taxiwayNetwork.AddTaxiwayCenterlineCell(cell);

@@ -25,6 +25,7 @@ public class AircraftHobbyLandingController : MonoBehaviour
 
     [Range(1f, 6f)]
     [SerializeField] private float glideAngleDegrees = 3f;
+    [SerializeField] private float touchdownOffset = 3f;
 
     [Header("Speeds")]
     [Min(1f)]
@@ -34,11 +35,11 @@ public class AircraftHobbyLandingController : MonoBehaviour
     [SerializeField] private float touchdownSpeedKnots = 55f;
 
     [Min(1f)]
-    [SerializeField] private float rolloutTargetSpeedKnots = 15f;
+    [SerializeField] private float rolloutTargetSpeedKnots = 12f;
 
     [Tooltip("Converts knots into Unity world units per second.")]
     [Min(0.001f)]
-    [SerializeField] private float worldUnitsPerSecondPerKnot = 0.08f;
+    [SerializeField] private float worldUnitsPerSecondPerKnot = 0.15f;
 
     [Min(0.1f)]
     [SerializeField] private float speedChangeRate = 3f;
@@ -51,7 +52,7 @@ public class AircraftHobbyLandingController : MonoBehaviour
     [SerializeField] private float flareHeight = 1.5f;
 
     [Range(0f, 10f)]
-    [SerializeField] private float noseRaiseDegrees = 3f;
+    [SerializeField] private float noseRaiseDegrees = 6f;
 
     [Min(0.1f)]
     [SerializeField] private float noseLoweringDuration = 1.5f;
@@ -88,6 +89,16 @@ public class AircraftHobbyLandingController : MonoBehaviour
     public float debugGoAroundTargetAltitude;
 
     public string debugStatus = "Waiting for initialization";
+
+    [Header("Debug Glide Path")]
+    [SerializeField] private bool showGlidePathForTesting = true;
+
+    [SerializeField, Min(0.01f)]
+    private float glidePathLineWidth = 0.15f;
+
+    private GameObject glidePathDebugObject;
+    private LineRenderer glidePathLineRenderer;
+    private Material glidePathMaterial;
 
     public bool IsLandingComplete =>
         state == LandingState.LandingComplete;
@@ -158,6 +169,8 @@ public class AircraftHobbyLandingController : MonoBehaviour
             Fail("No placed runway with AircraftRunway was found.");
             return;
         }
+
+        CreateGlidePathDebugLine();
 
         currentSpeed = KnotsToWorldSpeed(approachSpeedKnots);
 
@@ -331,7 +344,8 @@ public class AircraftHobbyLandingController : MonoBehaviour
             Vector3 candidateTouchdown =
                 center -
                 candidateDirection *
-                (length * 0.5f);
+                (length * 0.5f)
+                + candidateDirection * touchdownOffset; ;
 
             float tangent =
                 Mathf.Tan(
@@ -471,6 +485,62 @@ public class AircraftHobbyLandingController : MonoBehaviour
         );
 
         return true;
+    }
+
+    private void CreateGlidePathDebugLine()
+    {
+        if (!showGlidePathForTesting)
+            return;
+
+        if (selectedRunway == null)
+            return;
+
+        Shader lineShader =
+            Shader.Find("Universal Render Pipeline/Unlit");
+
+        if (lineShader == null)
+            lineShader = Shader.Find("Sprites/Default");
+
+        if (lineShader == null)
+        {
+            Debug.LogWarning(
+                "Could not find a shader for the glide path debug line.",
+                this);
+            return;
+        }
+
+        glidePathDebugObject =
+            new GameObject($"{name}_GlidePathDebug");
+
+        glidePathLineRenderer =
+            glidePathDebugObject.AddComponent<LineRenderer>();
+
+        glidePathMaterial = new Material(lineShader);
+
+        glidePathLineRenderer.material = glidePathMaterial;
+        glidePathLineRenderer.useWorldSpace = true;
+        glidePathLineRenderer.positionCount = 2;
+        glidePathLineRenderer.startWidth = glidePathLineWidth;
+        glidePathLineRenderer.endWidth = glidePathLineWidth;
+        glidePathLineRenderer.startColor = Color.yellow;
+        glidePathLineRenderer.endColor = Color.red;
+        glidePathLineRenderer.numCapVertices = 4;
+        glidePathLineRenderer.shadowCastingMode =
+            UnityEngine.Rendering.ShadowCastingMode.Off;
+        glidePathLineRenderer.receiveShadows = false;
+
+        // These are the actual points calculated by runway selection.
+        glidePathLineRenderer.SetPosition(0, alignmentPoint);
+        glidePathLineRenderer.SetPosition(1, touchdownPoint);
+    }
+
+    private void OnDestroy()
+    {
+        if (glidePathDebugObject != null)
+            Destroy(glidePathDebugObject);
+
+        if (glidePathMaterial != null)
+            Destroy(glidePathMaterial);
     }
 
     private void UpdateAlignment()

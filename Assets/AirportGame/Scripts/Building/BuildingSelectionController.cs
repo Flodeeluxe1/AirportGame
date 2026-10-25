@@ -928,13 +928,18 @@ public class BuildingSelectionController : MonoBehaviour
 
 
 
+
     private void DeleteTaxiwayCell(Vector2Int cell)
     {
         if (taxiwayNetwork != null)
             taxiwayNetwork.RemoveTaxiwayCell(cell);
 
+        if (gridSurface != null)
+            gridSurface.UnregisterTaxiwayCell(cell);
+
         Debug.Log($"Deleted taxiway cell: {cell}");
     }
+
 
 
 

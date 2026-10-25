@@ -24,11 +24,11 @@ public class AircraftCargoPaxTakeoffController : MonoBehaviour
     [Header("Takeoff Speed")]
     [Tooltip("Target takeoff speed in knots.")]
     [Min(1f)]
-    [SerializeField] private float takeoffSpeedKnots = 120f;
+    [SerializeField] private float takeoffSpeedKnots = 90f;
 
     [Tooltip("Acceleration along the runway before rotation, in knots per second.")]
     [Min(0.1f)]
-    [SerializeField] private float groundAccelerationKnotsPerSecond = 12f;
+    [SerializeField] private float groundAccelerationKnotsPerSecond = 20f;
 
     [Tooltip("Acceleration during rotation and climb, in knots per second.")]
     [Min(0.1f)]
@@ -36,7 +36,7 @@ public class AircraftCargoPaxTakeoffController : MonoBehaviour
 
     [Tooltip("Converts knots to Unity world units per second.")]
     [Min(0.001f)]
-    [SerializeField] private float worldUnitsPerSecondPerKnot = 0.05f;
+    [SerializeField] private float worldUnitsPerSecondPerKnot = 0.15f;
 
     [Header("Rotation")]
     [Tooltip("Rotation begins at this fraction of takeoff speed.")]
@@ -49,11 +49,11 @@ public class AircraftCargoPaxTakeoffController : MonoBehaviour
 
     [Tooltip("Final nose-up attitude.")]
     [Range(1f, 45f)]
-    [SerializeField] private float targetNoseUpDegrees = 25f;
+    [SerializeField] private float targetNoseUpDegrees = 15f;
 
     [Tooltip("The aircraft starts gaining altitude gradually after reaching this nose-up angle.")]
     [Range(1f, 24f)]
-    [SerializeField] private float liftoffStartNoseUpDegrees = 10f;
+    [SerializeField] private float liftoffStartNoseUpDegrees = 2f;
 
     [Tooltip("Use this if the aircraft model's nose isn't its local +Z axis.")]
     [SerializeField] private Vector3 modelRotationOffset;

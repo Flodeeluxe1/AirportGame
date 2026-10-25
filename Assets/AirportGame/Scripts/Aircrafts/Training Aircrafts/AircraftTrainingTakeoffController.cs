@@ -33,12 +33,12 @@ public class AircraftTrainingTakeoffController : MonoBehaviour
     [Tooltip("Target takeoff speed in knots.")]
     [Min(1f)]
     [SerializeField]
-    private float takeoffSpeedKnots = 120f;
+    private float takeoffSpeedKnots = 60f;
 
     [Tooltip("Acceleration along the runway before rotation, in knots per second.")]
     [Min(0.1f)]
     [SerializeField]
-    private float groundAccelerationKnotsPerSecond = 12f;
+    private float groundAccelerationKnotsPerSecond = 18f;
 
     [Tooltip("Acceleration during rotation and climb, in knots per second.")]
     [Min(0.1f)]
@@ -48,27 +48,27 @@ public class AircraftTrainingTakeoffController : MonoBehaviour
     [Tooltip("Converts knots to Unity world units per second.")]
     [Min(0.001f)]
     [SerializeField]
-    private float worldUnitsPerSecondPerKnot = 0.05f;
+    private float worldUnitsPerSecondPerKnot = 0.15f;
 
     [Header("Rotation")]
     [Tooltip("Rotation begins at a fraction of takeoff speed.")]
     [SerializeField, Range(0.1f, 1f)]
-    private float rotationStartSpeedFraction = 0.8f;
+    private float rotationStartSpeedFraction = 0.7f;
 
     [Tooltip("Rate at which the aircraft nose rotates upward.")]
     [Min(0.1f)]
     [SerializeField]
-    private float rotationRateDegreesPerSecond = 3f;
+    private float rotationRateDegreesPerSecond = 2f;
 
     [Tooltip("Final nose-up attitude.")]
     [Range(1f, 45f)]
     [SerializeField]
-    private float targetNoseUpDegrees = 25f;
+    private float targetNoseUpDegrees = 10f;
 
     [Tooltip("The aircraft begins gaining altitude gradually after reaching this nose-up angle.")]
     [Range(1f, 24f)]
     [SerializeField]
-    private float liftoffStartNoseUpDegrees = 10f;
+    private float liftoffStartNoseUpDegrees = 2f;
 
     [Tooltip("Use this if the aircraft model's nose isn't its local +Z axis.")]
     [SerializeField]
@@ -78,7 +78,7 @@ public class AircraftTrainingTakeoffController : MonoBehaviour
     [Tooltip("Target altitude above the runway surface, in Unity world units.")]
     [Min(1f)]
     [SerializeField]
-    private float targetAltitudeAboveRunway = 60f;
+    private float targetAltitudeAboveRunway = 40f;
 
     [Header("Runway Clearance")]
     [Tooltip("Extra distance beyond the runway end before releasing reservations.")]

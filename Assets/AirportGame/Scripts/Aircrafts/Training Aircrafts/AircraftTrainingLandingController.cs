@@ -24,26 +24,27 @@ public class AircraftTrainingLandingController : MonoBehaviour
 
     [Range(1f, 6f)]
     [SerializeField] private float glideAngleDegrees = 3f;
+    [SerializeField] private float touchdownOffset = 2f;
 
     [Header("Speeds")]
     [Min(1f)]
-    [SerializeField] private float approachSpeedKnots = 140f;
+    [SerializeField] private float approachSpeedKnots = 75f;
 
     [Min(1f)]
-    [SerializeField] private float touchdownSpeedKnots = 120f;
+    [SerializeField] private float touchdownSpeedKnots = 65f;
 
     [Min(1f)]
     [SerializeField] private float rolloutTargetSpeedKnots = 30f;
 
     [Tooltip("Converts knots into Unity world units per second.")]
     [Min(0.001f)]
-    [SerializeField] private float worldUnitsPerSecondPerKnot = 0.05f;
+    [SerializeField] private float worldUnitsPerSecondPerKnot = 0.15f;
 
     [Min(0.1f)]
     [SerializeField] private float speedChangeRate = 3f;
 
     [Min(0.1f)]
-    [SerializeField] private float rolloutDeceleration = 1.2f;
+    [SerializeField] private float rolloutDeceleration = 1f;
 
     [Header("Flare")]
     [Min(0.1f)]
@@ -62,7 +63,7 @@ public class AircraftTrainingLandingController : MonoBehaviour
 
     [Tooltip("Nose-up attitude during a go-around.")]
     [Range(1f, 45f)]
-    [SerializeField] private float goAroundNoseUpDegrees = 20f;
+    [SerializeField] private float goAroundNoseUpDegrees = 10f;
 
     [Tooltip("Go-around target height above the runway surface, in Unity world units.")]
     [Min(1f)]
@@ -70,7 +71,7 @@ public class AircraftTrainingLandingController : MonoBehaviour
 
     [Header("Steering")]
     [Min(0.1f)]
-    [SerializeField] private float rotationSpeed = 3f;
+    [SerializeField] private float rotationSpeed = 2f;
 
     [Tooltip("Use this if the aircraft model's nose is not its local +Z axis.")]
     [SerializeField] private Vector3 modelRotationOffset;
@@ -410,7 +411,7 @@ public class AircraftTrainingLandingController : MonoBehaviour
                     : 0;
 
             Vector3 candidateTouchdown =
-                center - candidateDirection * (length * 0.5f);
+                center - candidateDirection * (length * 0.5f) + candidateDirection * touchdownOffset;
 
             float tangent =
                 Mathf.Tan(glideAngleDegrees * Mathf.Deg2Rad);

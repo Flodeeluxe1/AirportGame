@@ -30,26 +30,27 @@ public class AircraftSSLandingController : MonoBehaviour
     [SerializeField] private float approachDistance = 60f;
     [Range(1f, 6f)]
     [SerializeField] private float glideAngleDegrees = 3f;
+    [SerializeField] private float touchdownOffset = 7f;
 
     [Header("Speeds")]
     [Min(1f)]
-    [SerializeField] private float approachSpeedKnots = 140f;
+    [SerializeField] private float approachSpeedKnots = 90f;
     [Min(1f)]
-    [SerializeField] private float touchdownSpeedKnots = 120f;
+    [SerializeField] private float touchdownSpeedKnots = 70f;
     [Min(1f)]
-    [SerializeField] private float rolloutTargetSpeedKnots = 30f;
+    [SerializeField] private float rolloutTargetSpeedKnots = 15f;
     [Min(0.001f)]
-    [SerializeField] private float worldUnitsPerSecondPerKnot = 0.05f;
+    [SerializeField] private float worldUnitsPerSecondPerKnot = 0.15f;
     [Min(0.1f)]
     [SerializeField] private float speedChangeRate = 3f;
     [Min(0.1f)]
-    [SerializeField] private float rolloutDeceleration = 1.2f;
+    [SerializeField] private float rolloutDeceleration = 1f;
 
     [Header("Flare")]
     [Min(0.1f)]
     [SerializeField] private float flareHeight = 1.5f;
     [Range(0f, 10f)]
-    [SerializeField] private float noseRaiseDegrees = 3f;
+    [SerializeField] private float noseRaiseDegrees = 7f;
     [Min(0.1f)]
     [SerializeField] private float noseLoweringDuration = 1.5f;
 
@@ -57,13 +58,13 @@ public class AircraftSSLandingController : MonoBehaviour
     [Min(0f)]
     [SerializeField] private float maximumSidewindComponentKnots = 15f;
     [Range(1f, 45f)]
-    [SerializeField] private float goAroundNoseUpDegrees = 20f;
+    [SerializeField] private float goAroundNoseUpDegrees = 13f;
     [Min(1f)]
     [SerializeField] private float goAroundAltitudeAboveRunway = 30f;
 
     [Header("Steering")]
     [Min(0.1f)]
-    [SerializeField] private float rotationSpeed = 3f;
+    [SerializeField] private float rotationSpeed = 2f;
     [SerializeField] private Vector3 modelRotationOffset;
 
     [Header("Debug")]
@@ -241,7 +242,7 @@ public class AircraftSSLandingController : MonoBehaviour
                 ? trafficManager.GetLandingTrafficCount(candidate, this)
                 : 0;
 
-            Vector3 touchdown = center - direction * (length * 0.5f);
+            Vector3 touchdown = center - direction * (length * 0.5f) + direction * touchdownOffset;
 
             float tangent = Mathf.Tan(glideAngleDegrees * Mathf.Deg2Rad);
             float effectiveDistance = Mathf.Max(

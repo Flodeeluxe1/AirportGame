@@ -48,6 +48,13 @@ public class TaxiwayPlacementHandler : IPlacementHandler
                 "TaxiwayPlacementHandler: GridManager was not found.");
         }
 
+        if (gridSurface == null)
+        {
+            Debug.LogError(
+                "TaxiwayPlacementHandler: GridSurface was not found " +
+                "on the GridManager GameObject.");
+        }
+
         if (prefabRuleManager == null)
         {
             Debug.LogError(
@@ -89,13 +96,13 @@ public class TaxiwayPlacementHandler : IPlacementHandler
 
         currentGridPosition = gridManager.WorldToGrid(hitPoint);
 
-        if (!isDragging)
+        if (isDragging)
         {
-            startPosition = currentGridPosition;
             endPosition = currentGridPosition;
         }
         else
         {
+            startPosition = currentGridPosition;
             endPosition = currentGridPosition;
         }
 
@@ -110,7 +117,6 @@ public class TaxiwayPlacementHandler : IPlacementHandler
 
         startPosition = currentGridPosition;
         endPosition = currentGridPosition;
-
         isDragging = true;
 
         UpdatePreview();
@@ -154,7 +160,7 @@ public class TaxiwayPlacementHandler : IPlacementHandler
         }
         else
         {
-            // Taxiway length along X; fixed width along Z.
+            // Fixed width along Z; taxiway length along X.
             int minX = Mathf.Min(
                 startPosition.x,
                 endPosition.x);
@@ -194,8 +200,8 @@ public class TaxiwayPlacementHandler : IPlacementHandler
 
         previewObject.transform.position = position;
 
-        // The preview represents the rectangular footprint.
-        // Rotation is handled by changing the footprint dimensions.
+        // Footprint dimensions represent rotation.
+        // The preview itself remains axis-aligned.
         previewObject.transform.rotation = Quaternion.identity;
 
         previewObject.transform.localScale = new Vector3(
@@ -220,12 +226,13 @@ public class TaxiwayPlacementHandler : IPlacementHandler
             out int areaWidth,
             out int areaDepth);
 
-        placementPreview.SetValid(
-            ValidateArea(
-                origin,
-                areaWidth,
-                areaDepth,
-                out _));
+        bool valid = ValidateArea(
+            origin,
+            areaWidth,
+            areaDepth,
+            out _);
+
+        placementPreview.SetValid(valid);
     }
 
     private bool ValidateArea(
@@ -248,6 +255,12 @@ public class TaxiwayPlacementHandler : IPlacementHandler
             return false;
         }
 
+        if (gridSurface == null)
+        {
+            reason = "GridSurface is missing.";
+            return false;
+        }
+
         if (prefabRuleManager == null)
         {
             reason = "TaxiwayPrefabRuleManager is missing.";
@@ -266,12 +279,12 @@ public class TaxiwayPlacementHandler : IPlacementHandler
             return false;
         }
 
-        // The prefab rule manager registers rectangular taxiway areas
-        // with one dimension equal to the standard five-cell module width.
+        // Taxiway prefab rules require one dimension to be five cells.
         if (areaWidth != 5 && areaDepth != 5)
         {
             reason =
-                "Taxiway footprint must have a five-cell width in either orientation.";
+                "Taxiway footprint must have a five-cell width " +
+                "in either orientation.";
             return false;
         }
 
@@ -284,43 +297,54 @@ public class TaxiwayPlacementHandler : IPlacementHandler
 
                 if (!gridManager.IsInsideGrid(cell))
                 {
-                    reason = "Taxiway extends outside the grid.";
+                    reason =
+                        $"Taxiway cell {cell} is outside the grid.";
                     return false;
                 }
 
                 if (gridOccupancy != null &&
                     gridOccupancy.IsOccupied(cell))
                 {
-                    reason = $"Cell {cell} is occupied by a building.";
+                    reason =
+                        $"Cell {cell} is occupied by a building.";
                     return false;
                 }
 
-                if (definition.requiredSurface != BuildSurface.Any)
-                {
-                    if (gridSurface == null ||
-                        !gridSurface.IsSurface(
-                            cell,
-                            definition.requiredSurface))
-                    {
-                        reason = $"Cell {cell} has the wrong surface.";
-                        return false;
-                    }
-                }
+                bool alreadyTaxiway =
+                    taxiwayNetwork.IsTaxiway(cell);
 
-                // Preserve the existing rule that a different taxiway
-                // definition cannot occupy an already registered cell.
-                // Same-definition overlap remains permitted here.
-                if (taxiwayNetwork.IsTaxiway(cell))
+                if (alreadyTaxiway)
                 {
                     BuildableDefinition existingDefinition =
                         taxiwayNetwork.GetDefinition(cell);
 
+                    // Do not allow different taxiway definitions
+                    // to overwrite one another.
                     if (existingDefinition != definition)
                     {
                         reason =
-                            $"Cell {cell} already contains a different taxiway definition.";
+                            $"Cell {cell} already contains a different " +
+                            "taxiway definition.";
                         return false;
                     }
+
+                    // Existing taxiway cells are allowed to overlap
+                    // only when they use the same definition.
+                    continue;
+                }
+
+                // New taxiway cells must meet the definition's
+                // required surface. For example, a taxiway that
+                // requires grass must start on grass.
+                if (definition.requiredSurface != BuildSurface.Any &&
+                    !gridSurface.IsSurface(
+                        cell,
+                        definition.requiredSurface))
+                {
+                    reason =
+                        $"Cell {cell} has the wrong surface. " +
+                        $"Required: {definition.requiredSurface}.";
+                    return false;
                 }
             }
         }
@@ -357,13 +381,13 @@ public class TaxiwayPlacementHandler : IPlacementHandler
                 out string reason))
         {
             Debug.Log($"Cannot place taxiway: {reason}");
+            UpdatePreviewValidity();
             return;
         }
 
         int quantity = areaWidth * areaDepth;
 
-        // Do not charge unless the footprint passes validation and
-        // both the visual manager and network are available.
+        // Charge only after the complete footprint passes validation.
         if (!ConstructionCostUtility.TryPay(
                 definition,
                 quantity,
@@ -372,28 +396,21 @@ public class TaxiwayPlacementHandler : IPlacementHandler
             return;
         }
 
-        // Register the visual area. The manager is responsible for
-        // selecting, orienting and spawning the appropriate prefabs.
+        // Register prefab visuals separately from logical cells.
         prefabRuleManager.RegisterTaxiwayArea(
             origin,
             areaWidth,
             areaDepth);
-
-        // Keep the current network registrations in place for existing
-        // systems. The network redesign is a separate task.
 
         RegisterTaxiwayFootprint(
             origin,
             areaWidth,
             areaDepth);
 
-
         Debug.Log(
             $"TAXIWAY PLACED | {definition.displayName} | " +
             $"Origin: {origin} | Size: {areaWidth}x{areaDepth} | " +
             $"Rotation: {rotation}");
-
-        endPosition = currentGridPosition;
 
         UpdatePreview();
         UpdatePreviewValidity();
@@ -404,10 +421,8 @@ public class TaxiwayPlacementHandler : IPlacementHandler
         int areaWidth,
         int areaDepth)
     {
-        if (taxiwayNetwork == null)
-            return;
-
-        // Register every cell in the placed footprint.
+        // Register all occupied cells in the taxiway network
+        // and GridSurface.
         for (int x = 0; x < areaWidth; x++)
         {
             for (int z = 0; z < areaDepth; z++)
@@ -415,14 +430,24 @@ public class TaxiwayPlacementHandler : IPlacementHandler
                 Vector2Int cell =
                     origin + new Vector2Int(x, z);
 
+                bool wasTaxiway =
+                    taxiwayNetwork.IsTaxiway(cell);
+
                 taxiwayNetwork.AddTaxiwayCell(
                     cell,
                     definition);
+
+                // Register the surface only if the network accepted
+                // the cell. This avoids changing surfaces for cells
+                // rejected by the network.
+                if (taxiwayNetwork.IsTaxiway(cell))
+                {
+                    gridSurface.RegisterTaxiwayCell(cell);
+                }
             }
         }
 
         // Preserve the existing centerline registrations.
-        // These remain separate from prefab visual placement.
         if (rotation == 0)
         {
             int centerX = origin.x + areaWidth / 2;

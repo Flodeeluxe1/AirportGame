@@ -14,6 +14,12 @@ public class GridSurface : MonoBehaviour
     private readonly Dictionary<Vector2Int, GameObject> obstacleOwners =
         new Dictionary<Vector2Int, GameObject>();
 
+
+    private readonly Dictionary<Vector2Int, BuildSurface>
+        taxiwayUnderlyingSurfaces =
+            new Dictionary<Vector2Int, BuildSurface>();
+
+
     private void Awake()
     {
         if (gridManager == null)
@@ -290,6 +296,7 @@ public class GridSurface : MonoBehaviour
 
         surfaceOwners.Clear();
         obstacleOwners.Clear();
+        taxiwayUnderlyingSurfaces.Clear();
     }
 
 
@@ -343,5 +350,49 @@ public class GridSurface : MonoBehaviour
 
         return false;
     }
+
+
+    public void RegisterTaxiwayCell(Vector2Int position)
+    {
+        if (gridManager == null ||
+            surfaces == null ||
+            !gridManager.IsInsideGrid(position))
+        {
+            return;
+        }
+
+        // Preserve the original surface only on the first registration.
+        if (surfaces[position.x, position.y] != BuildSurface.Taxiway)
+        {
+            taxiwayUnderlyingSurfaces[position] =
+                surfaces[position.x, position.y];
+        }
+
+        surfaces[position.x, position.y] = BuildSurface.Taxiway;
+    }
+
+    public void UnregisterTaxiwayCell(Vector2Int position)
+    {
+        if (gridManager == null ||
+            surfaces == null ||
+            !gridManager.IsInsideGrid(position))
+        {
+            return;
+        }
+
+        if (taxiwayUnderlyingSurfaces.TryGetValue(
+                position,
+                out BuildSurface underlyingSurface))
+        {
+            surfaces[position.x, position.y] = underlyingSurface;
+            taxiwayUnderlyingSurfaces.Remove(position);
+        }
+        else if (surfaces[position.x, position.y] == BuildSurface.Taxiway)
+        {
+            // Fallback for taxiway cells without saved underlying data.
+            surfaces[position.x, position.y] = BuildSurface.Grass;
+        }
+    }
+
 
 }

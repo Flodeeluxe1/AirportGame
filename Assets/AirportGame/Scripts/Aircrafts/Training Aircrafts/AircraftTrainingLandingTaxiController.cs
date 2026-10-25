@@ -16,7 +16,7 @@ public class AircraftTrainingLandingTaxiController : MonoBehaviour
     [Min(1)]
     [SerializeField] private int maximumRouteAttempts = 32;
     [Min(1)]
-    [SerializeField] private int minimumTaxiwayWidth = 3;
+    [SerializeField] private int minimumTaxiwayWidth = 5;
     [Min(0.1f)]
     [SerializeField] private float maximumRunwayExitLateralDistance = 12f;
     [Min(0f)]
@@ -24,15 +24,15 @@ public class AircraftTrainingLandingTaxiController : MonoBehaviour
     [Min(0f)]
     [SerializeField] private float runwayEndTolerance = 1f;
     [Min(0.1f)]
-    [SerializeField] private float maximumParkingConnectorDistance = 4f;
+    [SerializeField] private float maximumParkingConnectorDistance = 12f;
 
     [Header("Taxi Movement")]
     [Min(1f)]
     [SerializeField] private float taxiSpeedKnots = 10f;
     [Min(0.001f)]
-    [SerializeField] private float worldUnitsPerSecondPerKnot = 0.05f;
+    [SerializeField] private float worldUnitsPerSecondPerKnot = 0.15f;
     [Min(0.1f)]
-    [SerializeField] private float rotationSpeed = 3f;
+    [SerializeField] private float rotationSpeed = 2f;
     [Min(0.05f)]
     [SerializeField] private float waypointArrivalDistance = 0.2f;
     [Min(0.1f)]
@@ -48,7 +48,7 @@ public class AircraftTrainingLandingTaxiController : MonoBehaviour
 
     [Tooltip("Number of curve segments used to approximate each rounded corner.")]
     [Range(4, 16)]
-    [SerializeField] private int turnCurveResolution = 8;
+    [SerializeField] private int turnCurveResolution = 16;
 
     [Tooltip("Distance tolerance for advancing through smoothed taxi path points.")]
     [Min(0.005f)]

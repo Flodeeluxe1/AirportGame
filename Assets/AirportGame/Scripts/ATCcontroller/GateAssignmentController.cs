@@ -312,6 +312,7 @@ public class GateAssignmentController : MonoBehaviour
         return true;
     }
 
+
     private bool TryFindTaxiRoute(
         List<TaxiwayCandidate> startCandidates,
         AircraftGate gate,
@@ -321,7 +322,16 @@ public class GateAssignmentController : MonoBehaviour
         bestRouteLength = int.MaxValue;
 
         if (gate == null || startCandidates.Count == 0)
+        {
+            Debug.LogWarning(
+                $"GATE ROUTE CHECK FAILED | " +
+                $"Gate: {(gate != null ? gate.DisplayName : "null")} | " +
+                $"Start candidates: " +
+                $"{(startCandidates != null ? startCandidates.Count : 0)}"
+            );
+
             return false;
+        }
 
         List<TaxiwayCandidate> targetCandidates =
             FindNearbyCenterlineCells(
@@ -330,12 +340,28 @@ public class GateAssignmentController : MonoBehaviour
             );
 
         if (targetCandidates.Count == 0)
+        {
+            Vector2Int gateCell =
+                gridManager.WorldToGrid(gate.transform.position);
+
+            Debug.LogWarning(
+                $"GATE ROUTE CHECK FAILED | Gate: {gate.DisplayName} | " +
+                $"Grid cell: {gateCell} | " +
+                $"Gate size: {gate.Size} | " +
+                $"Required taxiway width: {minimumTaxiwayWidth} | " +
+                $"No suitable centerline candidates within " +
+                $"{connectionSearchRadiusCells} cells.",
+                gate
+            );
+
             return false;
+        }
 
         List<RouteCandidatePair> pairs =
             BuildCandidatePairs(startCandidates, targetCandidates);
 
         int attempts = 0;
+        int successfulRoutes = 0;
 
         foreach (RouteCandidatePair pair in pairs)
         {
@@ -352,17 +378,44 @@ public class GateAssignmentController : MonoBehaviour
                 );
 
             if (path == null || path.Count == 0)
+            {
+                Debug.Log(
+                    $"A* ROUTE FAILED | Gate: {gate.DisplayName} | " +
+                    $"Start: {pair.Start.Cell} | " +
+                    $"Target: {pair.Target.Cell} | " +
+                    $"Minimum width: {minimumTaxiwayWidth}",
+                    gate
+                );
+
                 continue;
+            }
+
+            successfulRoutes++;
 
             if (path.Count < bestRouteLength)
                 bestRouteLength = path.Count;
-
-            // Candidate pairs are sorted by endpoint distance. Continue
-            // checking the allowed pairs to find the shortest path.
         }
 
-        return bestRouteLength != int.MaxValue;
+        bool foundRoute = bestRouteLength != int.MaxValue;
+
+        Debug.Log(
+            $"GATE ROUTE RESULT | Gate: {gate.DisplayName} | " +
+            $"Size: {gate.Size} | " +
+            $"Required width: {minimumTaxiwayWidth} | " +
+            $"Start candidates: {startCandidates.Count} | " +
+            $"Gate candidates: {targetCandidates.Count} | " +
+            $"Pairs tested: {attempts} | " +
+            $"Successful routes: {successfulRoutes} | " +
+            $"Result: {(foundRoute ? "ROUTE FOUND" : "NO ROUTE")}" +
+            (foundRoute
+                ? $" | Best path: {bestRouteLength} cells"
+                : ""),
+            gate
+        );
+
+        return foundRoute;
     }
+
 
     private List<TaxiwayCandidate> FindNearbyCenterlineCells(
         Vector3 worldPosition,
@@ -564,6 +617,78 @@ public class GateAssignmentController : MonoBehaviour
 
         return dx * dx + dz * dz;
     }
+
+
+    [ContextMenu("Debug Gate Availability")]
+    private void DebugGateAvailability()
+    {
+        if (gateRegistry == null)
+            gateRegistry = FindFirstObjectByType<AircraftGateRegistry>();
+
+        if (gateRegistry == null)
+        {
+            Debug.LogError(
+                "GateAssignmentController: AircraftGateRegistry is missing.",
+                this
+            );
+            return;
+        }
+
+        gateRegistry.RefreshGates();
+        RemoveDestroyedAircraftReservations();
+
+        int availableCount = 0;
+        int reservedCount = 0;
+
+        Debug.Log(
+            $"========== GATE AVAILABILITY ({gateRegistry.Gates.Count} gates) ==========",
+            this
+        );
+
+        foreach (AircraftGate gate in gateRegistry.Gates)
+        {
+            if (gate == null)
+                continue;
+
+            bool isReserved = gateReservations.TryGetValue(
+                gate.StableId,
+                out AircraftFlightIdentity owner
+            ) && owner != null;
+
+            if (isReserved)
+            {
+                reservedCount++;
+
+                Debug.Log(
+                    $"RESERVED | {gate.DisplayName} | " +
+                    $"Size: {gate.Size} | " +
+                    $"ID: {gate.StableId} | " +
+                    $"Owner: {owner.FlightNumber}",
+                    gate
+                );
+            }
+            else
+            {
+                availableCount++;
+
+                Debug.Log(
+                    $"AVAILABLE | {gate.DisplayName} | " +
+                    $"Size: {gate.Size} | " +
+                    $"ID: {gate.StableId}",
+                    gate
+                );
+            }
+        }
+
+        Debug.Log(
+            $"GATE AVAILABILITY SUMMARY | " +
+            $"Available: {availableCount} | " +
+            $"Reserved: {reservedCount} | " +
+            $"Total: {availableCount + reservedCount}",
+            this
+        );
+    }
+
 
     private void OnDestroy()
     {

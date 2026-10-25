@@ -136,13 +136,13 @@ MonoBehaviour:
   startSearchRadiusCells: 12
   maximumStartCandidates: 10
   runwaySafetyMarginInCells: 1
-  taxiSpeedKnots: 15
-  worldUnitsPerSecondPerKnot: 0.08
+  taxiSpeedKnots: 10
+  worldUnitsPerSecondPerKnot: 0.15
   rotationSpeedDegreesPerSecond: 45
   waypointArrivalDistance: 0.15
   modelRotationOffset: {x: 0, y: 0, z: 0}
-  turningRadiusInCells: 1
-  turnCurveResolution: 8
+  turningRadiusInCells: 2
+  turnCurveResolution: 16
   lineUpSafetyMarginInCells: 0.25
   currentState: 0
   selectedRunway: {fileID: 0}
@@ -172,12 +172,12 @@ MonoBehaviour:
   gameTimeManager: {fileID: 0}
   gridManager: {fileID: 0}
   aircraftCollider: {fileID: 0}
-  takeoffSpeedKnots: 100
-  groundAccelerationKnotsPerSecond: 30
+  takeoffSpeedKnots: 60
+  groundAccelerationKnotsPerSecond: 18
   airborneAccelerationKnotsPerSecond: 3
-  worldUnitsPerSecondPerKnot: 0.08
+  worldUnitsPerSecondPerKnot: 0.15
   rotationStartSpeedFraction: 0.7
-  rotationRateDegreesPerSecond: 3
+  rotationRateDegreesPerSecond: 2
   targetNoseUpDegrees: 10
   liftoffStartNoseUpDegrees: 2
   modelRotationOffset: {x: 0, y: 0, z: 0}
@@ -205,20 +205,20 @@ MonoBehaviour:
   gridManager: {fileID: 0}
   weather: {fileID: 0}
   approachDistance: 60
-  glideAngleDegrees: 4
-  approachSpeedKnots: 100
-  touchdownSpeedKnots: 70
+  glideAngleDegrees: 3
+  approachSpeedKnots: 75
+  touchdownSpeedKnots: 65
   rolloutTargetSpeedKnots: 30
-  worldUnitsPerSecondPerKnot: 0.08
-  speedChangeRate: 2
+  worldUnitsPerSecondPerKnot: 0.15
+  speedChangeRate: 3
   rolloutDeceleration: 1
   flareHeight: 1.5
-  noseRaiseDegrees: 8
+  noseRaiseDegrees: 3
   noseLoweringDuration: 1.5
   maximumSidewindComponentKnots: 15
   goAroundNoseUpDegrees: 10
   goAroundAltitudeAboveRunway: 30
-  rotationSpeed: 3
+  rotationSpeed: 2
   modelRotationOffset: {x: 0, y: 0, z: 0}
   debugLandingState: Initializing
   debugSelectedRunway: None
@@ -247,21 +247,21 @@ MonoBehaviour:
   taxiwayPathfinder: {fileID: 0}
   connectionSearchRadiusCells: 12
   maximumRouteAttempts: 32
-  minimumTaxiwayWidth: 3
+  minimumTaxiwayWidth: 5
   maximumRunwayExitLateralDistance: 12
   minimumExitForwardDistance: 0.5
   runwayEndTolerance: 1
   maximumParkingConnectorDistance: 12
-  taxiSpeedKnots: 15
-  worldUnitsPerSecondPerKnot: 0.05
-  rotationSpeed: 3
+  taxiSpeedKnots: 10
+  worldUnitsPerSecondPerKnot: 0.15
+  rotationSpeed: 2
   waypointArrivalDistance: 0.2
   parkingArrivalDistance: 0.5
-  taxiHeightOffset: 0.08
+  taxiHeightOffset: 0.05
   modelRotationOffset: {x: 0, y: 0, z: 0}
   turningRadiusInCells: 2
   turnCurveResolution: 16
-  taxiPathPointTolerance: 0.03
+  taxiPathPointTolerance: 0.02
   logTaxiProgress: 1
   debugStatus: Waiting for training landing completion.
 --- !u!114 &-4699634218804049046

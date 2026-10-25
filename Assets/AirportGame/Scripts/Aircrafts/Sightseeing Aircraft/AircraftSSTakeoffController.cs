@@ -28,16 +28,16 @@ public class AircraftSSTakeoffController : MonoBehaviour
 
     [Header("Takeoff Speed")]
     [Min(1f)]
-    [SerializeField] private float takeoffSpeedKnots = 65f;
+    [SerializeField] private float takeoffSpeedKnots = 80f;
 
     [Min(0.1f)]
-    [SerializeField] private float groundAccelerationKnotsPerSecond = 12f;
+    [SerializeField] private float groundAccelerationKnotsPerSecond = 15f;
 
     [Min(0.1f)]
     [SerializeField] private float airborneAccelerationKnotsPerSecond = 3f;
 
     [Min(0.001f)]
-    [SerializeField] private float worldUnitsPerSecondPerKnot = 0.05f;
+    [SerializeField] private float worldUnitsPerSecondPerKnot = 0.15f;
 
     [Header("Rotation")]
     [Range(0.1f, 1f)]
@@ -47,10 +47,10 @@ public class AircraftSSTakeoffController : MonoBehaviour
     [SerializeField] private float rotationRateDegreesPerSecond = 3f;
 
     [Range(1f, 45f)]
-    [SerializeField] private float targetNoseUpDegrees = 20f;
+    [SerializeField] private float targetNoseUpDegrees = 13f;
 
     [Range(1f, 24f)]
-    [SerializeField] private float liftoffStartNoseUpDegrees = 8f;
+    [SerializeField] private float liftoffStartNoseUpDegrees = 2f;
 
     [Tooltip("Adjust if the aircraft model's nose is not local +Z.")]
     [SerializeField] private Vector3 modelRotationOffset;
