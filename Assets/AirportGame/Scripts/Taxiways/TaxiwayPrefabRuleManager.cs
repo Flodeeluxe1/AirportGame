@@ -1278,4 +1278,59 @@ public sealed class TaxiwayPrefabRuleManager : MonoBehaviour
 
         spawnedVisuals.Clear();
     }
+
+    public List<TaxiwayAreaSaveData> GetPlacementAreasForSave()
+    {
+        List<TaxiwayAreaSaveData> result =
+            new List<TaxiwayAreaSaveData>();
+
+        foreach (PlacementArea area in placementAreas)
+        {
+            result.Add(new TaxiwayAreaSaveData
+            {
+                originX = area.Origin.x,
+                originZ = area.Origin.y,
+                width = area.Width,
+                depth = area.Depth
+            });
+        }
+
+        return result;
+    }
+
+    public void RestorePlacementAreas(
+        IEnumerable<TaxiwayAreaSaveData> savedAreas)
+    {
+        ClearAllTaxiwayAreas();
+
+        if (savedAreas == null)
+        {
+            Debug.LogWarning(
+                "TaxiwayPrefabRuleManager: No saved taxiway areas were provided.",
+                this);
+            return;
+        }
+
+        foreach (TaxiwayAreaSaveData saved in savedAreas)
+        {
+            if (saved == null ||
+                saved.width <= 0 ||
+                saved.depth <= 0 ||
+                (saved.width != 5 && saved.depth != 5))
+            {
+                Debug.LogWarning(
+                    "TaxiwayPrefabRuleManager: Skipping invalid saved taxiway area.",
+                    this);
+                continue;
+            }
+
+            placementAreas.Add(
+                new PlacementArea(
+                    new Vector2Int(saved.originX, saved.originZ),
+                    saved.width,
+                    saved.depth));
+        }
+
+        RebuildVisuals();
+    }
 }

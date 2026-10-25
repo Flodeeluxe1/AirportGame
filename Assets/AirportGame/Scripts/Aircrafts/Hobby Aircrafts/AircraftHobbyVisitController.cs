@@ -12,21 +12,21 @@ public class AircraftHobbyVisitController : MonoBehaviour
 {
     [Header("Landing Fee")]
     [Min(0)]
-    [SerializeField] private int landingFee = 150;
+    [SerializeField] public int landingFee = 20;
 
     [Header("Parking Fee")]
     [Min(0)]
-    [SerializeField] private int parkingFee = 25;
+    [SerializeField] public int parkingFee = 5;
 
     [Min(1)]
-    [SerializeField] private int parkingIntervalMinutes = 30;
+    [SerializeField] public int parkingIntervalMinutes = 10;
 
     [Header("Visit Duration")]
     [Min(1)]
-    [SerializeField] private int minimumStayMinutes = 60;
+    [SerializeField] public int minimumStayMinutes = 60;
 
     [Min(1)]
-    [SerializeField] private int maximumStayMinutes = 120;
+    [SerializeField] public int maximumStayMinutes = 180;
 
     [Header("Departure")]
     [Tooltip("Distance from the parking position before the spot is released.")]

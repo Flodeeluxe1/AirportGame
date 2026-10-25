@@ -330,11 +330,11 @@ public class AirportCameraController : MonoBehaviour
         currentVelocity = Vector3.MoveTowards(
             currentVelocity,
             targetVelocity,
-            speedChange * Time.deltaTime
+            speedChange * Time.unscaledDeltaTime
         );
 
         transform.position +=
-            currentVelocity * Time.deltaTime;
+            currentVelocity * Time.unscaledDeltaTime;
     }
 
 
@@ -349,7 +349,7 @@ public class AirportCameraController : MonoBehaviour
             rotationInput += 1f;
 
         float rotation =
-            rotationInput * rotationSpeed * Time.deltaTime;
+            rotationInput * rotationSpeed * Time.unscaledDeltaTime;
 
         transform.Rotate(
             0f,
@@ -405,7 +405,7 @@ public class AirportCameraController : MonoBehaviour
         currentZoom = Mathf.Lerp(
             currentZoom,
             targetZoom,
-            zoomSmoothness * Time.deltaTime
+            zoomSmoothness * Time.unscaledDeltaTime
         );
     }
 

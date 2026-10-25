@@ -9,16 +9,16 @@ public class AircraftAirportFees : MonoBehaviour
 {
     [Header("Landing Fee")]
     [Min(0)]
-    [SerializeField] private int landingFee = 150;
+    [SerializeField] public int landingFee = 20;
 
     [Header("Parking Fee")]
     [Tooltip("Fee charged for each completed parking interval.")]
     [Min(0)]
-    [SerializeField] private int parkingFee = 25;
+    [SerializeField] public int parkingFee = 5;
 
     [Tooltip("Game-time minutes between parking charges.")]
     [Min(1)]
-    [SerializeField] private int parkingIntervalMinutes = 30;
+    [SerializeField] public int parkingIntervalMinutes = 10;
 
     [Header("References")]
     [SerializeField] private AirportEconomyManager economyManager;

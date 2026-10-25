@@ -4680,19 +4680,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AircraftHobbyLandingController
   gridManager: {fileID: 0}
   weather: {fileID: 0}
-  approachDistance: 60
+  approachDistance: 120
   glideAngleDegrees: 3
-  approachSpeedKnots: 140
-  touchdownSpeedKnots: 120
-  rolloutTargetSpeedKnots: 30
-  worldUnitsPerSecondPerKnot: 0.05
-  speedChangeRate: 3
-  rolloutDeceleration: 1.2
+  approachSpeedKnots: 85
+  touchdownSpeedKnots: 60
+  rolloutTargetSpeedKnots: 15
+  worldUnitsPerSecondPerKnot: 0.15
+  speedChangeRate: 1
+  rolloutDeceleration: 1
   flareHeight: 1.5
   noseRaiseDegrees: 3
   noseLoweringDuration: 1.5
   maximumSidewindComponentKnots: 15
-  goAroundNoseUpDegrees: 20
+  goAroundNoseUpDegrees: 10
   goAroundAltitudeAboveRunway: 30
   rotationSpeed: 3
   modelRotationOffset: {x: 0, y: 0, z: 0}
@@ -4727,9 +4727,9 @@ MonoBehaviour:
   maximumRunwayExitLateralDistance: 12
   minimumExitForwardDistance: 0.5
   runwayEndTolerance: 1
-  maximumParkingConnectorDistance: 4
-  taxiSpeedKnots: 10
-  worldUnitsPerSecondPerKnot: 0.05
+  maximumParkingConnectorDistance: 12
+  taxiSpeedKnots: 15
+  worldUnitsPerSecondPerKnot: 0.2
   rotationSpeed: 3
   waypointArrivalDistance: 0.2
   parkingArrivalDistance: 0.5
@@ -4752,11 +4752,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 55525b5280edd2940967179e57e81867, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AircraftHobbyVisitController
-  landingFee: 150
-  parkingFee: 25
-  parkingIntervalMinutes: 30
+  landingFee: 20
+  parkingFee: 5
+  parkingIntervalMinutes: 10
   minimumStayMinutes: 60
-  maximumStayMinutes: 120
+  maximumStayMinutes: 180
   parkingSpotReleaseDistance: 2
   landingFeeCharged: 0
   hasParked: 0
@@ -4787,7 +4787,7 @@ MonoBehaviour:
   maximumStartCandidates: 10
   runwaySafetyMarginInCells: 1
   taxiSpeedKnots: 15
-  worldUnitsPerSecondPerKnot: 0.05
+  worldUnitsPerSecondPerKnot: 0.2
   rotationSpeedDegreesPerSecond: 45
   waypointArrivalDistance: 0.15
   modelRotationOffset: {x: 0, y: 0, z: 0}
@@ -4827,14 +4827,14 @@ MonoBehaviour:
   gameTimeManager: {fileID: 0}
   gridManager: {fileID: 0}
   aircraftCollider: {fileID: 0}
-  takeoffSpeedKnots: 120
+  takeoffSpeedKnots: 60
   groundAccelerationKnotsPerSecond: 12
   airborneAccelerationKnotsPerSecond: 3
-  worldUnitsPerSecondPerKnot: 0.05
+  worldUnitsPerSecondPerKnot: 0.2
   rotationStartSpeedFraction: 0.8
   rotationRateDegreesPerSecond: 3
-  targetNoseUpDegrees: 25
-  liftoffStartNoseUpDegrees: 10
+  targetNoseUpDegrees: 10
+  liftoffStartNoseUpDegrees: 2
   modelRotationOffset: {x: 0, y: 0, z: 0}
   targetAltitudeAboveRunway: 60
   runwayClearanceBuffer: 1
@@ -4886,9 +4886,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 109a25440e7fdd44b871e7d3a13cef3f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AircraftAirportFees
-  landingFee: 150
-  parkingFee: 25
-  parkingIntervalMinutes: 30
+  landingFee: 20
+  parkingFee: 5
+  parkingIntervalMinutes: 10
   economyManager: {fileID: 0}
   gameTimeManager: {fileID: 0}
   aircraftStatus: {fileID: 0}

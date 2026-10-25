@@ -12,8 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b707bf0339cdddd48ac715a8e271822e, type: 3}
   m_Name: BD_TestWall
   m_EditorClassIdentifier: Assembly-CSharp::BuildableDefinition
-  category: 1
-  icon: {fileID: 0}
   id: wall.wall.test
   displayName: Test Wall
   prefab: {fileID: 1809504597871627220, guid: 6dbb9fe9fd4f44c46a3bf09aed2549ce, type: 3}
@@ -21,5 +19,13 @@ MonoBehaviour:
   requiredSurface: 1
   width: 1
   depth: 1
+  edgeLength: 1
+  requiresExistingWall: 0
+  isWallMounted: 0
+  mountHeight: 2
   canRotate: 0
-  buildCost: 10
+  buildCost: 25
+  blocksPathfinding: 0
+  category: 1
+  icon: {fileID: 0}
+  roomFurnitureRole: 0

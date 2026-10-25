@@ -17,7 +17,8 @@ GameObject:
   - component: {fileID: 1572968075970986140}
   - component: {fileID: -4306488516855404423}
   - component: {fileID: -5519792594675222361}
-  m_Layer: 0
+  - component: {fileID: -9043542968318640712}
+  m_Layer: 7
   m_Name: W34Main
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -149,7 +150,7 @@ MonoBehaviour:
   maximumRunwayExitLateralDistance: 12
   minimumExitForwardDistance: 0.5
   runwayEndTolerance: 1
-  maximumParkingConnectorDistance: 4
+  maximumParkingConnectorDistance: 12
   taxiSpeedKnots: 15
   worldUnitsPerSecondPerKnot: 0.08
   rotationSpeed: 2
@@ -203,7 +204,7 @@ MonoBehaviour:
   aircraftCollider: {fileID: 0}
   maximumSidewindComponentKnots: 15
   runwaySelectionRetryInterval: 3
-  startSearchRadiusCells: 4
+  startSearchRadiusCells: 12
   maximumStartCandidates: 10
   runwaySafetyMarginInCells: 1
   taxiSpeedKnots: 15
@@ -266,6 +267,35 @@ MonoBehaviour:
   revenuePaid: 0
   runwayReservationReleased: 0
   debugStatus: Waiting for line-up
+--- !u!114 &-9043542968318640712
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 753756043139321930}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e4f0fded1e400a14e8046655719557e9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AircraftTaxiTrafficFollowing
+  trafficLayer:
+    serializedVersion: 2
+    m_Bits: 128
+  trafficDetectionDistance: 8
+  safeFollowingDistance: 3
+  rayOriginHeight: 0.5
+  rayOriginForwardOffset: 1
+  acceleration: 1.5
+  braking: 3
+  debugCurrentSpeed: 0
+  debugBlockingAircraft: None
+  debugBlockingDistance: 0
+  debugLastRayHitCollider: None
+  debugLastRayDirection: None
+  debugLastRayDistance: 0
+  debugTrafficDecision: Not tested
+  debugRaycastSummary: No raycast performed yet.
 --- !u!1001 &3583963974137580783
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -333,6 +363,14 @@ PrefabInstance:
     - target: {fileID: 919132149155446097, guid: 1d30f23e6abae104a88e073f0a20be03, type: 3}
       propertyPath: m_Name
       value: w34
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 1d30f23e6abae104a88e073f0a20be03, type: 3}
+      propertyPath: m_Layer
+      value: 7
+      objectReference: {fileID: 0}
+    - target: {fileID: 8164078558771037576, guid: 1d30f23e6abae104a88e073f0a20be03, type: 3}
+      propertyPath: m_Layer
+      value: 7
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

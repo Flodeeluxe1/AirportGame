@@ -381,10 +381,12 @@ public class TaxiwayPlacementHandler : IPlacementHandler
 
         // Keep the current network registrations in place for existing
         // systems. The network redesign is a separate task.
+
         RegisterTaxiwayFootprint(
             origin,
             areaWidth,
             areaDepth);
+
 
         Debug.Log(
             $"TAXIWAY PLACED | {definition.displayName} | " +

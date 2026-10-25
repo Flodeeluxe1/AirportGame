@@ -19,6 +19,7 @@ public class AirportWorldResetController : MonoBehaviour
     [Header("Taxiways")]
     [SerializeField] private TaxiwayNetwork taxiwayNetwork;
     [SerializeField] private TaxiwayTilemapController taxiwayTilemapController;
+    [SerializeField] private TaxiwayPrefabRuleManager taxiwayPrefabRuleManager;
 
     [Header("Foundation")]
     [SerializeField] private FoundationTilemapController foundationTilemapController;
@@ -100,7 +101,12 @@ public class AirportWorldResetController : MonoBehaviour
         roadModuleRuleManager.ClearAllRoadModules();
 
         taxiwayNetwork.Clear();
-        taxiwayTilemapController.ClearAllTaxiwayTiles();
+
+        // Clear legacy tile visuals as well as prefab visual registrations.
+        if (taxiwayTilemapController != null)
+            taxiwayTilemapController.ClearAllTaxiwayTiles();
+
+        taxiwayPrefabRuleManager.ClearAllTaxiwayAreas();
 
         foundationTilemapController.RefreshFromGridSurface();
 
@@ -153,6 +159,12 @@ public class AirportWorldResetController : MonoBehaviour
                 FindFirstObjectByType<RoadModuleRuleManager>();
         }
 
+        if (taxiwayPrefabRuleManager == null)
+        {
+            taxiwayPrefabRuleManager =
+                FindFirstObjectByType<TaxiwayPrefabRuleManager>();
+        }
+
         if (buildController == null ||
             gridOccupancy == null ||
             edgeOccupancy == null ||
@@ -160,7 +172,7 @@ public class AirportWorldResetController : MonoBehaviour
             roadNetwork == null ||
             roadModuleRuleManager == null ||
             taxiwayNetwork == null ||
-            taxiwayTilemapController == null ||
+            taxiwayPrefabRuleManager == null ||
             foundationTilemapController == null ||
             gameTimeManager == null)
         {
@@ -232,8 +244,8 @@ public class AirportWorldResetController : MonoBehaviour
     }
 
     /// <summary>
-    /// Saves the airport layout, roads, taxiways, game time,
-    /// simulation speed, economy balance, object transforms,
+    /// Saves the airport layout, roads, taxiway network and placement areas,
+    /// game time, simulation speed, economy balance, object transforms,
     /// boundary ownership, flight schedule, and room-purpose assignments.
     /// </summary>
     public bool TrySaveSlot(int slot, string saveName)
@@ -265,7 +277,12 @@ public class AirportWorldResetController : MonoBehaviour
             roomPurposeAssignments =
                 roomPurposeController != null
                     ? roomPurposeController.GetAssignmentsForSave()
-                    : new List<RoomPurposeAssignmentSaveData>()
+                    : new List<RoomPurposeAssignmentSaveData>(),
+
+            // Save original placement rectangles so prefab visuals
+            // can be reconstructed with the same junction and merge rules.
+            taxiwayAreas =
+                taxiwayPrefabRuleManager.GetPlacementAreasForSave()
         };
 
         PlacedBuilding[] buildings =
@@ -318,7 +335,6 @@ public class AirportWorldResetController : MonoBehaviour
                 scaleY = building.transform.localScale.y,
                 scaleZ = building.transform.localScale.z
             };
-
 
             HobbyAircraftParkingSpot parkingSpot =
                 building.GetComponent<HobbyAircraftParkingSpot>();
@@ -390,6 +406,7 @@ public class AirportWorldResetController : MonoBehaviour
             $"Buildings: {data.placedBuildings.Count}, " +
             $"Road cells: {data.roadCells.Count}, " +
             $"Taxiway cells: {data.taxiwayCells.Count}, " +
+            $"Taxiway placement areas: {data.taxiwayAreas.Count}, " +
             $"Scheduled flights: {data.flightSchedule.Count}, " +
             $"Room assignments: {data.roomPurposeAssignments.Count}, " +
             $"Balance: ${data.balance:N0}.");
@@ -429,6 +446,7 @@ public class AirportWorldResetController : MonoBehaviour
             $"Buildings: {data.placedBuildings.Count}, " +
             $"Road cells: {data.roadCells.Count}, " +
             $"Taxiway cells: {data.taxiwayCells.Count}, " +
+            $"Taxiway placement areas: {data.taxiwayAreas.Count}, " +
             $"Scheduled flights: {data.flightSchedule.Count}, " +
             $"Room assignments: {data.roomPurposeAssignments.Count}, " +
             $"Balance: ${data.balance:N0}. " +
@@ -438,9 +456,9 @@ public class AirportWorldResetController : MonoBehaviour
     }
 
     /// <summary>
-    /// Replaces the current airport layout and restores its buildings,
-    /// foundations, boundary ownership, roads, taxiways, room assignments,
-    /// time, economy, and flight schedule.
+    /// Replaces the current airport layout and restores buildings,
+    /// foundations, boundary ownership, roads, taxiway network and prefab
+    /// visuals, room assignments, time, economy, and flight schedule.
     /// </summary>
     public bool TryRestoreBuildingsAndFoundations(int slot)
     {
@@ -473,21 +491,16 @@ public class AirportWorldResetController : MonoBehaviour
         if (!ValidateSavedDefinitions(data, true))
             return false;
 
-        foreach (TaxiwayCellSaveData savedTaxiway in data.taxiwayCells)
+        if (data.taxiwayCells.Count > 0 &&
+            data.taxiwayAreas.Count == 0)
         {
-            BuildableDefinition definition =
-                FindDefinition(savedTaxiway.definitionId);
-
-            if (definition == null ||
-                taxiwayTilemapController.GetTileForDefinition(definition) == null)
-            {
-                Debug.LogError(
-                    $"Cannot restore taxiway definition " +
-                    $"'{savedTaxiway.definitionId}': no taxiway tile mapping " +
-                    "was found. The current airport has not been changed.");
-
-                return false;
-            }
+            Debug.LogWarning(
+                $"AirportWorldResetController: Save slot {slot} contains " +
+                "taxiway cells but no saved taxiway placement areas. " +
+                "The logical taxiway network can be restored, but the " +
+                "original prefab layout cannot be reconstructed exactly. " +
+                "Save the airport again after placing taxiways with the " +
+                "updated save system.");
         }
 
         if (!ResetAirportLayout())
@@ -680,7 +693,7 @@ public class AirportWorldResetController : MonoBehaviour
         FoundationBoundaryOwnership.ResolveSavedOwnership(
             restoredOwnershipComponents);
 
-        // 2. Restore roads and their visible tiles.
+        // 2. Restore roads and their logical connections.
         foreach (RoadCellSaveData savedRoad in data.roadCells)
         {
             Vector2Int cell = new Vector2Int(
@@ -723,11 +736,12 @@ public class AirportWorldResetController : MonoBehaviour
             restoredRoadCells++;
         }
 
-        // Rebuild the road visuals only after all logical connections exist.
+        // Rebuild road visuals after all logical road connections exist.
         roadModuleRuleManager.RefreshAllRoadModules();
 
-        // 3. Restore taxiway definitions, network cells, tiles,
-        // and centerline membership.
+        // 3. Restore taxiway network cells and centerline membership.
+        // Do not restore taxiway Tilemap tiles. The prefab manager owns
+        // taxiway visuals and rebuilds them from saved placement areas.
         foreach (TaxiwayCellSaveData savedTaxiway in data.taxiwayCells)
         {
             Vector2Int cell = new Vector2Int(
@@ -746,19 +760,7 @@ public class AirportWorldResetController : MonoBehaviour
                 return false;
             }
 
-            var tile =
-                taxiwayTilemapController.GetTileForDefinition(definition);
-
-            if (tile == null)
-            {
-                Debug.LogError(
-                    $"No taxiway tile mapping for '{savedTaxiway.definitionId}'.");
-
-                return false;
-            }
-
             taxiwayNetwork.AddTaxiwayCell(cell, definition);
-            taxiwayTilemapController.SetTaxiwayTile(cell, tile);
 
             if (savedTaxiway.isCenterline)
             {
@@ -769,10 +771,15 @@ public class AirportWorldResetController : MonoBehaviour
             restoredTaxiwayCells++;
         }
 
+        // Restore the original placement rectangles and let the manager
+        // generate straight, curved, T-junction and intersection prefabs.
+        taxiwayPrefabRuleManager.RestorePlacementAreas(
+            data.taxiwayAreas);
+
         foundationTilemapController.RefreshFromGridSurface();
 
         // 4. Refresh room detection and restore room-purpose assignments
-        // only after the saved foundations and boundaries are back in place.
+        // after the saved foundations and boundaries are back in place.
         ResolveRoomPurposeReferences();
 
         if (roomDetectionController != null)
@@ -820,6 +827,7 @@ public class AirportWorldResetController : MonoBehaviour
             $"road cells: {restoredRoadCells}, " +
             $"taxiway cells: {restoredTaxiwayCells}, " +
             $"centerline cells: {restoredCenterlineCells}, " +
+            $"taxiway placement areas: {data.taxiwayAreas.Count}, " +
             $"room assignments saved: {data.roomPurposeAssignments.Count}, " +
             $"scheduled flights saved: {data.flightSchedule.Count}. " +
             $"Balance: ${economyManager.Balance:N0}. " +

@@ -9,6 +9,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1448783425574104798}
+  - component: {fileID: 5425958973644796143}
   - component: {fileID: -5933450104878015963}
   m_Layer: 0
   m_Name: ParkingSpotMain
@@ -26,13 +27,34 @@ Transform:
   m_GameObject: {fileID: 3634051649525876682}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 37.37, y: 0, z: 33.01439}
+  m_LocalPosition: {x: 44.5, y: 0, z: 33}
   m_LocalScale: {x: 2, y: 1, z: 2}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1983325487926544949}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &5425958973644796143
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3634051649525876682}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 4.8, y: 0.2, z: 4}
+  m_Center: {x: 0.15, y: 0, z: -1}
 --- !u!114 &-5933450104878015963
 MonoBehaviour:
   m_ObjectHideFlags: 0

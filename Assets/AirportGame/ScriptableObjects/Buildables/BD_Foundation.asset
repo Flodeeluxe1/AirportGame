@@ -12,8 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b707bf0339cdddd48ac715a8e271822e, type: 3}
   m_Name: BD_Foundation
   m_EditorClassIdentifier: Assembly-CSharp::BuildableDefinition
-  category: 0
-  icon: {fileID: 0}
   id: floor.foundation.raw
   displayName: Foundation
   prefab: {fileID: 8186263012255962732, guid: 5049c150b0bf4ed4baec085ddf9e70ed, type: 3}
@@ -21,5 +19,13 @@ MonoBehaviour:
   requiredSurface: 0
   width: 1
   depth: 1
+  edgeLength: 1
+  requiresExistingWall: 0
+  isWallMounted: 0
+  mountHeight: 2
   canRotate: 0
-  buildCost: 10
+  buildCost: 25
+  blocksPathfinding: 0
+  category: 0
+  icon: {fileID: 0}
+  roomFurnitureRole: 0

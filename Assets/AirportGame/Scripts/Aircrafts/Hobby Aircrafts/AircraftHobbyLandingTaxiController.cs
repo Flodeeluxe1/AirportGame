@@ -25,13 +25,13 @@ public class AircraftHobbyLandingTaxiController : MonoBehaviour
     [Min(0f)]
     [SerializeField] private float runwayEndTolerance = 1f;
     [Min(0.1f)]
-    [SerializeField] private float maximumParkingConnectorDistance = 4f;
+    [SerializeField] private float maximumParkingConnectorDistance = 12f;
 
     [Header("Taxi Movement")]
     [Min(1f)]
-    [SerializeField] private float taxiSpeedKnots = 10f;
+    [SerializeField] private float taxiSpeedKnots = 15f;
     [Min(0.001f)]
-    [SerializeField] private float worldUnitsPerSecondPerKnot = 0.05f;
+    [SerializeField] private float worldUnitsPerSecondPerKnot = 0.08f;
     [Min(0.1f)]
     [SerializeField] private float rotationSpeed = 3f;
     [Min(0.05f)]

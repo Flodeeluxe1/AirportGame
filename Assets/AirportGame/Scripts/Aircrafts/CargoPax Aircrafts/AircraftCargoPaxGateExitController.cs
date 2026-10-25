@@ -87,6 +87,8 @@ public class AircraftCargoPaxGateExitController : MonoBehaviour
     public event Action<AircraftCargoPaxGateExitController>
         ReadyForTaxiReached;
 
+    private bool bypassTurnaroundForTesting;
+
     private void Awake()
     {
         ResolveReferences();
@@ -188,8 +190,9 @@ public class AircraftCargoPaxGateExitController : MonoBehaviour
 
         ResolveReferences();
 
-        if (turnaroundController == null ||
-            !turnaroundController.ReadyToDepart)
+        if (!bypassTurnaroundForTesting &&
+            (turnaroundController == null ||
+             !turnaroundController.ReadyToDepart))
         {
             return false;
         }
@@ -268,6 +271,97 @@ public class AircraftCargoPaxGateExitController : MonoBehaviour
 
         return true;
     }
+
+
+    public bool BeginGateExitForTesting()
+    {
+        if (currentState != GateExitState.WaitingForTurnaround)
+            return false;
+
+        bypassTurnaroundForTesting = true;
+
+        bool started = BeginGateExit();
+
+        bypassTurnaroundForTesting = false;
+
+        return started;
+    }
+
+    private bool BeginGateExitWithoutTurnaroundCheck()
+    {
+        if (gridManager == null ||
+            taxiwayNetwork == null ||
+            gateRegistry == null ||
+            flightIdentity == null)
+        {
+            LogConfigurationWarning(
+                "GridManager, TaxiwayNetwork, AircraftGateRegistry, " +
+                "or AircraftFlightIdentity is missing."
+            );
+
+            return false;
+        }
+
+        if (gridManager.CellSize <= 0f)
+        {
+            LogConfigurationWarning(
+                "GridManager has an invalid CellSize."
+            );
+
+            return false;
+        }
+
+        bool searchValid;
+
+        bool foundForwardExit = TryFindForwardTaxiwayExit(
+            out searchValid,
+            out Vector2Int candidateExitCell,
+            out Vector3 candidateTarget
+        );
+
+        if (!searchValid)
+            return false;
+
+        configurationWarningLogged = false;
+        hasForwardExitCell = false;
+
+        if (foundForwardExit)
+        {
+            forwardExitCell = candidateExitCell;
+            hasForwardExitCell = true;
+            forwardExitTarget = candidateTarget;
+            usedForwardExit = true;
+
+            currentState = GateExitState.MovingForwardToTaxiway;
+
+            Debug.Log(
+                $"{name}: TEST MODE — forward gate exit selected at " +
+                $"grid cell {forwardExitCell}.",
+                this
+            );
+
+            return true;
+        }
+
+        usedForwardExit = false;
+
+        targetRotation = Quaternion.Euler(
+            0f,
+            transform.eulerAngles.y + 180f,
+            0f
+        );
+
+        currentState = GateExitState.TurningAtGate;
+
+        Debug.Log(
+            $"{name}: TEST MODE — no forward taxiway connection. " +
+            "Turning 180 degrees at the gate.",
+            this
+        );
+
+        return true;
+    }
+
 
     private bool TryFindForwardTaxiwayExit(
         out bool searchValid,

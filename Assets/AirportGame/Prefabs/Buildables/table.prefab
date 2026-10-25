@@ -10,27 +10,27 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: 39159cf503574f64b83b74478e8c4fca, type: 3}
       propertyPath: m_LocalScale.x
-      value: 2
+      value: 1.2545453
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 39159cf503574f64b83b74478e8c4fca, type: 3}
       propertyPath: m_LocalScale.y
-      value: 1.1
+      value: 0.69
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 39159cf503574f64b83b74478e8c4fca, type: 3}
       propertyPath: m_LocalScale.z
-      value: 1
+      value: 0.9227647
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 39159cf503574f64b83b74478e8c4fca, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 16.714
+      value: 35.5
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 39159cf503574f64b83b74478e8c4fca, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0.68
+      value: 0.6600001
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 39159cf503574f64b83b74478e8c4fca, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 64.051
+      value: 54.5
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 39159cf503574f64b83b74478e8c4fca, type: 3}
       propertyPath: m_LocalRotation.w
@@ -62,7 +62,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 39159cf503574f64b83b74478e8c4fca, type: 3}
       propertyPath: m_ConstrainProportionsScale
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: 39159cf503574f64b83b74478e8c4fca, type: 3}
       propertyPath: m_Name
@@ -104,5 +104,5 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 1.47, y: 0.66, z: 1}
-  m_Center: {x: 0.22, y: -0.22, z: 0.43}
+  m_Size: {x: 1.5, y: 0.63, z: 0.78}
+  m_Center: {x: 0.25, y: -0.28, z: 0.43}

@@ -26,6 +26,9 @@ public class AirportSaveData
     public List<TaxiwayCellSaveData> taxiwayCells =
         new List<TaxiwayCellSaveData>();
 
+    public List<TaxiwayAreaSaveData> taxiwayAreas =
+    new List<TaxiwayAreaSaveData>();
+
     public List<FlightScheduleSaveData> flightSchedule =
         new List<FlightScheduleSaveData>();
 
@@ -42,6 +45,9 @@ public class AirportSaveData
 
         if (taxiwayCells == null)
             taxiwayCells = new List<TaxiwayCellSaveData>();
+
+        if (taxiwayAreas == null)
+            taxiwayAreas = new List<TaxiwayAreaSaveData>();
 
         if (flightSchedule == null)
             flightSchedule = new List<FlightScheduleSaveData>();
@@ -133,4 +139,13 @@ public class RoomPurposeAssignmentSaveData
     public int anchorX;
     public int anchorZ;
     public int purpose;
+}
+
+[Serializable]
+public class TaxiwayAreaSaveData
+{
+    public int originX;
+    public int originZ;
+    public int width;
+    public int depth;
 }

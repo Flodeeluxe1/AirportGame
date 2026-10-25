@@ -370,7 +370,7 @@ MonoBehaviour:
   aircraftCollider: {fileID: 0}
   maximumSidewindComponentKnots: 15
   runwaySelectionRetryInterval: 3
-  startSearchRadiusCells: 4
+  startSearchRadiusCells: 8
   maximumStartCandidates: 10
   runwaySafetyMarginInCells: 1
   taxiSpeedKnots: 15

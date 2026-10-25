@@ -24,7 +24,7 @@ MonoBehaviour:
   isWallMounted: 0
   mountHeight: 2
   canRotate: 1
-  buildCost: 40
+  buildCost: 120
   blocksPathfinding: 0
   category: 3
   icon: {fileID: 0}

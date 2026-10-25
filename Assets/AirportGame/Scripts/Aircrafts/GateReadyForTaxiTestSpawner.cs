@@ -56,6 +56,9 @@ public class GateReadyForTaxiTestSpawner : MonoBehaviour
         }
     }
 
+
+
+
     private void SpawnAircraft()
     {
         if (spawnedCount >= maximumAircraftToSpawn)
@@ -67,12 +70,12 @@ public class GateReadyForTaxiTestSpawner : MonoBehaviour
                 $"{name}: Aircraft Prefab is not assigned.",
                 this
             );
-
             return;
         }
 
-        Transform point =
-            spawnPoint != null ? spawnPoint : transform;
+        Transform point = spawnPoint != null
+            ? spawnPoint
+            : transform;
 
         GameObject aircraft = Instantiate(
             aircraftPrefab,
@@ -80,11 +83,9 @@ public class GateReadyForTaxiTestSpawner : MonoBehaviour
             point.rotation
         );
 
-        spawnedCount++;
+        aircraft.name = $"DepartureTestAircraft_{spawnedCount + 1:00}";
 
-        aircraft.name = $"DepartureTestAircraft_{spawnedCount:00}";
-
-        // Prevent the test aircraft from starting its landing sequence.
+        // Prevent the test aircraft from starting a landing sequence.
         if (disableLandingController)
         {
             AircraftCargoPaxLandingController landingController =
@@ -95,41 +96,46 @@ public class GateReadyForTaxiTestSpawner : MonoBehaviour
                 landingController.enabled = false;
         }
 
+        // Skip the normal turnaround process.
+        AircraftTurnaroundController turnaroundController =
+            aircraft.GetComponent<AircraftTurnaroundController>();
+
+        if (turnaroundController != null)
+            turnaroundController.enabled = false;
+
         AircraftCargoPaxGateExitController gateExitController =
             aircraft.GetComponent<AircraftCargoPaxGateExitController>();
-
-        if (gateExitController == null)
-        {
-            Debug.LogError(
-                $"{aircraft.name}: AircraftCargoPaxGateExitController is missing.",
-                aircraft
-            );
-
-            return;
-        }
 
         AircraftCargoPaxDepartureTaxiController departureController =
             aircraft.GetComponent<AircraftCargoPaxDepartureTaxiController>();
 
-        if (departureController == null)
+        if (gateExitController == null || departureController == null)
         {
             Debug.LogError(
-                $"{aircraft.name}: AircraftCargoPaxDepartureTaxiController is missing.",
+                $"{aircraft.name}: Required gate-exit or departure controller is missing.",
                 aircraft
             );
 
+            Destroy(aircraft);
             return;
         }
 
+        // Bypass turnaround and initialize the departure taxi sequence.
         gateExitController.SetReadyForTaxiForTesting();
+
+        spawnedCount++;
 
         Debug.Log(
             $"DEPARTURE TEST AIRCRAFT SPAWNED | " +
             $"Aircraft: {aircraft.name} | " +
-            $"Spawned: {spawnedCount}/{maximumAircraftToSpawn}",
+            $"Spawned: {spawnedCount}/{maximumAircraftToSpawn} | " +
+            "Turnaround skipped; ready for departure taxi.",
             aircraft
         );
     }
+
+
+
 
     [ContextMenu("Debug/Spawn One Test Aircraft")]
     private void DebugSpawnOneAircraft()

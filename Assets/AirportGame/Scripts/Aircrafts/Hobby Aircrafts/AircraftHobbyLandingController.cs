@@ -28,23 +28,23 @@ public class AircraftHobbyLandingController : MonoBehaviour
 
     [Header("Speeds")]
     [Min(1f)]
-    [SerializeField] private float approachSpeedKnots = 140f;
+    [SerializeField] private float approachSpeedKnots = 75f;
 
     [Min(1f)]
-    [SerializeField] private float touchdownSpeedKnots = 120f;
+    [SerializeField] private float touchdownSpeedKnots = 55f;
 
     [Min(1f)]
-    [SerializeField] private float rolloutTargetSpeedKnots = 30f;
+    [SerializeField] private float rolloutTargetSpeedKnots = 15f;
 
     [Tooltip("Converts knots into Unity world units per second.")]
     [Min(0.001f)]
-    [SerializeField] private float worldUnitsPerSecondPerKnot = 0.05f;
+    [SerializeField] private float worldUnitsPerSecondPerKnot = 0.08f;
 
     [Min(0.1f)]
     [SerializeField] private float speedChangeRate = 3f;
 
     [Min(0.1f)]
-    [SerializeField] private float rolloutDeceleration = 1.2f;
+    [SerializeField] private float rolloutDeceleration = 1f;
 
     [Header("Flare")]
     [Min(0.1f)]
@@ -63,7 +63,7 @@ public class AircraftHobbyLandingController : MonoBehaviour
 
     [Tooltip("Nose-up attitude during a go-around.")]
     [Range(1f, 45f)]
-    [SerializeField] private float goAroundNoseUpDegrees = 20f;
+    [SerializeField] private float goAroundNoseUpDegrees = 10f;
 
     [Tooltip("Go-around target height above the runway surface, in Unity world units.")]
     [Min(1f)]
