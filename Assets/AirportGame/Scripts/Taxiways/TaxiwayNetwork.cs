@@ -23,10 +23,30 @@ public class TaxiwayNetwork : MonoBehaviour
         }
     }
 
+    private class RunwayCell
+    {
+        public BuildableDefinition Definition;
+        public RunwayNetworkRegistration Owner;
+
+        public RunwayCell(
+            BuildableDefinition definition,
+            RunwayNetworkRegistration owner)
+        {
+            Definition = definition;
+            Owner = owner;
+        }
+    }
+
     private readonly Dictionary<Vector2Int, TaxiwayCell> taxiwayCells =
         new Dictionary<Vector2Int, TaxiwayCell>();
 
     private readonly HashSet<Vector2Int> centerlineCells =
+        new HashSet<Vector2Int>();
+
+    private readonly Dictionary<Vector2Int, RunwayCell> runwayCells =
+    new Dictionary<Vector2Int, RunwayCell>();
+
+    private readonly HashSet<Vector2Int> runwayCenterlineCells =
         new HashSet<Vector2Int>();
 
     private static readonly Vector2Int North =
@@ -46,9 +66,87 @@ public class TaxiwayNetwork : MonoBehaviour
         return taxiwayCells.ContainsKey(position);
     }
 
+    public bool IsRunway(Vector2Int position)
+    {
+        return runwayCells.ContainsKey(position);
+    }
+
+    public bool IsGroundMovementCell(Vector2Int position)
+    {
+        return IsTaxiway(position) || IsRunway(position);
+    }
+
+    public bool IsRunwayCellRegisteredBy(
+        Vector2Int position,
+        RunwayNetworkRegistration owner)
+    {
+        return owner != null &&
+               runwayCells.TryGetValue(
+                   position,
+                   out RunwayCell cell) &&
+               cell.Owner == owner;
+    }
+
+    public bool AddRunwayCell(
+        Vector2Int position,
+        BuildableDefinition definition,
+        RunwayNetworkRegistration owner)
+    {
+        if (definition == null || owner == null)
+        {
+            Debug.LogWarning(
+                "TaxiwayNetwork: Cannot register a runway cell " +
+                "without a definition and registration owner.");
+            return false;
+        }
+
+        if (runwayCells.TryGetValue(
+                position,
+                out RunwayCell existingCell))
+        {
+            // Only the registration that owns the cell may reuse it.
+            return existingCell.Owner == owner &&
+                   existingCell.Definition == definition;
+        }
+
+        runwayCells.Add(
+            position,
+            new RunwayCell(definition, owner));
+
+        return true;
+    }
+
+    public bool RemoveRunwayCell(
+        Vector2Int position,
+        RunwayNetworkRegistration owner)
+    {
+        if (owner == null ||
+            !runwayCells.TryGetValue(
+                position,
+                out RunwayCell existingCell) ||
+            existingCell.Owner != owner)
+        {
+            return false;
+        }
+
+        runwayCells.Remove(position);
+        runwayCenterlineCells.Remove(position);
+
+        return true;
+    }
+
+    public void AddRunwayCenterlineCell(
+        Vector2Int position,
+        RunwayNetworkRegistration owner)
+    {
+        if (IsRunwayCellRegisteredBy(position, owner))
+            runwayCenterlineCells.Add(position);
+    }
+
     public bool IsCenterlineCell(Vector2Int position)
     {
-        return centerlineCells.Contains(position);
+        return centerlineCells.Contains(position) ||
+               runwayCenterlineCells.Contains(position);
     }
 
     public void AddTaxiwayCenterlineCell(
@@ -169,6 +267,35 @@ public class TaxiwayNetwork : MonoBehaviour
         return connectedCells;
     }
 
+    public List<Vector2Int> GetConnectedGroundMovementCells(
+    Vector2Int position)
+    {
+        List<Vector2Int> connectedCells =
+            new List<Vector2Int>();
+
+        if (!IsGroundMovementCell(position))
+            return connectedCells;
+
+        Vector2Int north = position + North;
+        Vector2Int east = position + East;
+        Vector2Int south = position + South;
+        Vector2Int west = position + West;
+
+        if (IsGroundMovementCell(north))
+            connectedCells.Add(north);
+
+        if (IsGroundMovementCell(east))
+            connectedCells.Add(east);
+
+        if (IsGroundMovementCell(south))
+            connectedCells.Add(south);
+
+        if (IsGroundMovementCell(west))
+            connectedCells.Add(west);
+
+        return connectedCells;
+    }
+
     private void UpdateConnectionsAround(
         Vector2Int position)
     {
@@ -206,6 +333,9 @@ public class TaxiwayNetwork : MonoBehaviour
     {
         taxiwayCells.Clear();
         centerlineCells.Clear();
+
+        runwayCells.Clear();
+        runwayCenterlineCells.Clear();
     }
 
     [ContextMenu("Debug All Taxiway Cells")]

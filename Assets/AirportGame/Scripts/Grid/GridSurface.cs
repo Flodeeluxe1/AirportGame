@@ -19,6 +19,10 @@ public class GridSurface : MonoBehaviour
         taxiwayUnderlyingSurfaces =
             new Dictionary<Vector2Int, BuildSurface>();
 
+    private readonly Dictionary<Vector2Int, BuildSurface>
+    runwayUnderlyingSurfaces =
+        new Dictionary<Vector2Int, BuildSurface>();
+
 
     private void Awake()
     {
@@ -55,6 +59,8 @@ public class GridSurface : MonoBehaviour
 
         surfaceOwners.Clear();
         obstacleOwners.Clear();
+        taxiwayUnderlyingSurfaces.Clear();
+        runwayUnderlyingSurfaces.Clear();
     }
 
     public BuildSurface GetSurface(Vector2Int position)
@@ -297,6 +303,7 @@ public class GridSurface : MonoBehaviour
         surfaceOwners.Clear();
         obstacleOwners.Clear();
         taxiwayUnderlyingSurfaces.Clear();
+        runwayUnderlyingSurfaces.Clear();
     }
 
 
@@ -390,6 +397,53 @@ public class GridSurface : MonoBehaviour
         else if (surfaces[position.x, position.y] == BuildSurface.Taxiway)
         {
             // Fallback for taxiway cells without saved underlying data.
+            surfaces[position.x, position.y] = BuildSurface.Grass;
+        }
+    }
+
+    public void RegisterRunwayCell(Vector2Int position)
+    {
+        if (gridManager == null ||
+            !gridManager.IsInsideGrid(position))
+        {
+            return;
+        }
+
+        if (surfaces == null)
+            Initialize();
+
+        if (surfaces == null)
+            return;
+
+        // Preserve the original surface only on first registration.
+        if (surfaces[position.x, position.y] != BuildSurface.Runway &&
+            !runwayUnderlyingSurfaces.ContainsKey(position))
+        {
+            runwayUnderlyingSurfaces[position] =
+                surfaces[position.x, position.y];
+        }
+
+        surfaces[position.x, position.y] = BuildSurface.Runway;
+    }
+
+    public void UnregisterRunwayCell(Vector2Int position)
+    {
+        if (gridManager == null ||
+            surfaces == null ||
+            !gridManager.IsInsideGrid(position))
+        {
+            return;
+        }
+
+        if (runwayUnderlyingSurfaces.TryGetValue(
+                position,
+                out BuildSurface underlyingSurface))
+        {
+            surfaces[position.x, position.y] = underlyingSurface;
+            runwayUnderlyingSurfaces.Remove(position);
+        }
+        else if (surfaces[position.x, position.y] == BuildSurface.Runway)
+        {
             surfaces[position.x, position.y] = BuildSurface.Grass;
         }
     }

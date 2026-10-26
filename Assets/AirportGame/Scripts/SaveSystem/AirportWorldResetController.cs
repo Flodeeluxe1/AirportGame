@@ -588,6 +588,24 @@ public class AirportWorldResetController : MonoBehaviour
                     saved.rotation);
             }
 
+            // Rebuild the runway's logical ground-movement registration on load.
+            if (placedObject.GetComponent<AircraftRunway>() != null)
+            {
+                RunwayNetworkRegistration registration =
+                    placedObject.GetComponent<RunwayNetworkRegistration>();
+
+                if (registration == null)
+                {
+                    registration =
+                        placedObject.AddComponent<RunwayNetworkRegistration>();
+                }
+
+                registration.Initialize(
+                    taxiwayNetwork,
+                    gridSurface,
+                    placedBuilding);
+            }
+
             if (saved.hasFlightSchoolParkingDesignation)
             {
                 HobbyAircraftParkingSpot parkingSpot =
@@ -778,6 +796,20 @@ public class AirportWorldResetController : MonoBehaviour
         // generate straight, curved, T-junction and intersection prefabs.
         taxiwayPrefabRuleManager.RestorePlacementAreas(
             data.taxiwayAreas);
+
+        // Taxiway restoration can touch cells that also have runway
+        // registrations. Reassert the final runway surface afterward.
+        RunwayNetworkRegistration[] runwayRegistrations =
+            FindObjectsByType<RunwayNetworkRegistration>(
+                FindObjectsInactive.Include,
+                FindObjectsSortMode.None);
+
+        foreach (RunwayNetworkRegistration registration
+                 in runwayRegistrations)
+        {
+            if (registration != null)
+                registration.RefreshSurfaceRegistration();
+        }
 
         foundationTilemapController.RefreshFromGridSurface();
 

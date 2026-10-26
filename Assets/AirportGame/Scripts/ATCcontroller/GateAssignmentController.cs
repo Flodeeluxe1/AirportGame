@@ -158,10 +158,17 @@ public class GateAssignmentController : MonoBehaviour
                 aircraft.Definition.RequiredGateSize
             );
 
+        Vector2Int aircraftCell =
+            gridManager.WorldToGrid(aircraft.transform.position);
+
+        bool aircraftIsOnRunway =
+            taxiwayNetwork.IsRunway(aircraftCell);
+
         List<TaxiwayCandidate> startCandidates =
             FindNearbyCenterlineCells(
                 aircraft.transform.position,
-                minimumTaxiwayWidth
+                minimumTaxiwayWidth,
+                aircraftIsOnRunway
             );
 
         if (startCandidates.Count == 0)
@@ -419,7 +426,8 @@ public class GateAssignmentController : MonoBehaviour
 
     private List<TaxiwayCandidate> FindNearbyCenterlineCells(
         Vector3 worldPosition,
-        int minimumTaxiwayWidth)
+        int minimumTaxiwayWidth,
+        bool allowRunwayCells = false)
     {
         List<TaxiwayCandidate> candidates =
             new List<TaxiwayCandidate>();
@@ -438,16 +446,32 @@ public class GateAssignmentController : MonoBehaviour
                     center.y + zOffset
                 );
 
-                if (!gridManager.IsInsideGrid(cell))
-                    continue;
+                bool searchRunwayOnly =
+    allowRunwayCells &&
+    taxiwayNetwork.IsRunway(center);
 
-                if (!taxiwayNetwork.IsTaxiway(cell))
-                    continue;
+                bool isRunway =
+                    taxiwayNetwork.IsRunway(cell);
+
+                bool isTaxiway =
+                    taxiwayNetwork.IsTaxiway(cell);
+
+                if (searchRunwayOnly)
+                {
+                    if (!isRunway)
+                        continue;
+                }
+                else
+                {
+                    if (!isTaxiway)
+                        continue;
+                }
 
                 if (!taxiwayNetwork.IsCenterlineCell(cell))
                     continue;
 
-                if (taxiwayNetwork.GetTaxiwayWidth(cell) <
+                if (!searchRunwayOnly &&
+                    taxiwayNetwork.GetTaxiwayWidth(cell) <
                     minimumTaxiwayWidth)
                 {
                     continue;

@@ -14,7 +14,7 @@ public class TaxiwayGraphDebugVisualizer : MonoBehaviour
     [SerializeField] private bool showCellMarkers = true;
     [SerializeField] private bool showCenterlineMarkers = true;
 
-    [Tooltip("Vertical offset above the taxiway surface.")]
+    [Tooltip("Vertical offset above the runway or taxiway surface.")]
     [SerializeField] private float verticalOffset = 0.15f;
 
     [Min(0.02f)]
@@ -24,17 +24,18 @@ public class TaxiwayGraphDebugVisualizer : MonoBehaviour
     [SerializeField] private float centerlineMarkerSize = 0.28f;
 
     [Header("Reachability Test")]
-    [Tooltip("Starting taxiway cell used for the flood-fill test.")]
+    [Tooltip("Starting runway or taxiway cell for the flood-fill test.")]
     [SerializeField] private Vector2Int startCell = Vector2Int.zero;
 
     [Min(1)]
     [SerializeField] private int minimumTaxiwayWidth = 1;
 
-    [Tooltip("When enabled, cells that A* cannot reach from Start Cell are highlighted.")]
+    [Tooltip("Highlight cells reachable from Start Cell.")]
     [SerializeField] private bool colorByReachability = true;
 
     [Header("Colors")]
     [SerializeField] private Color normalCellColor = Color.cyan;
+    [SerializeField] private Color runwayCellColor = Color.magenta;
     [SerializeField] private Color reachableColor = Color.green;
     [SerializeField] private Color unreachableColor = Color.red;
     [SerializeField] private Color isolatedColor = new Color(1f, 0.5f, 0f);
@@ -46,7 +47,7 @@ public class TaxiwayGraphDebugVisualizer : MonoBehaviour
     private readonly HashSet<Vector2Int> reachableCells =
         new HashSet<Vector2Int>();
 
-    private readonly HashSet<Vector2Int> allTaxiwayCells =
+    private readonly HashSet<Vector2Int> allGroundMovementCells =
         new HashSet<Vector2Int>();
 
     private readonly Queue<Vector2Int> floodQueue =
@@ -76,15 +77,15 @@ public class TaxiwayGraphDebugVisualizer : MonoBehaviour
         if (gridManager == null || taxiwayNetwork == null)
             return;
 
-        CollectTaxiwayCells();
+        CollectGroundMovementCells();
         CalculateReachableCells();
         DrawConnections();
         DrawCells();
     }
 
-    private void CollectTaxiwayCells()
+    private void CollectGroundMovementCells()
     {
-        allTaxiwayCells.Clear();
+        allGroundMovementCells.Clear();
 
         for (int x = 0; x < gridManager.Width; x++)
         {
@@ -92,8 +93,8 @@ public class TaxiwayGraphDebugVisualizer : MonoBehaviour
             {
                 Vector2Int cell = new Vector2Int(x, z);
 
-                if (taxiwayNetwork.IsTaxiway(cell))
-                    allTaxiwayCells.Add(cell);
+                if (taxiwayNetwork.IsGroundMovementCell(cell))
+                    allGroundMovementCells.Add(cell);
             }
         }
     }
@@ -102,9 +103,6 @@ public class TaxiwayGraphDebugVisualizer : MonoBehaviour
     {
         reachableCells.Clear();
         floodQueue.Clear();
-
-        if (!colorByReachability)
-            return;
 
         if (!IsSuitableCell(startCell))
             return;
@@ -117,7 +115,7 @@ public class TaxiwayGraphDebugVisualizer : MonoBehaviour
             Vector2Int current = floodQueue.Dequeue();
 
             List<Vector2Int> neighbors =
-                taxiwayNetwork.GetConnectedTaxiwayCells(current);
+                taxiwayNetwork.GetConnectedGroundMovementCells(current);
 
             foreach (Vector2Int neighbor in neighbors)
             {
@@ -132,8 +130,14 @@ public class TaxiwayGraphDebugVisualizer : MonoBehaviour
 
     private bool IsSuitableCell(Vector2Int cell)
     {
-        return taxiwayNetwork.IsTaxiway(cell) &&
-               taxiwayNetwork.GetTaxiwayWidth(cell) >=
+        if (!taxiwayNetwork.IsGroundMovementCell(cell))
+            return false;
+
+        // Runway cells are traversable regardless of taxiway width.
+        if (taxiwayNetwork.IsRunway(cell))
+            return true;
+
+        return taxiwayNetwork.GetTaxiwayWidth(cell) >=
                Mathf.Max(1, minimumTaxiwayWidth);
     }
 
@@ -149,10 +153,10 @@ public class TaxiwayGraphDebugVisualizer : MonoBehaviour
         if (!showConnectionLines)
             return;
 
-        foreach (Vector2Int cell in allTaxiwayCells)
+        foreach (Vector2Int cell in allGroundMovementCells)
         {
             List<Vector2Int> neighbors =
-                taxiwayNetwork.GetConnectedTaxiwayCells(cell);
+                taxiwayNetwork.GetConnectedGroundMovementCells(cell);
 
             Vector3 startPosition = GetCellWorldPosition(cell);
 
@@ -186,8 +190,7 @@ public class TaxiwayGraphDebugVisualizer : MonoBehaviour
 
                 Gizmos.DrawLine(
                     startPosition,
-                    GetCellWorldPosition(neighbor)
-                );
+                    GetCellWorldPosition(neighbor));
             }
         }
     }
@@ -197,11 +200,14 @@ public class TaxiwayGraphDebugVisualizer : MonoBehaviour
         if (!showCellMarkers)
             return;
 
-        foreach (Vector2Int cell in allTaxiwayCells)
+        foreach (Vector2Int cell in allGroundMovementCells)
         {
             bool suitable = IsSuitableCell(cell);
+            bool isRunway = taxiwayNetwork.IsRunway(cell);
 
-            Color markerColor = normalCellColor;
+            Color markerColor = isRunway
+                ? runwayCellColor
+                : normalCellColor;
 
             if (!suitable)
             {
@@ -215,9 +221,9 @@ public class TaxiwayGraphDebugVisualizer : MonoBehaviour
             }
 
             List<Vector2Int> neighbors =
-                taxiwayNetwork.GetConnectedTaxiwayCells(cell);
+                taxiwayNetwork.GetConnectedGroundMovementCells(cell);
 
-            if (neighbors.Count == 0)
+            if (suitable && neighbors.Count == 0)
                 markerColor = isolatedColor;
 
             if (cell == startCell && colorByReachability)
@@ -235,8 +241,7 @@ public class TaxiwayGraphDebugVisualizer : MonoBehaviour
 
                 Gizmos.DrawWireSphere(
                     position,
-                    centerlineMarkerSize
-                );
+                    centerlineMarkerSize);
             }
         }
     }
@@ -251,14 +256,15 @@ public class TaxiwayGraphDebugVisualizer : MonoBehaviour
             Debug.LogError(
                 "TaxiwayGraphDebugVisualizer: GridManager or " +
                 "TaxiwayNetwork is missing.",
-                this
-            );
+                this);
             return;
         }
 
-        CollectTaxiwayCells();
+        CollectGroundMovementCells();
         CalculateReachableCells();
 
+        int runwayCount = 0;
+        int taxiwayCount = 0;
         int suitableCount = 0;
         int unreachableCount = 0;
         int isolatedCount = 0;
@@ -267,18 +273,29 @@ public class TaxiwayGraphDebugVisualizer : MonoBehaviour
         List<Vector2Int> unreachableCells =
             new List<Vector2Int>();
 
-        foreach (Vector2Int cell in allTaxiwayCells)
+        foreach (Vector2Int cell in allGroundMovementCells)
         {
+            if (taxiwayNetwork.IsRunway(cell))
+                runwayCount++;
+
+            if (taxiwayNetwork.IsTaxiway(cell))
+                taxiwayCount++;
+
             if (!IsSuitableCell(cell))
             {
-                unsuitableWidthCount++;
+                if (taxiwayNetwork.IsTaxiway(cell) &&
+                    !taxiwayNetwork.IsRunway(cell))
+                {
+                    unsuitableWidthCount++;
+                }
+
                 continue;
             }
 
             suitableCount++;
 
             List<Vector2Int> neighbors =
-                taxiwayNetwork.GetConnectedTaxiwayCells(cell);
+                taxiwayNetwork.GetConnectedGroundMovementCells(cell);
 
             bool hasSuitableNeighbor = false;
 
@@ -294,8 +311,7 @@ public class TaxiwayGraphDebugVisualizer : MonoBehaviour
             if (!hasSuitableNeighbor)
                 isolatedCount++;
 
-            if (colorByReachability &&
-                !reachableCells.Contains(cell))
+            if (!reachableCells.Contains(cell))
             {
                 unreachableCount++;
                 unreachableCells.Add(cell);
@@ -303,16 +319,18 @@ public class TaxiwayGraphDebugVisualizer : MonoBehaviour
         }
 
         string report =
-            "========== TAXIWAY GRAPH SUMMARY ==========\n" +
-            $"Total taxiway cells: {allTaxiwayCells.Count}\n" +
-            $"Minimum required width: {minimumTaxiwayWidth}\n" +
+            "========== GROUND MOVEMENT GRAPH SUMMARY ==========\n" +
+            $"Total graph cells: {allGroundMovementCells.Count}\n" +
+            $"Taxiway cells: {taxiwayCount}\n" +
+            $"Runway cells: {runwayCount}\n" +
+            $"Minimum required taxiway width: {minimumTaxiwayWidth}\n" +
             $"Suitable cells: {suitableCount}\n" +
             $"Start cell: {startCell}\n" +
             $"Start cell suitable: {IsSuitableCell(startCell)}\n" +
             $"Reachable cells: {reachableCells.Count}\n" +
             $"Unreachable suitable cells: {unreachableCount}\n" +
             $"Isolated suitable cells: {isolatedCount}\n" +
-            $"Cells below required width: {unsuitableWidthCount}\n";
+            $"Taxiway cells below required width: {unsuitableWidthCount}\n";
 
         if (unreachableCells.Count > 0)
         {
@@ -324,7 +342,7 @@ public class TaxiwayGraphDebugVisualizer : MonoBehaviour
             report += "\n";
         }
 
-        report += "============================================";
+        report += "===================================================";
 
         Debug.Log(report, this);
     }

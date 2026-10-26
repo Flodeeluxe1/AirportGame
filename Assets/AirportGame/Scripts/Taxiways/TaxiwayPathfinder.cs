@@ -56,10 +56,10 @@ public class TaxiwayPathfinder : MonoBehaviour
         minimumTaxiwayWidth =
             Mathf.Max(1, minimumTaxiwayWidth);
 
-        if (!IsSuitableTaxiwayCell(
+        if (!IsSuitableGroundMovementCell(
                 start,
                 minimumTaxiwayWidth) ||
-            !IsSuitableTaxiwayCell(
+            !IsSuitableGroundMovementCell(
                 target,
                 minimumTaxiwayWidth))
         {
@@ -113,7 +113,7 @@ public class TaxiwayPathfinder : MonoBehaviour
             closedSet.Add(current);
 
             List<Vector2Int> neighbors =
-                taxiwayNetwork.GetConnectedTaxiwayCells(
+                taxiwayNetwork.GetConnectedGroundMovementCells(
                     current
                 );
 
@@ -122,7 +122,7 @@ public class TaxiwayPathfinder : MonoBehaviour
                 if (closedSet.Contains(next))
                     continue;
 
-                if (!IsSuitableTaxiwayCell(
+                if (!IsSuitableGroundMovementCell(
                         next,
                         minimumTaxiwayWidth))
                 {
@@ -160,13 +160,18 @@ public class TaxiwayPathfinder : MonoBehaviour
         return emptyPath;
     }
 
-    private bool IsSuitableTaxiwayCell(
+    private bool IsSuitableGroundMovementCell(
         Vector2Int cell,
         int minimumTaxiwayWidth)
     {
-        if (!taxiwayNetwork.IsTaxiway(cell))
+        if (!taxiwayNetwork.IsGroundMovementCell(cell))
             return false;
 
+        // Runway cells are traversable regardless of taxiway-width rules.
+        if (taxiwayNetwork.IsRunway(cell))
+            return true;
+
+        // Taxiway width restrictions remain unchanged.
         return taxiwayNetwork.GetTaxiwayWidth(cell) >=
                minimumTaxiwayWidth;
     }

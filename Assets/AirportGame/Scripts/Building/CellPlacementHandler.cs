@@ -259,6 +259,37 @@ public class CellPlacementHandler : IPlacementHandler
             currentRotation
         );
 
+        // Register runway footprint cells in the shared ground-movement network.
+        if (placedObject.GetComponent<AircraftRunway>() != null)
+        {
+            TaxiwayNetwork runwayNetwork =
+                Object.FindFirstObjectByType<TaxiwayNetwork>();
+
+            if (runwayNetwork == null)
+            {
+                Debug.LogError(
+                    $"Placed runway {definition.displayName}, but " +
+                    "TaxiwayNetwork was not found.",
+                    placedObject);
+            }
+            else
+            {
+                RunwayNetworkRegistration registration =
+                    placedObject.GetComponent<RunwayNetworkRegistration>();
+
+                if (registration == null)
+                {
+                    registration =
+                        placedObject.AddComponent<RunwayNetworkRegistration>();
+                }
+
+                registration.Initialize(
+                    runwayNetwork,
+                    gridSurface,
+                    placedBuilding);
+            }
+        }
+
         if (definition.blocksPathfinding && gridSurface != null)
         {
             GridPathfindingObstacle obstacle =

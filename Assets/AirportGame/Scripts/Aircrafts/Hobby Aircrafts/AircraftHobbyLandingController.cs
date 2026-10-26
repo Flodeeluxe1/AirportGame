@@ -25,7 +25,7 @@ public class AircraftHobbyLandingController : MonoBehaviour
 
     [Range(1f, 6f)]
     [SerializeField] private float glideAngleDegrees = 3f;
-    [SerializeField] private float touchdownOffset = 3f;
+    [SerializeField] private float touchdownOffset = 6f;
 
     [Header("Speeds")]
     [Min(1f)]

@@ -25,7 +25,7 @@ public class AircraftCargoPaxLandingController : MonoBehaviour
 
     [Range(1f, 6f)]
     [SerializeField] private float glideAngleDegrees = 3f;
-    [SerializeField] private float touchdownOffset = 7f;
+    [SerializeField] private float touchdownOffset = 9f;
 
     [Header("Speeds")]
     [Min(1f)]
