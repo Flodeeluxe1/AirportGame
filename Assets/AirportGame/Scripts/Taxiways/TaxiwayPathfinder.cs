@@ -129,8 +129,13 @@ public class TaxiwayPathfinder : MonoBehaviour
                     continue;
                 }
 
-                float movementCost =
-                    taxiwayNetwork.IsCenterlineCell(next)
+                // Movements Costs here
+                float movementCost;
+
+                if (taxiwayNetwork.IsRunway(next))
+                    movementCost = 100f;
+                else
+                    movementCost = taxiwayNetwork.IsCenterlineCell(next)
                         ? 1f
                         : offCenterlineCost;
 

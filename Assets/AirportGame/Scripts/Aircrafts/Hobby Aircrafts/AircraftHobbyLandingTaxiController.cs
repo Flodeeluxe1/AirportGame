@@ -191,6 +191,8 @@ public class AircraftHobbyLandingTaxiController : MonoBehaviour
     }
 
 
+
+
     private void TryBuildTaxiRoute()
     {
         if (gridManager == null ||
@@ -256,7 +258,10 @@ public class AircraftHobbyLandingTaxiController : MonoBehaviour
             runwayCenter + landingDirection * (runwayLength * 0.5f);
 
         float remainingRunwayDistance =
-            Vector3.Dot(runwayEnd - aircraftPosition, landingDirection);
+            Vector3.Dot(
+                runwayEnd - aircraftPosition,
+                landingDirection
+            );
 
         if (remainingRunwayDistance <= 0f)
         {
@@ -267,6 +272,7 @@ public class AircraftHobbyLandingTaxiController : MonoBehaviour
             return;
         }
 
+        // Only consider exits ahead of the aircraft.
         List<ExitCandidate> exits =
             FindForwardRunwayExits(
                 aircraftPosition,
@@ -283,11 +289,15 @@ public class AircraftHobbyLandingTaxiController : MonoBehaviour
         parkingTarget = reservedSpot.ParkingWorldPosition;
         parkingTarget.y = taxiWorldY;
 
-        List<TargetCandidate> targets = FindNearbyTaxiwayTargets(parkingTarget);
+        List<TargetCandidate> targets =
+            FindNearbyTaxiwayTargets(parkingTarget);
 
         if (targets.Count == 0)
         {
-            Fail("No suitable taxiway centerline was found near the reserved grass parking spot.");
+            Fail(
+                "No suitable taxiway centerline was found near " +
+                "the reserved grass parking spot."
+            );
             return;
         }
 
@@ -295,25 +305,36 @@ public class AircraftHobbyLandingTaxiController : MonoBehaviour
         ExitCandidate chosenExit = default;
         TargetCandidate chosenTarget = default;
         List<Vector2Int> chosenPath = null;
-        int attempts = 0;
 
+        int totalAttempts = 0;
+        int bestPathLength = int.MaxValue;
+        float bestExitDistance = float.MaxValue;
+
+        float connectorDistance =
+            maximumParkingConnectorDistance * gridManager.CellSize;
+
+        // Evaluate forward exits instead of accepting the first successful one.
         foreach (ExitCandidate exit in exits)
         {
+            bool foundRouteForExit = false;
+
             foreach (TargetCandidate target in targets)
             {
-                Vector3 targetWorld = gridManager.GridToWorldCenter(target.Cell);
+                Vector3 targetWorld =
+                    gridManager.GridToWorldCenter(target.Cell);
+
                 targetWorld.y = taxiWorldY;
 
-                float connectorDistance =
-                    maximumParkingConnectorDistance * gridManager.CellSize;
-
-                if (HorizontalDistance(targetWorld, parkingTarget) > connectorDistance)
+                if (HorizontalDistance(targetWorld, parkingTarget) >
+                    connectorDistance)
+                {
                     continue;
+                }
 
-                if (attempts >= maximumRouteAttempts)
+                if (totalAttempts >= maximumRouteAttempts)
                     break;
 
-                attempts++;
+                totalAttempts++;
 
                 List<Vector2Int> candidatePath =
                     taxiwayPathfinder.FindPath(
@@ -325,22 +346,38 @@ public class AircraftHobbyLandingTaxiController : MonoBehaviour
                 if (candidatePath == null || candidatePath.Count == 0)
                     continue;
 
-                chosenExit = exit;
-                chosenTarget = target;
-                chosenPath = candidatePath;
-                foundRoute = true;
+                foundRouteForExit = true;
+
+                // Prefer the shortest taxiway path. If paths are equally
+                // long, prefer the exit closer ahead of the aircraft.
+                if (candidatePath.Count < bestPathLength ||
+                    (candidatePath.Count == bestPathLength &&
+                     exit.ForwardDistance < bestExitDistance))
+                {
+                    foundRoute = true;
+                    chosenExit = exit;
+                    chosenTarget = target;
+                    chosenPath = candidatePath;
+
+                    bestPathLength = candidatePath.Count;
+                    bestExitDistance = exit.ForwardDistance;
+                }
+
+                // Targets are sorted by distance to parking, so the first
+                // successful target is the nearest viable target for this exit.
                 break;
             }
 
-            if (foundRoute || attempts >= maximumRouteAttempts)
+            if (totalAttempts >= maximumRouteAttempts)
                 break;
         }
 
         if (!foundRoute)
         {
             Fail(
-                "No connected taxiway route was found between a runway exit " +
-                "and the reserved grass parking spot."
+                "No connected taxiway route was found between a forward " +
+                "runway exit and the reserved grass parking spot. " +
+                $"Tried {totalAttempts} routes."
             );
             return;
         }
@@ -349,10 +386,14 @@ public class AircraftHobbyLandingTaxiController : MonoBehaviour
         route.AddRange(chosenPath);
 
         runwayExitPoint =
-            aircraftPosition + landingDirection * chosenExit.ForwardDistance;
+            aircraftPosition +
+            landingDirection * chosenExit.ForwardDistance;
+
         runwayExitPoint.y = taxiWorldY;
 
-        taxiwayJoinPoint = gridManager.GridToWorldCenter(chosenExit.Cell);
+        taxiwayJoinPoint =
+            gridManager.GridToWorldCenter(chosenExit.Cell);
+
         taxiwayJoinPoint.y = taxiWorldY;
 
         BuildSmoothedTaxiMovementPath();
@@ -371,7 +412,7 @@ public class AircraftHobbyLandingTaxiController : MonoBehaviour
         transform.position = adjustedPosition;
 
         debugStatus =
-            $"Hobby taxi route found. Runway exit {chosenExit.Cell}, " +
+            $"Hobby taxi route found. Forward runway exit {chosenExit.Cell}, " +
             $"taxiway target {chosenTarget.Cell}, {route.Count} route cells, " +
             $"{taxiMovementPath.Count} smoothed waypoints.";
 
@@ -379,13 +420,18 @@ public class AircraftHobbyLandingTaxiController : MonoBehaviour
         {
             Debug.Log(
                 $"HOBBY TAXI ROUTE FOUND | Aircraft: {name} | " +
-                $"Parking: {reservedSpot.name} | Exit: {chosenExit.Cell} | " +
-                $"Target: {chosenTarget.Cell} | Route cells: {route.Count} | " +
+                $"Parking: {reservedSpot.name} | " +
+                $"Forward exit: {chosenExit.Cell} | " +
+                $"Forward distance: {chosenExit.ForwardDistance:F1} | " +
+                $"Target: {chosenTarget.Cell} | " +
+                $"Route cells: {route.Count} | " +
                 $"Smoothed waypoints: {taxiMovementPath.Count}",
                 this
             );
         }
     }
+
+
 
     private void BuildSmoothedTaxiMovementPath()
     {
