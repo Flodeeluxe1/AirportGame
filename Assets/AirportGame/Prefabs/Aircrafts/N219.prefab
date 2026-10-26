@@ -141,8 +141,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 2, y: 1, z: 2}
-  m_Center: {x: 0, y: 0.87, z: 0}
+  m_Size: {x: 2, y: 1, z: 4.5}
+  m_Center: {x: 0, y: 0.62, z: 0}
 --- !u!114 &-189875983028876971
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -448,12 +448,12 @@ MonoBehaviour:
   trafficLayer:
     serializedVersion: 2
     m_Bits: 128
-  trafficDetectionDistance: 8
+  trafficDetectionDistance: 10
   safeFollowingDistance: 7
   rayOriginHeight: 0.5
-  rayOriginForwardOffset: 1
-  acceleration: 0.3
-  braking: 0.1
+  rayOriginForwardOffset: 5
+  acceleration: 0.1
+  braking: 0.3
   debugCurrentSpeed: 0
   debugBlockingAircraft: None
   debugBlockingDistance: 0

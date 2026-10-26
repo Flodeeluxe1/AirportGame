@@ -16,7 +16,7 @@ MonoBehaviour:
   displayName: Taxiway Middle
   prefab: {fileID: 9344313534737377, guid: 1addbc0033f7c244199706821c9339a6, type: 3}
   placementType: 0
-  requiredSurface: 2
+  requiredSurface: 0
   width: 5
   depth: 1
   edgeLength: 1
@@ -25,5 +25,7 @@ MonoBehaviour:
   mountHeight: 2
   canRotate: 1
   buildCost: 10
+  blocksPathfinding: 0
   category: 6
   icon: {fileID: 0}
+  roomFurnitureRole: 0

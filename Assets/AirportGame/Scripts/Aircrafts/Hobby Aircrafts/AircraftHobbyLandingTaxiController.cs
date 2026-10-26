@@ -839,13 +839,22 @@ public class AircraftHobbyLandingTaxiController : MonoBehaviour
             );
         }
 
-        float speed = taxiSpeedKnots * worldUnitsPerSecondPerKnot;
+
+        float cruisingSpeed = taxiSpeedKnots * worldUnitsPerSecondPerKnot;
+
+        AircraftTaxiTrafficFollowing trafficFollowing =
+            GetComponent<AircraftTaxiTrafficFollowing>();
+
+        float speed = trafficFollowing != null
+            ? trafficFollowing.GetTrafficFollowingSpeed(cruisingSpeed)
+            : cruisingSpeed;
 
         transform.position = Vector3.MoveTowards(
             transform.position,
             target,
             speed * Time.deltaTime
         );
+
 
         return HorizontalDistance(transform.position, target) <= arrivalDistance;
     }

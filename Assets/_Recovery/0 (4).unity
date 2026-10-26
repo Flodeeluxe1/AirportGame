@@ -1257,7 +1257,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &615842343
 Transform:
   m_ObjectHideFlags: 0
@@ -1896,7 +1896,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &788607066
 Transform:
   m_ObjectHideFlags: 0
@@ -2417,8 +2417,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 199a1e9b80a39ec42b318a2f65ecd4ec, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AirportEconomyManager
-  startingBalance: 50000
-  balance: 50000
+  startingBalance: 1050000
+  balance: 1050000
 --- !u!4 &1048131945
 Transform:
   m_ObjectHideFlags: 0
@@ -3841,6 +3841,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2112575486}
   - component: {fileID: 2112575487}
+  - component: {fileID: 2112575488}
   m_Layer: 0
   m_Name: TaxiwayManager
   m_TagString: Untagged
@@ -3888,6 +3889,39 @@ MonoBehaviour:
   tSectionRotationOffset: -90
   intersectionRotationOffset: 0
   logJunctionDiagnostics: 1
+--- !u!114 &2112575488
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2112575485}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2422db3ba476ac54ba1c38e9d152f70a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TaxiwayGraphDebugVisualizer
+  gridManager: {fileID: 728659359}
+  taxiwayNetwork: {fileID: 405670568}
+  showGraph: 1
+  showConnectionLines: 1
+  showCellMarkers: 1
+  showCenterlineMarkers: 1
+  verticalOffset: 0.15
+  cellMarkerSize: 0.18
+  centerlineMarkerSize: 0.28
+  startCell: {x: 0, y: 0}
+  minimumTaxiwayWidth: 1
+  colorByReachability: 1
+  normalCellColor: {r: 0, g: 1, b: 1, a: 1}
+  runwayCellColor: {r: 1, g: 0, b: 1, a: 1}
+  reachableColor: {r: 0, g: 1, b: 0, a: 1}
+  unreachableColor: {r: 1, g: 0, b: 0, a: 1}
+  isolatedColor: {r: 1, g: 0.5, b: 0, a: 1}
+  insufficientWidthColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
+  centerlineColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  startCellColor: {r: 0, g: 0, b: 1, a: 1}
+  connectionColor: {r: 1, g: 1, b: 1, a: 1}
 --- !u!1 &2134991054
 GameObject:
   m_ObjectHideFlags: 0

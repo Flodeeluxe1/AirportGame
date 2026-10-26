@@ -222,6 +222,7 @@ public class AircraftTrainingLandingTaxiController : MonoBehaviour
         // The same aircraft keeps its existing reservation.
     }
 
+
     private void TryBuildTaxiRoute()
     {
         if (gridManager == null ||
@@ -333,34 +334,61 @@ public class AircraftTrainingLandingTaxiController : MonoBehaviour
         }
 
         bool foundRoute = false;
+        int attempts = 0;
+
         ExitCandidate chosenExit = default;
         TargetCandidate chosenTarget = default;
         List<Vector2Int> chosenPath = null;
-        int attempts = 0;
 
-        foreach (ExitCandidate exit in exits)
+        int bestPathLength = int.MaxValue;
+        float bestExitDistance = float.MaxValue;
+
+        float connectorDistance =
+            maximumParkingConnectorDistance * gridManager.CellSize;
+
+        // Examine forward exits in order, but give later exits a chance too.
+        for (int exitIndex = 0;
+             exitIndex < exits.Count;
+             exitIndex++)
         {
+            if (attempts >= maximumRouteAttempts)
+                break;
+
+            ExitCandidate exit = exits[exitIndex];
+
+            int remainingExits = exits.Count - exitIndex;
+            int remainingAttempts = maximumRouteAttempts - attempts;
+
+            int attemptsForThisExit = Mathf.Max(
+                1,
+                remainingAttempts / remainingExits
+            );
+
+            int exitAttempts = 0;
+
             foreach (TargetCandidate target in targets)
             {
+                if (attempts >= maximumRouteAttempts ||
+                    exitAttempts >= attemptsForThisExit)
+                {
+                    break;
+                }
+
                 Vector3 targetWorld =
                     gridManager.GridToWorldCenter(target.Cell);
 
                 targetWorld.y = taxiWorldY;
 
-                float connectorDistance =
-                    maximumParkingConnectorDistance *
-                    gridManager.CellSize;
-
+                // Preserve the existing limit on the final connector
+                // from the taxiway target to the school parking position.
                 if (HorizontalDistance(targetWorld, parkingTarget) >
                     connectorDistance)
                 {
                     continue;
                 }
 
-                if (attempts >= maximumRouteAttempts)
-                    break;
-
                 attempts++;
+                exitAttempts++;
 
                 List<Vector2Int> candidatePath =
                     taxiwayPathfinder.FindPath(
@@ -372,22 +400,36 @@ public class AircraftTrainingLandingTaxiController : MonoBehaviour
                 if (candidatePath == null || candidatePath.Count == 0)
                     continue;
 
-                chosenExit = exit;
-                chosenTarget = target;
-                chosenPath = candidatePath;
-                foundRoute = true;
+                bool isShorterPath =
+                    candidatePath.Count < bestPathLength;
+
+                bool isEqualLengthButEarlierExit =
+                    candidatePath.Count == bestPathLength &&
+                    exit.ForwardDistance < bestExitDistance;
+
+                if (isShorterPath || isEqualLengthButEarlierExit)
+                {
+                    foundRoute = true;
+                    chosenExit = exit;
+                    chosenTarget = target;
+                    chosenPath = candidatePath;
+
+                    bestPathLength = candidatePath.Count;
+                    bestExitDistance = exit.ForwardDistance;
+                }
+
+                // Keep the first reachable target for this exit because
+                // targets are sorted by distance from the parking spot.
                 break;
             }
-
-            if (foundRoute || attempts >= maximumRouteAttempts)
-                break;
         }
 
-        if (!foundRoute)
+        if (!foundRoute || chosenPath == null)
         {
             Fail(
-                "No connected taxiway route was found between a runway " +
-                "exit and the flight-school parking spot."
+                "No connected taxiway route was found between a forward " +
+                "runway exit and the flight-school parking spot. " +
+                $"Tried {attempts} routes."
             );
             return;
         }
@@ -431,13 +473,16 @@ public class AircraftTrainingLandingTaxiController : MonoBehaviour
             Debug.Log(
                 $"TRAINING TAXI ROUTE FOUND | Aircraft: {name} | " +
                 $"School parking: {reservedSpot.name} | " +
-                $"Exit: {chosenExit.Cell} | Target: {chosenTarget.Cell} | " +
+                $"Exit: {chosenExit.Cell} | " +
+                $"Target: {chosenTarget.Cell} | " +
                 $"Route cells: {route.Count} | " +
+                $"Routes tried: {attempts} | " +
                 $"Smoothed waypoints: {taxiMovementPath.Count}",
                 this
             );
         }
     }
+
 
     private void BuildSmoothedTaxiMovementPath()
     {

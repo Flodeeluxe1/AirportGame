@@ -27,17 +27,23 @@ public class AircraftTaxiTrafficFollowing : MonoBehaviour
     [Min(0.01f)]
     [SerializeField] private float braking = 3f;
 
-    [Header("Traffic Debug")]
-    public float debugCurrentSpeed;
-    public string debugBlockingAircraft = "None";
-    public float debugBlockingDistance;
-    public string debugLastRayHitCollider = "None";
-    public string debugLastRayDirection = "None";
-    public float debugLastRayDistance;
-    public string debugTrafficDecision = "Not tested";
+    [Header("Traffic Debug (Inspector)")]
+    [SerializeField] private float debugCurrentSpeed;
+    [SerializeField] private string debugBlockingAircraft = "None";
+    [SerializeField] private float debugBlockingDistance;
+    [SerializeField] private string debugTrafficDecision = "Not tested";
+
+    [TextArea(2, 5)]
+    [SerializeField] private string debugForwardRay = "Not scanned";
+
+    [TextArea(2, 5)]
+    [SerializeField] private string debugLeftRay = "Not scanned";
+
+    [TextArea(2, 5)]
+    [SerializeField] private string debugRightRay = "Not scanned";
 
     [TextArea(4, 12)]
-    public string debugRaycastSummary = "No raycast performed yet.";
+    [SerializeField] private string debugRaycastSummary = "No raycast performed yet.";
 
     private float currentSpeed;
 
@@ -52,21 +58,12 @@ public class AircraftTaxiTrafficFollowing : MonoBehaviour
 
         debugBlockingAircraft = "None";
         debugBlockingDistance = 0f;
-        debugLastRayHitCollider = "None";
-        debugLastRayDirection = "None";
-        debugLastRayDistance = 0f;
         debugTrafficDecision = "Path clear";
 
-        List<string> rayReports = new();
-
-        if (TryFindAircraftAhead(
-                out Transform blockingAircraft,
-                out float distance,
-                out _,
-                rayReports))
+        if (TryFindAircraftAhead(out Transform blockingAircraft, out float distance))
         {
-            debugBlockingDistance = distance;
             debugBlockingAircraft = blockingAircraft.name;
+            debugBlockingDistance = distance;
 
             float safeDistance = Mathf.Max(0.1f, safeFollowingDistance);
             float detectionDistance = Mathf.Max(
@@ -93,26 +90,13 @@ public class AircraftTaxiTrafficFollowing : MonoBehaviour
             }
             else
             {
-                debugTrafficDecision =
-                    "Aircraft detected; near cruising speed";
+                debugTrafficDecision = "Aircraft detected; near cruising speed";
             }
-
-            debugRaycastSummary =
-                string.Join("\n", rayReports) +
-                $"\nBLOCKING AIRCRAFT: {debugBlockingAircraft}" +
-                $"\nBLOCKING DISTANCE: {distance:F2}" +
-                $"\nDECISION: {debugTrafficDecision}";
-        }
-        else
-        {
-            debugRaycastSummary = rayReports.Count > 0
-                ? string.Join("\n", rayReports) +
-                  "\nRESULT: No moving aircraft recognized as a blocker."
-                : "No colliders hit by any traffic ray.";
         }
 
-        float adjustmentRate =
-            targetSpeed < currentSpeed ? braking : acceleration;
+        float adjustmentRate = targetSpeed < currentSpeed
+            ? braking
+            : acceleration;
 
         currentSpeed = Mathf.MoveTowards(
             currentSpeed,
@@ -128,13 +112,10 @@ public class AircraftTaxiTrafficFollowing : MonoBehaviour
 
     private bool TryFindAircraftAhead(
         out Transform blockingAircraft,
-        out float closestDistance,
-        out string closestDirection,
-        List<string> rayReports)
+        out float closestDistance)
     {
         blockingAircraft = null;
         closestDistance = float.MaxValue;
-        closestDirection = "None";
 
         Vector3 origin =
             transform.position +
@@ -155,7 +136,9 @@ public class AircraftTaxiTrafficFollowing : MonoBehaviour
             "Forward-Right"
         };
 
+        string[] rayResults = new string[directions.Length];
         bool foundAircraft = false;
+        List<string> scanSummary = new List<string>();
 
         for (int i = 0; i < directions.Length; i++)
         {
@@ -173,11 +156,22 @@ public class AircraftTaxiTrafficFollowing : MonoBehaviour
                 (a, b) => a.distance.CompareTo(b.distance)
             );
 
+            System.Text.StringBuilder rayReport =
+                new System.Text.StringBuilder();
+
+            rayReport.AppendLine(
+                $"{directionNames[i]} | Range: {trafficDetectionDistance:F2}"
+            );
+
             if (hits.Length == 0)
             {
-                rayReports.Add($"{directionNames[i]}: no hit");
+                rayReport.AppendLine("No colliders hit.");
+                rayResults[i] = rayReport.ToString();
+                scanSummary.Add($"{directionNames[i]}: no hits");
                 continue;
             }
+
+            bool reportedHit = false;
 
             foreach (RaycastHit hit in hits)
             {
@@ -186,65 +180,65 @@ public class AircraftTaxiTrafficFollowing : MonoBehaviour
                 if (hitCollider == null)
                     continue;
 
-                Transform aircraftRoot = hitCollider.transform.root;
+                Transform colliderRoot = hitCollider.transform.root;
 
-                if (aircraftRoot == transform.root)
-                {
-                    rayReports.Add(
-                        $"{directionNames[i]}: ignored own collider " +
-                        $"'{hitCollider.name}' at {hit.distance:F2}"
-                    );
-
+                if (colliderRoot == transform.root)
                     continue;
-                }
 
-                bool isMovingAircraft = IsMovingAircraft(
+                reportedHit = true;
+
+                bool isAircraft = IsMovingAircraft(
                     hitCollider,
-                    out Transform detectedAircraft,
-                    out string controllerInfo
+                    out Transform detectedAircraft
                 );
 
-                rayReports.Add(
-                    $"{directionNames[i]} HIT '{hitCollider.name}' " +
-                    $"at {hit.distance:F2} | Layer: " +
-                    $"{LayerMask.LayerToName(hitCollider.gameObject.layer)} | " +
-                    $"{controllerInfo} | Moving blocker: {isMovingAircraft}"
-                );
+                string layerName =
+                    LayerMask.LayerToName(hitCollider.gameObject.layer);
 
-                if (debugLastRayHitCollider == "None")
-                {
-                    debugLastRayHitCollider = hitCollider.name;
-                    debugLastRayDirection = directionNames[i];
-                    debugLastRayDistance = hit.distance;
-                }
+                string hitDescription =
+                    $"{hitCollider.name} | {hit.distance:F2} units | " +
+                    $"Layer: {layerName} | " +
+                    (isAircraft
+                        ? $"BLOCKING: {detectedAircraft.name}"
+                        : "Not blocking");
 
-                if (!isMovingAircraft || detectedAircraft == null)
+                rayReport.AppendLine(hitDescription);
+                scanSummary.Add($"{directionNames[i]}: {hitDescription}");
+
+                if (!isAircraft || detectedAircraft == null)
                     continue;
 
                 if (hit.distance >= closestDistance)
                     continue;
 
                 closestDistance = hit.distance;
-                closestDirection = directionNames[i];
                 blockingAircraft = detectedAircraft;
                 foundAircraft = true;
 
-                // Hits on this ray are sorted nearest-first.
+                // Hits are sorted nearest-first.
                 break;
             }
+
+            if (!reportedHit)
+                rayReport.AppendLine("No other colliders hit.");
+
+            rayResults[i] = rayReport.ToString();
         }
+
+        debugForwardRay = rayResults[0];
+        debugLeftRay = rayResults[1];
+        debugRightRay = rayResults[2];
+
+        debugRaycastSummary = string.Join("\n", scanSummary);
 
         return foundAircraft;
     }
 
-
     private bool IsMovingAircraft(
         Collider hitCollider,
-        out Transform aircraftRoot,
-        out string controllerInfo)
+        out Transform aircraftRoot)
     {
         aircraftRoot = null;
-        controllerInfo = "No AircraftStatus found";
 
         if (hitCollider == null)
             return false;
@@ -257,14 +251,53 @@ public class AircraftTaxiTrafficFollowing : MonoBehaviour
 
         aircraftRoot = status.transform;
 
-        bool moving = status.IsTaxiing;
+        if (aircraftRoot.root == transform.root)
+            return false;
 
-        controllerInfo =
-            $"AircraftStatus IsTaxiing: {moving}";
+        // Parked aircraft must not block taxi traffic.
+        if (status.IsParked)
+            return false;
 
-        return moving && aircraftRoot != transform.root;
+        // Ignore aircraft that are actively taking off.
+        if (IsAircraftTakingOff(aircraftRoot))
+            return false;
+
+        // Other aircraft, including stationary aircraft on a taxiway,
+        // are treated as traffic obstacles.
+        return true;
     }
 
+    private bool IsAircraftTakingOff(Transform aircraftRoot)
+    {
+        if (aircraftRoot == null)
+            return false;
+
+        AircraftCargoPaxTakeoffController cargoPax =
+            aircraftRoot.GetComponentInChildren<AircraftCargoPaxTakeoffController>(true);
+
+        if (cargoPax != null && cargoPax.IsTakingOff)
+            return true;
+
+        AircraftHobbyTakeoffController hobby =
+            aircraftRoot.GetComponentInChildren<AircraftHobbyTakeoffController>(true);
+
+        if (hobby != null && hobby.IsTakingOff)
+            return true;
+
+        AircraftSSTakeoffController sightseeing =
+            aircraftRoot.GetComponentInChildren<AircraftSSTakeoffController>(true);
+
+        if (sightseeing != null && sightseeing.IsTakingOff)
+            return true;
+
+        AircraftTrainingTakeoffController training =
+            aircraftRoot.GetComponentInChildren<AircraftTrainingTakeoffController>(true);
+
+        if (training != null && training.IsTakingOff)
+            return true;
+
+        return false;
+    }
 
     private void OnDrawGizmosSelected()
     {

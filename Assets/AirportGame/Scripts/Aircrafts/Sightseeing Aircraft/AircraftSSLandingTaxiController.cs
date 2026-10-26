@@ -190,6 +190,7 @@ public class AircraftSSLandingTaxiController : MonoBehaviour
         }
     }
 
+
     private void TryBuildTaxiRoute()
     {
         Debug.Log(
@@ -287,7 +288,9 @@ public class AircraftSSLandingTaxiController : MonoBehaviour
             runwayCenter + landingDirection * (runwayLength * 0.5f);
 
         float remainingRunwayDistance =
-            Vector3.Dot(runwayEnd - aircraftPosition, landingDirection);
+            Vector3.Dot(
+                runwayEnd - aircraftPosition,
+                landingDirection);
 
         Debug.Log(
             $"[SS TAXI DIAG] RUNWAY POSITION | AircraftAt={aircraftPosition} | " +
@@ -301,6 +304,7 @@ public class AircraftSSLandingTaxiController : MonoBehaviour
             return;
         }
 
+        // Only consider runway exits ahead of the landed aircraft.
         List<ExitCandidate> exits = FindForwardRunwayExits(
             aircraftPosition,
             remainingRunwayDistance,
@@ -350,7 +354,8 @@ public class AircraftSSLandingTaxiController : MonoBehaviour
             TargetCandidate t = targets[i];
             Vector3 world = gridManager.GridToWorldCenter(t.Cell);
 
-            float edgeDistance = GetDistanceToParkingFootprintEdge(t.Cell);
+            float edgeDistance =
+                GetDistanceToParkingFootprintEdge(t.Cell);
 
             Debug.Log(
                 $"[SS TAXI DIAG] TARGET {i} | Cell={t.Cell} | " +
@@ -368,15 +373,40 @@ public class AircraftSSLandingTaxiController : MonoBehaviour
         }
 
         bool foundRoute = false;
+
         ExitCandidate chosenExit = default;
         TargetCandidate chosenTarget = default;
         List<Vector2Int> chosenPath = null;
+
         int attempts = 0;
         int skippedByDistance = 0;
         int failedPaths = 0;
 
-        foreach (ExitCandidate exit in exits)
+        int bestPathLength = int.MaxValue;
+        float bestExitDistance = float.MaxValue;
+
+        // Exits are ordered from nearest to farthest ahead.
+        // Give each exit a share of the remaining attempt budget so that
+        // one disconnected exit cannot consume the entire search.
+        for (int exitIndex = 0;
+             exitIndex < exits.Count;
+             exitIndex++)
         {
+            if (attempts >= maximumRouteAttempts)
+                break;
+
+            ExitCandidate exit = exits[exitIndex];
+
+            int remainingExits = exits.Count - exitIndex;
+            int remainingAttempts = maximumRouteAttempts - attempts;
+
+            int attemptsForThisExit = Mathf.Max(
+                1,
+                remainingAttempts / remainingExits);
+
+            int exitAttempts = 0;
+
+            // Targets are sorted by distance to the parking position.
             foreach (TargetCandidate target in targets)
             {
                 float distanceToFootprintEdge =
@@ -388,7 +418,14 @@ public class AircraftSSLandingTaxiController : MonoBehaviour
                     continue;
                 }
 
+                if (attempts >= maximumRouteAttempts ||
+                    exitAttempts >= attemptsForThisExit)
+                {
+                    break;
+                }
+
                 attempts++;
+                exitAttempts++;
 
                 List<Vector2Int> candidatePath =
                     taxiwayPathfinder.FindPath(
@@ -402,22 +439,34 @@ public class AircraftSSLandingTaxiController : MonoBehaviour
                     continue;
                 }
 
-                chosenExit = exit;
-                chosenTarget = target;
-                chosenPath = candidatePath;
-                foundRoute = true;
+                // Keep the best route found across the forward exits.
+                // Prefer fewer taxiway cells, then the nearer forward exit.
+                if (candidatePath.Count < bestPathLength ||
+                    (candidatePath.Count == bestPathLength &&
+                     exit.ForwardDistance < bestExitDistance))
+                {
+                    foundRoute = true;
+                    chosenExit = exit;
+                    chosenTarget = target;
+                    chosenPath = candidatePath;
+
+                    bestPathLength = candidatePath.Count;
+                    bestExitDistance = exit.ForwardDistance;
+                }
+
+                // Targets are sorted by parking distance, so the first
+                // successful target is the nearest viable target for this exit.
                 break;
             }
-
-            if (foundRoute)
-                break;
         }
 
         Debug.Log(
             $"[SS TAXI DIAG] SEARCH SUMMARY | " +
             $"Exits={exits.Count} | Targets={targets.Count} | " +
             $"PairsTested={attempts} | SkippedByDistance={skippedByDistance} | " +
-            $"FailedPaths={failedPaths} | RouteFound={foundRoute}",
+            $"FailedPaths={failedPaths} | RouteFound={foundRoute} | " +
+            $"ChosenExit={(foundRoute ? chosenExit.Cell.ToString() : "none")} | " +
+            $"BestPathLength={(foundRoute ? bestPathLength : 0)}",
             this);
 
         if (!foundRoute)
@@ -434,11 +483,14 @@ public class AircraftSSLandingTaxiController : MonoBehaviour
         route.AddRange(chosenPath);
 
         runwayExitPoint =
-            aircraftPosition + landingDirection * chosenExit.ForwardDistance;
+            aircraftPosition +
+            landingDirection * chosenExit.ForwardDistance;
+
         runwayExitPoint.y = taxiWorldY;
 
         taxiwayJoinPoint =
             gridManager.GridToWorldCenter(chosenExit.Cell);
+
         taxiwayJoinPoint.y = taxiWorldY;
 
         BuildSmoothedTaxiMovementPath();
@@ -457,16 +509,18 @@ public class AircraftSSLandingTaxiController : MonoBehaviour
         transform.position = adjustedPosition;
 
         debugStatus =
-            $"Sightseeing taxi route found. Exit {chosenExit.Cell}, " +
+            $"Sightseeing taxi route found. Forward exit {chosenExit.Cell}, " +
             $"target {chosenTarget.Cell}, {route.Count} route cells.";
 
         Debug.Log(
             $"[SS TAXI DIAG] ROUTE FOUND | Exit={chosenExit.Cell} | " +
+            $"ForwardDistance={chosenExit.ForwardDistance:F2} | " +
             $"Target={chosenTarget.Cell} | Cells={route.Count} | " +
             $"RunwayExitPoint={runwayExitPoint} | " +
             $"TaxiwayJoinPoint={taxiwayJoinPoint}",
             this);
     }
+
 
 
     private void BuildSmoothedTaxiMovementPath()

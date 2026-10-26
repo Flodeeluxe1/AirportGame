@@ -226,6 +226,7 @@ public class AircraftCargoPaxLandingTaxiController : MonoBehaviour
     }
 
 
+
     private void CalculateTaxiRoute()
     {
         taxiRoute.Clear();
@@ -357,38 +358,82 @@ public class AircraftCargoPaxLandingTaxiController : MonoBehaviour
             return;
         }
 
-        List<RouteCandidatePair> pairs =
-            BuildCandidatePairs(exits, targets);
-
         bool routeFound = false;
         int attempts = 0;
-        RunwayExitCandidate selectedExit = default;
-        Vector2Int selectedTarget = default;
 
-        foreach (RouteCandidatePair pair in pairs)
+        RunwayExitCandidate chosenExit = default;
+        Vector2Int chosenTarget = default;
+        List<Vector2Int> chosenPath = null;
+
+        int bestPathLength = int.MaxValue;
+        float bestExitDistance = float.MaxValue;
+
+        // Evaluate multiple forward exits rather than stopping at the
+        // first exit-target pair that happens to produce a route.
+        for (int exitIndex = 0;
+             exitIndex < exits.Count;
+             exitIndex++)
         {
             if (attempts >= maximumRouteAttempts)
                 break;
 
-            attempts++;
+            RunwayExitCandidate exit = exits[exitIndex];
 
-            List<Vector2Int> path = taxiwayPathfinder.FindPath(
-                pair.Exit.Cell,
-                pair.Target.Cell,
-                minimumTaxiwayWidth);
+            int remainingExits = exits.Count - exitIndex;
+            int remainingAttempts = maximumRouteAttempts - attempts;
 
-            if (path == null || path.Count == 0)
-                continue;
+            int attemptsForThisExit = Mathf.Max(
+                1,
+                remainingAttempts / remainingExits);
 
-            selectedExit = pair.Exit;
-            selectedTarget = pair.Target.Cell;
+            int exitAttempts = 0;
 
-            taxiRoute.AddRange(path);
-            routeFound = true;
-            break;
+            // Targets are already sorted by distance from the assigned gate.
+            foreach (TaxiwayCandidate target in targets)
+            {
+                if (attempts >= maximumRouteAttempts ||
+                    exitAttempts >= attemptsForThisExit)
+                {
+                    break;
+                }
+
+                attempts++;
+                exitAttempts++;
+
+                List<Vector2Int> candidatePath =
+                    taxiwayPathfinder.FindPath(
+                        exit.Cell,
+                        target.Cell,
+                        minimumTaxiwayWidth);
+
+                if (candidatePath == null || candidatePath.Count == 0)
+                    continue;
+
+                bool isShorterPath =
+                    candidatePath.Count < bestPathLength;
+
+                bool isEqualLengthButEarlierExit =
+                    candidatePath.Count == bestPathLength &&
+                    exit.ForwardDistance < bestExitDistance;
+
+                if (isShorterPath || isEqualLengthButEarlierExit)
+                {
+                    routeFound = true;
+                    chosenExit = exit;
+                    chosenTarget = target.Cell;
+                    chosenPath = candidatePath;
+
+                    bestPathLength = candidatePath.Count;
+                    bestExitDistance = exit.ForwardDistance;
+                }
+
+                // The closest reachable target for this exit has been found.
+                // Continue with other exits to compare their route lengths.
+                break;
+            }
         }
 
-        if (!routeFound)
+        if (!routeFound || chosenPath == null)
         {
             SetFailure(
                 $"No connected A* route was found from the runway exits " +
@@ -396,22 +441,24 @@ public class AircraftCargoPaxLandingTaxiController : MonoBehaviour
             return;
         }
 
+        taxiRoute.AddRange(chosenPath);
+
         Vector3 exitCellPosition =
-            gridManager.GridToWorldCenter(selectedExit.Cell);
+            gridManager.GridToWorldCenter(chosenExit.Cell);
 
         exitCellPosition.y = taxiWorldY;
 
         runwayExitPoint =
             aircraftPosition +
-            landingDirection * selectedExit.ForwardDistance;
+            landingDirection * chosenExit.ForwardDistance;
 
         runwayExitPoint.y = taxiWorldY;
         taxiwayJoinPoint = exitCellPosition;
 
-        debugRunwayExitCell = selectedExit.Cell;
-        debugRunwayExitDistance = selectedExit.ForwardDistance;
-        debugStartCell = selectedExit.Cell;
-        debugTargetCell = selectedTarget;
+        debugRunwayExitCell = chosenExit.Cell;
+        debugRunwayExitDistance = chosenExit.ForwardDistance;
+        debugStartCell = chosenExit.Cell;
+        debugTargetCell = chosenTarget;
         debugRouteCells = taxiRoute.Count;
         debugCurrentWaypoint = 0;
         debugLastPath = FormatPath(taxiRoute);
@@ -448,6 +495,7 @@ public class AircraftCargoPaxLandingTaxiController : MonoBehaviour
                 $"Runway: {selectedRunway.name} | " +
                 $"Exit: {debugRunwayExitCell} | " +
                 $"Path cells: {debugRouteCells} | " +
+                $"Routes tried: {attempts} | " +
                 $"Smoothed points: {taxiMovementPath.Count}\n" +
                 debugLastPath,
                 this);
@@ -463,6 +511,7 @@ public class AircraftCargoPaxLandingTaxiController : MonoBehaviour
                 this);
         }
     }
+
 
     private void BuildSmoothedTaxiMovementPath()
     {
