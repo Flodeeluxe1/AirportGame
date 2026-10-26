@@ -21,6 +21,7 @@ public class CargoTugLotSpawner : MonoBehaviour
     [Header("Spawn Settings")]
     [Tooltip("World-space height at which both objects spawn.")]
     [SerializeField] private float spawnHeight = 0.23f;
+    [SerializeField] private float trailerSpawnHeight = 0.5f;
 
     [Header("Debug")]
     [SerializeField] private bool showDebugMessages = true;
@@ -63,7 +64,7 @@ public class CargoTugLotSpawner : MonoBehaviour
         Vector3 trailerPosition = transform.position + transform.rotation *
             trailerSpawnOffset;
 
-        trailerPosition.y = spawnHeight;
+        trailerPosition.y = trailerSpawnHeight;
 
         spawnedCargoTrailer = Instantiate(
             cargoTrailerPrefab,

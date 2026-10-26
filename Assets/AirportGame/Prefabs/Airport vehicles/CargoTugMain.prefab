@@ -9,6 +9,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4821483623978217240}
+  - component: {fileID: 2919380744168173033}
   - component: {fileID: 4770373362077910615}
   - component: {fileID: 6092467791942992843}
   - component: {fileID: 3170799302219078531}
@@ -30,13 +31,34 @@ Transform:
   m_GameObject: {fileID: 1970913010140861768}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 31.95, y: -0, z: 27.77}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
+  m_LocalPosition: {x: 31.95, y: -0.5, z: 27.77}
+  m_LocalScale: {x: 2, y: 2, z: 2}
+  m_ConstrainProportionsScale: 1
   m_Children:
   - {fileID: 7405617682849776359}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &2919380744168173033
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1970913010140861768}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 0
+  serializedVersion: 3
+  m_Size: {x: 0.8, y: 0.46, z: 1.2}
+  m_Center: {x: 0, y: 0.25, z: 0.1}
 --- !u!114 &4770373362077910615
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -49,9 +71,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 910f281006246464894d12e7ffaf48f8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GuidedCargoTrailerFollower
-  trailer: {fileID: 0}
+  trailer: {fileID: 6346400264022034145, guid: bb40a8a8ec9f6e145a8c02c13d91bab2, type: 3}
   tugHitchPoint: {fileID: 5898636438715226431}
-  hitchToTrailerDistance: 0.64
+  hitchToTrailerDistance: 1.25
   followSpeed: 20
   rotationSpeed: 15
   positionTrailerAtStart: 1
@@ -76,6 +98,10 @@ MonoBehaviour:
   roadNetwork: {fileID: 0}
   taxiwayNetwork: {fileID: 0}
   trailerFollower: {fileID: 0}
+  homeSpawnPoint: {fileID: 0}
+  homeSpawnOffset: {x: 0, y: 0, z: 0}
+  homeSpawnHeight: 0.23
+  isReturningHome: 0
   grassMovementCost: 1
   taxiwayMovementCost: 1
   foundationClearance: 0

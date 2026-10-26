@@ -1149,37 +1149,40 @@ public class AirportCargoVehicleController : MonoBehaviour
                         continue;
                     }
 
-                    // Runway and other pathfinding-obstacle cells are forbidden.
-                    // Allow the tug's current cell so it can escape if necessary.
-                    if (neighbor != start &&
-                        gridSurface.IsObstacle(neighbor))
-                    {
-                        continue;
-                    }
+                // Runway and other pathfinding-obstacle cells are forbidden.
+                // Allow the tug's current cell so it can escape if necessary.
+                if (neighbor != start &&
+                    neighbor != target &&
+                    gridSurface.GetSurface(neighbor) == BuildSurface.Foundation)
+                {
+                    Debug.Log(
+                        $"[CargoPathfinding] BLOCKED {neighbor}: Foundation surface");
 
-                    if (neighbor != start &&
-                        neighbor != target &&
-                        gridSurface.GetSurface(neighbor) ==
-                            BuildSurface.Foundation)
-                    {
-                        continue;
-                    }
+                    continue;
+                }
 
-                    if (neighbor != start &&
-                        neighbor != target &&
-                        IsWithinFoundationClearance(neighbor))
-                    {
-                        continue;
-                    }
+                if (neighbor != start &&
+                    neighbor != target &&
+                    IsWithinFoundationClearance(neighbor))
+                {
+                    Debug.Log(
+                        $"[CargoPathfinding] BLOCKED {neighbor}: Within foundation clearance " +
+                        $"(clearance = {foundationClearance})");
 
-                    if (neighbor != target &&
-                        neighbor != start &&
-                        gridOccupancy.IsOccupied(neighbor))
-                    {
-                        continue;
-                    }
+                    continue;
+                }
 
-                    int stepCost = GetMovementCost(neighbor);
+                if (neighbor != target &&
+                    neighbor != start &&
+                    gridOccupancy.IsOccupied(neighbor))
+                {
+                    Debug.Log(
+                        $"[CargoPathfinding] BLOCKED {neighbor}: Occupied cell");
+
+                    continue;
+                }
+
+                int stepCost = GetMovementCost(neighbor);
                     int tentativeScore = gScore[current] + stepCost;
 
                     if (gScore.TryGetValue(

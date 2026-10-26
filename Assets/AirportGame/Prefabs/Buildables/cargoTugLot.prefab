@@ -22,27 +22,27 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8275853014694940425, guid: d1841403ccfbc894f8d6a3fb2de7cdfc, type: 3}
       propertyPath: m_LocalScale.x
-      value: 0.75
+      value: 1.2
       objectReference: {fileID: 0}
     - target: {fileID: 8275853014694940425, guid: d1841403ccfbc894f8d6a3fb2de7cdfc, type: 3}
       propertyPath: m_LocalScale.y
-      value: 1
+      value: 0.1
       objectReference: {fileID: 0}
     - target: {fileID: 8275853014694940425, guid: d1841403ccfbc894f8d6a3fb2de7cdfc, type: 3}
       propertyPath: m_LocalScale.z
-      value: 0.75
+      value: 1.2
       objectReference: {fileID: 0}
     - target: {fileID: 8275853014694940425, guid: d1841403ccfbc894f8d6a3fb2de7cdfc, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 3.9892623
+      value: 43
       objectReference: {fileID: 0}
     - target: {fileID: 8275853014694940425, guid: d1841403ccfbc894f8d6a3fb2de7cdfc, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0.5
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8275853014694940425, guid: d1841403ccfbc894f8d6a3fb2de7cdfc, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 42.014427
+      value: 25.86
       objectReference: {fileID: 0}
     - target: {fileID: 8275853014694940425, guid: d1841403ccfbc894f8d6a3fb2de7cdfc, type: 3}
       propertyPath: m_LocalRotation.w
@@ -129,5 +129,6 @@ MonoBehaviour:
   cargoTrailerPrefab: {fileID: 6005868715613805659, guid: bb40a8a8ec9f6e145a8c02c13d91bab2, type: 3}
   tugSpawnOffset: {x: 0, y: 0, z: 0}
   trailerSpawnOffset: {x: 0, y: 0, z: 0}
-  spawnHeight: 0.25
+  spawnHeight: -0.05
+  trailerSpawnHeight: 0.9
   showDebugMessages: 1
