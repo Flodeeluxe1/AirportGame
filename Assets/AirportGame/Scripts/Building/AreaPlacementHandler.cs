@@ -253,6 +253,8 @@ public class AreaPlacementHandler : IPlacementHandler
 
         if (IsTarmac)
         {
+            DisableFoundationVisuals(placedObject);
+
             gridSurface.SetSurfaceArea(
                 origin,
                 width,

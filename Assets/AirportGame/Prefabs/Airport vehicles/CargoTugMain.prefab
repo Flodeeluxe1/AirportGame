@@ -102,9 +102,10 @@ MonoBehaviour:
   homeSpawnOffset: {x: 0, y: 0, z: 0}
   homeSpawnHeight: 0.23
   isReturningHome: 0
-  grassMovementCost: 1
-  taxiwayMovementCost: 1
-  foundationClearance: 0
+  tarmacMovementCost: 1
+  taxiwayMovementCost: 5
+  grassMovementCost: 10
+  foundationClearance: 1
   movementSpeed: 1
   rotationSpeed: 5
   waypointArrivalDistance: 0.08

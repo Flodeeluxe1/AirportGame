@@ -121,6 +121,9 @@ public class AirportUIController : MonoBehaviour
         categoryButtons[BuildCategory.Taxiways] =
             root.Q<Button>("category-taxiways");
 
+        categoryButtons[BuildCategory.Tarmac] =
+            root.Q<Button>("category-tarmac");
+
         categoryButtons[BuildCategory.Commercial] =
             root.Q<Button>("category-commercial");
 

@@ -24,9 +24,11 @@ public class AirportCargoVehicleController : MonoBehaviour
 
     [Header("Pathfinding Costs")]
     [Min(1)]
-    [SerializeField] private int grassMovementCost = 1;
+    [SerializeField] private int tarmacMovementCost = 1;
     [Min(1)]
     [SerializeField] private int taxiwayMovementCost = 5;
+    [Min(1)]
+    [SerializeField] private int grassMovementCost = 10;
 
     [Header("Foundation Clearance")]
     [Range(0, 3)]
@@ -144,9 +146,9 @@ public class AirportCargoVehicleController : MonoBehaviour
             return;
         }
 
-        grassMovementCost = Mathf.Max(1, grassMovementCost);
+        tarmacMovementCost = Mathf.Max(1, tarmacMovementCost);
         taxiwayMovementCost = Mathf.Max(1, taxiwayMovementCost);
-        foundationClearance = Mathf.Clamp(foundationClearance, 0, 3);
+        grassMovementCost = Mathf.Max(1, grassMovementCost);
 
         movementHeight = transform.position.y + groundHeightOffset;
         RefreshCarriedPackageCount();
@@ -552,8 +554,9 @@ public class AirportCargoVehicleController : MonoBehaviour
             $"{name}: Weighted route calculated. " +
             $"Grid cells: {routeCellCount}, " +
             $"waypoints: {movementPath.Count}, " +
-            $"grass cost: {grassMovementCost}, " +
-            $"taxiway/road cost: {taxiwayMovementCost}, " +
+            $"tarmac cost: {grassMovementCost}, " +
+            $"taxiway/road cost: {grassMovementCost + taxiwayMovementCost}, " +
+            $"grass cost: {grassMovementCost + (taxiwayMovementCost * 2)}, " +
             $"foundation clearance: {foundationClearance}, " +
             $"parking turn distance: {parkingTurnDistanceInCells} cells.",
             this);
@@ -618,12 +621,12 @@ public class AirportCargoVehicleController : MonoBehaviour
                 int currentScore =
                     gScore[openSet[i]] +
                     ManhattanDistance(openSet[i], target) *
-                    grassMovementCost;
+                    tarmacMovementCost;
 
                 int bestScore =
                     gScore[openSet[bestIndex]] +
                     ManhattanDistance(openSet[bestIndex], target) *
-                    grassMovementCost;
+                    tarmacMovementCost;
 
                 if (currentScore < bestScore)
                     bestIndex = i;
@@ -742,11 +745,12 @@ public class AirportCargoVehicleController : MonoBehaviour
 
     private int GetMovementCost(Vector2Int cell)
     {
+        if (gridSurface.GetSurface(cell) == BuildSurface.Tarmac)
+            return tarmacMovementCost;
+
         if (taxiwayNetwork.IsTaxiway(cell) ||
             roadNetwork.IsRoad(cell))
-        {
             return taxiwayMovementCost;
-        }
 
         return grassMovementCost;
     }
