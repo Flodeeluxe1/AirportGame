@@ -1,4 +1,3 @@
-
 using UnityEngine;
 
 /// <summary>
@@ -36,8 +35,8 @@ public class AircraftSSTakeoffController : MonoBehaviour
     [Min(0.1f)]
     [SerializeField] private float airborneAccelerationKnotsPerSecond = 3f;
 
-    [Min(0.001f)]
-    [SerializeField] private float worldUnitsPerSecondPerKnot = 0.15f;
+    private float worldUnitsPerSecondPerKnot =>
+        AircraftStatus.WorldUnitsPerSecondPerKnot;
 
     [Header("Rotation")]
     [Range(0.1f, 1f)]
@@ -136,6 +135,16 @@ public class AircraftSSTakeoffController : MonoBehaviour
             case TakeoffState.Climbing:
                 UpdateClimb(deltaTime);
                 break;
+        }
+
+        AircraftStatus status = GetComponent<AircraftStatus>();
+
+        if (status != null)
+        {
+            status.SetCurrentSpeedKnots(currentSpeedKnots);
+
+            if (currentState == TakeoffState.Climbing)
+                status.SetFlying(true);
         }
     }
 

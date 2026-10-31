@@ -34,10 +34,6 @@ public class AircraftHobbyTakeoffController : MonoBehaviour
     [Min(0.1f)]
     [SerializeField] private float airborneAccelerationKnotsPerSecond = 3f;
 
-    [Tooltip("Converts knots to Unity world units per second.")]
-    [Min(0.001f)]
-    [SerializeField] private float worldUnitsPerSecondPerKnot = 0.15f;
-
     [Header("Rotation")]
     [Tooltip("Rotation begins at the specified fraction of takeoff speed.")]
     [SerializeField, Range(0.1f, 1f)]
@@ -85,6 +81,9 @@ public class AircraftHobbyTakeoffController : MonoBehaviour
     private float runwayLength;
     private float runwaySurfaceY;
     private float groundLevelY;
+
+    private float worldUnitsPerSecondPerKnot =>
+        AircraftStatus.WorldUnitsPerSecondPerKnot;
 
     public TakeoffState CurrentState => currentState;
 
@@ -138,6 +137,11 @@ public class AircraftHobbyTakeoffController : MonoBehaviour
                 UpdateClimb(deltaTime);
                 break;
         }
+
+        AircraftStatus status = GetComponent<AircraftStatus>();
+
+        if (status != null)
+            status.SetCurrentSpeedKnots(currentSpeedKnots);
     }
 
     private void ResolveReferences()

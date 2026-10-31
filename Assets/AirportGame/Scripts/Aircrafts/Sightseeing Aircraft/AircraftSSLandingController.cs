@@ -1,4 +1,3 @@
-
 using UnityEngine;
 
 /// <summary>
@@ -39,8 +38,8 @@ public class AircraftSSLandingController : MonoBehaviour
     [SerializeField] private float touchdownSpeedKnots = 70f;
     [Min(1f)]
     [SerializeField] private float rolloutTargetSpeedKnots = 15f;
-    [Min(0.001f)]
-    [SerializeField] private float worldUnitsPerSecondPerKnot = 0.15f;
+    private float worldUnitsPerSecondPerKnot =>
+        AircraftStatus.WorldUnitsPerSecondPerKnot;
     [Min(0.1f)]
     [SerializeField] private float speedChangeRate = 3f;
     [Min(0.1f)]
@@ -162,8 +161,22 @@ public class AircraftSSLandingController : MonoBehaviour
         }
 
         AircraftStatus status = GetComponent<AircraftStatus>();
-        if (status != null && IsLandingComplete)
-            status.MarkLandingComplete();
+
+        if (status != null)
+        {
+            AircraftSSLandingTaxiController taxiController =
+                GetComponent<AircraftSSLandingTaxiController>();
+
+            if (taxiController == null || !taxiController.IsTaxiing)
+            {
+                status.SetCurrentSpeedKnots(
+                    AircraftStatus.WorldSpeedToKnots(currentSpeed)
+                );
+            }
+
+            if (IsLandingComplete)
+                status.MarkLandingComplete();
+        }
 
         if (trafficManager == null)
             trafficManager = FindFirstObjectByType<AircraftRunwayTrafficManager>();

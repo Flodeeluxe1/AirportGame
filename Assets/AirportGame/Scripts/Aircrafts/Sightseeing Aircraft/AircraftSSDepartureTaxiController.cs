@@ -1,4 +1,3 @@
-
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -55,9 +54,6 @@ public class AircraftSSDepartureTaxiController : MonoBehaviour
     [Header("Taxi Movement")]
     [Min(1f)]
     [SerializeField] private float taxiSpeedKnots = 15f;
-
-    [Min(0.001f)]
-    [SerializeField] private float worldUnitsPerSecondPerKnot = 0.15f;
 
     [Min(1f)]
     [SerializeField] private float rotationSpeedDegreesPerSecond = 45f;
@@ -144,6 +140,9 @@ public class AircraftSSDepartureTaxiController : MonoBehaviour
                 currentState == DepartureState.MovingOntoRunway;
 
             status.SetTaxiing(isTaxiing);
+
+            if (!isTaxiing)
+                status.SetCurrentSpeedKnots(0f);
         }
 
         switch (currentState)
@@ -976,14 +975,25 @@ public class AircraftSSDepartureTaxiController : MonoBehaviour
             return;
         }
 
-        float cruisingSpeed = taxiSpeedKnots * worldUnitsPerSecondPerKnot;
+        float speedKnots = taxiSpeedKnots;
 
         AircraftTaxiTrafficFollowing following =
             GetComponent<AircraftTaxiTrafficFollowing>();
 
-        float speed = following != null
-            ? following.GetTrafficFollowingSpeed(cruisingSpeed)
-            : cruisingSpeed;
+        if (following != null)
+        {
+            speedKnots =
+                following.GetTrafficFollowingSpeed(taxiSpeedKnots);
+        }
+        else
+        {
+            AircraftStatus status = GetComponent<AircraftStatus>();
+
+            if (status != null)
+                status.SetCurrentSpeedKnots(speedKnots);
+        }
+
+        float speed = AircraftStatus.KnotsToWorldSpeed(speedKnots);
 
         Vector3 target = movementWaypoints[currentWaypointIndex];
         target.y = transform.position.y;

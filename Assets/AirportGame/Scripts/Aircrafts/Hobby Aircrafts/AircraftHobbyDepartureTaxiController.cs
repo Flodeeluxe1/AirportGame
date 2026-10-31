@@ -49,10 +49,6 @@ public class AircraftHobbyDepartureTaxiController : MonoBehaviour
     [Min(1f)]
     [SerializeField] private float taxiSpeedKnots = 12f;
 
-    [Tooltip("Converts knots to Unity world units per second.")]
-    [Min(0.001f)]
-    [SerializeField] private float worldUnitsPerSecondPerKnot = 0.15f;
-
     [Min(1f)]
     [SerializeField] private float rotationSpeedDegreesPerSecond = 45f;
 
@@ -114,6 +110,9 @@ public class AircraftHobbyDepartureTaxiController : MonoBehaviour
     private float runwaySurfaceY;
     private Vector3 runwayLineUpTarget;
     private Quaternion runwayLineUpRotation;
+
+    private float worldUnitsPerSecondPerKnot =>
+        AircraftStatus.WorldUnitsPerSecondPerKnot;
 
     public DepartureState CurrentState => currentState;
     public AircraftRunway SelectedRunway => selectedRunway;
@@ -1210,15 +1209,25 @@ public class AircraftHobbyDepartureTaxiController : MonoBehaviour
             return;
         }
 
-        float cruisingSpeed =
-            taxiSpeedKnots * worldUnitsPerSecondPerKnot;
+        float speedKnots = taxiSpeedKnots;
 
         AircraftTaxiTrafficFollowing trafficFollowing =
             GetComponent<AircraftTaxiTrafficFollowing>();
 
-        float speed = trafficFollowing != null
-            ? trafficFollowing.GetTrafficFollowingSpeed(cruisingSpeed)
-            : cruisingSpeed;
+        if (trafficFollowing != null)
+        {
+            speedKnots =
+                trafficFollowing.GetTrafficFollowingSpeed(taxiSpeedKnots);
+        }
+        else
+        {
+            AircraftStatus status = GetComponent<AircraftStatus>();
+
+            if (status != null)
+                status.SetCurrentSpeedKnots(speedKnots);
+        }
+
+        float speed = AircraftStatus.KnotsToWorldSpeed(speedKnots);
 
         Vector3 target = movementWaypoints[currentWaypointIndex];
         target.y = transform.position.y;

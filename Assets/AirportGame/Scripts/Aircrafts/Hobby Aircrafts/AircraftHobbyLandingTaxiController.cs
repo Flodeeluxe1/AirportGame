@@ -30,8 +30,6 @@ public class AircraftHobbyLandingTaxiController : MonoBehaviour
     [Header("Taxi Movement")]
     [Min(1f)]
     [SerializeField] private float taxiSpeedKnots = 12f;
-    [Min(0.001f)]
-    [SerializeField] private float worldUnitsPerSecondPerKnot = 0.15f;
     [Min(0.1f)]
     [SerializeField] private float rotationSpeed = 3f;
     [Min(0.05f)]
@@ -104,6 +102,9 @@ public class AircraftHobbyLandingTaxiController : MonoBehaviour
             DistanceSquared = distanceSquared;
         }
     }
+
+    private float worldUnitsPerSecondPerKnot =>
+        AircraftStatus.WorldUnitsPerSecondPerKnot;
 
     private readonly List<Vector2Int> route = new List<Vector2Int>();
     private readonly List<Vector3> taxiMovementPath = new List<Vector3>();
@@ -839,22 +840,31 @@ public class AircraftHobbyLandingTaxiController : MonoBehaviour
             );
         }
 
-
-        float cruisingSpeed = taxiSpeedKnots * worldUnitsPerSecondPerKnot;
+        float speedKnots = taxiSpeedKnots;
 
         AircraftTaxiTrafficFollowing trafficFollowing =
             GetComponent<AircraftTaxiTrafficFollowing>();
 
-        float speed = trafficFollowing != null
-            ? trafficFollowing.GetTrafficFollowingSpeed(cruisingSpeed)
-            : cruisingSpeed;
+        if (trafficFollowing != null)
+        {
+            speedKnots =
+                trafficFollowing.GetTrafficFollowingSpeed(taxiSpeedKnots);
+        }
+        else
+        {
+            AircraftStatus status = GetComponent<AircraftStatus>();
+
+            if (status != null)
+                status.SetCurrentSpeedKnots(speedKnots);
+        }
+
+        float speed = AircraftStatus.KnotsToWorldSpeed(speedKnots);
 
         transform.position = Vector3.MoveTowards(
             transform.position,
             target,
             speed * Time.deltaTime
         );
-
 
         return HorizontalDistance(transform.position, target) <= arrivalDistance;
     }

@@ -37,9 +37,6 @@ public class AircraftHobbyLandingController : MonoBehaviour
     [Min(1f)]
     [SerializeField] private float rolloutTargetSpeedKnots = 12f;
 
-    [Tooltip("Converts knots into Unity world units per second.")]
-    [Min(0.001f)]
-    [SerializeField] private float worldUnitsPerSecondPerKnot = 0.15f;
 
     [Min(0.1f)]
     [SerializeField] private float speedChangeRate = 3f;
@@ -99,6 +96,8 @@ public class AircraftHobbyLandingController : MonoBehaviour
     private GameObject glidePathDebugObject;
     private LineRenderer glidePathLineRenderer;
     private Material glidePathMaterial;
+    private float worldUnitsPerSecondPerKnot =>
+        AircraftStatus.WorldUnitsPerSecondPerKnot;
 
     public bool IsLandingComplete =>
         state == LandingState.LandingComplete;
@@ -214,9 +213,14 @@ public class AircraftHobbyLandingController : MonoBehaviour
 
         AircraftStatus status = GetComponent<AircraftStatus>();
 
-        if (status != null && IsLandingComplete)
+        if (status != null)
         {
-            status.MarkLandingComplete();
+            status.SetCurrentSpeedKnots(
+                AircraftStatus.WorldSpeedToKnots(currentSpeed)
+            );
+
+            if (IsLandingComplete)
+                status.MarkLandingComplete();
         }
 
         if (trafficManager == null)
