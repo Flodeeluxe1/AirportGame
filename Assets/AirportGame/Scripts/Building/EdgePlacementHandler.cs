@@ -1,3 +1,4 @@
+
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -13,10 +14,10 @@ public class EdgePlacementHandler : IPlacementHandler
     private PlacementPreview placementPreview;
 
     private GridEdge currentEdge;
-
     private GridEdge startEdge;
 
     private bool isDragging;
+    private bool hasLockedCornerDirection;
 
     private readonly List<GridEdge> previewEdges =
         new List<GridEdge>();
@@ -57,6 +58,7 @@ public class EdgePlacementHandler : IPlacementHandler
             currentEdge;
 
         isDragging = false;
+        hasLockedCornerDirection = false;
 
         ClearAdditionalPreviews();
     }
@@ -94,29 +96,53 @@ public class EdgePlacementHandler : IPlacementHandler
         float distanceToHorizontal =
             Mathf.Abs(localZ);
 
+        EdgeDirection selectedDirection;
+
         if (distanceToVertical <
             distanceToHorizontal)
         {
-            currentEdge =
-                new GridEdge(
-                    new Vector2Int(
-                        cellX,
-                        cellZ
-                    ),
-                    EdgeDirection.Vertical
-                );
+            selectedDirection =
+                EdgeDirection.Vertical;
         }
         else
         {
-            currentEdge =
-                new GridEdge(
-                    new Vector2Int(
-                        cellX,
-                        cellZ
-                    ),
-                    EdgeDirection.Horizontal
-                );
+            selectedDirection =
+                EdgeDirection.Horizontal;
         }
+
+        Vector2Int selectedCell =
+            new Vector2Int(cellX, cellZ);
+
+        if (isDragging)
+        {
+            if (!hasLockedCornerDirection &&
+                selectedDirection != startEdge.direction)
+            {
+                bool hasMovedPerpendicular =
+                    startEdge.direction == EdgeDirection.Horizontal
+                        ? selectedCell.y != startEdge.cell.y
+                        : selectedCell.x != startEdge.cell.x;
+
+                if (hasMovedPerpendicular)
+                {
+                    hasLockedCornerDirection = true;
+                }
+            }
+
+            if (hasLockedCornerDirection)
+            {
+                selectedDirection =
+                    startEdge.direction == EdgeDirection.Horizontal
+                        ? EdgeDirection.Vertical
+                        : EdgeDirection.Horizontal;
+            }
+        }
+
+        currentEdge =
+            new GridEdge(
+                selectedCell,
+                selectedDirection
+            );
 
         if (isDragging)
         {
@@ -151,6 +177,7 @@ public class EdgePlacementHandler : IPlacementHandler
             currentEdge;
 
         isDragging = true;
+        hasLockedCornerDirection = false;
 
         UpdateWallPreview();
     }
@@ -177,6 +204,7 @@ public class EdgePlacementHandler : IPlacementHandler
         }
 
         isDragging = false;
+        hasLockedCornerDirection = false;
 
         ClearAdditionalPreviews();
 
@@ -586,18 +614,6 @@ public class EdgePlacementHandler : IPlacementHandler
                 edge.cell
             );
 
-        /*
-         * The wall/door prefab pivot is assumed
-         * to be centered vertically.
-         *
-         * Therefore:
-         *
-         * prefab height 2.5m
-         * -> Y = 1.25m
-         *
-         * This is calculated dynamically from
-         * the prefab's renderer bounds.
-         */
         float prefabHeight =
             GetPrefabHeight(target);
 
@@ -823,7 +839,6 @@ public class EdgePlacementHandler : IPlacementHandler
             cell.y < gridManager.Height;
     }
 
-
     private void PlaceWallLine()
     {
         if (!ConstructionCostUtility.TryPay(
@@ -860,7 +875,6 @@ public class EdgePlacementHandler : IPlacementHandler
         );
     }
 
-
     public void Rotate()
     {
         // Wall orientation is determined
@@ -892,6 +906,7 @@ public class EdgePlacementHandler : IPlacementHandler
     public void Cancel()
     {
         isDragging = false;
+        hasLockedCornerDirection = false;
 
         ClearAdditionalPreviews();
     }
@@ -914,6 +929,7 @@ public class EdgePlacementHandler : IPlacementHandler
             currentEdge;
 
         isDragging = false;
+        hasLockedCornerDirection = false;
 
         previewEdges.Clear();
     }
