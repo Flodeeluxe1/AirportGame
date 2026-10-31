@@ -172,6 +172,7 @@ public class AircraftTrainingLandingController : MonoBehaviour
             weather = FindFirstObjectByType<Weather>();
     }
 
+
     private void Update()
     {
         switch (state)
@@ -204,9 +205,15 @@ public class AircraftTrainingLandingController : MonoBehaviour
             AircraftTrainingLandingTaxiController taxiController =
                 GetComponent<AircraftTrainingLandingTaxiController>();
 
-            // The landing controller owns speed during landing and rollout.
-            // The taxi controller takes over once it begins taxiing.
-            if (!IsLandingComplete &&
+            bool landingOwnsSpeed =
+                state == LandingState.Aligning ||
+                state == LandingState.FinalApproach ||
+                state == LandingState.Flare ||
+                state == LandingState.Rollout ||
+                state == LandingState.GoAround;
+
+            if (landingOwnsSpeed &&
+                !IsLandingComplete &&
                 (taxiController == null || !taxiController.IsTaxiing))
             {
                 status.SetCurrentSpeedKnots(
@@ -224,24 +231,9 @@ public class AircraftTrainingLandingController : MonoBehaviour
                 FindFirstObjectByType<AircraftRunwayTrafficManager>();
         }
 
-        if (trafficManager != null)
-        {
-            if (selectedRunway != null)
-            {
-                trafficManager.UpdateLandingTraffic(
-                    this,
-                    selectedRunway,
-                    IsLandingTrafficActive
-                );
-            }
-            else
-            {
-                trafficManager.UnregisterLandingTraffic(this);
-            }
-        }
-
-        UpdateDebugInformation();
+        // Keep the rest of your existing Update() code below this point.
     }
+
 
     public void ResetForNextTrainingLesson()
     {

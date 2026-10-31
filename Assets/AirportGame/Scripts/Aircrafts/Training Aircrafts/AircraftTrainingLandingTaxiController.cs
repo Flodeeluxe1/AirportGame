@@ -125,6 +125,7 @@ public class AircraftTrainingLandingTaxiController : MonoBehaviour
     private Vector3 runwayExitPoint;
     private Vector3 taxiwayJoinPoint;
     private Vector3 parkingTarget;
+    private bool hasPublishedParkedStatus;
     private float taxiWorldY;
 
     private const float BezierCircleFactor = 0.55228475f;
@@ -160,16 +161,22 @@ public class AircraftTrainingLandingTaxiController : MonoBehaviour
             taxiwayPathfinder = FindFirstObjectByType<TaxiwayPathfinder>();
     }
 
+
     private void Update()
     {
         AircraftStatus status = GetComponent<AircraftStatus>();
 
         if (status != null)
         {
-            status.SetTaxiing(IsTaxiing);
-
-            if (HasArrivedAtParking)
+            if (IsTaxiing)
+            {
+                status.SetTaxiing(true);
+            }
+            else if (HasArrivedAtParking && !hasPublishedParkedStatus)
+            {
                 status.SetParked(true);
+                hasPublishedParkedStatus = true;
+            }
         }
 
         if (landingController == null)
@@ -201,6 +208,7 @@ public class AircraftTrainingLandingTaxiController : MonoBehaviour
         }
     }
 
+
     public void ResetForNextTrainingLesson()
     {
         route.Clear();
@@ -218,6 +226,8 @@ public class AircraftTrainingLandingTaxiController : MonoBehaviour
 
         phase = TaxiPhase.WaitingForLanding;
         debugStatus = "Waiting for the next training lesson's final landing.";
+
+        hasPublishedParkedStatus = false;
 
         // Do not release or clear the reserved parking spot.
         // The same aircraft keeps its existing reservation.
