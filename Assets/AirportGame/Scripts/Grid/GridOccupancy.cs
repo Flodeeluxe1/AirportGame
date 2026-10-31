@@ -19,6 +19,15 @@ public class GridOccupancy : MonoBehaviour
         return occupant != ignoredObject;
     }
 
+    public bool IsOccupiedBy(Vector2Int position, GameObject building)
+    {
+        if (building == null)
+            return false;
+
+        return occupiedCells.TryGetValue(position, out GameObject occupant)
+            && occupant == building;
+    }
+
     public bool CanOccupy(
         Vector2Int origin,
         int width,

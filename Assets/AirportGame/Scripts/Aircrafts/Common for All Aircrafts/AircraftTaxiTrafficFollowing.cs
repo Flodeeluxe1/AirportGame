@@ -47,12 +47,34 @@ public class AircraftTaxiTrafficFollowing : MonoBehaviour
 
     private float currentSpeed;
 
+
     public float GetTrafficFollowingSpeed(float cruisingSpeed)
     {
         cruisingSpeed = Mathf.Max(0f, cruisingSpeed);
 
-        if (currentSpeed <= 0f)
+        // Stop traffic raycasts once the aircraft starts moving onto the runway.
+        AircraftCargoPaxDepartureTaxiController departureController =
+            GetComponent<AircraftCargoPaxDepartureTaxiController>();
+
+        if (departureController != null &&
+            departureController.CurrentState ==
+            AircraftCargoPaxDepartureTaxiController.DepartureState.MovingOntoRunway)
+        {
+            // Keep the aircraft moving at normal cruising speed.
             currentSpeed = cruisingSpeed;
+            debugCurrentSpeed = currentSpeed;
+
+            debugBlockingAircraft = "Raycasts disabled";
+            debugBlockingDistance = 0f;
+            debugTrafficDecision = "Runway line-up: traffic detection disabled";
+
+            debugForwardRay = "Disabled: aircraft moving onto runway";
+            debugLeftRay = "Disabled: aircraft moving onto runway";
+            debugRightRay = "Disabled: aircraft moving onto runway";
+            debugRaycastSummary = "Traffic raycasts disabled during runway line-up.";
+
+            return currentSpeed;
+        }
 
         float targetSpeed = cruisingSpeed;
 
@@ -109,6 +131,7 @@ public class AircraftTaxiTrafficFollowing : MonoBehaviour
 
         return currentSpeed;
     }
+
 
     private bool TryFindAircraftAhead(
         out Transform blockingAircraft,

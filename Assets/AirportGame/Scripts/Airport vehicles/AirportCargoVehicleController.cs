@@ -161,8 +161,7 @@ public class AirportCargoVehicleController : MonoBehaviour
         {
             Debug.LogWarning(
                 $"{name}: Assign a Cargo Zone Test Target in the Inspector.",
-                this
-            );
+                this);
             return;
         }
 
@@ -185,22 +184,19 @@ public class AirportCargoVehicleController : MonoBehaviour
 
             int collected = CollectOutgoingPackages(
                 cargoZoneTestTarget,
-                testFlightOperationId
-            );
+                testFlightOperationId);
 
             Debug.Log(
                 $"{name}: Collection test finished. " +
                 $"Collected: {collected}, " +
                 $"carried: {CarriedPackageCount}/{MaximumCargoCapacity}, " +
                 $"remaining capacity: {AvailableCargoCapacity}.",
-                this
-            );
+                this);
         }
     }
 
     /// <summary>
-    /// Called by CargoTugLotSpawner. Stores the live scene Transform,
-    /// not a snapshot of its world position.
+    /// Called by CargoTugLotSpawner to store the live home transform.
     /// </summary>
     public void SetHomeSpawnPoint(
         Transform spawnPoint,
@@ -214,13 +210,12 @@ public class AirportCargoVehicleController : MonoBehaviour
         Debug.Log(
             $"{name}: Home spawn point set to " +
             $"{(spawnPoint != null ? spawnPoint.name : "None")}.",
-            this
-        );
+            this);
     }
 
     /// <summary>
-    /// Starts the return journey only if the dispatcher did not assign
-    /// another job and neither baggage job is still active.
+    /// Starts a return journey if the vehicle has no active assignment
+    /// or baggage job and is not carrying packages.
     /// </summary>
     public bool BeginReturnHomeIfIdle()
     {
@@ -229,8 +224,7 @@ public class AirportCargoVehicleController : MonoBehaviour
             Debug.LogWarning(
                 $"{name}: Cannot return home because no home spawn point " +
                 "has been assigned.",
-                this
-            );
+                this);
             return false;
         }
 
@@ -274,16 +268,11 @@ public class AirportCargoVehicleController : MonoBehaviour
         Debug.Log(
             $"{name}: Returning to cargo tug lot '{homeSpawnPoint.name}' " +
             $"at {target}.",
-            this
-        );
+            this);
 
         return true;
     }
 
-    /// <summary>
-    /// Cancels only the return-home state. The next MoveTo call replaces
-    /// the existing route with the new assignment's route.
-    /// </summary>
     public void CancelReturnHome()
     {
         if (!isReturningHome)
@@ -293,8 +282,7 @@ public class AirportCargoVehicleController : MonoBehaviour
 
         Debug.Log(
             $"{name}: Return-home journey cancelled for a new assignment.",
-            this
-        );
+            this);
     }
 
     private Vector3 GetCurrentHomeTarget()
@@ -335,8 +323,7 @@ public class AirportCargoVehicleController : MonoBehaviour
 
                 Debug.Log(
                     $"{name}: Returned to the cargo tug lot.",
-                    this
-                );
+                    this);
             }
 
             return;
@@ -344,7 +331,6 @@ public class AirportCargoVehicleController : MonoBehaviour
 
         Vector3 currentTarget = GetCurrentHomeTarget();
 
-        // Recalculate the route if the lot moved while the tug was away.
         if (Vector3.Distance(currentTarget, lastHomeTarget) > 0.1f)
         {
             lastHomeTarget = currentTarget;
@@ -361,8 +347,7 @@ public class AirportCargoVehicleController : MonoBehaviour
                 Debug.LogWarning(
                     $"{name}: Could not recalculate the return route " +
                     "after the cargo tug lot moved.",
-                    this
-                );
+                    this);
             }
         }
     }
@@ -378,15 +363,13 @@ public class AirportCargoVehicleController : MonoBehaviour
         if (zone.AirportVehicleStopPoint == null)
         {
             Fail(
-                $"Cargo zone '{zone.name}' has no AirportVehicleStopPoint."
-            );
+                $"Cargo zone '{zone.name}' has no AirportVehicleStopPoint.");
             return false;
         }
 
         Debug.Log(
             $"{name}: Navigating to cargo zone '{zone.name}'.",
-            this
-        );
+            this);
 
         return MoveTo(zone.AirportVehicleStopPoint.position);
     }
@@ -399,8 +382,7 @@ public class AirportCargoVehicleController : MonoBehaviour
         {
             Debug.LogWarning(
                 $"{name}: Cannot collect cargo because the zone is missing.",
-                this
-            );
+                this);
             return 0;
         }
 
@@ -408,8 +390,7 @@ public class AirportCargoVehicleController : MonoBehaviour
         {
             Debug.LogWarning(
                 $"{name}: Cannot collect cargo without a flight operation ID.",
-                this
-            );
+                this);
             return 0;
         }
 
@@ -420,16 +401,14 @@ public class AirportCargoVehicleController : MonoBehaviour
             Debug.Log(
                 $"{name}: Cargo capacity is full " +
                 $"({CarriedPackageCount}/{MaximumCargoCapacity}).",
-                this
-            );
+                this);
             return 0;
         }
 
         List<CargoPackage> availablePackages =
             zone.GetAvailablePackages(
                 CargoDirection.Outgoing,
-                flightOperationId
-            );
+                flightOperationId);
 
         int collected = 0;
 
@@ -454,8 +433,7 @@ public class AirportCargoVehicleController : MonoBehaviour
             $"{name}: Collected {collected} package(s) for flight " +
             $"{flightOperationId} from zone '{zone.name}'. " +
             $"Vehicle load: {CarriedPackageCount}/{MaximumCargoCapacity}.",
-            this
-        );
+            this);
 
         return collected;
     }
@@ -483,8 +461,6 @@ public class AirportCargoVehicleController : MonoBehaviour
 
     public bool MoveTo(Vector3 worldDestination)
     {
-        // Any normal movement command replaces the return route.
-        // Internal target updates preserve the return-home state.
         if (!updatingReturnRoute)
             isReturningHome = false;
 
@@ -515,8 +491,7 @@ public class AirportCargoVehicleController : MonoBehaviour
         {
             Fail(
                 $"Start or target is outside the grid. " +
-                $"Start: {startCell}, Target: {targetCell}"
-            );
+                $"Start: {startCell}, Target: {targetCell}");
             return false;
         }
 
@@ -527,10 +502,11 @@ public class AirportCargoVehicleController : MonoBehaviour
         {
             Fail(
                 $"No route found from {startCell} to {targetCell}. " +
-                "Check foundation clearance, occupied cells and grid bounds."
-            );
+                "Check foundation clearance, occupied cells and grid bounds.");
             return false;
         }
+
+        routeCellCount = cells.Count;
 
         List<Vector3> cellPositions = new List<Vector3>();
 
@@ -561,8 +537,8 @@ public class AirportCargoVehicleController : MonoBehaviour
         while (currentWaypointIndex < movementPath.Count &&
                HorizontalDistance(
                    transform.position,
-                   movementPath[currentWaypointIndex]
-               ) <= waypointArrivalDistance)
+                   movementPath[currentWaypointIndex]) <=
+               waypointArrivalDistance)
         {
             currentWaypointIndex++;
         }
@@ -580,11 +556,239 @@ public class AirportCargoVehicleController : MonoBehaviour
             $"taxiway/road cost: {taxiwayMovementCost}, " +
             $"foundation clearance: {foundationClearance}, " +
             $"parking turn distance: {parkingTurnDistanceInCells} cells.",
-            this
-        );
+            this);
 
         return true;
     }
+
+    // ---------------------------------------------------------------------
+    // Home lot ownership
+    // ---------------------------------------------------------------------
+
+    /// <summary>
+    /// Returns true when the cell is occupied by this vehicle's own
+    /// CargoTugLot. The lot remains blocked to every other vehicle.
+    /// </summary>
+    private bool IsHomeLotCell(Vector2Int cell)
+    {
+        if (homeSpawnPoint == null || gridOccupancy == null)
+            return false;
+
+        // CargoTugLotSpawner passes the placed lot's own transform.
+        GameObject homeLot = homeSpawnPoint.gameObject;
+
+        return gridOccupancy.IsOccupiedBy(cell, homeLot);
+    }
+
+    // ---------------------------------------------------------------------
+    // A* pathfinding
+    // ---------------------------------------------------------------------
+
+    private List<Vector2Int> FindShortestGridPath(
+        Vector2Int start,
+        Vector2Int target)
+    {
+        List<Vector2Int> empty = new List<Vector2Int>();
+
+        if (start == target)
+            return new List<Vector2Int> { start };
+
+        // A destination inside the tug's own lot is valid. Other obstacle
+        // destinations remain forbidden.
+        if (gridSurface.IsObstacle(target) && !IsHomeLotCell(target))
+            return empty;
+
+        List<Vector2Int> openSet = new List<Vector2Int> { start };
+        HashSet<Vector2Int> closedSet = new HashSet<Vector2Int>();
+
+        Dictionary<Vector2Int, Vector2Int> cameFrom =
+            new Dictionary<Vector2Int, Vector2Int>();
+
+        Dictionary<Vector2Int, int> gScore =
+            new Dictionary<Vector2Int, int>();
+
+        gScore[start] = 0;
+
+        while (openSet.Count > 0)
+        {
+            int bestIndex = 0;
+
+            for (int i = 1; i < openSet.Count; i++)
+            {
+                int currentScore =
+                    gScore[openSet[i]] +
+                    ManhattanDistance(openSet[i], target) *
+                    grassMovementCost;
+
+                int bestScore =
+                    gScore[openSet[bestIndex]] +
+                    ManhattanDistance(openSet[bestIndex], target) *
+                    grassMovementCost;
+
+                if (currentScore < bestScore)
+                    bestIndex = i;
+            }
+
+            Vector2Int current = openSet[bestIndex];
+            openSet.RemoveAt(bestIndex);
+
+            if (current == target)
+                return ReconstructPath(cameFrom, start, target);
+
+            if (!closedSet.Add(current))
+                continue;
+
+            Vector2Int[] neighbors =
+            {
+                current + Vector2Int.up,
+                current + Vector2Int.right,
+                current + Vector2Int.down,
+                current + Vector2Int.left
+            };
+
+            foreach (Vector2Int neighbor in neighbors)
+            {
+                if (!gridManager.IsInsideGrid(neighbor) ||
+                    closedSet.Contains(neighbor))
+                {
+                    continue;
+                }
+
+                bool isHomeLotCell = IsHomeLotCell(neighbor);
+
+                // Permit traversal through the tug's own lot, including
+                // its foundation cells, so it can leave and return.
+                // Do not relax obstacle checks for any other building.
+                if (neighbor != start &&
+                    neighbor != target &&
+                    !isHomeLotCell)
+                {
+                    if (gridSurface.GetSurface(neighbor) ==
+                        BuildSurface.Foundation)
+                    {
+                        continue;
+                    }
+
+                    if (IsWithinFoundationClearance(neighbor))
+                        continue;
+
+                    if (gridOccupancy.IsOccupied(neighbor))
+                        continue;
+
+                    if (gridSurface.IsObstacle(neighbor))
+                        continue;
+                }
+
+                int stepCost = GetMovementCost(neighbor);
+                int tentativeScore = gScore[current] + stepCost;
+
+                if (gScore.TryGetValue(
+                        neighbor,
+                        out int existingScore) &&
+                    tentativeScore >= existingScore)
+                {
+                    continue;
+                }
+
+                cameFrom[neighbor] = current;
+                gScore[neighbor] = tentativeScore;
+
+                if (!openSet.Contains(neighbor))
+                    openSet.Add(neighbor);
+            }
+        }
+
+        return empty;
+    }
+
+    private bool IsWithinFoundationClearance(Vector2Int cell)
+    {
+        if (foundationClearance <= 0)
+            return false;
+
+        for (int x = -foundationClearance;
+             x <= foundationClearance;
+             x++)
+        {
+            for (int y = -foundationClearance;
+                 y <= foundationClearance;
+                 y++)
+            {
+                if (x == 0 && y == 0)
+                    continue;
+
+                Vector2Int checkedCell = new Vector2Int(
+                    cell.x + x,
+                    cell.y + y);
+
+                if (!gridManager.IsInsideGrid(checkedCell))
+                    continue;
+
+                // The home lot must not create a clearance barrier
+                // against itself.
+                if (IsHomeLotCell(checkedCell))
+                    continue;
+
+                if (gridSurface.GetSurface(checkedCell) ==
+                    BuildSurface.Foundation)
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private int GetMovementCost(Vector2Int cell)
+    {
+        if (taxiwayNetwork.IsTaxiway(cell) ||
+            roadNetwork.IsRoad(cell))
+        {
+            return taxiwayMovementCost;
+        }
+
+        return grassMovementCost;
+    }
+
+    private List<Vector2Int> ReconstructPath(
+        Dictionary<Vector2Int, Vector2Int> cameFrom,
+        Vector2Int start,
+        Vector2Int target)
+    {
+        List<Vector2Int> path = new List<Vector2Int>();
+        Vector2Int current = target;
+        path.Add(current);
+
+        while (current != start)
+        {
+            if (!cameFrom.TryGetValue(current, out Vector2Int previous))
+                return new List<Vector2Int>();
+
+            current = previous;
+            path.Add(current);
+        }
+
+        path.Reverse();
+        return path;
+    }
+
+    private static float HorizontalDistance(Vector3 a, Vector3 b)
+    {
+        float dx = a.x - b.x;
+        float dz = a.z - b.z;
+
+        return Mathf.Sqrt(dx * dx + dz * dz);
+    }
+
+    private int ManhattanDistance(Vector2Int a, Vector2Int b)
+    {
+        return Mathf.Abs(a.x - b.x) + Mathf.Abs(a.y - b.y);
+    }
+
+    // ---------------------------------------------------------------------
+    // Path construction and smoothing
+    // ---------------------------------------------------------------------
 
     private void BuildFinalParkingCurve()
     {
@@ -610,8 +814,7 @@ public class AirportCargoVehicleController : MonoBehaviour
 
         Vector3 entryPoint = GetPointAlongMovementPath(entryDistance);
         Vector3 pointAhead = GetPointAlongMovementPath(
-            Mathf.Min(totalDistance, entryDistance + 0.1f)
-        );
+            Mathf.Min(totalDistance, entryDistance + 0.1f));
 
         Vector3 approachDirection = pointAhead - entryPoint;
         approachDirection.y = 0f;
@@ -638,8 +841,7 @@ public class AirportCargoVehicleController : MonoBehaviour
 
         float handleLength = Mathf.Min(
             turnDistance * 0.45f,
-            curveLength * 0.45f
-        );
+            curveLength * 0.45f);
 
         Vector3 controlPoint1 =
             entryPoint + approachDirection * handleLength;
@@ -672,7 +874,10 @@ public class AirportCargoVehicleController : MonoBehaviour
             }
 
             float distanceIntoSegment =
-                Mathf.Clamp(entryDistance - distanceAlongPath, 0f, segmentLength);
+                Mathf.Clamp(
+                    entryDistance - distanceAlongPath,
+                    0f,
+                    segmentLength);
 
             float t = distanceIntoSegment / segmentLength;
 
@@ -680,8 +885,8 @@ public class AirportCargoVehicleController : MonoBehaviour
             exactEntryPoint.y = movementHeight;
 
             if (HorizontalDistance(
-                movementPath[movementPath.Count - 1],
-                exactEntryPoint) > 0.01f)
+                    movementPath[movementPath.Count - 1],
+                    exactEntryPoint) > 0.01f)
             {
                 movementPath.Add(exactEntryPoint);
             }
@@ -693,8 +898,8 @@ public class AirportCargoVehicleController : MonoBehaviour
             movementPath.Add(entryPoint);
 
         if (HorizontalDistance(
-            movementPath[movementPath.Count - 1],
-            entryPoint) > 0.02f)
+                movementPath[movementPath.Count - 1],
+                entryPoint) > 0.02f)
         {
             movementPath.Add(entryPoint);
         }
@@ -713,8 +918,8 @@ public class AirportCargoVehicleController : MonoBehaviour
             curvePoint.y = movementHeight;
 
             if (HorizontalDistance(
-                movementPath[movementPath.Count - 1],
-                curvePoint) > 0.005f)
+                    movementPath[movementPath.Count - 1],
+                    curvePoint) > 0.005f)
             {
                 movementPath.Add(curvePoint);
             }
@@ -729,8 +934,7 @@ public class AirportCargoVehicleController : MonoBehaviour
             $"{name}: Built final parking curve. " +
             $"Approach distance: {turnDistance:F2} world units, " +
             $"direction: {parkingDirection}.",
-            this
-        );
+            this);
     }
 
     private float GetGridCellSize()
@@ -836,7 +1040,9 @@ public class AirportCargoVehicleController : MonoBehaviour
 
             if (incoming.sqrMagnitude < 0.0001f ||
                 outgoing.sqrMagnitude < 0.0001f)
+            {
                 continue;
+            }
 
             incoming.Normalize();
             outgoing.Normalize();
@@ -880,14 +1086,12 @@ public class AirportCargoVehicleController : MonoBehaviour
 
             radius = Mathf.Min(
                 radius,
-                cumulativeDistance[cornerIndex] * 0.45f
-            );
+                cumulativeDistance[cornerIndex] * 0.45f);
 
             radius = Mathf.Min(
                 radius,
                 (cumulativeDistance[count - 1] -
-                 cumulativeDistance[cornerIndex]) * 0.45f
-            );
+                 cumulativeDistance[cornerIndex]) * 0.45f);
 
             radius = Mathf.Max(0.01f, radius);
 
@@ -995,6 +1199,10 @@ public class AirportCargoVehicleController : MonoBehaviour
         movementPath.Add(point);
     }
 
+    // ---------------------------------------------------------------------
+    // Movement
+    // ---------------------------------------------------------------------
+
     public void StopMovement()
     {
         isMoving = false;
@@ -1027,8 +1235,7 @@ public class AirportCargoVehicleController : MonoBehaviour
         Vector3 nextPosition = Vector3.MoveTowards(
             transform.position,
             waypoint,
-            movementSpeed * Time.deltaTime
-        );
+            movementSpeed * Time.deltaTime);
 
         nextPosition.y = movementHeight;
         transform.position = nextPosition;
@@ -1043,14 +1250,12 @@ public class AirportCargoVehicleController : MonoBehaviour
 
         Quaternion targetRotation = Quaternion.LookRotation(
             direction.normalized,
-            Vector3.up
-        );
+            Vector3.up);
 
         transform.rotation = Quaternion.RotateTowards(
             transform.rotation,
             targetRotation,
-            rotationSpeed * 100f * Time.deltaTime
-        );
+            rotationSpeed * 100f * Time.deltaTime);
     }
 
     private void FinishMovement()
@@ -1063,8 +1268,7 @@ public class AirportCargoVehicleController : MonoBehaviour
 
         transform.rotation = Quaternion.LookRotation(
             finalDirection,
-            Vector3.up
-        );
+            Vector3.up);
 
         isMoving = false;
         currentWaypointIndex = movementPath.Count;
@@ -1072,219 +1276,12 @@ public class AirportCargoVehicleController : MonoBehaviour
 
         Debug.Log(
             $"{name}: Reached destination and completed the parking approach.",
-            this
-        );
+            this);
     }
 
-    
-    private List<Vector2Int> FindShortestGridPath(
-        Vector2Int start,
-        Vector2Int target)
-        {
-            List<Vector2Int> empty = new List<Vector2Int>();
-
-            if (start == target)
-            {
-                if (start != target && gridSurface.IsObstacle(target))
-                    return empty;
-
-                return new List<Vector2Int> { start };
-            }
-
-            // Do not allow a destination on a runway or another blocked cell.
-            if (gridSurface.IsObstacle(target))
-                return empty;
-
-            List<Vector2Int> openSet = new List<Vector2Int> { start };
-            HashSet<Vector2Int> closedSet = new HashSet<Vector2Int>();
-            Dictionary<Vector2Int, Vector2Int> cameFrom =
-                new Dictionary<Vector2Int, Vector2Int>();
-            Dictionary<Vector2Int, int> gScore =
-                new Dictionary<Vector2Int, int>();
-
-            gScore[start] = 0;
-
-            while (openSet.Count > 0)
-            {
-                int bestIndex = 0;
-
-                for (int i = 1; i < openSet.Count; i++)
-                {
-                    int currentScore =
-                        gScore[openSet[i]] +
-                        ManhattanDistance(openSet[i], target) *
-                        grassMovementCost;
-
-                    int bestScore =
-                        gScore[openSet[bestIndex]] +
-                        ManhattanDistance(openSet[bestIndex], target) *
-                        grassMovementCost;
-
-                    if (currentScore < bestScore)
-                        bestIndex = i;
-                }
-
-                Vector2Int current = openSet[bestIndex];
-                openSet.RemoveAt(bestIndex);
-
-                if (current == target)
-                    return ReconstructPath(cameFrom, start, target);
-
-                if (!closedSet.Add(current))
-                    continue;
-
-                Vector2Int[] neighbors =
-                {
-                current + Vector2Int.up,
-                current + Vector2Int.right,
-                current + Vector2Int.down,
-                current + Vector2Int.left
-            };
-
-                foreach (Vector2Int neighbor in neighbors)
-                {
-                    if (!gridManager.IsInsideGrid(neighbor) ||
-                        closedSet.Contains(neighbor))
-                    {
-                        continue;
-                    }
-
-                // Runway and other pathfinding-obstacle cells are forbidden.
-                // Allow the tug's current cell so it can escape if necessary.
-                if (neighbor != start &&
-                    neighbor != target &&
-                    gridSurface.GetSurface(neighbor) == BuildSurface.Foundation)
-                {
-                    Debug.Log(
-                        $"[CargoPathfinding] BLOCKED {neighbor}: Foundation surface");
-
-                    continue;
-                }
-
-                if (neighbor != start &&
-                    neighbor != target &&
-                    IsWithinFoundationClearance(neighbor))
-                {
-                    Debug.Log(
-                        $"[CargoPathfinding] BLOCKED {neighbor}: Within foundation clearance " +
-                        $"(clearance = {foundationClearance})");
-
-                    continue;
-                }
-
-                if (neighbor != target &&
-                    neighbor != start &&
-                    gridOccupancy.IsOccupied(neighbor))
-                {
-                    Debug.Log(
-                        $"[CargoPathfinding] BLOCKED {neighbor}: Occupied cell");
-
-                    continue;
-                }
-
-                int stepCost = GetMovementCost(neighbor);
-                    int tentativeScore = gScore[current] + stepCost;
-
-                    if (gScore.TryGetValue(
-                            neighbor,
-                            out int existingScore) &&
-                        tentativeScore >= existingScore)
-                    {
-                        continue;
-                    }
-
-                    cameFrom[neighbor] = current;
-                    gScore[neighbor] = tentativeScore;
-
-                    if (!openSet.Contains(neighbor))
-                        openSet.Add(neighbor);
-                }
-            }
-
-            return empty;
-        }
-
-
-    private bool IsWithinFoundationClearance(Vector2Int cell)
-    {
-        if (foundationClearance <= 0)
-            return false;
-
-        for (int x = -foundationClearance;
-             x <= foundationClearance;
-             x++)
-        {
-            for (int y = -foundationClearance;
-                 y <= foundationClearance;
-                 y++)
-            {
-                if (x == 0 && y == 0)
-                    continue;
-
-                Vector2Int checkedCell = new Vector2Int(
-                    cell.x + x,
-                    cell.y + y
-                );
-
-                if (!gridManager.IsInsideGrid(checkedCell))
-                    continue;
-
-                if (gridSurface.GetSurface(checkedCell) ==
-                    BuildSurface.Foundation)
-                {
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    }
-
-    private int GetMovementCost(Vector2Int cell)
-    {
-        if (taxiwayNetwork.IsTaxiway(cell) ||
-            roadNetwork.IsRoad(cell))
-        {
-            return taxiwayMovementCost;
-        }
-
-        return grassMovementCost;
-    }
-
-    private List<Vector2Int> ReconstructPath(
-        Dictionary<Vector2Int, Vector2Int> cameFrom,
-        Vector2Int start,
-        Vector2Int target)
-    {
-        List<Vector2Int> path = new List<Vector2Int>();
-        Vector2Int current = target;
-        path.Add(current);
-
-        while (current != start)
-        {
-            if (!cameFrom.TryGetValue(current, out Vector2Int previous))
-                return new List<Vector2Int>();
-
-            current = previous;
-            path.Add(current);
-        }
-
-        path.Reverse();
-        return path;
-    }
-
-    private int ManhattanDistance(Vector2Int a, Vector2Int b)
-    {
-        return Mathf.Abs(a.x - b.x) + Mathf.Abs(a.y - b.y);
-    }
-
-    private float HorizontalDistance(Vector3 a, Vector3 b)
-    {
-        float dx = a.x - b.x;
-        float dz = a.z - b.z;
-
-        return Mathf.Sqrt(dx * dx + dz * dz);
-    }
+    // ---------------------------------------------------------------------
+    // Errors and cargo resolution
+    // ---------------------------------------------------------------------
 
     private void Fail(string reason)
     {
@@ -1294,8 +1291,7 @@ public class AirportCargoVehicleController : MonoBehaviour
         Debug.LogWarning(
             $"{nameof(AirportCargoVehicleController)} on {name}: " +
             reason,
-            this
-        );
+            this);
     }
 
     public bool ResolveCarriedPackage(

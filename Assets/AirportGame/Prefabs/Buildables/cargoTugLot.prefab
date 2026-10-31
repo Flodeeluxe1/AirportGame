@@ -130,5 +130,5 @@ MonoBehaviour:
   tugSpawnOffset: {x: 0, y: 0, z: 0}
   trailerSpawnOffset: {x: 0, y: 0, z: 0}
   spawnHeight: -0.05
-  trailerSpawnHeight: 0.9
+  trailerSpawnHeight: 0.7
   showDebugMessages: 1
