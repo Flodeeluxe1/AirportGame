@@ -132,7 +132,19 @@ public class AircraftSSDepartureTaxiController : MonoBehaviour
     {
         AircraftStatus status = GetComponent<AircraftStatus>();
 
-        if (status != null)
+        AircraftSSLandingController landingController =
+            GetComponent<AircraftSSLandingController>();
+
+        AircraftSSLandingTaxiController landingTaxiController =
+            GetComponent<AircraftSSLandingTaxiController>();
+
+        bool landingStillOwnsAircraft =
+            (landingController != null &&
+             !landingController.IsLandingComplete) ||
+            (landingTaxiController != null &&
+             !landingTaxiController.HasArrivedAtParking);
+
+        if (status != null && !landingStillOwnsAircraft)
         {
             bool isTaxiing =
                 currentState == DepartureState.TaxiingToHoldingPoint ||
@@ -141,8 +153,12 @@ public class AircraftSSDepartureTaxiController : MonoBehaviour
 
             status.SetTaxiing(isTaxiing);
 
-            if (!isTaxiing)
+            // The takeoff controller owns speed once the aircraft is lined up.
+            if (!isTaxiing &&
+                currentState != DepartureState.LinedUpReadyForTakeoff)
+            {
                 status.SetCurrentSpeedKnots(0f);
+            }
         }
 
         switch (currentState)
@@ -643,9 +659,9 @@ public class AircraftSSDepartureTaxiController : MonoBehaviour
     }
 
     private bool TryCreateSafeHoldingRoute(
-        List<Vector2Int> approachRoute,
-        out List<Vector2Int> safeRoute,
-        out Vector2Int safeCell)
+    List<Vector2Int> approachRoute,
+    out List<Vector2Int> safeRoute,
+    out Vector2Int safeCell)
     {
         safeRoute = null;
         safeCell = default;

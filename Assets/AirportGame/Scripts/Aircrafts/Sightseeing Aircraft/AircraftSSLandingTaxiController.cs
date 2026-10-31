@@ -116,6 +116,7 @@ public class AircraftSSLandingTaxiController : MonoBehaviour
     private Vector3 taxiwayJoinPoint;
     private Vector3 parkingTarget;
     private float taxiWorldY;
+    private bool hasPublishedParkedStatus;
 
     private const float BezierCircleFactor = 0.55228475f;
 
@@ -124,6 +125,9 @@ public class AircraftSSLandingTaxiController : MonoBehaviour
         phase == TaxiPhase.JoiningTaxiway ||
         phase == TaxiPhase.FollowingTaxiway ||
         phase == TaxiPhase.ApproachingParking;
+
+    public bool IsControllingAircraft =>
+        IsTaxiing || phase == TaxiPhase.RotatingToParking;
 
     // Becomes true only after the aircraft finishes its parking turn.
     public bool HasArrivedAtParking => phase == TaxiPhase.Parked;
@@ -149,12 +153,25 @@ public class AircraftSSLandingTaxiController : MonoBehaviour
 
         if (status != null)
         {
-            status.SetTaxiing(IsTaxiing);
-
-            if (HasArrivedAtParking)
-                status.SetParked(true);
+            if (IsTaxiing)
+            {
+                // Landing taxi owns the aircraft while it is moving.
+                status.SetTaxiing(true);
+            }
             else if (phase == TaxiPhase.RotatingToParking)
+            {
+                // The aircraft is turning in place at its parking spot.
+                status.SetTaxiing(false);
                 status.SetCurrentSpeedKnots(0f);
+            }
+            else if (HasArrivedAtParking && !hasPublishedParkedStatus)
+            {
+                // Publish parked status once. Do not keep calling
+                // SetParked(true), because it resets CurrentSpeedKnots
+                // and would overwrite the later departure taxi speed.
+                status.SetParked(true);
+                hasPublishedParkedStatus = true;
+            }
         }
 
         if (landingController == null)

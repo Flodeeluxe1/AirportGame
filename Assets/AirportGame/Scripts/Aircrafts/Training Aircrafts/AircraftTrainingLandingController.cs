@@ -1,3 +1,4 @@
+
 using UnityEngine;
 
 public class AircraftTrainingLandingController : MonoBehaviour
@@ -36,9 +37,8 @@ public class AircraftTrainingLandingController : MonoBehaviour
     [Min(1f)]
     [SerializeField] private float rolloutTargetSpeedKnots = 30f;
 
-    [Tooltip("Converts knots into Unity world units per second.")]
-    [Min(0.001f)]
-    [SerializeField] private float worldUnitsPerSecondPerKnot = 0.15f;
+    private float worldUnitsPerSecondPerKnot =>
+        AircraftStatus.WorldUnitsPerSecondPerKnot;
 
     [Min(0.1f)]
     [SerializeField] private float speedChangeRate = 3f;
@@ -172,8 +172,6 @@ public class AircraftTrainingLandingController : MonoBehaviour
             weather = FindFirstObjectByType<Weather>();
     }
 
-
-
     private void Update()
     {
         switch (state)
@@ -201,9 +199,23 @@ public class AircraftTrainingLandingController : MonoBehaviour
 
         AircraftStatus status = GetComponent<AircraftStatus>();
 
-        if (status != null && IsLandingComplete)
+        if (status != null)
         {
-            status.MarkLandingComplete();
+            AircraftTrainingLandingTaxiController taxiController =
+                GetComponent<AircraftTrainingLandingTaxiController>();
+
+            // The landing controller owns speed during landing and rollout.
+            // The taxi controller takes over once it begins taxiing.
+            if (!IsLandingComplete &&
+                (taxiController == null || !taxiController.IsTaxiing))
+            {
+                status.SetCurrentSpeedKnots(
+                    AircraftStatus.WorldSpeedToKnots(currentSpeed)
+                );
+            }
+
+            if (IsLandingComplete)
+                status.MarkLandingComplete();
         }
 
         if (trafficManager == null)
@@ -230,8 +242,6 @@ public class AircraftTrainingLandingController : MonoBehaviour
 
         UpdateDebugInformation();
     }
-
-
 
     public void ResetForNextTrainingLesson()
     {
@@ -871,7 +881,7 @@ public class AircraftTrainingLandingController : MonoBehaviour
 
     private float KnotsToWorldSpeed(float knots)
     {
-        return knots * worldUnitsPerSecondPerKnot;
+        return AircraftStatus.KnotsToWorldSpeed(knots);
     }
 
     private void FaceMovementDirection(Vector3 movement)

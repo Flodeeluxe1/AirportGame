@@ -45,11 +45,6 @@ public class AircraftTrainingTakeoffController : MonoBehaviour
     [SerializeField]
     private float airborneAccelerationKnotsPerSecond = 3f;
 
-    [Tooltip("Converts knots to Unity world units per second.")]
-    [Min(0.001f)]
-    [SerializeField]
-    private float worldUnitsPerSecondPerKnot = 0.15f;
-
     [Header("Rotation")]
     [Tooltip("Rotation begins at a fraction of takeoff speed.")]
     [SerializeField, Range(0.1f, 1f)]
@@ -157,6 +152,8 @@ public class AircraftTrainingTakeoffController : MonoBehaviour
                 UpdateClimb(deltaTime);
                 break;
         }
+
+        PublishCurrentSpeed();
     }
 
     private void ResolveReferences()
@@ -565,7 +562,18 @@ public class AircraftTrainingTakeoffController : MonoBehaviour
 
     private float KnotsToWorldSpeed(float knots)
     {
-        return knots * worldUnitsPerSecondPerKnot;
+        return AircraftStatus.KnotsToWorldSpeed(knots);
+    }
+
+    private void PublishCurrentSpeed()
+    {
+        AircraftStatus status = GetComponent<AircraftStatus>();
+
+        if (status == null)
+            return;
+
+        if (IsTakingOff || currentState == TakeoffState.Completed)
+            status.SetCurrentSpeedKnots(currentSpeedKnots);
     }
 
     private void UpdateAltitude()
@@ -708,6 +716,7 @@ public class AircraftTrainingTakeoffController : MonoBehaviour
         UpdateAltitude();
 
         currentState = TakeoffState.Completed;
+        PublishCurrentSpeed();
 
         // Training aircraft stay in the scene for their circuit.
         ReleaseRunwayReservations();

@@ -1,3 +1,4 @@
+
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -29,8 +30,10 @@ public class AircraftTrainingLandingTaxiController : MonoBehaviour
     [Header("Taxi Movement")]
     [Min(1f)]
     [SerializeField] private float taxiSpeedKnots = 10f;
-    [Min(0.001f)]
-    [SerializeField] private float worldUnitsPerSecondPerKnot = 0.15f;
+
+    private float worldUnitsPerSecondPerKnot =>
+        AircraftStatus.WorldUnitsPerSecondPerKnot;
+
     [Min(0.1f)]
     [SerializeField] private float rotationSpeed = 2f;
     [Min(0.05f)]
@@ -157,7 +160,6 @@ public class AircraftTrainingLandingTaxiController : MonoBehaviour
             taxiwayPathfinder = FindFirstObjectByType<TaxiwayPathfinder>();
     }
 
-
     private void Update()
     {
         AircraftStatus status = GetComponent<AircraftStatus>();
@@ -199,7 +201,6 @@ public class AircraftTrainingLandingTaxiController : MonoBehaviour
         }
     }
 
-
     public void ResetForNextTrainingLesson()
     {
         route.Clear();
@@ -221,7 +222,6 @@ public class AircraftTrainingLandingTaxiController : MonoBehaviour
         // Do not release or clear the reserved parking spot.
         // The same aircraft keeps its existing reservation.
     }
-
 
     private void TryBuildTaxiRoute()
     {
@@ -482,7 +482,6 @@ public class AircraftTrainingLandingTaxiController : MonoBehaviour
             );
         }
     }
-
 
     private void BuildSmoothedTaxiMovementPath()
     {
@@ -941,8 +940,26 @@ public class AircraftTrainingLandingTaxiController : MonoBehaviour
             );
         }
 
+        float speedKnots = taxiSpeedKnots;
+
+        AircraftTaxiTrafficFollowing trafficFollowing =
+            GetComponent<AircraftTaxiTrafficFollowing>();
+
+        if (trafficFollowing != null)
+        {
+            speedKnots =
+                trafficFollowing.GetTrafficFollowingSpeed(taxiSpeedKnots);
+        }
+        else
+        {
+            AircraftStatus status = GetComponent<AircraftStatus>();
+
+            if (status != null)
+                status.SetCurrentSpeedKnots(speedKnots);
+        }
+
         float speed =
-            taxiSpeedKnots * worldUnitsPerSecondPerKnot;
+            AircraftStatus.KnotsToWorldSpeed(speedKnots);
 
         transform.position = Vector3.MoveTowards(
             transform.position,

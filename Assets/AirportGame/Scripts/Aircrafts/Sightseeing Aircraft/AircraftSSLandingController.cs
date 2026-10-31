@@ -167,7 +167,12 @@ public class AircraftSSLandingController : MonoBehaviour
             AircraftSSLandingTaxiController taxiController =
                 GetComponent<AircraftSSLandingTaxiController>();
 
-            if (taxiController == null || !taxiController.IsTaxiing)
+            // The landing controller owns speed only until landing is complete.
+            // The landing taxi controller takes ownership during runway exit,
+            // taxiing and the parking turn.
+            if (!IsLandingComplete &&
+                (taxiController == null ||
+                 !taxiController.IsControllingAircraft))
             {
                 status.SetCurrentSpeedKnots(
                     AircraftStatus.WorldSpeedToKnots(currentSpeed)
@@ -481,6 +486,16 @@ public class AircraftSSLandingController : MonoBehaviour
             return;
 
         currentSpeed = targetSpeed;
+
+        // Publish the final rollout speed before handing control to taxi.
+        AircraftStatus status = GetComponent<AircraftStatus>();
+        if (status != null)
+        {
+            status.SetCurrentSpeedKnots(
+                AircraftStatus.WorldSpeedToKnots(currentSpeed)
+            );
+        }
+
         state = LandingState.LandingComplete;
         debugStatus =
             "Landing complete. Waiting for taxi to sightseeing parking.";

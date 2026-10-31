@@ -379,11 +379,31 @@ public class TrainingFlightController : MonoBehaviour
             );
         }
 
+        Vector3 previousPosition = transform.position;
+
         transform.position = Vector3.MoveTowards(
-            transform.position,
+            previousPosition,
             target,
             circuitSpeed * Time.deltaTime
         );
+
+        float deltaTime = Time.deltaTime;
+
+        if (deltaTime > 0f)
+        {
+            float actualWorldSpeed =
+                Vector3.Distance(previousPosition, transform.position) /
+                deltaTime;
+
+            AircraftStatus status = GetComponent<AircraftStatus>();
+
+            if (status != null)
+            {
+                status.SetCurrentSpeedKnots(
+                    AircraftStatus.WorldSpeedToKnots(actualWorldSpeed)
+                );
+            }
+        }
     }
 
     private void BeginLanding()
@@ -562,6 +582,11 @@ public class TrainingFlightController : MonoBehaviour
 
     private void UpdateTurningAtParking()
     {
+        AircraftStatus status = GetComponent<AircraftStatus>();
+
+        if (status != null)
+            status.SetCurrentSpeedKnots(0f);
+
         // Prevent any positional drift while the aircraft turns.
         transform.position = parkingTurnPosition;
 

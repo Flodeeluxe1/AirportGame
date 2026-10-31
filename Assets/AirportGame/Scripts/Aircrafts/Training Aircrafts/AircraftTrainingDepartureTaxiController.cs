@@ -41,8 +41,6 @@ public class AircraftTrainingDepartureTaxiController : MonoBehaviour
     [Header("Taxi Movement")]
     [Min(1f)]
     [SerializeField] private float taxiSpeedKnots = 10f;
-    [Min(0.001f)]
-    [SerializeField] private float worldUnitsPerSecondPerKnot = 0.15f;
     [Min(1f)]
     [SerializeField] private float rotationSpeedDegreesPerSecond = 45f;
     [Min(0.01f)]
@@ -109,12 +107,19 @@ public class AircraftTrainingDepartureTaxiController : MonoBehaviour
         ResolveReferences();
     }
 
-
     private void Update()
     {
+        AircraftTrainingLandingTaxiController landingTaxi =
+            GetComponent<AircraftTrainingLandingTaxiController>();
+
+        bool landingTaxiOwnsMovement =
+            landingTaxi != null && landingTaxi.IsTaxiing;
+
         AircraftStatus status = GetComponent<AircraftStatus>();
 
-        if (status != null)
+        // The landing taxi controller owns movement until it reaches parking.
+        // Do not overwrite its taxiing state or speed during that handoff.
+        if (status != null && !landingTaxiOwnsMovement)
         {
             bool isTaxiing =
                 currentState == DepartureState.TaxiingToHoldingPoint ||
@@ -122,6 +127,18 @@ public class AircraftTrainingDepartureTaxiController : MonoBehaviour
                 currentState == DepartureState.MovingOntoRunway;
 
             status.SetTaxiing(isTaxiing);
+
+            if (isTaxiing)
+            {
+                status.SetParked(false);
+            }
+            else if (
+                currentState == DepartureState.AtHoldingPoint ||
+                currentState == DepartureState.AligningOnRunway ||
+                currentState == DepartureState.LinedUpReadyForTakeoff)
+            {
+                status.SetCurrentSpeedKnots(0f);
+            }
         }
 
         switch (currentState)
@@ -174,7 +191,6 @@ public class AircraftTrainingDepartureTaxiController : MonoBehaviour
         TrySelectDepartureRunway();
     }
 
-
     private void ResolveReferences()
     {
         if (gridManager == null)
@@ -196,7 +212,6 @@ public class AircraftTrainingDepartureTaxiController : MonoBehaviour
         if (aircraftCollider == null)
             aircraftCollider = GetComponentInChildren<BoxCollider>(true);
     }
-
 
     public bool PrepareForTouchAndGo(
         AircraftRunway runway,
@@ -294,7 +309,6 @@ public class AircraftTrainingDepartureTaxiController : MonoBehaviour
 
         return true;
     }
-
 
     public bool ResetForTrainingCircuit()
     {
@@ -1072,14 +1086,25 @@ public class AircraftTrainingDepartureTaxiController : MonoBehaviour
             return;
         }
 
-        float baseSpeed = taxiSpeedKnots * worldUnitsPerSecondPerKnot;
+        float speedKnots = taxiSpeedKnots;
 
         AircraftTaxiTrafficFollowing following =
             GetComponent<AircraftTaxiTrafficFollowing>();
 
-        float speed = following != null
-            ? following.GetTrafficFollowingSpeed(baseSpeed)
-            : baseSpeed;
+        if (following != null)
+        {
+            speedKnots =
+                following.GetTrafficFollowingSpeed(taxiSpeedKnots);
+        }
+        else
+        {
+            AircraftStatus status = GetComponent<AircraftStatus>();
+
+            if (status != null)
+                status.SetCurrentSpeedKnots(speedKnots);
+        }
+
+        float speed = AircraftStatus.KnotsToWorldSpeed(speedKnots);
 
         Vector3 target = movementWaypoints[currentWaypointIndex];
         target.y = transform.position.y;
