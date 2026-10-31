@@ -34,6 +34,10 @@ public class AirportCargoVehicleController : MonoBehaviour
     [Range(0, 3)]
     [SerializeField] private int foundationClearance = 1;
 
+    //[Header("Taxiway Clearance")]
+    //[Range(0, 3)]
+    //[SerializeField] private int taxiwayClearance = 1;
+
     [Header("Movement")]
     [Min(0.1f)]
     [SerializeField] private float movementSpeed = 3f;

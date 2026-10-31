@@ -106,7 +106,8 @@ MonoBehaviour:
   taxiwayMovementCost: 5
   grassMovementCost: 10
   foundationClearance: 1
-  movementSpeed: 1
+  taxiwayClearance: 1
+  movementSpeed: 2
   rotationSpeed: 5
   waypointArrivalDistance: 0.08
   groundHeightOffset: 0.05
