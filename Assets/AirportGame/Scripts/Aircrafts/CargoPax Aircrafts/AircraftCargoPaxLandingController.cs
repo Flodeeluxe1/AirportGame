@@ -1,4 +1,3 @@
-
 using UnityEngine;
 
 public class AircraftCargoPaxLandingController : MonoBehaviour
@@ -36,10 +35,6 @@ public class AircraftCargoPaxLandingController : MonoBehaviour
 
     [Min(1f)]
     [SerializeField] private float rolloutTargetSpeedKnots = 15f;
-
-    [Tooltip("Converts knots into Unity world units per second.")]
-    [Min(0.001f)]
-    [SerializeField] private float worldUnitsPerSecondPerKnot = 0.15f;
 
     [Min(0.1f)]
     [SerializeField] private float speedChangeRate = 2.5f;
@@ -121,6 +116,7 @@ public class AircraftCargoPaxLandingController : MonoBehaviour
 
     private AircraftRunway selectedRunway;
     private AircraftRunwayTrafficManager trafficManager;
+    private AircraftStatus aircraftStatus;
 
     private Vector3 runwayDirection;
     private Vector3 runwayCenter;
@@ -136,6 +132,8 @@ public class AircraftCargoPaxLandingController : MonoBehaviour
 
     private void Start()
     {
+        aircraftStatus = GetComponent<AircraftStatus>();
+
         if (gridManager == null)
         {
             gridManager =
@@ -161,7 +159,9 @@ public class AircraftCargoPaxLandingController : MonoBehaviour
         }
 
         currentSpeed =
-            KnotsToWorldSpeed(approachSpeedKnots);
+            AircraftStatus.KnotsToWorldSpeed(approachSpeedKnots);
+
+        PublishCurrentSpeed();
 
         rolloutElapsed = 0f;
         flareDecisionMade = false;
@@ -173,8 +173,6 @@ public class AircraftCargoPaxLandingController : MonoBehaviour
 
         UpdateDebugInformation();
     }
-
-
 
     private void Update()
     {
@@ -201,11 +199,11 @@ public class AircraftCargoPaxLandingController : MonoBehaviour
                 break;
         }
 
-        AircraftStatus status = GetComponent<AircraftStatus>();
+        PublishCurrentSpeed();
 
-        if (status != null && IsLandingComplete)
+        if (aircraftStatus != null && IsLandingComplete)
         {
-            status.MarkLandingComplete();
+            aircraftStatus.MarkLandingComplete();
         }
 
         if (trafficManager == null)
@@ -233,7 +231,15 @@ public class AircraftCargoPaxLandingController : MonoBehaviour
         UpdateDebugInformation();
     }
 
+    private void PublishCurrentSpeed()
+    {
+        if (aircraftStatus == null)
+            return;
 
+        aircraftStatus.SetCurrentSpeedKnots(
+            AircraftStatus.WorldSpeedToKnots(currentSpeed)
+        );
+    }
 
     private bool SelectLandingRunway()
     {
@@ -326,7 +332,7 @@ public class AircraftCargoPaxLandingController : MonoBehaviour
             Vector3 candidateTouchdown =
                 center -
                 candidateDirection * (length * 0.5f)
-                + candidateDirection * touchdownOffset; ;
+                + candidateDirection * touchdownOffset;
 
             float tangent =
                 Mathf.Tan(
@@ -441,7 +447,7 @@ public class AircraftCargoPaxLandingController : MonoBehaviour
             transform.position = alignmentPoint;
 
             currentSpeed =
-                KnotsToWorldSpeed(approachSpeedKnots);
+                AircraftStatus.KnotsToWorldSpeed(approachSpeedKnots);
 
             state = LandingState.FinalApproach;
 
@@ -473,7 +479,7 @@ public class AircraftCargoPaxLandingController : MonoBehaviour
 
         currentSpeed = Mathf.MoveTowards(
             currentSpeed,
-            KnotsToWorldSpeed(approachSpeedKnots),
+            AircraftStatus.KnotsToWorldSpeed(approachSpeedKnots),
             speedChangeRate * Time.deltaTime
         );
 
@@ -611,7 +617,7 @@ public class AircraftCargoPaxLandingController : MonoBehaviour
 
         currentSpeed = Mathf.MoveTowards(
             currentSpeed,
-            KnotsToWorldSpeed(touchdownSpeedKnots),
+            AircraftStatus.KnotsToWorldSpeed(touchdownSpeedKnots),
             speedChangeRate * Time.deltaTime
         );
 
@@ -655,7 +661,9 @@ public class AircraftCargoPaxLandingController : MonoBehaviour
         transform.position = touchdownPoint;
 
         currentSpeed =
-            KnotsToWorldSpeed(touchdownSpeedKnots);
+            AircraftStatus.KnotsToWorldSpeed(touchdownSpeedKnots);
+
+        PublishCurrentSpeed();
 
         rolloutElapsed = 0f;
 
@@ -677,7 +685,7 @@ public class AircraftCargoPaxLandingController : MonoBehaviour
     private void UpdateRollout()
     {
         float targetSpeed =
-            KnotsToWorldSpeed(rolloutTargetSpeedKnots);
+            AircraftStatus.KnotsToWorldSpeed(rolloutTargetSpeedKnots);
 
         float previousSpeed = currentSpeed;
 
@@ -713,6 +721,10 @@ public class AircraftCargoPaxLandingController : MonoBehaviour
             return;
 
         currentSpeed = targetSpeed;
+
+        // Publish the exact rollout speed before handing over to taxi.
+        PublishCurrentSpeed();
+
         state = LandingState.LandingComplete;
 
         AircraftFlightIdentity flightIdentity =
@@ -784,8 +796,7 @@ public class AircraftCargoPaxLandingController : MonoBehaviour
                 remainingAltitude / climbTangent;
 
             Vector3 finalPosition =
-                transform.position +
-                runwayDirection * horizontalStep;
+                transform.position + runwayDirection * horizontalStep;
 
             finalPosition.y = targetY;
             transform.position = finalPosition;
@@ -797,8 +808,7 @@ public class AircraftCargoPaxLandingController : MonoBehaviour
         }
 
         Vector3 position =
-            transform.position +
-            runwayDirection * horizontalStep;
+            transform.position + runwayDirection * horizontalStep;
 
         position.y += verticalStep;
         transform.position = position;
@@ -851,11 +861,6 @@ public class AircraftCargoPaxLandingController : MonoBehaviour
                 Mathf.Tan(glideAngleDegrees * Mathf.Deg2Rad),
                 0.001f
             );
-    }
-
-    private float KnotsToWorldSpeed(float knots)
-    {
-        return knots * worldUnitsPerSecondPerKnot;
     }
 
     private void FaceMovementDirection(Vector3 movement)
@@ -956,9 +961,7 @@ public class AircraftCargoPaxLandingController : MonoBehaviour
         debugLandingState = state.ToString();
 
         debugCurrentSpeedKnots =
-            worldUnitsPerSecondPerKnot > 0f
-                ? currentSpeed / worldUnitsPerSecondPerKnot
-                : 0f;
+            AircraftStatus.WorldSpeedToKnots(currentSpeed);
 
         debugDistanceToThreshold =
             selectedRunway != null

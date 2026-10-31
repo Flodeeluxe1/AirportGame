@@ -46,9 +46,6 @@ public class AircraftCargoPaxDepartureTaxiController : MonoBehaviour
     [Min(1f)]
     [SerializeField] private float taxiSpeedKnots = 15f;
 
-    [Min(0.001f)]
-    [SerializeField] private float worldUnitsPerSecondPerKnot = 0.15f;
-
     [Min(1f)]
     [SerializeField] private float rotationSpeedDegreesPerSecond = 45f;
 
@@ -1070,14 +1067,29 @@ public class AircraftCargoPaxDepartureTaxiController : MonoBehaviour
             return;
         }
 
-        float cruisingSpeed = taxiSpeedKnots * worldUnitsPerSecondPerKnot;
+        float cruisingSpeedKnots = taxiSpeedKnots;
 
         AircraftTaxiTrafficFollowing trafficFollowing =
             GetComponent<AircraftTaxiTrafficFollowing>();
 
-        float speed = trafficFollowing != null
-            ? trafficFollowing.GetTrafficFollowingSpeed(cruisingSpeed)
-            : cruisingSpeed;
+        float speedKnots;
+
+        if (trafficFollowing != null)
+        {
+            speedKnots =
+                trafficFollowing.GetTrafficFollowingSpeed(cruisingSpeedKnots);
+        }
+        else
+        {
+            speedKnots = cruisingSpeedKnots;
+
+            AircraftStatus status = GetComponent<AircraftStatus>();
+
+            if (status != null)
+                status.SetCurrentSpeedKnots(speedKnots);
+        }
+
+        float speed = AircraftStatus.KnotsToWorldSpeed(speedKnots);
 
         Vector3 target = movementWaypoints[currentWaypointIndex];
         target.y = transform.position.y;

@@ -11,6 +11,18 @@ public class AircraftStatus : MonoBehaviour
 
     public float CurrentSpeedKnots { get; private set; }
 
+    public const float WorldUnitsPerSecondPerKnot = 0.15f;
+
+    public static float KnotsToWorldSpeed(float knots)
+    {
+        return Mathf.Max(0f, knots) * WorldUnitsPerSecondPerKnot;
+    }
+
+    public static float WorldSpeedToKnots(float worldSpeed)
+    {
+        return Mathf.Max(0f, worldSpeed) / WorldUnitsPerSecondPerKnot;
+    }
+
     public void SetTaxiing(bool value)
     {
         IsTaxiing = value;

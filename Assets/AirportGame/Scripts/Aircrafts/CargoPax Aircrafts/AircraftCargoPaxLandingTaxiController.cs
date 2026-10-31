@@ -1,4 +1,3 @@
-
 using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
@@ -36,9 +35,6 @@ public class AircraftCargoPaxLandingTaxiController : MonoBehaviour
     [Header("Taxi Movement")]
     [Min(1f)]
     [SerializeField] private float taxiSpeedKnots = 15f;
-
-    [Min(0.001f)]
-    [SerializeField] private float worldUnitsPerSecondPerKnot = 0.15f;
 
     [Min(0.1f)]
     [SerializeField] private float rotationSpeed = 2f;
@@ -113,6 +109,7 @@ public class AircraftCargoPaxLandingTaxiController : MonoBehaviour
     private AircraftGate assignedGate;
     private AircraftRunway selectedRunway;
     private AircraftTaxiTrafficFollowing trafficFollowing;
+    private AircraftStatus aircraftStatus;
 
     private Vector3 landingDirection;
     private Vector3 runwayExitPoint;
@@ -196,19 +193,17 @@ public class AircraftCargoPaxLandingTaxiController : MonoBehaviour
             gateRegistry = FindFirstObjectByType<AircraftGateRegistry>();
 
         trafficFollowing = GetComponent<AircraftTaxiTrafficFollowing>();
+        aircraftStatus = GetComponent<AircraftStatus>();
     }
-
 
     private void Update()
     {
-        AircraftStatus status = GetComponent<AircraftStatus>();
-
-        if (status != null)
+        if (aircraftStatus != null)
         {
-            status.SetTaxiing(isTaxiing);
+            aircraftStatus.SetTaxiing(isTaxiing);
 
             if (hasArrivedAtGate)
-                status.SetParked(true);
+                aircraftStatus.SetParked(true);
         }
 
         if (!routeAttempted &&
@@ -224,8 +219,6 @@ public class AircraftCargoPaxLandingTaxiController : MonoBehaviour
 
         debugTaxiPhase = phase.ToString();
     }
-
-
 
     private void CalculateTaxiRoute()
     {
@@ -511,7 +504,6 @@ public class AircraftCargoPaxLandingTaxiController : MonoBehaviour
                 this);
         }
     }
-
 
     private void BuildSmoothedTaxiMovementPath()
     {
@@ -987,10 +979,20 @@ public class AircraftCargoPaxLandingTaxiController : MonoBehaviour
         if (movement.sqrMagnitude > 0.0001f)
             FaceMovementDirection(movement);
 
-        float taxiSpeed = taxiSpeedKnots * worldUnitsPerSecondPerKnot;
+        float taxiSpeedKnots = this.taxiSpeedKnots;
 
         if (trafficFollowing != null)
-            taxiSpeed = trafficFollowing.GetTrafficFollowingSpeed(taxiSpeed);
+        {
+            taxiSpeedKnots =
+                trafficFollowing.GetTrafficFollowingSpeed(taxiSpeedKnots);
+        }
+        else if (aircraftStatus != null)
+        {
+            aircraftStatus.SetCurrentSpeedKnots(taxiSpeedKnots);
+        }
+
+        float taxiSpeed =
+            AircraftStatus.KnotsToWorldSpeed(taxiSpeedKnots);
 
         transform.position = Vector3.MoveTowards(
             transform.position,

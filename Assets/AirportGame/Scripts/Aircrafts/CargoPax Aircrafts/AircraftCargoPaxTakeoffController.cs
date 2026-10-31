@@ -17,6 +17,7 @@ public class AircraftCargoPaxTakeoffController : MonoBehaviour
     [SerializeField] private AircraftRunwayTrafficManager trafficManager;
     [SerializeField] private GameTimeManager gameTimeManager;
     [SerializeField] private GridManager gridManager;
+    [SerializeField] private AircraftStatus aircraftStatus;
 
     [Tooltip("BoxCollider enclosing the aircraft.")]
     [SerializeField] private BoxCollider aircraftCollider;
@@ -33,10 +34,6 @@ public class AircraftCargoPaxTakeoffController : MonoBehaviour
     [Tooltip("Acceleration during rotation and climb, in knots per second.")]
     [Min(0.1f)]
     [SerializeField] private float airborneAccelerationKnotsPerSecond = 3f;
-
-    [Tooltip("Converts knots to Unity world units per second.")]
-    [Min(0.001f)]
-    [SerializeField] private float worldUnitsPerSecondPerKnot = 0.15f;
 
     [Header("Rotation")]
     [Tooltip("Rotation begins at this fraction of takeoff speed.")]
@@ -139,6 +136,8 @@ public class AircraftCargoPaxTakeoffController : MonoBehaviour
                 UpdateClimb(deltaTime);
                 break;
         }
+
+        PublishCurrentSpeed();
     }
 
     private void ResolveReferences()
@@ -158,6 +157,9 @@ public class AircraftCargoPaxTakeoffController : MonoBehaviour
         if (gridManager == null)
             gridManager =
                 FindFirstObjectByType<GridManager>();
+
+        if (aircraftStatus == null)
+            aircraftStatus = GetComponent<AircraftStatus>();
 
         if (aircraftCollider == null)
             aircraftCollider =
@@ -232,6 +234,8 @@ public class AircraftCargoPaxTakeoffController : MonoBehaviour
         groundLevelY = transform.position.y;
         currentSpeedKnots = 0f;
         currentNoseUpDegrees = 0f;
+
+        PublishCurrentSpeed();
 
         rotationTriggerSpeedKnots =
             takeoffSpeedKnots * rotationStartSpeedFraction;
@@ -319,7 +323,7 @@ public class AircraftCargoPaxTakeoffController : MonoBehaviour
         );
 
         float horizontalDistance =
-            KnotsToWorldSpeed(averageSpeed) * deltaTime;
+            AircraftStatus.KnotsToWorldSpeed(averageSpeed) * deltaTime;
 
         float verticalDistance = 0f;
 
@@ -397,7 +401,7 @@ public class AircraftCargoPaxTakeoffController : MonoBehaviour
             (previousSpeed + currentSpeedKnots) * 0.5f;
 
         float horizontalDistance =
-            KnotsToWorldSpeed(averageSpeed) * deltaTime;
+            AircraftStatus.KnotsToWorldSpeed(averageSpeed) * deltaTime;
 
         float verticalDistance =
             horizontalDistance *
@@ -451,7 +455,7 @@ public class AircraftCargoPaxTakeoffController : MonoBehaviour
     {
         float horizontalDistance =
             horizontalDistanceOverride ??
-            KnotsToWorldSpeed(averageSpeedKnots) * deltaTime;
+            AircraftStatus.KnotsToWorldSpeed(averageSpeedKnots) * deltaTime;
 
         Vector3 position =
             transform.position +
@@ -479,9 +483,10 @@ public class AircraftCargoPaxTakeoffController : MonoBehaviour
             Quaternion.Euler(modelRotationOffset);
     }
 
-    private float KnotsToWorldSpeed(float knots)
+    private void PublishCurrentSpeed()
     {
-        return knots * worldUnitsPerSecondPerKnot;
+        if (aircraftStatus != null)
+            aircraftStatus.SetCurrentSpeedKnots(currentSpeedKnots);
     }
 
     private void UpdateAltitude()
@@ -569,6 +574,8 @@ public class AircraftCargoPaxTakeoffController : MonoBehaviour
 
         currentState = TakeoffState.Completed;
 
+        PublishCurrentSpeed();
+
         ReleaseRunwayReservations();
 
         debugStatus = "Target altitude reached. Aircraft despawning.";
@@ -584,9 +591,8 @@ public class AircraftCargoPaxTakeoffController : MonoBehaviour
         PassengerFlightRevenue passengerRevenue =
             GetComponent<PassengerFlightRevenue>();
 
-                if (passengerRevenue != null)
-                    passengerRevenue.RecordSuccessfulDeparture();
-
+        if (passengerRevenue != null)
+            passengerRevenue.RecordSuccessfulDeparture();
 
         AircraftFlightIdentity flightIdentity =
             GetComponent<AircraftFlightIdentity>();

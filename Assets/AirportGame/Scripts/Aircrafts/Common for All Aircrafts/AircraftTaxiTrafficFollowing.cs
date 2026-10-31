@@ -1,4 +1,3 @@
-
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -45,12 +44,33 @@ public class AircraftTaxiTrafficFollowing : MonoBehaviour
     [TextArea(4, 12)]
     [SerializeField] private string debugRaycastSummary = "No raycast performed yet.";
 
-    private float currentSpeed;
+    private AircraftStatus aircraftStatus;
 
-
-    public float GetTrafficFollowingSpeed(float cruisingSpeed)
+    private void Awake()
     {
-        cruisingSpeed = Mathf.Max(0f, cruisingSpeed);
+        aircraftStatus = GetComponent<AircraftStatus>();
+    }
+
+    public float GetTrafficFollowingSpeed(float cruisingSpeedKnots)
+    {
+        cruisingSpeedKnots = Mathf.Max(0f, cruisingSpeedKnots);
+
+        if (aircraftStatus == null)
+        {
+            aircraftStatus = GetComponent<AircraftStatus>();
+        }
+
+        if (aircraftStatus == null)
+        {
+            Debug.LogWarning(
+                $"{name}: AircraftStatus is missing. Traffic following cannot manage current speed.",
+                this
+            );
+
+            return cruisingSpeedKnots;
+        }
+
+        float currentSpeedKnots = aircraftStatus.CurrentSpeedKnots;
 
         // Stop traffic raycasts once the aircraft starts moving onto the runway.
         AircraftCargoPaxDepartureTaxiController departureController =
@@ -60,9 +80,8 @@ public class AircraftTaxiTrafficFollowing : MonoBehaviour
             departureController.CurrentState ==
             AircraftCargoPaxDepartureTaxiController.DepartureState.MovingOntoRunway)
         {
-            // Keep the aircraft moving at normal cruising speed.
-            currentSpeed = cruisingSpeed;
-            debugCurrentSpeed = currentSpeed;
+            aircraftStatus.SetCurrentSpeedKnots(cruisingSpeedKnots);
+            debugCurrentSpeed = cruisingSpeedKnots;
 
             debugBlockingAircraft = "Raycasts disabled";
             debugBlockingDistance = 0f;
@@ -73,10 +92,10 @@ public class AircraftTaxiTrafficFollowing : MonoBehaviour
             debugRightRay = "Disabled: aircraft moving onto runway";
             debugRaycastSummary = "Traffic raycasts disabled during runway line-up.";
 
-            return currentSpeed;
+            return cruisingSpeedKnots;
         }
 
-        float targetSpeed = cruisingSpeed;
+        float targetSpeedKnots = cruisingSpeedKnots;
 
         debugBlockingAircraft = "None";
         debugBlockingDistance = 0f;
@@ -99,14 +118,14 @@ public class AircraftTaxiTrafficFollowing : MonoBehaviour
                 distance
             );
 
-            targetSpeed = cruisingSpeed * speedFactor;
+            targetSpeedKnots = cruisingSpeedKnots * speedFactor;
 
             if (distance <= safeDistance)
             {
-                targetSpeed = 0f;
+                targetSpeedKnots = 0f;
                 debugTrafficDecision = "Stopped: aircraft too close";
             }
-            else if (targetSpeed < cruisingSpeed * 0.95f)
+            else if (targetSpeedKnots < cruisingSpeedKnots * 0.95f)
             {
                 debugTrafficDecision = "Slowing to follow aircraft";
             }
@@ -116,22 +135,34 @@ public class AircraftTaxiTrafficFollowing : MonoBehaviour
             }
         }
 
-        float adjustmentRate = targetSpeed < currentSpeed
+        // The Inspector acceleration and braking values are still
+        // expressed in world units per second squared.
+        // Convert those rates to knots per second.
+        float adjustmentRate = targetSpeedKnots < currentSpeedKnots
             ? braking
             : acceleration;
 
-        currentSpeed = Mathf.MoveTowards(
-            currentSpeed,
-            targetSpeed,
-            adjustmentRate * Time.deltaTime
+        float adjustmentRateKnots =
+            adjustmentRate / AircraftStatus.WorldUnitsPerSecondPerKnot;
+
+        currentSpeedKnots = Mathf.MoveTowards(
+            currentSpeedKnots,
+            targetSpeedKnots,
+            adjustmentRateKnots * Time.deltaTime
         );
 
-        currentSpeed = Mathf.Clamp(currentSpeed, 0f, cruisingSpeed);
-        debugCurrentSpeed = currentSpeed;
+        currentSpeedKnots = Mathf.Clamp(
+            currentSpeedKnots,
+            0f,
+            cruisingSpeedKnots
+        );
 
-        return currentSpeed;
+        aircraftStatus.SetCurrentSpeedKnots(currentSpeedKnots);
+
+        debugCurrentSpeed = currentSpeedKnots;
+
+        return currentSpeedKnots;
     }
-
 
     private bool TryFindAircraftAhead(
         out Transform blockingAircraft,

@@ -457,10 +457,10 @@ MonoBehaviour:
   debugCurrentSpeed: 0
   debugBlockingAircraft: None
   debugBlockingDistance: 0
-  debugLastRayHitCollider: None
-  debugLastRayDirection: None
-  debugLastRayDistance: 0
   debugTrafficDecision: Not tested
+  debugForwardRay: Not scanned
+  debugLeftRay: Not scanned
+  debugRightRay: Not scanned
   debugRaycastSummary: No raycast performed yet.
 --- !u!114 &5716687695038995830
 MonoBehaviour:
