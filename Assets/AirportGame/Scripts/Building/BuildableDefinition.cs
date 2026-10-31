@@ -9,7 +9,8 @@ public enum BuildCategory
     Airport,
     Roads,
     Commercial,
-    Taxiways
+    Taxiways,
+    Tarmac
 }
 
 public enum RoomFurnitureRole

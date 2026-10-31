@@ -11,6 +11,7 @@ public class BuildController : MonoBehaviour
     [SerializeField] private GridOccupancy gridOccupancy;
     [SerializeField] private EdgeOccupancy edgeOccupancy;
     [SerializeField] private FoundationTilemapController foundationTilemapController;
+    [SerializeField] private TarmacTilemapController tarmacTilemapController;
     [SerializeField] private UIDocument uiDocument;
 
     [Header("Placement")]
@@ -80,6 +81,10 @@ public class BuildController : MonoBehaviour
 
         areaHandler.SetFoundationTilemapController(
             foundationTilemapController
+        );
+
+        areaHandler.SetTarmacTilemapController(
+            tarmacTilemapController
         );
 
         areaHandler.SetAutomaticWallDefinition(

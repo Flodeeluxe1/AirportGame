@@ -9,6 +9,7 @@ public class AreaPlacementHandler : IPlacementHandler
     private EdgeOccupancy edgeOccupancy;
     private GridSurface gridSurface;
     private FoundationTilemapController foundationTilemapController;
+    private TarmacTilemapController tarmacTilemapController;
 
     private BuildableDefinition definition;
     private BuildableDefinition automaticWallDefinition;
@@ -22,6 +23,10 @@ public class AreaPlacementHandler : IPlacementHandler
 
     private bool isDragging;
     private Vector3 originalPrefabScale;
+
+    private bool IsTarmac =>
+        definition != null &&
+        definition.category == BuildCategory.Tarmac;
 
     public void Initialize(
         BuildController controller,
@@ -41,6 +46,12 @@ public class AreaPlacementHandler : IPlacementHandler
         FoundationTilemapController controller)
     {
         foundationTilemapController = controller;
+    }
+
+    public void SetTarmacTilemapController(
+        TarmacTilemapController controller)
+    {
+        tarmacTilemapController = controller;
     }
 
     public void SetAutomaticWallDefinition(
@@ -134,7 +145,10 @@ public class AreaPlacementHandler : IPlacementHandler
         bool correctSurface =
             gridSurface != null &&
             gridSurface.CanSetSurfaceArea(
-                origin, width, depth, BuildSurface.Grass);
+                origin,
+                width,
+                depth,
+                BuildSurface.Grass);
 
         placementPreview.SetValid(inside && free && correctSurface);
     }
@@ -188,7 +202,10 @@ public class AreaPlacementHandler : IPlacementHandler
         bool correctSurface =
             gridSurface != null &&
             gridSurface.CanSetSurfaceArea(
-                origin, width, depth, BuildSurface.Grass);
+                origin,
+                width,
+                depth,
+                BuildSurface.Grass);
 
         if (!inside)
         {
@@ -204,14 +221,19 @@ public class AreaPlacementHandler : IPlacementHandler
 
         if (!correctSurface)
         {
-            Debug.Log("Cannot place area: foundation requires Grass.");
+            Debug.Log(
+                $"Cannot place area: {definition.displayName} requires Grass.");
             return;
         }
 
         int quantity = width * depth;
 
+        string constructionType = IsTarmac
+            ? "Tarmac construction"
+            : "Foundation construction";
+
         if (!ConstructionCostUtility.TryPay(
-                definition, quantity, "Foundation construction"))
+                definition, quantity, constructionType))
         {
             return;
         }
@@ -224,34 +246,56 @@ public class AreaPlacementHandler : IPlacementHandler
         placedObject.transform.localScale =
             new Vector3(width, originalPrefabScale.y, depth);
 
-        DisableFoundationVisuals(placedObject);
-
         PlacedBuilding placedBuilding =
             placedObject.AddComponent<PlacedBuilding>();
 
         placedBuilding.Initialize(definition, origin, width, depth, 0);
 
-        FoundationBoundaryOwnership boundaryOwnership =
-            placedObject.AddComponent<FoundationBoundaryOwnership>();
+        if (IsTarmac)
+        {
+            gridSurface.SetSurfaceArea(
+                origin,
+                width,
+                depth,
+                BuildSurface.Tarmac,
+                placedObject);
 
-        boundaryOwnership.Initialize(edgeOccupancy);
+            PaintTarmacTiles(origin, width, depth);
 
-        gridSurface.SetSurfaceArea(
-            origin,
-            width,
-            depth,
-            BuildSurface.Foundation,
-            placedObject);
+            Debug.Log(
+                $"Placed tarmac: {definition.displayName} " +
+                $"({width} x {depth}). Cost: " +
+                $"${(long)definition.buildCost * quantity:N0}.");
+        }
+        else
+        {
+            DisableFoundationVisuals(placedObject);
 
-        PaintFoundationTiles(origin, width, depth);
+            FoundationBoundaryOwnership boundaryOwnership =
+                placedObject.AddComponent<FoundationBoundaryOwnership>();
 
-        BuildAutomaticFoundationWalls(
-            origin, width, depth, boundaryOwnership);
+            boundaryOwnership.Initialize(edgeOccupancy);
 
-        Debug.Log(
-            $"Placed foundation: {definition.displayName} " +
-            $"({width} x {depth}). Cost: " +
-            $"${(long)definition.buildCost * quantity:N0}.");
+            gridSurface.SetSurfaceArea(
+                origin,
+                width,
+                depth,
+                BuildSurface.Foundation,
+                placedObject);
+
+            PaintFoundationTiles(origin, width, depth);
+
+            BuildAutomaticFoundationWalls(
+                origin,
+                width,
+                depth,
+                boundaryOwnership);
+
+            Debug.Log(
+                $"Placed foundation: {definition.displayName} " +
+                $"({width} x {depth}). Cost: " +
+                $"${(long)definition.buildCost * quantity:N0}.");
+        }
 
         isDragging = false;
         areaStartPosition = currentGridPosition;
@@ -340,7 +384,6 @@ public class AreaPlacementHandler : IPlacementHandler
 
         edgeOccupancy.Occupy(edge, wallObject);
 
-        // Record which foundation generated this boundary segment.
         if (boundaryOwnership != null)
             boundaryOwnership.RegisterBoundaryObject(wallObject);
     }
@@ -422,6 +465,24 @@ public class AreaPlacementHandler : IPlacementHandler
             {
                 Vector2Int cell = origin + new Vector2Int(x, z);
                 foundationTilemapController.SetFoundationTile(cell);
+            }
+        }
+    }
+
+    private void PaintTarmacTiles(
+        Vector2Int origin,
+        int width,
+        int depth)
+    {
+        if (tarmacTilemapController == null)
+            return;
+
+        for (int x = 0; x < width; x++)
+        {
+            for (int z = 0; z < depth; z++)
+            {
+                Vector2Int cell = origin + new Vector2Int(x, z);
+                tarmacTilemapController.SetTarmacTile(cell);
             }
         }
     }

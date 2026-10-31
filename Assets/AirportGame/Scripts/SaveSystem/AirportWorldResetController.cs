@@ -1,4 +1,3 @@
-
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -23,6 +22,9 @@ public class AirportWorldResetController : MonoBehaviour
 
     [Header("Foundation")]
     [SerializeField] private FoundationTilemapController foundationTilemapController;
+
+    [Header("Tarmac")]
+    [SerializeField] private TarmacTilemapController tarmacTilemapController;
 
     [Header("Game Time")]
     [SerializeField] private GameTimeManager gameTimeManager;
@@ -109,6 +111,9 @@ public class AirportWorldResetController : MonoBehaviour
         taxiwayPrefabRuleManager.ClearAllTaxiwayAreas();
 
         foundationTilemapController.RefreshFromGridSurface();
+
+        if (tarmacTilemapController != null)
+            tarmacTilemapController.RefreshFromGridSurface();
 
         if (roomDetectionController != null)
             roomDetectionController.RefreshRooms();
@@ -457,8 +462,8 @@ public class AirportWorldResetController : MonoBehaviour
 
     /// <summary>
     /// Replaces the current airport layout and restores buildings,
-    /// foundations, boundary ownership, roads, taxiway network and prefab
-    /// visuals, room assignments, time, economy, and flight schedule.
+    /// foundations, tarmac, boundary ownership, roads, taxiway network
+    /// and prefab visuals, room assignments, time, economy, and flight schedule.
     /// </summary>
     public bool TryRestoreBuildingsAndFoundations(int slot)
     {
@@ -508,6 +513,7 @@ public class AirportWorldResetController : MonoBehaviour
 
         int restoredBuildings = 0;
         int restoredFoundations = 0;
+        int restoredTarmacAreas = 0;
         int restoredEdges = 0;
         int restoredRoadCells = 0;
         int restoredTaxiwayCells = 0;
@@ -561,8 +567,15 @@ public class AirportWorldResetController : MonoBehaviour
                 saved.originX,
                 saved.originZ);
 
-            bool isFoundation =
+            bool isAreaObject =
                 definition.placementType == PlacementType.Area;
+
+            bool isTarmac =
+                isAreaObject &&
+                definition.category == BuildCategory.Tarmac;
+
+            bool isFoundation =
+                isAreaObject && !isTarmac;
 
             bool isEdgeObject =
                 definition.placementType == PlacementType.Edge;
@@ -641,9 +654,14 @@ public class AirportWorldResetController : MonoBehaviour
                 restoredOwnershipComponents.Add(ownership);
             }
 
-            if (isFoundation)
+            if (isFoundation || isTarmac)
             {
-                DisableFoundationVisuals(placedObject);
+                BuildSurface areaSurface = isTarmac
+                    ? BuildSurface.Tarmac
+                    : BuildSurface.Foundation;
+
+                if (isFoundation)
+                    DisableFoundationVisuals(placedObject);
 
                 if (saved.hasCustomFoundationFootprint)
                 {
@@ -654,7 +672,7 @@ public class AirportWorldResetController : MonoBehaviour
                             cell,
                             1,
                             1,
-                            BuildSurface.Foundation,
+                            areaSurface,
                             placedObject);
                     }
                 }
@@ -665,11 +683,14 @@ public class AirportWorldResetController : MonoBehaviour
                         origin,
                         Mathf.Max(1, saved.width),
                         Mathf.Max(1, saved.depth),
-                        BuildSurface.Foundation,
+                        areaSurface,
                         placedObject);
                 }
 
-                restoredFoundations++;
+                if (isTarmac)
+                    restoredTarmacAreas++;
+                else
+                    restoredFoundations++;
             }
             else if (isEdgeObject)
             {
@@ -813,6 +834,9 @@ public class AirportWorldResetController : MonoBehaviour
 
         foundationTilemapController.RefreshFromGridSurface();
 
+        if (tarmacTilemapController != null)
+            tarmacTilemapController.RefreshFromGridSurface();
+
         // 4. Refresh room detection and restore room-purpose assignments
         // after the saved foundations and boundaries are back in place.
         ResolveRoomPurposeReferences();
@@ -858,6 +882,7 @@ public class AirportWorldResetController : MonoBehaviour
             $"AirportWorldResetController: Restore from slot {slot} finished. " +
             $"Objects: {restoredBuildings}, " +
             $"foundations: {restoredFoundations}, " +
+            $"tarmac areas: {restoredTarmacAreas}, " +
             $"edge owners: {restoredEdges}, " +
             $"road cells: {restoredRoadCells}, " +
             $"taxiway cells: {restoredTaxiwayCells}, " +
