@@ -1,4 +1,3 @@
-
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -60,6 +59,7 @@ public class AirportCargoVehicleController : MonoBehaviour
     [Range(8, 30)]
     [SerializeField] private int parkingCurveResolution = 16;
     [SerializeField] private bool parkFacingWorldNegativeZ = true;
+
     private Transform destinationFacingTransform;
 
     [Header("Cargo Zone Navigation Test")]
@@ -87,6 +87,13 @@ public class AirportCargoVehicleController : MonoBehaviour
 
     private Vector3 destination;
     private Vector3 lastRequestedDestination;
+
+    // The gate allowed by the current route.
+    private GameObject currentDestinationGate;
+
+    // Stored so manual route recalculation retains the same gate exception.
+    private GameObject lastRequestedDestinationGate;
+
     private bool hasLastRequestedDestination;
     private bool lastRequestedDestinationWasReturnHome;
     private float movementHeight;
@@ -99,6 +106,7 @@ public class AirportCargoVehicleController : MonoBehaviour
     public bool IsReturningHome => isReturningHome;
     public int CarriedPackageCount => carriedPackages.Count;
     public int MaximumCargoCapacity => maximumCargoCapacity;
+
     public int AvailableCargoCapacity =>
         Mathf.Max(0, maximumCargoCapacity - carriedPackages.Count);
 
@@ -310,7 +318,10 @@ public class AirportCargoVehicleController : MonoBehaviour
 
         updatingReturnRoute = retryingReturnHome;
 
-        bool routeStarted = MoveTo(lastRequestedDestination);
+        bool routeStarted = MoveToInternal(
+            lastRequestedDestination,
+            null,
+            lastRequestedDestinationGate);
 
         updatingReturnRoute = false;
 
@@ -510,13 +521,37 @@ public class AirportCargoVehicleController : MonoBehaviour
         carriedPackageCount = carriedPackages.Count;
     }
 
+    // Normal movement keeps its existing optional facing transform.
     public bool MoveTo(
         Vector3 worldDestination,
         Transform facingTransform = null)
     {
+        return MoveToInternal(worldDestination, facingTransform, null);
+    }
+
+    // Gate movement allows only the specified gate's footprint.
+    // This overload supports calls such as:
+    // MoveTo(stopPoint.position, actualGate.gameObject)
+    public bool MoveTo(
+        Vector3 worldDestination,
+        GameObject destinationGate)
+    {
+        return MoveToInternal(worldDestination, null, destinationGate);
+    }
+
+    private bool MoveToInternal(
+        Vector3 worldDestination,
+        Transform facingTransform,
+        GameObject destinationGate)
+    {
         destinationFacingTransform = facingTransform;
+
+        currentDestinationGate = destinationGate;
+        lastRequestedDestinationGate = destinationGate;
+
         lastRequestedDestination = worldDestination;
         hasLastRequestedDestination = true;
+
         lastRequestedDestinationWasReturnHome =
             updatingReturnRoute || isReturningHome;
 
@@ -622,7 +657,7 @@ public class AirportCargoVehicleController : MonoBehaviour
     }
 
     // ---------------------------------------------------------------------
-    // Home lot ownership
+    // Home lot and destination gate ownership
     // ---------------------------------------------------------------------
 
     /// <summary>
@@ -634,7 +669,6 @@ public class AirportCargoVehicleController : MonoBehaviour
         if (homeSpawnPoint == null || gridOccupancy == null)
             return false;
 
-        // First check whether the spawn point itself owns the cell.
         if (gridOccupancy.IsOccupiedBy(
                 cell,
                 homeSpawnPoint.gameObject))
@@ -652,6 +686,26 @@ public class AirportCargoVehicleController : MonoBehaviour
                    homeLotParent.gameObject);
     }
 
+    /// <summary>
+    /// Returns true only for cells owned by the gate assigned to the
+    /// current destination. Other gates remain pathfinding obstacles.
+    /// </summary>
+    private bool IsCurrentDestinationGateCell(Vector2Int cell)
+    {
+        if (currentDestinationGate == null)
+            return false;
+
+        return gridOccupancy.IsOccupiedBy(
+                   cell,
+                   currentDestinationGate) ||
+               gridSurface.IsObstacleOwnedBy(
+                   cell,
+                   currentDestinationGate) ||
+               gridSurface.IsSurfaceOwner(
+                   cell,
+                   currentDestinationGate);
+    }
+
     // ---------------------------------------------------------------------
     // A* pathfinding
     // ---------------------------------------------------------------------
@@ -665,10 +719,14 @@ public class AirportCargoVehicleController : MonoBehaviour
         if (start == target)
             return new List<Vector2Int> { start };
 
-        // A destination inside the tug's own lot is valid. Other obstacle
-        // destinations remain forbidden.
-        if (gridSurface.IsObstacle(target) && !IsHomeLotCell(target))
+        // The tug may enter its own lot or the specific gate assigned as
+        // this route's destination. All other gate obstacles stay blocked.
+        if (gridSurface.IsObstacle(target) &&
+            !IsHomeLotCell(target) &&
+            !IsCurrentDestinationGateCell(target))
+        {
             return empty;
+        }
 
         List<Vector2Int> openSet = new List<Vector2Int> { start };
         HashSet<Vector2Int> closedSet = new HashSet<Vector2Int>();
@@ -728,12 +786,15 @@ public class AirportCargoVehicleController : MonoBehaviour
 
                 bool isHomeLotCell = IsHomeLotCell(neighbor);
 
-                // Permit traversal through the tug's own lot, including
-                // its foundation cells, so it can leave and return.
-                // Do not relax obstacle checks for any other building.
+                bool isDestinationGateCell =
+                    IsCurrentDestinationGateCell(neighbor);
+
+                // Permit traversal through the tug's own lot and only the
+                // gate assigned as this route's destination.
                 if (neighbor != start &&
                     neighbor != target &&
-                    !isHomeLotCell)
+                    !isHomeLotCell &&
+                    !isDestinationGateCell)
                 {
                     if (gridSurface.GetSurface(neighbor) ==
                         BuildSurface.Foundation)
@@ -796,10 +857,13 @@ public class AirportCargoVehicleController : MonoBehaviour
                 if (!gridManager.IsInsideGrid(checkedCell))
                     continue;
 
-                // The home lot must not create a clearance barrier
-                // against itself.
-                if (IsHomeLotCell(checkedCell))
+                // The home lot and assigned destination gate must not
+                // create a clearance barrier against themselves.
+                if (IsHomeLotCell(checkedCell) ||
+                    IsCurrentDestinationGateCell(checkedCell))
+                {
                     continue;
+                }
 
                 if (gridSurface.GetSurface(checkedCell) ==
                     BuildSurface.Foundation)
@@ -819,7 +883,9 @@ public class AirportCargoVehicleController : MonoBehaviour
 
         if (taxiwayNetwork.IsTaxiway(cell) ||
             roadNetwork.IsRoad(cell))
+        {
             return taxiwayMovementCost;
+        }
 
         return grassMovementCost;
     }
