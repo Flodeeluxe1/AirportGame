@@ -1,4 +1,3 @@
-
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -110,6 +109,8 @@ public class AircraftHobbyLandingTaxiController : MonoBehaviour
     private readonly List<Vector3> taxiMovementPath = new List<Vector3>();
 
     private bool routeAttempted;
+    private bool hasPublishedParkedStatus;
+
     private int currentRouteIndex;
     private TaxiPhase phase = TaxiPhase.WaitingForLanding;
 
@@ -149,17 +150,27 @@ public class AircraftHobbyLandingTaxiController : MonoBehaviour
             taxiwayPathfinder = FindFirstObjectByType<TaxiwayPathfinder>();
     }
 
-
     private void Update()
     {
         AircraftStatus status = GetComponent<AircraftStatus>();
 
         if (status != null)
         {
-            status.SetTaxiing(IsTaxiing);
-
-            if (HasArrivedAtParking)
+            // Publish taxiing while this controller owns movement.
+            if (IsTaxiing)
+            {
+                status.SetTaxiing(true);
+            }
+            // Publish the parked state only once.
+            // This prevents repeated speed resets after departure
+            // control has taken over the aircraft.
+            else if (
+                HasArrivedAtParking &&
+                !hasPublishedParkedStatus)
+            {
                 status.SetParked(true);
+                hasPublishedParkedStatus = true;
+            }
         }
 
         if (landingController == null)
@@ -190,9 +201,6 @@ public class AircraftHobbyLandingTaxiController : MonoBehaviour
                 break;
         }
     }
-
-
-
 
     private void TryBuildTaxiRoute()
     {
@@ -431,8 +439,6 @@ public class AircraftHobbyLandingTaxiController : MonoBehaviour
             );
         }
     }
-
-
 
     private void BuildSmoothedTaxiMovementPath()
     {

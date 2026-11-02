@@ -215,9 +215,22 @@ public class AircraftHobbyLandingController : MonoBehaviour
 
         if (status != null)
         {
-            status.SetCurrentSpeedKnots(
-                AircraftStatus.WorldSpeedToKnots(currentSpeed)
-            );
+            AircraftHobbyLandingTaxiController taxiController =
+                GetComponent<AircraftHobbyLandingTaxiController>();
+
+            // The landing controller owns speed only during active
+            // landing phases. The taxi controller takes over once
+            // it starts moving the aircraft after landing.
+            bool landingOwnsSpeed =
+                IsLandingTrafficActive &&
+                (taxiController == null || !taxiController.IsTaxiing);
+
+            if (landingOwnsSpeed)
+            {
+                status.SetCurrentSpeedKnots(
+                    AircraftStatus.WorldSpeedToKnots(currentSpeed)
+                );
+            }
 
             if (IsLandingComplete)
                 status.MarkLandingComplete();

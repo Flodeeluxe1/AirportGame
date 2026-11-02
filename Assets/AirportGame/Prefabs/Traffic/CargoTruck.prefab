@@ -563,7 +563,7 @@ MonoBehaviour:
   braking: 8
   cargoBoxPrefab: {fileID: 2704268867500195016, guid: eac10ae4add626d4fb7013f86e41d626, type: 3}
   unloadingDuration: 20
-  cargoBoxSpacing: 0.3
+  cargoBoxSpacing: 0.6
   boxesPerRow: 3
   destroyOnExit: 1
   debugState: Idle
