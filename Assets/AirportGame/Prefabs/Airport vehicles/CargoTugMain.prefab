@@ -10,11 +10,12 @@ GameObject:
   m_Component:
   - component: {fileID: 4821483623978217240}
   - component: {fileID: 2919380744168173033}
-  - component: {fileID: 4770373362077910615}
   - component: {fileID: 6092467791942992843}
+  - component: {fileID: 4770373362077910615}
   - component: {fileID: 3170799302219078531}
   - component: {fileID: 6644041826916707201}
   - component: {fileID: 3285098631579699966}
+  - component: {fileID: 6834312223799155472}
   m_Layer: 0
   m_Name: CargoTugMain
   m_TagString: Untagged
@@ -59,6 +60,30 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.8, y: 0.46, z: 1.2}
   m_Center: {x: 0, y: 0.25, z: 0.1}
+--- !u!114 &6092467791942992843
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1970913010140861768}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0befb08071d5da848964426885702aa0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AirportCargoVehicleController
+  groundVehicleMovement: {fileID: 0}
+  trailerFollower: {fileID: 0}
+  homeSpawnPoint: {fileID: 0}
+  homeSpawnOffset: {x: 0, y: 0, z: 0}
+  homeSpawnHeight: 0.23
+  isReturningHome: 0
+  cargoZoneTestTarget: {fileID: 0}
+  testCargoZoneOnPlay: 0
+  testCollectionOnArrival: 0
+  testFlightOperationId: 
+  maximumCargoCapacity: 10
+  carriedPackageCount: 0
 --- !u!114 &4770373362077910615
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -81,51 +106,6 @@ MonoBehaviour:
   showDebugMessages: 1
   isInitialized: 0
   currentHitchDistance: 0
---- !u!114 &6092467791942992843
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1970913010140861768}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0befb08071d5da848964426885702aa0, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::AirportCargoVehicleController
-  gridManager: {fileID: 0}
-  gridOccupancy: {fileID: 0}
-  gridSurface: {fileID: 0}
-  roadNetwork: {fileID: 0}
-  taxiwayNetwork: {fileID: 0}
-  trailerFollower: {fileID: 0}
-  homeSpawnPoint: {fileID: 0}
-  homeSpawnOffset: {x: 0, y: 0, z: 0}
-  homeSpawnHeight: 0.23
-  isReturningHome: 0
-  tarmacMovementCost: 1
-  taxiwayMovementCost: 5
-  grassMovementCost: 10
-  foundationClearance: 1
-  movementSpeed: 2
-  rotationSpeed: 5
-  waypointArrivalDistance: 0.08
-  groundHeightOffset: 0.05
-  turningRadiusInCells: 2
-  turnCurveResolution: 15
-  parkingTurnDistanceInCells: 2
-  parkingCurveResolution: 20
-  parkFacingWorldNegativeZ: 0
-  cargoZoneTestTarget: {fileID: 0}
-  testCargoZoneOnPlay: 0
-  testCollectionOnArrival: 0
-  testFlightOperationId: 
-  maximumCargoCapacity: 10
-  isMoving: 0
-  movementStatus: Idle
-  routeCellCount: 0
-  currentWaypointIndex: 0
-  carriedPackageCount: 0
 --- !u!114 &3170799302219078531
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -175,6 +155,40 @@ MonoBehaviour:
   reservedPackageCount: 0
   loadedPackageCount: 0
   phaseElapsedGameSeconds: 0
+--- !u!114 &6834312223799155472
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1970913010140861768}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fc69eae5cf9a4ae4688f7ea0e4f5b528, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AirportGroundVehicleMovement
+  gridManager: {fileID: 0}
+  gridOccupancy: {fileID: 0}
+  gridSurface: {fileID: 0}
+  roadNetwork: {fileID: 0}
+  taxiwayNetwork: {fileID: 0}
+  tarmacMovementCost: 1
+  taxiwayMovementCost: 5
+  grassMovementCost: 10
+  foundationClearance: 1
+  movementSpeed: 3
+  rotationSpeed: 5
+  waypointArrivalDistance: 0.08
+  groundHeightOffset: 0.05
+  turningRadiusInCells: 2
+  turnCurveResolution: 10
+  parkingTurnDistanceInCells: 2
+  parkingCurveResolution: 16
+  parkFacingWorldNegativeZ: 0
+  isMoving: 0
+  movementStatus: Idle
+  routeCellCount: 0
+  currentWaypointIndex: 0
 --- !u!1 &7085189830102814123
 GameObject:
   m_ObjectHideFlags: 0
