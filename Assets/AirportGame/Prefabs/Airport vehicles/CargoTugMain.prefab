@@ -74,6 +74,7 @@ MonoBehaviour:
   trailer: {fileID: 6346400264022034145, guid: bb40a8a8ec9f6e145a8c02c13d91bab2, type: 3}
   tugHitchPoint: {fileID: 5898636438715226431}
   hitchToTrailerDistance: 1.25
+  trailerToTrailerDistance: 2.6
   followSpeed: 20
   rotationSpeed: 15
   positionTrailerAtStart: 1
@@ -106,7 +107,6 @@ MonoBehaviour:
   taxiwayMovementCost: 5
   grassMovementCost: 10
   foundationClearance: 1
-  taxiwayClearance: 1
   movementSpeed: 2
   rotationSpeed: 5
   waypointArrivalDistance: 0.08
@@ -115,7 +115,7 @@ MonoBehaviour:
   turnCurveResolution: 15
   parkingTurnDistanceInCells: 2
   parkingCurveResolution: 20
-  parkFacingWorldNegativeZ: 1
+  parkFacingWorldNegativeZ: 0
   cargoZoneTestTarget: {fileID: 0}
   testCargoZoneOnPlay: 0
   testCollectionOnArrival: 0

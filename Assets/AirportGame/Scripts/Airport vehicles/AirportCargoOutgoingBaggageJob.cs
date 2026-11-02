@@ -404,7 +404,9 @@ private void CollectAndReservePackages()
             this
         );
 
-        if (!vehicle.MoveTo(stopPoint.position))
+        if (!vehicle.MoveTo(
+            stopPoint.position,
+            actualGate.gameObject))
         {
             AbortJob(
                 "Could not calculate a route to the aircraft gate."

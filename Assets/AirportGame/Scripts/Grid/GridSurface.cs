@@ -229,6 +229,19 @@ public class GridSurface : MonoBehaviour
         return obstacleOwners.ContainsKey(position);
     }
 
+    public bool IsObstacleOwnedBy(
+    Vector2Int position,
+    GameObject owner)
+    {
+        if (owner == null)
+            return false;
+
+        return obstacleOwners.TryGetValue(
+                   position,
+                   out GameObject currentOwner) &&
+               currentOwner == owner;
+    }
+
     public void SetObstacleArea(
         Vector2Int origin,
         int width,

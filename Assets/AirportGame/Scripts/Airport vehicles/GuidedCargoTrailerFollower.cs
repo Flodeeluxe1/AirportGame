@@ -14,8 +14,12 @@ public class GuidedCargoTrailerFollower : MonoBehaviour
 
     [Header("Trailer Position")]
     [Min(0.1f)]
-    [Tooltip("Distance between the tug hitch and first trailer, and between trailers.")]
-    [SerializeField] private float hitchToTrailerDistance = 2f;
+    [Tooltip("Distance between the tug hitch and the first trailer.")]
+    [SerializeField] private float hitchToTrailerDistance = 1.25f;
+
+    [Min(0.1f)]
+    [Tooltip("Distance between each trailer in the trailer chain.")]
+    [SerializeField] private float trailerToTrailerDistance = 2.6f;
 
     [Min(0.1f)]
     [Tooltip("Maximum speed at which trailers catch up.")]
@@ -170,9 +174,13 @@ public class GuidedCargoTrailerFollower : MonoBehaviour
             currentHitchDistance = directionToFront.magnitude;
             directionToFront.Normalize();
 
+            float spacing = i == 0
+                ? hitchToTrailerDistance
+                : trailerToTrailerDistance;
+
             Vector3 targetPosition =
                 objectInFront.position -
-                directionToFront * hitchToTrailerDistance;
+                directionToFront * spacing;
 
             targetPosition.y = trailerHeights[i];
 

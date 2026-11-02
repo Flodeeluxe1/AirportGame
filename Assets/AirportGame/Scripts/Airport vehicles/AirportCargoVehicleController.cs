@@ -60,6 +60,7 @@ public class AirportCargoVehicleController : MonoBehaviour
     [Range(8, 30)]
     [SerializeField] private int parkingCurveResolution = 16;
     [SerializeField] private bool parkFacingWorldNegativeZ = true;
+    private Transform destinationFacingTransform;
 
     [Header("Cargo Zone Navigation Test")]
     [SerializeField] private CargoZone cargoZoneTestTarget;
@@ -509,8 +510,11 @@ public class AirportCargoVehicleController : MonoBehaviour
         carriedPackageCount = carriedPackages.Count;
     }
 
-    public bool MoveTo(Vector3 worldDestination)
+    public bool MoveTo(
+        Vector3 worldDestination,
+        Transform facingTransform = null)
     {
+        destinationFacingTransform = facingTransform;
         lastRequestedDestination = worldDestination;
         hasLastRequestedDestination = true;
         lastRequestedDestinationWasReturnHome =
@@ -630,10 +634,22 @@ public class AirportCargoVehicleController : MonoBehaviour
         if (homeSpawnPoint == null || gridOccupancy == null)
             return false;
 
-        // CargoTugLotSpawner passes the placed lot's own transform.
-        GameObject homeLot = homeSpawnPoint.gameObject;
+        // First check whether the spawn point itself owns the cell.
+        if (gridOccupancy.IsOccupiedBy(
+                cell,
+                homeSpawnPoint.gameObject))
+        {
+            return true;
+        }
 
-        return gridOccupancy.IsOccupiedBy(cell, homeLot);
+        // TugParking is a child of the placed CargoTugLot.
+        // GridOccupancy stores the placed lot root, not TugParking.
+        Transform homeLotParent = homeSpawnPoint.parent;
+
+        return homeLotParent != null &&
+               gridOccupancy.IsOccupiedBy(
+                   cell,
+                   homeLotParent.gameObject);
     }
 
     // ---------------------------------------------------------------------
@@ -887,9 +903,15 @@ public class AirportCargoVehicleController : MonoBehaviour
 
         approachDirection.Normalize();
 
-        Vector3 parkingDirection = parkFacingWorldNegativeZ
-            ? Vector3.back
-            : Vector3.forward;
+        Vector3 parkingDirection =
+            destinationFacingTransform != null
+                ? destinationFacingTransform.forward
+                : (parkFacingWorldNegativeZ
+                    ? Vector3.back
+                    : Vector3.forward);
+
+        parkingDirection.y = 0f;
+        parkingDirection.Normalize();
 
         float curveLength = HorizontalDistance(entryPoint, destination);
 
@@ -1319,12 +1341,17 @@ public class AirportCargoVehicleController : MonoBehaviour
     {
         transform.position = destination;
 
-        Vector3 finalDirection = parkFacingWorldNegativeZ
-            ? Vector3.back
-            : Vector3.forward;
+        Vector3 finalDirection =
+            destinationFacingTransform != null
+                ? destinationFacingTransform.forward
+                : (parkFacingWorldNegativeZ
+                    ? Vector3.back
+                    : Vector3.forward);
+
+        finalDirection.y = 0f;
 
         transform.rotation = Quaternion.LookRotation(
-            finalDirection,
+            finalDirection.normalized,
             Vector3.up);
 
         isMoving = false;
