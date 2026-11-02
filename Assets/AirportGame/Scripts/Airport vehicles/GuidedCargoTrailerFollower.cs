@@ -1,11 +1,12 @@
 
+using System.Collections.Generic;
 using UnityEngine;
 
 [DisallowMultipleComponent]
 public class GuidedCargoTrailerFollower : MonoBehaviour
 {
     [Header("References")]
-    [Tooltip("The root Transform of the trailer.")]
+    [Tooltip("Legacy single trailer reference. Normally assigned by the lot spawner.")]
     [SerializeField] private Transform trailer;
 
     [Tooltip("An empty child Transform at the rear towing point of the tug.")]
@@ -13,19 +14,19 @@ public class GuidedCargoTrailerFollower : MonoBehaviour
 
     [Header("Trailer Position")]
     [Min(0.1f)]
-    [Tooltip("Distance from the tug hitch to the trailer root.")]
+    [Tooltip("Distance between the tug hitch and first trailer, and between trailers.")]
     [SerializeField] private float hitchToTrailerDistance = 2f;
 
     [Min(0.1f)]
-    [Tooltip("Maximum speed at which the trailer catches up.")]
+    [Tooltip("Maximum speed at which trailers catch up.")]
     [SerializeField] private float followSpeed = 8f;
 
     [Min(0.1f)]
-    [Tooltip("How quickly the trailer rotates to face the tug hitch.")]
+    [Tooltip("How quickly trailers rotate to follow the vehicle in front.")]
     [SerializeField] private float rotationSpeed = 5f;
 
     [Header("Initialization")]
-    [Tooltip("Position the trailer behind the tug when play starts.")]
+    [Tooltip("Position the assigned trailer behind the tug when play starts.")]
     [SerializeField] private bool positionTrailerAtStart = true;
 
     [Header("Debug")]
@@ -33,23 +34,47 @@ public class GuidedCargoTrailerFollower : MonoBehaviour
     [SerializeField] private bool isInitialized;
     [SerializeField] private float currentHitchDistance;
 
-    private float trailerHeight;
+    private readonly List<Transform> trailers =
+        new List<Transform>();
+
+    private readonly List<float> trailerHeights =
+        new List<float>();
 
     public void SetTrailer(Transform trailerTransform)
     {
-        trailer = trailerTransform;
+        Transform[] newTrailers = trailerTransform != null
+            ? new[] { trailerTransform }
+            : new Transform[0];
+
+        SetTrailers(newTrailers);
     }
 
-    private void Start()
+    public void SetTrailers(Transform[] trailerTransforms)
     {
-        if (trailer == null)
-        {
-            Debug.LogError(
-                "GuidedCargoTrailerFollower: Trailer is not assigned.",
-                this
-            );
-            enabled = false;
+        trailers.Clear();
+        trailerHeights.Clear();
+
+        if (trailerTransforms == null)
             return;
+
+        foreach (Transform trailerTransform in trailerTransforms)
+        {
+            if (trailerTransform == null)
+                continue;
+
+            if (trailerTransform == transform ||
+                trailerTransform.IsChildOf(transform))
+            {
+                Debug.LogError(
+                    "GuidedCargoTrailerFollower: A trailer must be a " +
+                    "separate scene object, not a child of the tug.",
+                    this
+                );
+                continue;
+            }
+
+            trailers.Add(trailerTransform);
+            trailerHeights.Add(trailerTransform.position.y);
         }
 
         if (tugHitchPoint == null)
@@ -58,111 +83,142 @@ public class GuidedCargoTrailerFollower : MonoBehaviour
                 "GuidedCargoTrailerFollower: Tug Hitch Point is not assigned.",
                 this
             );
-            enabled = false;
             return;
-        }
-
-        if (trailer == transform ||
-            trailer.IsChildOf(transform))
-        {
-            Debug.LogError(
-                "GuidedCargoTrailerFollower: The trailer must be a separate " +
-                "scene object, not a child of the tug.",
-                this
-            );
-            enabled = false;
-            return;
-        }
-
-        trailerHeight = trailer.position.y;
-
-        if (positionTrailerAtStart)
-        {
-            PositionTrailerBehindTug();
         }
 
         isInitialized = true;
 
+        if (showDebugMessages && trailers.Count > 0)
+        {
+            Debug.Log(
+                $"Guided trailer chain initialized with {trailers.Count} trailer(s).",
+                this
+            );
+        }
+    }
+
+    public void ClearTrailers()
+    {
+        trailers.Clear();
+        trailerHeights.Clear();
+
+        isInitialized = false;
+
         if (showDebugMessages)
         {
             Debug.Log(
-                $"Guided trailer initialized. Trailer: {trailer.name}, " +
-                $"distance: {hitchToTrailerDistance:F2} m.",
+                "GuidedCargoTrailerFollower: Trailer chain detached.",
                 this
             );
+        }
+    }
+
+    private void Start()
+    {
+        if (tugHitchPoint == null)
+        {
+            Debug.LogError(
+                "GuidedCargoTrailerFollower: Tug Hitch Point is not assigned.",
+                this
+            );
+
+            enabled = false;
+            return;
+        }
+
+        // Preserve support for a trailer assigned directly in the Inspector.
+        if (trailer != null && trailers.Count == 0)
+        {
+            SetTrailers(new[] { trailer });
+
+            if (positionTrailerAtStart && trailers.Count > 0)
+                PositionTrailerBehindTug();
         }
     }
 
     private void LateUpdate()
     {
         if (!isInitialized ||
-            trailer == null ||
+            trailers.Count == 0 ||
             tugHitchPoint == null)
         {
             return;
         }
 
-        Vector3 directionToHitch =
-            tugHitchPoint.position - trailer.position;
-
-        directionToHitch.y = 0f;
-
-        currentHitchDistance = directionToHitch.magnitude;
-
-        if (directionToHitch.sqrMagnitude < 0.0001f)
+        for (int i = 0; i < trailers.Count; i++)
         {
-            return;
+            Transform currentTrailer = trailers[i];
+
+            if (currentTrailer == null)
+                continue;
+
+            Transform objectInFront = i == 0
+                ? tugHitchPoint
+                : trailers[i - 1];
+
+            if (objectInFront == null)
+                continue;
+
+            Vector3 directionToFront =
+                objectInFront.position - currentTrailer.position;
+
+            directionToFront.y = 0f;
+
+            if (directionToFront.sqrMagnitude < 0.0001f)
+                continue;
+
+            currentHitchDistance = directionToFront.magnitude;
+            directionToFront.Normalize();
+
+            Vector3 targetPosition =
+                objectInFront.position -
+                directionToFront * hitchToTrailerDistance;
+
+            targetPosition.y = trailerHeights[i];
+
+            currentTrailer.position = Vector3.MoveTowards(
+                currentTrailer.position,
+                targetPosition,
+                followSpeed * Time.deltaTime
+            );
+
+            Quaternion targetRotation =
+                Quaternion.LookRotation(directionToFront, Vector3.up);
+
+            currentTrailer.rotation = Quaternion.Slerp(
+                currentTrailer.rotation,
+                targetRotation,
+                rotationSpeed * Time.deltaTime
+            );
         }
-
-        directionToHitch.Normalize();
-
-        Vector3 targetPosition =
-            tugHitchPoint.position -
-            directionToHitch * hitchToTrailerDistance;
-
-        targetPosition.y = trailerHeight;
-
-        trailer.position = Vector3.MoveTowards(
-            trailer.position,
-            targetPosition,
-            followSpeed * Time.deltaTime
-        );
-
-        Quaternion targetRotation =
-            Quaternion.LookRotation(directionToHitch, Vector3.up);
-
-        trailer.rotation = Quaternion.Slerp(
-            trailer.rotation,
-            targetRotation,
-            rotationSpeed * Time.deltaTime
-        );
     }
 
     private void PositionTrailerBehindTug()
     {
+        if (trailers.Count == 0 || tugHitchPoint == null)
+            return;
+
         Vector3 tugForward = transform.forward;
         tugForward.y = 0f;
 
         if (tugForward.sqrMagnitude < 0.0001f)
-        {
             tugForward = Vector3.forward;
-        }
 
         tugForward.Normalize();
 
-        trailer.rotation = Quaternion.LookRotation(
+        Transform firstTrailer = trailers[0];
+
+        firstTrailer.rotation = Quaternion.LookRotation(
             tugForward,
             Vector3.up
         );
 
-        trailerHeight = trailer.position.y;
-
-        trailer.position =
+        firstTrailer.position =
             tugHitchPoint.position -
             tugForward * hitchToTrailerDistance;
 
-        Vector3 position = trailer.position;
-        position.y = trailerHeight;
-        trailer.position = position;
+        Vector3 position = firstTrailer.position;
+        position.y = trailerHeights[0];
+        firstTrailer.position = position;
     }
 }

@@ -85,6 +85,9 @@ public class AirportCargoVehicleController : MonoBehaviour
         new List<CargoPackage>();
 
     private Vector3 destination;
+    private Vector3 lastRequestedDestination;
+    private bool hasLastRequestedDestination;
+    private bool lastRequestedDestinationWasReturnHome;
     private float movementHeight;
     private bool testCollectionAttempted;
     private bool updatingReturnRoute;
@@ -279,6 +282,47 @@ public class AirportCargoVehicleController : MonoBehaviour
         return true;
     }
 
+    [ContextMenu("Recalculate Last Route")]
+    public void RecalculateLastRoute()
+    {
+        if (!hasLastRequestedDestination)
+        {
+            Debug.LogWarning(
+                $"{name}: There is no previous destination to recalculate.",
+                this);
+            return;
+        }
+
+        if (isMoving)
+        {
+            Debug.LogWarning(
+                $"{name}: Cannot recalculate while the vehicle is moving. " +
+                "Stop the vehicle first.",
+                this);
+            return;
+        }
+
+        bool retryingReturnHome = lastRequestedDestinationWasReturnHome;
+
+        if (retryingReturnHome)
+            isReturningHome = true;
+
+        updatingReturnRoute = retryingReturnHome;
+
+        bool routeStarted = MoveTo(lastRequestedDestination);
+
+        updatingReturnRoute = false;
+
+        if (!routeStarted && retryingReturnHome)
+            isReturningHome = false;
+
+        Debug.Log(
+            $"{name}: Manual route recalculation " +
+            (routeStarted ? "started." : "failed.") +
+            $" Destination: {lastRequestedDestination}.",
+            this);
+    }
+
     public void CancelReturnHome()
     {
         if (!isReturningHome)
@@ -467,6 +511,11 @@ public class AirportCargoVehicleController : MonoBehaviour
 
     public bool MoveTo(Vector3 worldDestination)
     {
+        lastRequestedDestination = worldDestination;
+        hasLastRequestedDestination = true;
+        lastRequestedDestinationWasReturnHome =
+            updatingReturnRoute || isReturningHome;
+
         if (!updatingReturnRoute)
             isReturningHome = false;
 

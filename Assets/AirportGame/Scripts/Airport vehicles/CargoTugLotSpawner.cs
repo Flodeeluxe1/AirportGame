@@ -34,15 +34,25 @@ public class CargoTugLotSpawner : MonoBehaviour
     [Header("Trailer Shop")]
     [SerializeField, Min(1)] private int trailerPrice = 1000;
 
+    [Header("Trailer Attachment")]
+    [Tooltip("Maximum distance from the home position at which the tug is considered parked.")]
+    [SerializeField, Min(0.05f)] private float homeArrivalTolerance = 0.25f;
+
     [Header("Debug")]
     [SerializeField] private bool showDebugMessages = true;
 
     private GameObject spawnedCargoTug;
 
+    private AirportCargoVehicleController tugController;
+    private GuidedCargoTrailerFollower trailerFollower;
+
     private readonly GameObject[] purchasedTrailers =
         new GameObject[4];
 
     private AirportEconomyManager economyManager;
+
+    private bool trailersAttached;
+    private bool returnJourneyObserved;
 
     public int TrailerPrice => trailerPrice;
 
@@ -92,10 +102,10 @@ public class CargoTugLotSpawner : MonoBehaviour
             tugRotation
         );
 
-        AirportCargoVehicleController controller =
+        tugController =
             spawnedCargoTug.GetComponent<AirportCargoVehicleController>();
 
-        if (controller == null)
+        if (tugController == null)
         {
             Debug.LogError(
                 "CargoTugLotSpawner: The cargo tug prefab must have an " +
@@ -107,9 +117,12 @@ public class CargoTugLotSpawner : MonoBehaviour
             return;
         }
 
+        trailerFollower =
+            spawnedCargoTug.GetComponent<GuidedCargoTrailerFollower>();
+
         if (tugParking != null)
         {
-            controller.SetHomeSpawnPoint(
+            tugController.SetHomeSpawnPoint(
                 tugParking,
                 Vector3.zero,
                 spawnHeight
@@ -117,7 +130,7 @@ public class CargoTugLotSpawner : MonoBehaviour
         }
         else
         {
-            controller.SetHomeSpawnPoint(
+            tugController.SetHomeSpawnPoint(
                 transform,
                 tugSpawnOffset,
                 spawnHeight
@@ -134,6 +147,33 @@ public class CargoTugLotSpawner : MonoBehaviour
                 gameObject.name + ".",
                 this
             );
+        }
+    }
+
+    private void Update()
+    {
+        if (tugController == null)
+            return;
+
+        if (tugController.IsReturningHome)
+            returnJourneyObserved = true;
+
+        if (tugController.IsMoving)
+        {
+            if (!trailersAttached)
+                AttachPurchasedTrailers();
+
+            return;
+        }
+
+        if (returnJourneyObserved &&
+            !tugController.IsReturningHome &&
+            tugController.MovementStatus == "Arrived" &&
+            IsTugAtHome())
+        {
+            DetachTrailersToParking();
+
+            returnJourneyObserved = false;
         }
     }
 
@@ -238,6 +278,11 @@ public class CargoTugLotSpawner : MonoBehaviour
 
         purchasedTrailers[slotIndex] = trailer;
 
+        // If the tug is already moving, add the newly purchased
+        // trailer to the existing trailer chain immediately.
+        if (tugController != null && tugController.IsMoving)
+            AttachPurchasedTrailers();
+
         if (showDebugMessages)
         {
             Debug.Log(
@@ -248,5 +293,115 @@ public class CargoTugLotSpawner : MonoBehaviour
         }
 
         return true;
+    }
+
+    private void AttachPurchasedTrailers()
+    {
+        if (trailerFollower == null)
+        {
+            trailerFollower =
+                spawnedCargoTug.GetComponent<GuidedCargoTrailerFollower>();
+        }
+
+        if (trailerFollower == null)
+        {
+            Debug.LogError(
+                "CargoTugLotSpawner: The cargo tug prefab needs a " +
+                "GuidedCargoTrailerFollower component to tow purchased trailers.",
+                spawnedCargoTug
+            );
+            return;
+        }
+
+        Transform[] trailerTransforms = new Transform[4];
+        int trailerCount = 0;
+
+        for (int i = 0; i < purchasedTrailers.Length; i++)
+        {
+            if (purchasedTrailers[i] == null)
+                continue;
+
+            trailerTransforms[i] = purchasedTrailers[i].transform;
+            trailerCount++;
+        }
+
+        if (trailerCount == 0)
+            return;
+
+        trailerFollower.SetTrailers(trailerTransforms);
+        trailersAttached = true;
+
+        if (showDebugMessages)
+        {
+            Debug.Log(
+                "CargoTugLotSpawner: Attached " +
+                trailerCount + " purchased trailer(s) to the tug.",
+                this
+            );
+        }
+    }
+
+    private void DetachTrailersToParking()
+    {
+        if (!trailersAttached)
+            return;
+
+        if (trailerFollower != null)
+            trailerFollower.ClearTrailers();
+
+        for (int i = 0; i < purchasedTrailers.Length; i++)
+        {
+            GameObject trailer = purchasedTrailers[i];
+
+            if (trailer == null ||
+                trailerParkingPositions[i] == null)
+            {
+                continue;
+            }
+
+            Transform parkingPosition =
+                trailerParkingPositions[i];
+
+            Vector3 position = parkingPosition.position;
+            position.y = trailerSpawnHeight;
+
+            trailer.transform.SetPositionAndRotation(
+                position,
+                parkingPosition.rotation
+            );
+        }
+
+        trailersAttached = false;
+
+        if (showDebugMessages)
+        {
+            Debug.Log(
+                "CargoTugLotSpawner: Tug parked. Purchased trailers " +
+                "detached and returned to their parking positions.",
+                this
+            );
+        }
+    }
+
+    private bool IsTugAtHome()
+    {
+        Vector3 homePosition;
+
+        if (tugParking != null)
+        {
+            homePosition = tugParking.position;
+        }
+        else
+        {
+            homePosition = transform.position +
+                transform.rotation * tugSpawnOffset;
+        }
+
+        homePosition.y = spawnHeight;
+
+        return Vector3.Distance(
+            spawnedCargoTug.transform.position,
+            homePosition
+        ) <= homeArrivalTolerance;
     }
 }
