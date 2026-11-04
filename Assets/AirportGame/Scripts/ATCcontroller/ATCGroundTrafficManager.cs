@@ -642,7 +642,8 @@ public class ATCGroundTrafficManager : MonoBehaviour
         // A manual holding point may pass a same-direction convoy together.
         // The local traffic follower still controls following distance.
         if (state.Point.AllowSameDirectionTraffic &&
-            HasSameDirectionOwner(state, travelDirection))
+            HasSameDirectionOwner(state, travelDirection) &&
+            !HasEarlierOpposingWaiter(state, request))
         {
             GrantReservation(state, request);
             decision = "Same-direction traffic cleared at " +
@@ -668,6 +669,30 @@ public class ATCGroundTrafficManager : MonoBehaviour
 
         decision = "Holding for " + state.Point.Label +
                    " (" + ownerName + ")";
+        return false;
+    }
+
+    private bool HasEarlierOpposingWaiter(
+        ControlPointState state,
+        WaitRequest requestingWaiter)
+    {
+        foreach (WaitRequest waiter in state.Waiters)
+        {
+            if (waiter == requestingWaiter ||
+                waiter.Aircraft == null ||
+                waiter.RequestedAt >= requestingWaiter.RequestedAt)
+            {
+                continue;
+            }
+
+            if (Vector3.Dot(
+                    waiter.TravelDirection,
+                    requestingWaiter.TravelDirection) < 0.85f)
+            {
+                return true;
+            }
+        }
+
         return false;
     }
 
