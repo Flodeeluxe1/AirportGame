@@ -324,12 +324,20 @@ public class ScheduledAircraftSpawner : MonoBehaviour
             return;
         }
 
-        // Spawn at most one aircraft during this Update.
-        QueuedAircraftSpawn queuedFlight = spawnQueue.Dequeue();
+        // Keep the flight queued until a compatible gate has been reserved
+        // and the aircraft has actually spawned.
+        QueuedAircraftSpawn queuedFlight = spawnQueue.Peek();
 
+        if (!SpawnQueuedAircraft(queuedFlight))
+        {
+            // Retry while preserving queue order. A short delay avoids
+            // repeatedly attempting the same unavailable gate every frame.
+            nextAllowedSpawnGameSecond = currentGameTime + 1;
+            return;
+        }
+
+        spawnQueue.Dequeue();
         queuedOperationIds.Remove(queuedFlight.OperationId);
-
-        SpawnQueuedAircraft(queuedFlight);
 
         // The next aircraft cannot spawn until the configured interval
         // has elapsed in game time.
@@ -347,16 +355,16 @@ public class ScheduledAircraftSpawner : MonoBehaviour
         }
     }
 
-    private void SpawnQueuedAircraft(QueuedAircraftSpawn queuedFlight)
+    private bool SpawnQueuedAircraft(QueuedAircraftSpawn queuedFlight)
     {
         if (queuedFlight == null ||
             queuedFlight.Scheduled == null)
         {
-            return;
+            return false;
         }
 
         if (spawnedOperationIds.Contains(queuedFlight.OperationId))
-            return;
+            return true;
 
         ScheduledSpawn scheduled = queuedFlight.Scheduled;
 
@@ -379,7 +387,7 @@ public class ScheduledAircraftSpawner : MonoBehaviour
                         "Passenger Aircraft Prefab on ScheduledAircraftSpawner.",
                         this
                     );
-                    return;
+                    return false;
                 }
                 break;
 
@@ -389,7 +397,7 @@ public class ScheduledAircraftSpawner : MonoBehaviour
                     "Cargo + passengers is not supported by the spawner yet.",
                     this
                 );
-                return;
+                return false;
 
             default:
                 Debug.LogError(
@@ -397,7 +405,7 @@ public class ScheduledAircraftSpawner : MonoBehaviour
                     $"unknown operation type {scheduled.Definition.OperationType}.",
                     this
                 );
-                return;
+                return false;
         }
 
         if (prefabToSpawn == null)
@@ -407,7 +415,7 @@ public class ScheduledAircraftSpawner : MonoBehaviour
                 "the selected aircraft prefab is not assigned.",
                 this
             );
-            return;
+            return false;
         }
 
         GameObject aircraft = Instantiate(
@@ -437,6 +445,29 @@ public class ScheduledAircraftSpawner : MonoBehaviour
             queuedFlight.ScheduledDayIndex
         );
 
+        GateAssignmentController gateAssignmentController =
+            GateAssignmentController.Instance;
+
+        if (gateAssignmentController == null ||
+            !gateAssignmentController.TryReserveGateAtSpawn(
+                identity,
+                out AircraftGate reservedGate,
+                out string reservationMessage))
+        {
+            string reason = gateAssignmentController == null
+                ? "GateAssignmentController was not found."
+                : reservationMessage;
+
+            Debug.LogWarning(
+                $"Aircraft spawn postponed | Flight: " +
+                $"{scheduled.Definition.FlightNumber} | {reason}",
+                this
+            );
+
+            Destroy(aircraft);
+            return false;
+        }
+
         spawnedOperationIds.Add(queuedFlight.OperationId);
 
         if (logAircraftSpawns)
@@ -452,6 +483,8 @@ public class ScheduledAircraftSpawner : MonoBehaviour
                 aircraft
             );
         }
+
+        return true;
     }
 
     private void TryReloadScheduleIfChanged()
