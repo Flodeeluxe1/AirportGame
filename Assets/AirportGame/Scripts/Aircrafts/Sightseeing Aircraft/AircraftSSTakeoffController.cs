@@ -258,14 +258,7 @@ public class AircraftSSTakeoffController : MonoBehaviour
         debugStatus =
             $"Takeoff roll started with {passengersOnBoard} passengers.";
 
-        Debug.Log(
-            $"SIGHTSEEING TAKEOFF STARTED | Aircraft: {name} | " +
-            $"Runway: {selectedRunway.name} | " +
-            $"Passengers: {passengersOnBoard} | " +
-            $"Ticket: ${ticketPrice} | " +
-            $"Rotation at {rotationTriggerSpeedKnots:F1} knots",
-            this);
-
+        
         return true;
     }
 
@@ -291,11 +284,7 @@ public class AircraftSSTakeoffController : MonoBehaviour
             currentSpeedKnots = rotationTriggerSpeedKnots;
             currentState = TakeoffState.Rotating;
 
-            Debug.Log(
-                $"SIGHTSEEING ROTATION STARTED | Aircraft: {name} | " +
-                $"Speed: {currentSpeedKnots:F1} knots",
-                this);
-        }
+                    }
     }
 
     private void UpdateRotationAndLiftoff(float deltaTime)
@@ -350,10 +339,7 @@ public class AircraftSSTakeoffController : MonoBehaviour
             ApplyTakeoffOrientation(currentNoseUpDegrees);
             currentState = TakeoffState.Climbing;
 
-            Debug.Log(
-                $"SIGHTSEEING CLIMB STARTED | Aircraft: {name}",
-                this);
-        }
+                    }
 
         CheckTargetAltitude();
     }
@@ -514,12 +500,7 @@ public class AircraftSSTakeoffController : MonoBehaviour
 
         debugStatus = "Takeoff complete. Aircraft despawning.";
 
-        Debug.Log(
-            $"SIGHTSEEING TAKEOFF COMPLETE | Aircraft: {name} | " +
-            $"Passengers: {passengersOnBoard} | " +
-            $"Commission: ${commissionPaid}",
-            this);
-
+        
         Destroy(gameObject);
     }
 
@@ -535,11 +516,7 @@ public class AircraftSSTakeoffController : MonoBehaviour
         {
             commissionPaid = 0;
 
-            Debug.Log(
-                $"SIGHTSEEING NO-PASSENGER DEPARTURE | Aircraft: {name} | " +
-                "No ticket commission earned.",
-                this);
-
+            
             return;
         }
 
