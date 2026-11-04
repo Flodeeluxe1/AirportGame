@@ -49,6 +49,13 @@ public class TaxiwayNetwork : MonoBehaviour
     private readonly HashSet<Vector2Int> runwayCenterlineCells =
         new HashSet<Vector2Int>();
 
+    private int topologyVersion;
+
+    public int TopologyVersion => topologyVersion;
+
+    public IReadOnlyCollection<Vector2Int> TaxiwayCenterlineCells =>
+        centerlineCells;
+
     private static readonly Vector2Int North =
         new Vector2Int(0, 1);
 
@@ -154,7 +161,8 @@ public class TaxiwayNetwork : MonoBehaviour
     {
         if (taxiwayCells.ContainsKey(position))
         {
-            centerlineCells.Add(position);
+            if (centerlineCells.Add(position))
+                topologyVersion++;
         }
     }
 
@@ -225,6 +233,7 @@ public class TaxiwayNetwork : MonoBehaviour
             )
         );
 
+        topologyVersion++;
         UpdateConnectionsAround(position);
     }
 
@@ -234,6 +243,7 @@ public class TaxiwayNetwork : MonoBehaviour
         if (!taxiwayCells.Remove(position))
             return;
 
+        topologyVersion++;
         centerlineCells.Remove(position);
 
         UpdateConnectionsAround(position);
@@ -331,6 +341,7 @@ public class TaxiwayNetwork : MonoBehaviour
 
     public void Clear()
     {
+        topologyVersion++;
         taxiwayCells.Clear();
         centerlineCells.Clear();
 
