@@ -62,7 +62,9 @@ public class AirportGroundVehicleMovement : MonoBehaviour
     private Transform lastRequestedFacingTransform;
 
     private GameObject currentDestinationGate;
+    private GameObject currentSourceGate;
     private GameObject lastRequestedDestinationGate;
+    private GameObject lastRequestedSourceGate;
 
     private Transform homeSpawnPoint;
 
@@ -166,7 +168,8 @@ public class AirportGroundVehicleMovement : MonoBehaviour
         return MoveToInternal(
             worldDestination,
             facingTransform,
-            null);
+            null,
+            currentDestinationGate);
     }
 
     /// <summary>
@@ -180,7 +183,8 @@ public class AirportGroundVehicleMovement : MonoBehaviour
         return MoveToInternal(
             worldDestination,
             null,
-            destinationGate);
+            destinationGate,
+            currentDestinationGate);
     }
 
     /// <summary>
@@ -195,20 +199,24 @@ public class AirportGroundVehicleMovement : MonoBehaviour
         return MoveToInternal(
             worldDestination,
             facingTransform,
-            destinationGate);
+            destinationGate,
+            currentDestinationGate);
     }
 
     private bool MoveToInternal(
         Vector3 worldDestination,
         Transform facingTransform,
-        GameObject destinationGate)
+        GameObject destinationGate,
+        GameObject sourceGate)
     {
         destinationFacingTransform = facingTransform;
 
         currentDestinationGate = destinationGate;
+        currentSourceGate = null;
 
         lastRequestedFacingTransform = facingTransform;
         lastRequestedDestinationGate = destinationGate;
+        lastRequestedSourceGate = sourceGate;
         lastRequestedDestination = worldDestination;
         hasLastRequestedDestination = true;
 
@@ -237,6 +245,11 @@ public class AirportGroundVehicleMovement : MonoBehaviour
                 $"Start or target is outside the grid. " +
                 $"Start: {startCell}, Target: {targetCell}");
             return false;
+        }
+
+        if (IsCellOwnedBy(startCell, sourceGate))
+        {
+            currentSourceGate = sourceGate;
         }
 
         List<Vector2Int> cells =
@@ -339,7 +352,8 @@ public class AirportGroundVehicleMovement : MonoBehaviour
         bool routeStarted = MoveToInternal(
             lastRequestedDestination,
             lastRequestedFacingTransform,
-            lastRequestedDestinationGate);
+            lastRequestedDestinationGate,
+            lastRequestedSourceGate);
 
         Debug.Log(
             $"{name}: Manual route recalculation " +
@@ -376,18 +390,18 @@ public class AirportGroundVehicleMovement : MonoBehaviour
 
     private bool IsCurrentDestinationGateCell(Vector2Int cell)
     {
-        if (currentDestinationGate == null)
+        return IsCellOwnedBy(cell, currentDestinationGate) ||
+               IsCellOwnedBy(cell, currentSourceGate);
+    }
+
+    private bool IsCellOwnedBy(Vector2Int cell, GameObject owner)
+    {
+        if (owner == null)
             return false;
 
-        return gridOccupancy.IsOccupiedBy(
-                   cell,
-                   currentDestinationGate) ||
-               gridSurface.IsObstacleOwnedBy(
-                   cell,
-                   currentDestinationGate) ||
-               gridSurface.IsSurfaceOwner(
-                   cell,
-                   currentDestinationGate);
+        return gridOccupancy.IsOccupiedBy(cell, owner) ||
+               gridSurface.IsObstacleOwnedBy(cell, owner) ||
+               gridSurface.IsSurfaceOwner(cell, owner);
     }
 
     // ---------------------------------------------------------------------
