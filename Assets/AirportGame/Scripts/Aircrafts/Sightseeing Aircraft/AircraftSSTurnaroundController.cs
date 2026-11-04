@@ -140,11 +140,7 @@ public class AircraftSSTurnaroundController : MonoBehaviour
 
         if (logProgress)
         {
-            Debug.Log(
-                $"SIGHTSEEING BOARDING STARTED | Aircraft: {name} | " +
-                $"Duration: {boardingTimeRemaining:F1} seconds",
-                this);
-        }
+                    }
     }
 
     private void CompleteBoarding()
@@ -188,12 +184,7 @@ public class AircraftSSTurnaroundController : MonoBehaviour
                 ? sightseeingEconomy.TicketPrice
                 : 0;
 
-            Debug.Log(
-                $"SIGHTSEEING BOARDING COMPLETE | Flight: {flightNumber} | " +
-                $"Passengers: {passengersOnBoard}/{passengerCapacity} | " +
-                $"Ticket price: ${price}",
-                this);
-        }
+                    }
     }
 
     private void LogWaiting(string message)
