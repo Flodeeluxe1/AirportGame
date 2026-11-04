@@ -77,6 +77,7 @@ public class ScheduledCargoDeliverySpawner : MonoBehaviour
 
     private float scheduleRefreshTimer;
     private string lastScheduleSignature = string.Empty;
+    private string lastZoneBlockedOperationId = string.Empty;
 
     private void Start()
     {
@@ -446,6 +447,27 @@ public class ScheduledCargoDeliverySpawner : MonoBehaviour
 
         if (spawnedOperationIds.Contains(queuedDelivery.OperationId))
             return true;
+
+        if (!CargoDeliveryTruck.HasAvailableCargoZoneForFlight(
+                queuedDelivery.OperationId))
+        {
+            if (lastZoneBlockedOperationId != queuedDelivery.OperationId)
+            {
+                Debug.Log(
+                    "Cargo delivery remains queued because no cargo zone " +
+                    "is free for this flight. " +
+                    $"Flight: {queuedDelivery.Scheduled.FlightNumber} | " +
+                    $"Operation: {queuedDelivery.OperationId}",
+                    this
+                );
+
+                lastZoneBlockedOperationId = queuedDelivery.OperationId;
+            }
+
+            return false;
+        }
+
+        lastZoneBlockedOperationId = string.Empty;
 
         if (roadNetwork == null)
             roadNetwork = FindFirstObjectByType<RoadNetwork>();
