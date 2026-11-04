@@ -133,7 +133,8 @@ public class IncomingCargoCollectionSpawner : MonoBehaviour
                 continue;
             }
 
-            if (CargoDeliveryTruck.HasActiveIncomingCollection(zone) ||
+            if (zone.HasFlightReservation ||
+                CargoDeliveryTruck.HasActiveIncomingCollection(zone) ||
                 !zone.HasAvailablePackages(CargoDirection.Incoming))
             {
                 pendingZones.Remove(zone);
