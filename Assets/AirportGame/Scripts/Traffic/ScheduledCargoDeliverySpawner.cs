@@ -475,15 +475,17 @@ public class ScheduledCargoDeliverySpawner : MonoBehaviour
             return true;
 
         if (!CargoDeliveryTruck.HasAvailableCargoZoneForFlight(
-                queuedDelivery.OperationId))
+                queuedDelivery.OperationId,
+                out string zoneDiagnostic))
         {
             if (lastZoneBlockedOperationId != queuedDelivery.OperationId)
             {
-                Debug.Log(
+                Debug.LogWarning(
                     "Cargo delivery remains queued because no cargo zone " +
-                    "is free for this flight. " +
+                    "is eligible for this flight. " +
                     $"Flight: {queuedDelivery.Scheduled.FlightNumber} | " +
-                    $"Operation: {queuedDelivery.OperationId}",
+                    $"Operation: {queuedDelivery.OperationId} | " +
+                    zoneDiagnostic,
                     this
                 );
 
