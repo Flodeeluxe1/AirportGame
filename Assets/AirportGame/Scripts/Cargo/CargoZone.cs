@@ -61,7 +61,18 @@ public class CargoZone : MonoBehaviour
     [SerializeField] private bool hasFlightReservation;
     [SerializeField] private string reservedForFlightOperationId;
 
-    public PlacedBuilding Building { get; private set; }
+    private PlacedBuilding building;
+
+    public PlacedBuilding Building
+    {
+        get
+        {
+            if (building == null)
+                building = GetComponent<PlacedBuilding>();
+
+            return building;
+        }
+    }
 
     public Transform VanStopPoint => vanStopPoint;
 
@@ -90,7 +101,6 @@ public class CargoZone : MonoBehaviour
 
     private void Awake()
     {
-        Building = GetComponent<PlacedBuilding>();
         FindZonePoints();
         ValidateZone();
     }
