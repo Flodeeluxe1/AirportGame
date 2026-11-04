@@ -8,8 +8,16 @@ public class CargoZone : MonoBehaviour
     private static readonly HashSet<CargoZone> registeredZones =
         new HashSet<CargoZone>();
 
-    public static IReadOnlyCollection<CargoZone> RegisteredZones =>
-        registeredZones;
+    private static bool registryInitialized;
+
+    public static IReadOnlyCollection<CargoZone> RegisteredZones
+    {
+        get
+        {
+            EnsureRegistryInitialized();
+            return registeredZones;
+        }
+    }
 
     public static event Action<CargoZone> AvailabilityChanged;
 
@@ -17,7 +25,25 @@ public class CargoZone : MonoBehaviour
     private static void ResetStaticState()
     {
         registeredZones.Clear();
+        registryInitialized = false;
         AvailabilityChanged = null;
+    }
+
+    private static void EnsureRegistryInitialized()
+    {
+        if (registryInitialized)
+            return;
+
+        registryInitialized = true;
+
+        CargoZone[] existingZones =
+            FindObjectsByType<CargoZone>(FindObjectsSortMode.None);
+
+        foreach (CargoZone zone in existingZones)
+        {
+            if (zone != null)
+                registeredZones.Add(zone);
+        }
     }
 
     [Header("Zone Points")]
@@ -50,6 +76,8 @@ public class CargoZone : MonoBehaviour
 
     private void OnEnable()
     {
+        registryInitialized = true;
+
         if (registeredZones.Add(this))
             NotifyAvailabilityChanged();
     }
