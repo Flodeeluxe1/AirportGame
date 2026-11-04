@@ -165,30 +165,70 @@ public class CargoDeliveryTruck : MonoBehaviour
         return zone != null && ActiveIncomingCollectionZones.Contains(zone);
     }
 
-    public static bool HasAvailableCargoZoneForFlight(string operationId)
+    public static bool HasAvailableCargoZoneForFlight(
+        string operationId,
+        out string diagnostic)
     {
+        int registeredCount = 0;
+        List<string> zoneResults = new List<string>();
+
         foreach (CargoZone zone in CargoZone.RegisteredZones)
         {
-            if (zone == null ||
-                zone.VanStopPoint == null ||
-                zone.CargoAreaPoint == null)
+            if (zone == null)
             {
+                zoneResults.Add("<null zone reference>");
                 continue;
             }
+
+            registeredCount++;
+
+            List<string> reasons = new List<string>();
+
+            if (zone.VanStopPoint == null)
+                reasons.Add("VanStopPoint missing");
+
+            if (zone.CargoAreaPoint == null)
+                reasons.Add("CargoAreaPoint missing");
 
             PlacedBuilding building = zone.Building;
 
-            if (building == null ||
-                ReservedCargoZones.Contains(building) ||
-                !zone.IsAvailableForFlight(operationId))
+            if (building == null)
+                reasons.Add("PlacedBuilding reference is null");
+            else if (ReservedCargoZones.Contains(building))
+                reasons.Add("building reserved by another truck");
+
+            if (zone.HasFlightReservation)
+                reasons.Add("flight reservation active");
+
+            if (!zone.IsAvailableForFlight(operationId) &&
+                !zone.HasFlightReservation)
             {
-                continue;
+                reasons.Add("contains staged cargo for another flight");
             }
 
-            return true;
+            if (reasons.Count == 0)
+            {
+                diagnostic =
+                    $"Available zone found: {zone.name}. " +
+                    $"Registered zones: {registeredCount}.";
+                return true;
+            }
+
+            zoneResults.Add($"{zone.name}: {string.Join(", ", reasons)}");
         }
 
+        diagnostic =
+            $"No eligible cargo zone. Registered zones: {registeredCount}. " +
+            (zoneResults.Count > 0
+                ? string.Join(" | ", zoneResults)
+                : "Registry is empty.");
+
         return false;
+    }
+
+    public static bool HasAvailableCargoZoneForFlight(string operationId)
+    {
+        return HasAvailableCargoZoneForFlight(operationId, out _);
     }
 
     // Intersection reservation currently held by this truck.
