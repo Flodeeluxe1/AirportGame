@@ -102,6 +102,7 @@ public class AircraftCargoPaxLandingTaxiController : MonoBehaviour
     private bool routeAttempted;
     private bool isTaxiing;
     private bool hasArrivedAtGate;
+    private bool hasPublishedParkedStatus;
 
     private int currentWaypointIndex;
     private float taxiWorldY;
@@ -202,8 +203,14 @@ public class AircraftCargoPaxLandingTaxiController : MonoBehaviour
         {
             aircraftStatus.SetTaxiing(isTaxiing);
 
-            if (hasArrivedAtGate)
+            // Publish the parked state only once. SetParked(true) resets
+            // CurrentSpeedKnots, so repeating it would overwrite departure
+            // taxi speed every frame after the turnaround.
+            if (hasArrivedAtGate && !hasPublishedParkedStatus)
+            {
                 aircraftStatus.SetParked(true);
+                hasPublishedParkedStatus = true;
+            }
         }
 
         if (!routeAttempted &&
