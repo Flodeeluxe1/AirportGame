@@ -431,12 +431,33 @@ public class AirportCargoVehicleController : MonoBehaviour
             return false;
         }
 
+        Transform stopPoint = zone.AirportVehicleStopPoint;
+        PlacedBuilding placedBuilding = zone.GetComponent<PlacedBuilding>();
+        GridManager grid = FindFirstObjectByType<GridManager>();
+
+        string targetCell = grid != null
+            ? grid.WorldToGrid(stopPoint.position).ToString()
+            : "GridManager not found";
+
+        Debug.Log(
+            $"{name}: CARGO ZONE ROUTE DIAGNOSTICS\n" +
+            $"Zone: {zone.name} (ID: {zone.gameObject.GetEntityId()})\n" +
+            $"Zone parent: {(zone.transform.parent != null ? zone.transform.parent.name : "None")}\n" +
+            $"PlacedBuilding on zone: {placedBuilding != null}\n" +
+            $"Zone.Building matches component: {zone.Building == placedBuilding}\n" +
+            $"Stop point: {stopPoint.name}\n" +
+            $"Stop point parent: {stopPoint.parent?.name ?? "None"}\n" +
+            $"Stop point world position: {stopPoint.position}\n" +
+            $"Stop point grid cell: {targetCell}\n" +
+            $"Tug position: {transform.position}",
+            this);
+
         Debug.Log(
             $"{name}: Navigating to cargo zone '{zone.name}'.",
             this);
 
         return MoveTo(
-            zone.AirportVehicleStopPoint.position,
+            stopPoint.position,
             zone.gameObject);
     }
 

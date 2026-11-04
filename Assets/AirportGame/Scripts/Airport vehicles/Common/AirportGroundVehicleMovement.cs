@@ -395,123 +395,220 @@ public class AirportGroundVehicleMovement : MonoBehaviour
     // ---------------------------------------------------------------------
 
     private List<Vector2Int> FindShortestGridPath(
-        Vector2Int start,
-        Vector2Int target)
+    Vector2Int start,
+    Vector2Int target)
+{
+    List<Vector2Int> empty = new List<Vector2Int>();
+
+    if (start == target)
+        return new List<Vector2Int> { start };
+
+    bool targetObstacle = gridSurface.IsObstacle(target);
+    bool targetHomeCell = IsHomeAreaCell(target);
+    bool targetDestinationCell = IsCurrentDestinationGateCell(target);
+
+    bool targetOccupied = gridOccupancy.IsOccupied(target);
+    bool targetOccupiedByDestination =
+        currentDestinationGate != null &&
+        gridOccupancy.IsOccupiedBy(target, currentDestinationGate);
+
+    bool targetObstacleOwnedByDestination =
+        currentDestinationGate != null &&
+        gridSurface.IsObstacleOwnedBy(target, currentDestinationGate);
+
+    bool targetSurfaceOwnedByDestination =
+        currentDestinationGate != null &&
+        gridSurface.IsSurfaceOwner(target, currentDestinationGate);
+
+    Debug.Log(
+        $"{name}: PATHFINDING TARGET DIAGNOSTICS\n" +
+        $"Start: {start}, Target: {target}\n" +
+        $"Destination object: {(currentDestinationGate != null ? currentDestinationGate.name : "None")}\n" +
+        $"Destination object ID: {(currentDestinationGate != null ? currentDestinationGate.GetEntityId().ToString() : "None")}\n" +
+        $"Target surface: {gridSurface.GetSurface(target)}\n" +
+        $"Target occupied: {targetOccupied}\n" +
+        $"Target occupied by destination: {targetOccupiedByDestination}\n" +
+        $"Target obstacle: {targetObstacle}\n" +
+        $"Target obstacle owned by destination: {targetObstacleOwnedByDestination}\n" +
+        $"Target surface owned by destination: {targetSurfaceOwnedByDestination}\n" +
+        $"Target is home cell: {targetHomeCell}\n" +
+        $"Target is permitted destination cell: {targetDestinationCell}",
+        this);
+
+    if (targetObstacle &&
+        !targetHomeCell &&
+        !targetDestinationCell)
     {
-        List<Vector2Int> empty = new List<Vector2Int>();
-
-        if (start == target)
-            return new List<Vector2Int> { start };
-
-        if (gridSurface.IsObstacle(target) &&
-            !IsHomeAreaCell(target) &&
-            !IsCurrentDestinationGateCell(target))
-        {
-            return empty;
-        }
-
-        List<Vector2Int> openSet = new List<Vector2Int> { start };
-        HashSet<Vector2Int> closedSet = new HashSet<Vector2Int>();
-
-        Dictionary<Vector2Int, Vector2Int> cameFrom =
-            new Dictionary<Vector2Int, Vector2Int>();
-
-        Dictionary<Vector2Int, int> gScore =
-            new Dictionary<Vector2Int, int>();
-
-        gScore[start] = 0;
-
-        while (openSet.Count > 0)
-        {
-            int bestIndex = 0;
-
-            for (int i = 1; i < openSet.Count; i++)
-            {
-                int currentScore =
-                    gScore[openSet[i]] +
-                    ManhattanDistance(openSet[i], target) *
-                    tarmacMovementCost;
-
-                int bestScore =
-                    gScore[openSet[bestIndex]] +
-                    ManhattanDistance(openSet[bestIndex], target) *
-                    tarmacMovementCost;
-
-                if (currentScore < bestScore)
-                    bestIndex = i;
-            }
-
-            Vector2Int current = openSet[bestIndex];
-            openSet.RemoveAt(bestIndex);
-
-            if (current == target)
-                return ReconstructPath(cameFrom, start, target);
-
-            if (!closedSet.Add(current))
-                continue;
-
-            Vector2Int[] neighbors =
-            {
-                current + Vector2Int.up,
-                current + Vector2Int.right,
-                current + Vector2Int.down,
-                current + Vector2Int.left
-            };
-
-            foreach (Vector2Int neighbor in neighbors)
-            {
-                if (!gridManager.IsInsideGrid(neighbor) ||
-                    closedSet.Contains(neighbor))
-                {
-                    continue;
-                }
-
-                bool isHomeCell = IsHomeAreaCell(neighbor);
-                bool isDestinationGateCell =
-                    IsCurrentDestinationGateCell(neighbor);
-
-                if (neighbor != start &&
-                    neighbor != target &&
-                    !isHomeCell &&
-                    !isDestinationGateCell)
-                {
-                    if (gridSurface.GetSurface(neighbor) ==
-                        BuildSurface.Foundation)
-                    {
-                        continue;
-                    }
-
-                    if (IsWithinFoundationClearance(neighbor))
-                        continue;
-
-                    if (gridOccupancy.IsOccupied(neighbor))
-                        continue;
-
-                    if (gridSurface.IsObstacle(neighbor))
-                        continue;
-                }
-
-                int stepCost = GetMovementCost(neighbor);
-                int tentativeScore = gScore[current] + stepCost;
-
-                if (gScore.TryGetValue(
-                        neighbor,
-                        out int existingScore) &&
-                    tentativeScore >= existingScore)
-                {
-                    continue;
-                }
-
-                cameFrom[neighbor] = current;
-                gScore[neighbor] = tentativeScore;
-
-                if (!openSet.Contains(neighbor))
-                    openSet.Add(neighbor);
-            }
-        }
+        Debug.LogWarning(
+            $"{name}: TARGET REJECTED because it is an obstacle " +
+            "and is not owned by the permitted destination object.",
+            this);
 
         return empty;
     }
+
+    List<Vector2Int> openSet = new List<Vector2Int> { start };
+    HashSet<Vector2Int> closedSet = new HashSet<Vector2Int>();
+
+    Dictionary<Vector2Int, Vector2Int> cameFrom =
+        new Dictionary<Vector2Int, Vector2Int>();
+
+    Dictionary<Vector2Int, int> gScore =
+        new Dictionary<Vector2Int, int>();
+
+    gScore[start] = 0;
+
+    int rejectedOutOfBounds = 0;
+    int rejectedFoundation = 0;
+    int rejectedClearance = 0;
+    int rejectedOccupied = 0;
+    int rejectedObstacle = 0;
+
+    while (openSet.Count > 0)
+    {
+        int bestIndex = 0;
+
+        for (int i = 1; i < openSet.Count; i++)
+        {
+            int currentScore =
+                gScore[openSet[i]] +
+                ManhattanDistance(openSet[i], target) *
+                tarmacMovementCost;
+
+            int bestScore =
+                gScore[openSet[bestIndex]] +
+                ManhattanDistance(openSet[bestIndex], target) *
+                tarmacMovementCost;
+
+            if (currentScore < bestScore)
+                bestIndex = i;
+        }
+
+        Vector2Int current = openSet[bestIndex];
+        openSet.RemoveAt(bestIndex);
+
+        if (current == target)
+            return ReconstructPath(cameFrom, start, target);
+
+        if (!closedSet.Add(current))
+            continue;
+
+        Vector2Int[] neighbors =
+        {
+            current + Vector2Int.up,
+            current + Vector2Int.right,
+            current + Vector2Int.down,
+            current + Vector2Int.left
+        };
+
+        foreach (Vector2Int neighbor in neighbors)
+        {
+            if (!gridManager.IsInsideGrid(neighbor))
+            {
+                rejectedOutOfBounds++;
+                continue;
+            }
+
+            if (closedSet.Contains(neighbor))
+                continue;
+
+            bool isHomeCell = IsHomeAreaCell(neighbor);
+            bool isDestinationGateCell =
+                IsCurrentDestinationGateCell(neighbor);
+
+            if (neighbor != start &&
+                neighbor != target &&
+                !isHomeCell &&
+                !isDestinationGateCell)
+            {
+                if (gridSurface.GetSurface(neighbor) ==
+                    BuildSurface.Foundation)
+                {
+                    rejectedFoundation++;
+                    continue;
+                }
+
+                if (IsWithinFoundationClearance(neighbor))
+                {
+                    rejectedClearance++;
+                    continue;
+                }
+
+                if (gridOccupancy.IsOccupied(neighbor))
+                {
+                    rejectedOccupied++;
+                    continue;
+                }
+
+                if (gridSurface.IsObstacle(neighbor))
+                {
+                    rejectedObstacle++;
+                    continue;
+                }
+            }
+
+            int stepCost = GetMovementCost(neighbor);
+            int tentativeScore = gScore[current] + stepCost;
+
+            if (gScore.TryGetValue(
+                    neighbor,
+                    out int existingScore) &&
+                tentativeScore >= existingScore)
+            {
+                continue;
+            }
+
+            cameFrom[neighbor] = current;
+            gScore[neighbor] = tentativeScore;
+
+            if (!openSet.Contains(neighbor))
+                openSet.Add(neighbor);
+        }
+    }
+
+    Debug.LogWarning(
+        $"{name}: PATHFINDING FAILED\n" +
+        $"Start: {start}, Target: {target}\n" +
+        $"Expanded cells: {closedSet.Count}\n" +
+        $"Rejected out of bounds: {rejectedOutOfBounds}\n" +
+        $"Rejected foundation: {rejectedFoundation}\n" +
+        $"Rejected foundation clearance: {rejectedClearance}\n" +
+        $"Rejected occupied: {rejectedOccupied}\n" +
+        $"Rejected obstacles: {rejectedObstacle}\n" +
+        $"Remaining open cells: {openSet.Count}",
+        this);
+
+    Vector2Int[] targetNeighbors =
+    {
+        target + Vector2Int.up,
+        target + Vector2Int.right,
+        target + Vector2Int.down,
+        target + Vector2Int.left
+    };
+
+    foreach (Vector2Int neighbor in targetNeighbors)
+    {
+        if (!gridManager.IsInsideGrid(neighbor))
+        {
+            Debug.Log(
+                $"{name}: Target neighbor {neighbor}: OUTSIDE GRID.",
+                this);
+            continue;
+        }
+
+        Debug.Log(
+            $"{name}: Target neighbor {neighbor}: " +
+            $"Surface={gridSurface.GetSurface(neighbor)}, " +
+            $"Occupied={gridOccupancy.IsOccupied(neighbor)}, " +
+            $"FoundationClearance={IsWithinFoundationClearance(neighbor)}, " +
+            $"Obstacle={gridSurface.IsObstacle(neighbor)}, " +
+            $"Home={IsHomeAreaCell(neighbor)}, " +
+            $"Destination={IsCurrentDestinationGateCell(neighbor)}",
+            this);
+    }
+
+    return empty;
+}
 
     private bool IsWithinFoundationClearance(Vector2Int cell)
     {
