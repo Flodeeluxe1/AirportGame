@@ -1,9 +1,25 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
 [DisallowMultipleComponent]
 public class CargoZone : MonoBehaviour
 {
+    private static readonly HashSet<CargoZone> registeredZones =
+        new HashSet<CargoZone>();
+
+    public static IReadOnlyCollection<CargoZone> RegisteredZones =>
+        registeredZones;
+
+    public static event Action<CargoZone> AvailabilityChanged;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetStaticState()
+    {
+        registeredZones.Clear();
+        AvailabilityChanged = null;
+    }
+
     [Header("Zone Points")]
     [SerializeField] private Transform vanStopPoint;
     [SerializeField] private Transform cargoAreaPoint;
@@ -29,6 +45,18 @@ public class CargoZone : MonoBehaviour
         airportVehicleStopPoint;
 
     public int StagedPackageCount => stagedPackageCount;
+
+    private void OnEnable()
+    {
+        if (registeredZones.Add(this))
+            NotifyAvailabilityChanged();
+    }
+
+    private void OnDisable()
+    {
+        if (registeredZones.Remove(this))
+            NotifyAvailabilityChanged();
+    }
 
     private void Awake()
     {
@@ -69,6 +97,42 @@ public class CargoZone : MonoBehaviour
         }
 
         return null;
+    }
+
+    private void NotifyAvailabilityChanged()
+    {
+        AvailabilityChanged?.Invoke(this);
+    }
+
+    public static List<CargoZone> GetZonesSortedByDistance(Vector3 worldPosition)
+    {
+        List<CargoZone> zones = new List<CargoZone>(registeredZones);
+
+        zones.Sort((a, b) =>
+        {
+            if (a == null) return 1;
+            if (b == null) return -1;
+
+            Vector3 positionA = a.AirportVehicleStopPoint != null
+                ? a.AirportVehicleStopPoint.position
+                : a.transform.position;
+
+            Vector3 positionB = b.AirportVehicleStopPoint != null
+                ? b.AirportVehicleStopPoint.position
+                : b.transform.position;
+
+            return HorizontalDistanceSquared(worldPosition, positionA)
+                .CompareTo(HorizontalDistanceSquared(worldPosition, positionB));
+        });
+
+        return zones;
+    }
+
+    private static float HorizontalDistanceSquared(Vector3 a, Vector3 b)
+    {
+        float dx = a.x - b.x;
+        float dz = a.z - b.z;
+        return dx * dx + dz * dz;
     }
 
     private void ValidateZone()
@@ -129,6 +193,7 @@ public class CargoZone : MonoBehaviour
 
         hasFlightReservation = true;
         reservedForFlightOperationId = requestedOperationId;
+        NotifyAvailabilityChanged();
         return true;
     }
 
@@ -144,6 +209,7 @@ public class CargoZone : MonoBehaviour
 
         hasFlightReservation = false;
         reservedForFlightOperationId = string.Empty;
+        NotifyAvailabilityChanged();
     }
 
     public bool RegisterPackage(CargoPackage package)
@@ -166,6 +232,7 @@ public class CargoZone : MonoBehaviour
             return true;
 
         RefreshPackageCount();
+        NotifyAvailabilityChanged();
         return true;
     }
 
@@ -174,8 +241,73 @@ public class CargoZone : MonoBehaviour
         if (package == null)
             return;
 
-        packages.Remove(package);
+        if (!packages.Remove(package))
+            return;
+
         RefreshPackageCount();
+        NotifyAvailabilityChanged();
+    }
+
+    public int CountAvailablePackages(
+        CargoDirection direction,
+        string flightOperationId = null)
+    {
+        int count = 0;
+
+        foreach (CargoPackage package in packages)
+        {
+            if (package == null ||
+                !package.IsAvailableForCollection ||
+                package.Direction != direction)
+            {
+                continue;
+            }
+
+            if (direction == CargoDirection.Outgoing &&
+                !package.IsForFlight(flightOperationId))
+            {
+                continue;
+            }
+
+            count++;
+        }
+
+        return count;
+    }
+
+    public bool HasAvailablePackages(
+        CargoDirection direction,
+        string flightOperationId = null)
+    {
+        return CountAvailablePackages(direction, flightOperationId) > 0;
+    }
+
+    public bool TryGetFirstAvailablePackage(
+        CargoDirection direction,
+        out CargoPackage firstPackage,
+        string flightOperationId = null)
+    {
+        foreach (CargoPackage package in packages)
+        {
+            if (package == null ||
+                !package.IsAvailableForCollection ||
+                package.Direction != direction)
+            {
+                continue;
+            }
+
+            if (direction == CargoDirection.Outgoing &&
+                !package.IsForFlight(flightOperationId))
+            {
+                continue;
+            }
+
+            firstPackage = package;
+            return true;
+        }
+
+        firstPackage = null;
+        return false;
     }
 
     public List<CargoPackage> GetAvailablePackages(
