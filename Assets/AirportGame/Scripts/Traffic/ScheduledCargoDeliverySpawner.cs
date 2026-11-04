@@ -214,6 +214,88 @@ public class ScheduledCargoDeliverySpawner : MonoBehaviour
         }
 
         ProcessDeliveryQueue();
+        ProcessIncomingCargoCollections();
+    }
+
+    private void ProcessIncomingCargoCollections()
+    {
+        if (cargoTruckPrefab == null ||
+            spawnPoint == null ||
+            exitPoint == null ||
+            gridManager == null ||
+            roadNetwork == null)
+        {
+            return;
+        }
+
+        CargoZone[] zones =
+            FindObjectsByType<CargoZone>(FindObjectsSortMode.None);
+
+        foreach (CargoZone zone in zones)
+        {
+            if (zone == null ||
+                CargoDeliveryTruck.HasActiveIncomingCollection(zone))
+            {
+                continue;
+            }
+
+            List<CargoPackage> incomingPackages =
+                zone.GetAvailablePackages(CargoDirection.Incoming);
+
+            if (incomingPackages.Count == 0)
+                continue;
+
+            Vector2Int startCell = GetRoadModuleAnchor(
+                gridManager.WorldToGrid(spawnPoint.position));
+
+            Vector2Int exitCell = GetRoadModuleAnchor(
+                gridManager.WorldToGrid(exitPoint.position));
+
+            if (!IsRoadModule(startCell) || !IsRoadModule(exitCell))
+                continue;
+
+            Vector3 spawnPosition = GetRoadModuleCenter(startCell);
+            spawnPosition.y += spawnHeightOffset;
+
+            GameObject truckObject = Instantiate(
+                cargoTruckPrefab,
+                spawnPosition,
+                spawnPoint.rotation
+            );
+
+            CargoDeliveryTruck truck =
+                truckObject.GetComponent<CargoDeliveryTruck>();
+
+            if (truck == null)
+            {
+                Debug.LogError(
+                    "ScheduledCargoDeliverySpawner: Cargo Truck Prefab " +
+                    "does not have CargoDeliveryTruck attached. " +
+                    "Destroying incoming-cargo collection van.",
+                    truckObject
+                );
+
+                Destroy(truckObject);
+                continue;
+            }
+
+            if (!truck.InitializeIncomingCollectionRoute(
+                    startCell,
+                    exitCell,
+                    zone))
+            {
+                Destroy(truckObject);
+                continue;
+            }
+
+            Debug.Log(
+                "INCOMING CARGO COLLECTION VAN SPAWNED | " +
+                $"Cargo zone: {zone.name} | " +
+                $"Packages waiting: {incomingPackages.Count} | " +
+                $"Start module: {startCell} | Exit module: {exitCell}",
+                truckObject
+            );
+        }
     }
 
     private void RefreshSchedule()
