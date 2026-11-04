@@ -21,6 +21,9 @@ public class CargoDeliveryTruck : MonoBehaviour
     private static readonly HashSet<PlacedBuilding> ReservedCargoZones =
         new HashSet<PlacedBuilding>();
 
+    private static readonly HashSet<CargoZone> ActiveIncomingCollectionZones =
+        new HashSet<CargoZone>();
+
     private const int CargoBoxCount = 10;
 
     [Header("References")]
@@ -143,6 +146,11 @@ public class CargoDeliveryTruck : MonoBehaviour
     private TruckState state = TruckState.Idle;
     public TruckState CurrentState => state;
 
+    public static bool HasActiveIncomingCollection(CargoZone zone)
+    {
+        return zone != null && ActiveIncomingCollectionZones.Contains(zone);
+    }
+
     public static bool HasAvailableCargoZoneForFlight(string operationId)
     {
         CargoZone[] zones =
@@ -205,6 +213,12 @@ public class CargoDeliveryTruck : MonoBehaviour
     private string deliveryOperationId = string.Empty;
     private string deliveryFlightNumber = string.Empty;
 
+    private bool incomingCollectionMode;
+    private CargoZone incomingCollectionZone;
+
+    private readonly List<CargoPackage> collectedIncomingPackages =
+        new List<CargoPackage>();
+
     private Renderer[] truckRenderers;
     private Collider[] truckColliders;
     private bool[] originalRendererEnabled;
@@ -245,6 +259,43 @@ public class CargoDeliveryTruck : MonoBehaviour
             $"Route received from spawner: {startCell} -> {exitCell}. " +
             $"Flight: {deliveryFlightNumber}, " +
             $"Operation: {deliveryOperationId}";
+    }
+
+    public bool InitializeIncomingCollectionRoute(
+        Vector2Int newStartCell,
+        Vector2Int newExitCell,
+        CargoZone zone)
+    {
+        if (zone == null ||
+            ActiveIncomingCollectionZones.Contains(zone))
+        {
+            return false;
+        }
+
+        List<CargoPackage> incomingPackages =
+            zone.GetAvailablePackages(CargoDirection.Incoming);
+
+        if (incomingPackages.Count == 0)
+            return false;
+
+        roadModuleSize = Mathf.Max(1, roadModuleSize);
+
+        startCell = GetRoadModuleAnchor(newStartCell);
+        exitCell = GetRoadModuleAnchor(newExitCell);
+
+        incomingCollectionMode = true;
+        incomingCollectionZone = zone;
+        deliveryOperationId = incomingPackages[0].FlightOperationId;
+        deliveryFlightNumber = "Incoming cargo";
+
+        routeInitializedBySpawner = true;
+        ActiveIncomingCollectionZones.Add(zone);
+
+        debugMessage =
+            $"Incoming cargo collection route: {startCell} -> {exitCell}. " +
+            $"Zone: {zone.name}";
+
+        return true;
     }
 
     private void Awake()
@@ -386,7 +437,8 @@ public class CargoDeliveryTruck : MonoBehaviour
         if (snapToStartCell)
             transform.position = GetRoadWorldPosition(startCell);
 
-        if (!TryReserveCargoZone())
+        if (!TryReserveCargoZone(
+                incomingCollectionMode ? incomingCollectionZone : null))
         {
             EnterCargoZoneWaitingState();
             return;
@@ -423,8 +475,11 @@ public class CargoDeliveryTruck : MonoBehaviour
 
     private void TryStartWaitingTruck()
     {
-        if (!TryReserveCargoZone())
+        if (!TryReserveCargoZone(
+                incomingCollectionMode ? incomingCollectionZone : null))
+        {
             return;
+        }
 
         StartDrivingWithReservedCargoZone();
     }
@@ -477,7 +532,7 @@ public class CargoDeliveryTruck : MonoBehaviour
             this);
     }
 
-    private bool TryReserveCargoZone()
+    private bool TryReserveCargoZone(CargoZone requiredZone = null)
     {
         if (roadNetwork == null || gridManager == null)
             return false;
@@ -508,6 +563,7 @@ public class CargoDeliveryTruck : MonoBehaviour
                 building.GetComponent<CargoZone>();
 
             if (candidateCargoZone == null ||
+                (requiredZone != null && candidateCargoZone != requiredZone) ||
                 !candidateCargoZone.IsAvailableForFlight(deliveryOperationId))
             {
                 continue;
@@ -800,7 +856,12 @@ public class CargoDeliveryTruck : MonoBehaviour
         }
 
         if (!cargoUnloaded)
-            UnloadCargoBoxes();
+        {
+            if (incomingCollectionMode)
+                CollectIncomingCargoPackages();
+            else
+                UnloadCargoBoxes();
+        }
 
         unloadingTimer = unloadingDuration;
 
@@ -888,6 +949,95 @@ public class CargoDeliveryTruck : MonoBehaviour
         return Quaternion.Angle(
             transform.rotation,
             targetRotation) < 2f;
+    }
+
+    // ---------------------------------------------------------
+    // INCOMING CARGO COLLECTION
+    // ---------------------------------------------------------
+
+    private void CollectIncomingCargoPackages()
+    {
+        cargoUnloaded = true;
+        debugBoxesUnloaded = 0;
+
+        if (reservedCargoZoneComponent == null)
+            return;
+
+        List<CargoPackage> packages =
+            reservedCargoZoneComponent.GetAvailablePackages(
+                CargoDirection.Incoming);
+
+        foreach (CargoPackage package in packages)
+        {
+            if (package == null || !package.TryReserve())
+                continue;
+
+            reservedCargoZoneComponent.UnregisterPackage(package);
+            package.SetInTransit();
+
+            Renderer[] renderers =
+                package.GetComponentsInChildren<Renderer>(true);
+
+            foreach (Renderer packageRenderer in renderers)
+                packageRenderer.enabled = false;
+
+            Collider[] colliders =
+                package.GetComponentsInChildren<Collider>(true);
+
+            foreach (Collider packageCollider in colliders)
+                packageCollider.enabled = false;
+
+            collectedIncomingPackages.Add(package);
+            debugBoxesUnloaded++;
+        }
+
+        debugMessage =
+            $"Collected {collectedIncomingPackages.Count} incoming cargo " +
+            $"package(s) from '{reservedCargoZoneComponent.name}'.";
+    }
+
+    private void ResolveCollectedIncomingPackages(bool delivered)
+    {
+        foreach (CargoPackage package in collectedIncomingPackages)
+        {
+            if (package == null)
+                continue;
+
+            if (delivered)
+            {
+                package.SetDelivered();
+                Destroy(package.gameObject);
+                continue;
+            }
+
+            if (reservedCargoZoneComponent == null)
+            {
+                Destroy(package.gameObject);
+                continue;
+            }
+
+            package.ReturnToZone(reservedCargoZoneComponent);
+
+            if (!reservedCargoZoneComponent.RegisterPackage(package))
+            {
+                Destroy(package.gameObject);
+                continue;
+            }
+
+            Renderer[] renderers =
+                package.GetComponentsInChildren<Renderer>(true);
+
+            foreach (Renderer packageRenderer in renderers)
+                packageRenderer.enabled = true;
+
+            Collider[] colliders =
+                package.GetComponentsInChildren<Collider>(true);
+
+            foreach (Collider packageCollider in colliders)
+                packageCollider.enabled = true;
+        }
+
+        collectedIncomingPackages.Clear();
     }
 
     // ---------------------------------------------------------
@@ -1991,6 +2141,9 @@ public class CargoDeliveryTruck : MonoBehaviour
 
         if (state == TruckState.Arrived)
         {
+            if (incomingCollectionMode)
+                ResolveCollectedIncomingPackages(true);
+
             ReleaseCargoZone();
             debugMessage = "Truck reached its exit.";
 
@@ -2005,6 +2158,9 @@ public class CargoDeliveryTruck : MonoBehaviour
     private void FinishRoute(string message)
     {
         debugMessage = message;
+
+        if (incomingCollectionMode)
+            ResolveCollectedIncomingPackages(false);
 
         Debug.LogWarning(
             $"CargoDeliveryTruck: {message} " +
@@ -2026,6 +2182,9 @@ public class CargoDeliveryTruck : MonoBehaviour
 
     private void ReleaseCargoZone()
     {
+        if (incomingCollectionZone != null)
+            ActiveIncomingCollectionZones.Remove(incomingCollectionZone);
+
         if (reservedCargoZoneComponent != null)
         {
             reservedCargoZoneComponent.ReleaseFlightReservation(
@@ -2045,6 +2204,9 @@ public class CargoDeliveryTruck : MonoBehaviour
 
     private void OnDisable()
     {
+        if (incomingCollectionMode && collectedIncomingPackages.Count > 0)
+            ResolveCollectedIncomingPackages(false);
+
         if (intersectionManager != null)
         {
             intersectionManager.CancelRequest(this);
