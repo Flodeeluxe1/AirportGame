@@ -317,11 +317,7 @@ public class AircraftSSLandingController : MonoBehaviour
             $"landing traffic {bestTraffic}; " +
             $"headwind {debugHeadwindComponentKnots:F1} knots.";
 
-        Debug.Log(
-            $"SIGHTSEEING RUNWAY SELECTED | {debugSelectedRunway} | " +
-            $"Heading: {debugLandingHeading} | Traffic: {bestTraffic}",
-            this);
-
+        
         return true;
     }
 
@@ -452,10 +448,7 @@ public class AircraftSSLandingController : MonoBehaviour
         state = LandingState.Rollout;
         debugStatus = "Touchdown. Decelerating on runway.";
 
-        Debug.Log(
-            $"SIGHTSEEING TOUCHDOWN | Runway: {debugSelectedRunway}",
-            this);
-    }
+            }
 
     private void UpdateRollout()
     {
@@ -503,12 +496,7 @@ public class AircraftSSLandingController : MonoBehaviour
         AircraftFlightIdentity identity =
             GetComponent<AircraftFlightIdentity>();
 
-        Debug.Log(
-            $"SIGHTSEEING LANDING COMPLETE | Flight: " +
-            $"{(identity != null ? identity.FlightNumber : "Unknown")} | " +
-            $"Runway: {debugSelectedRunway}",
-            this);
-    }
+            }
 
     private void UpdateGoAround()
     {
