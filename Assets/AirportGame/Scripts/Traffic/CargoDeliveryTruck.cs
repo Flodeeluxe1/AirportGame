@@ -143,6 +143,36 @@ public class CargoDeliveryTruck : MonoBehaviour
     private TruckState state = TruckState.Idle;
     public TruckState CurrentState => state;
 
+    public static bool HasAvailableCargoZoneForFlight(string operationId)
+    {
+        CargoZone[] zones =
+            FindObjectsByType<CargoZone>(FindObjectsSortMode.None);
+
+        foreach (CargoZone zone in zones)
+        {
+            if (zone == null ||
+                zone.VanStopPoint == null ||
+                zone.CargoAreaPoint == null)
+            {
+                continue;
+            }
+
+            PlacedBuilding building =
+                zone.GetComponent<PlacedBuilding>();
+
+            if (building == null ||
+                ReservedCargoZones.Contains(building) ||
+                !zone.IsAvailableForFlight(operationId))
+            {
+                continue;
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
     // Intersection reservation currently held by this truck.
     private bool hasIntersectionReservation;
     private Vector2Int reservedIntersection;
@@ -477,8 +507,11 @@ public class CargoDeliveryTruck : MonoBehaviour
             CargoZone candidateCargoZone =
                 building.GetComponent<CargoZone>();
 
-            if (candidateCargoZone == null)
+            if (candidateCargoZone == null ||
+                !candidateCargoZone.IsAvailableForFlight(deliveryOperationId))
+            {
                 continue;
+            }
 
             Transform candidateVanStop =
                 FindChildByName(building.transform, "VanStopPoint");
@@ -529,6 +562,9 @@ public class CargoDeliveryTruck : MonoBehaviour
         {
             return false;
         }
+
+        if (!bestCargoZone.TryReserveForFlight(deliveryOperationId))
+            return false;
 
         reservedCargoZone = bestBuilding;
         reservedCargoZoneComponent = bestCargoZone;
@@ -1990,6 +2026,12 @@ public class CargoDeliveryTruck : MonoBehaviour
 
     private void ReleaseCargoZone()
     {
+        if (reservedCargoZoneComponent != null)
+        {
+            reservedCargoZoneComponent.ReleaseFlightReservation(
+                deliveryOperationId);
+        }
+
         if (reservedCargoZone != null)
         {
             ReservedCargoZones.Remove(reservedCargoZone);
