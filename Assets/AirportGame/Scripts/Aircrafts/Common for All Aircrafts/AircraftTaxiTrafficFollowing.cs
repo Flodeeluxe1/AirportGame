@@ -31,6 +31,7 @@ public class AircraftTaxiTrafficFollowing : MonoBehaviour
     [SerializeField] private string debugBlockingAircraft = "None";
     [SerializeField] private float debugBlockingDistance;
     [SerializeField] private string debugTrafficDecision = "Not tested";
+    [SerializeField] private string debugATCClearance = "Not requested";
 
     [TextArea(2, 5)]
     [SerializeField] private string debugForwardRay = "Not scanned";
@@ -84,19 +85,51 @@ public class AircraftTaxiTrafficFollowing : MonoBehaviour
              departureController.CurrentState ==
                 AircraftCargoPaxDepartureTaxiController.DepartureState.AligningOnRunway))
         {
-            aircraftStatus.SetCurrentSpeedKnots(cruisingSpeedKnots);
-            debugCurrentSpeed = cruisingSpeedKnots;
+            bool isTaxiingToRunwayEntry =
+                departureController.CurrentState ==
+                AircraftCargoPaxDepartureTaxiController.DepartureState.TaxiingToRunwayEntry;
+
+            float runwayEntrySpeed = cruisingSpeedKnots;
+            bool hasATCClearance = true;
+            string atcDecision = "ATC not required in runway movement state";
+
+            if (isTaxiingToRunwayEntry &&
+                ATCGroundTrafficManager.Instance != null)
+            {
+                hasATCClearance =
+                    ATCGroundTrafficManager.Instance.HasTaxiClearance(
+                        this,
+                        out atcDecision);
+
+                if (!hasATCClearance)
+                {
+                    float brakingRateKnots =
+                        braking / AircraftStatus.WorldUnitsPerSecondPerKnot;
+
+                    runwayEntrySpeed = Mathf.MoveTowards(
+                        currentSpeedKnots,
+                        0f,
+                        brakingRateKnots * Time.deltaTime);
+                }
+            }
+
+            aircraftStatus.SetCurrentSpeedKnots(runwayEntrySpeed);
+            debugCurrentSpeed = runwayEntrySpeed;
+            debugATCClearance = atcDecision;
 
             debugBlockingAircraft = "Raycasts disabled";
             debugBlockingDistance = 0f;
-            debugTrafficDecision = "Runway entry: traffic detection disabled";
+            debugTrafficDecision = hasATCClearance
+                ? "Runway entry: traffic raycasts disabled"
+                : "ATC hold: " + atcDecision;
 
             debugForwardRay = "Disabled: runway entry";
             debugLeftRay = "Disabled: runway entry";
             debugRightRay = "Disabled: runway entry";
-            debugRaycastSummary = "Traffic raycasts disabled during runway entry and alignment.";
+            debugRaycastSummary =
+                "Traffic raycasts disabled during runway entry and alignment.";
 
-            return cruisingSpeedKnots;
+            return runwayEntrySpeed;
         }
 
         float targetSpeedKnots = cruisingSpeedKnots;
@@ -137,6 +170,26 @@ public class AircraftTaxiTrafficFollowing : MonoBehaviour
             {
                 debugTrafficDecision = "Aircraft detected; near cruising speed";
             }
+        }
+
+        if (ATCGroundTrafficManager.Instance != null)
+        {
+            if (!ATCGroundTrafficManager.Instance.HasTaxiClearance(
+                    this,
+                    out string atcDecision))
+            {
+                targetSpeedKnots = 0f;
+                debugATCClearance = atcDecision;
+                debugTrafficDecision = "ATC hold: " + atcDecision;
+            }
+            else
+            {
+                debugATCClearance = atcDecision;
+            }
+        }
+        else
+        {
+            debugATCClearance = "ATC manager unavailable";
         }
 
         // The Inspector acceleration and braking values are still
@@ -355,6 +408,12 @@ public class AircraftTaxiTrafficFollowing : MonoBehaviour
             return true;
 
         return false;
+    }
+
+    private void OnDisable()
+    {
+        if (ATCGroundTrafficManager.Instance != null)
+            ATCGroundTrafficManager.Instance.ReleaseAircraft(this);
     }
 
     private void OnDrawGizmosSelected()
