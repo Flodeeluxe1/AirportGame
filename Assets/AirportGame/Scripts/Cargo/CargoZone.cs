@@ -15,6 +15,10 @@ public class CargoZone : MonoBehaviour
     private readonly HashSet<CargoPackage> packages =
         new HashSet<CargoPackage>();
 
+    [Header("Flight Reservation")]
+    [SerializeField] private bool hasFlightReservation;
+    [SerializeField] private string reservedForFlightOperationId;
+
     public PlacedBuilding Building { get; private set; }
 
     public Transform VanStopPoint => vanStopPoint;
@@ -88,10 +92,75 @@ public class CargoZone : MonoBehaviour
         );
     }
 
+    public bool HasCargoFromOtherFlight(string operationId)
+    {
+        packages.RemoveWhere(package => package == null);
+
+        string requestedOperationId = operationId ?? string.Empty;
+
+        foreach (CargoPackage package in packages)
+        {
+            if (package.FlightOperationId != requestedOperationId)
+                return true;
+        }
+
+        return false;
+    }
+
+    public bool IsAvailableForFlight(string operationId)
+    {
+        string requestedOperationId = operationId ?? string.Empty;
+
+        if (hasFlightReservation &&
+            reservedForFlightOperationId != requestedOperationId)
+        {
+            return false;
+        }
+
+        return !HasCargoFromOtherFlight(requestedOperationId);
+    }
+
+    public bool TryReserveForFlight(string operationId)
+    {
+        string requestedOperationId = operationId ?? string.Empty;
+
+        if (!IsAvailableForFlight(requestedOperationId))
+            return false;
+
+        hasFlightReservation = true;
+        reservedForFlightOperationId = requestedOperationId;
+        return true;
+    }
+
+    public void ReleaseFlightReservation(string operationId)
+    {
+        string requestedOperationId = operationId ?? string.Empty;
+
+        if (!hasFlightReservation ||
+            reservedForFlightOperationId != requestedOperationId)
+        {
+            return;
+        }
+
+        hasFlightReservation = false;
+        reservedForFlightOperationId = string.Empty;
+    }
+
     public bool RegisterPackage(CargoPackage package)
     {
         if (package == null)
             return false;
+
+        if (!IsAvailableForFlight(package.FlightOperationId))
+        {
+            Debug.LogWarning(
+                $"{name}: Rejected package '{package.PackageId}' because " +
+                "the cargo zone is reserved for or occupied by another flight.",
+                this
+            );
+
+            return false;
+        }
 
         if (!packages.Add(package))
             return true;
