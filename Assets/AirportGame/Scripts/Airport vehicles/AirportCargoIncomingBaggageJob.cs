@@ -178,10 +178,10 @@ public class AirportCargoIncomingBaggageJob : MonoBehaviour
 
     private bool TrySelectCargoZone()
     {
-        CargoZone[] zones =
-            FindObjectsByType<CargoZone>(FindObjectsSortMode.None);
+        List<CargoZone> zones =
+            CargoZone.GetZonesSortedByDistance(transform.position);
 
-        if (zones.Length == 0)
+        if (zones.Count == 0)
         {
             Debug.LogWarning(
                 $"{name}: No CargoZone objects exist in the scene.",
@@ -190,35 +190,6 @@ public class AirportCargoIncomingBaggageJob : MonoBehaviour
 
             return false;
         }
-
-        System.Array.Sort(
-            zones,
-            (a, b) =>
-            {
-                if (a == null) return 1;
-                if (b == null) return -1;
-
-                Vector3 positionA =
-                    a.AirportVehicleStopPoint != null
-                        ? a.AirportVehicleStopPoint.position
-                        : a.transform.position;
-
-                Vector3 positionB =
-                    b.AirportVehicleStopPoint != null
-                        ? b.AirportVehicleStopPoint.position
-                        : b.transform.position;
-
-                return HorizontalDistanceSquared(
-                    transform.position,
-                    positionA
-                ).CompareTo(
-                    HorizontalDistanceSquared(
-                        transform.position,
-                        positionB
-                    )
-                );
-            }
-        );
 
         foreach (CargoZone zone in zones)
         {
