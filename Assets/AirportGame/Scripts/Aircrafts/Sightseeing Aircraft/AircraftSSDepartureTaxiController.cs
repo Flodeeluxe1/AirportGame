@@ -466,12 +466,7 @@ public class AircraftSSDepartureTaxiController : MonoBehaviour
         hasLoggedWaitingMessage = false;
         lastRunwayWaitReason = string.Empty;
 
-        Debug.Log(
-            $"SIGHTSEEING DEPARTURE ROUTE SELECTED | Aircraft: {name} | " +
-            $"Runway: {debugSelectedRunway} | Heading: {debugTakeoffHeading} | " +
-            $"Holding cell: {holdingCell} | Route cells: {taxiRoute.Count}",
-            this);
-
+        
         return true;
     }
 
@@ -781,8 +776,7 @@ public class AircraftSSDepartureTaxiController : MonoBehaviour
 
             if (reason != lastRunwayWaitReason)
             {
-                Debug.Log($"{name}: {debugStatus}", this);
-                lastRunwayWaitReason = reason;
+                                lastRunwayWaitReason = reason;
             }
 
             return;
@@ -790,10 +784,7 @@ public class AircraftSSDepartureTaxiController : MonoBehaviour
 
         lastRunwayWaitReason = string.Empty;
 
-        Debug.Log(
-            $"{name}: Runway clearance acquired for {selectedRunway.name}.",
-            this);
-
+        
         StartTaxiingToRunwayEntry();
     }
 
@@ -963,12 +954,7 @@ public class AircraftSSDepartureTaxiController : MonoBehaviour
         currentState = DepartureState.LinedUpReadyForTakeoff;
         debugStatus = $"Lined up on {debugSelectedRunway}; waiting for takeoff.";
 
-        Debug.Log(
-            $"SIGHTSEEING AIRCRAFT LINED UP READY FOR TAKEOFF | " +
-            $"Aircraft: {name} | Runway: {debugSelectedRunway} | " +
-            $"Heading: {debugTakeoffHeading}",
-            this);
-    }
+            }
 
     private void AbortLineUpAndReturnToHold(string reason)
     {
@@ -1196,12 +1182,7 @@ public class AircraftSSDepartureTaxiController : MonoBehaviour
         retryTimer = 0f;
         debugStatus = $"At safe holding point for {debugSelectedRunway}; waiting for clearance.";
 
-        Debug.Log(
-            $"SIGHTSEEING AIRCRAFT AT DEPARTURE HOLDING POINT | " +
-            $"Aircraft: {name} | Runway: {debugSelectedRunway} | " +
-            $"Holding cell: {holdingCell}",
-            this);
-    }
+            }
 
     private float CalculateRouteLength(List<Vector2Int> path)
     {
