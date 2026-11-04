@@ -210,33 +210,8 @@ public class AirportCargoOutgoingBaggageJob : MonoBehaviour
 
     private bool TryDriveToCargoZone()
     {
-        CargoZone[] zones =
-            FindObjectsByType<CargoZone>(FindObjectsSortMode.None);
-
-        System.Array.Sort(
-            zones,
-            (a, b) =>
-            {
-                if (a == null) return 1;
-                if (b == null) return -1;
-
-                float distanceA = HorizontalDistanceSquared(
-                    transform.position,
-                    a.AirportVehicleStopPoint != null
-                        ? a.AirportVehicleStopPoint.position
-                        : a.transform.position
-                );
-
-                float distanceB = HorizontalDistanceSquared(
-                    transform.position,
-                    b.AirportVehicleStopPoint != null
-                        ? b.AirportVehicleStopPoint.position
-                        : b.transform.position
-                );
-
-                return distanceA.CompareTo(distanceB);
-            }
-        );
+        List<CargoZone> zones =
+            CargoZone.GetZonesSortedByDistance(transform.position);
 
         foreach (CargoZone zone in zones)
         {
@@ -421,33 +396,8 @@ private void CollectAndReservePackages()
     private bool TryDriveToZoneWithAvailablePackages(
         CargoZone excludedZone)
     {
-        CargoZone[] zones =
-            FindObjectsByType<CargoZone>(FindObjectsSortMode.None);
-
-        System.Array.Sort(
-            zones,
-            (a, b) =>
-            {
-                if (a == null) return 1;
-                if (b == null) return -1;
-
-                float distanceA = HorizontalDistanceSquared(
-                    transform.position,
-                    a.AirportVehicleStopPoint != null
-                        ? a.AirportVehicleStopPoint.position
-                        : a.transform.position
-                );
-
-                float distanceB = HorizontalDistanceSquared(
-                    transform.position,
-                    b.AirportVehicleStopPoint != null
-                        ? b.AirportVehicleStopPoint.position
-                        : b.transform.position
-                );
-
-                return distanceA.CompareTo(distanceB);
-            }
-        );
+        List<CargoZone> zones =
+            CargoZone.GetZonesSortedByDistance(transform.position);
 
         foreach (CargoZone zone in zones)
         {
@@ -462,13 +412,13 @@ private void CollectAndReservePackages()
 
             // Only visit zones that currently have available outgoing
             // packages for this specific aircraft operation.
-            List<CargoPackage> availablePackages =
-                zone.GetAvailablePackages(
+            int availablePackageCount =
+                zone.CountAvailablePackages(
                     CargoDirection.Outgoing,
                     currentOperationId
                 );
 
-            if (availablePackages.Count == 0)
+            if (availablePackageCount == 0)
                 continue;
 
             if (!vehicle.MoveToCargoZone(zone))
@@ -477,7 +427,7 @@ private void CollectAndReservePackages()
             cargoZone = zone;
 
             Debug.Log(
-                $"{name}: Found {availablePackages.Count} available " +
+                $"{name}: Found {availablePackageCount} available " +
                 $"outgoing package(s) for {currentOperationId} at " +
                 $"cargo zone '{zone.name}'.",
                 this
