@@ -24,6 +24,13 @@ public class CargoDeliveryTruck : MonoBehaviour
     private static readonly HashSet<CargoZone> ActiveIncomingCollectionZones =
         new HashSet<CargoZone>();
 
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetStaticState()
+    {
+        ReservedCargoZones.Clear();
+        ActiveIncomingCollectionZones.Clear();
+    }
+
     private const int CargoBoxCount = 10;
 
     [Header("References")]
