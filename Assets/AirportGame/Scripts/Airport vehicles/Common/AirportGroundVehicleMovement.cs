@@ -395,9 +395,9 @@ public class AirportGroundVehicleMovement : MonoBehaviour
     // ---------------------------------------------------------------------
 
     private List<Vector2Int> FindShortestGridPath(
-    Vector2Int start,
-    Vector2Int target)
-{
+        Vector2Int start,
+        Vector2Int target)
+    {
     List<Vector2Int> empty = new List<Vector2Int>();
 
     if (start == target)
@@ -487,10 +487,21 @@ public class AirportGroundVehicleMovement : MonoBehaviour
         Vector2Int current = openSet[bestIndex];
         openSet.RemoveAt(bestIndex);
 
-        if (current == target)
-            return ReconstructPath(cameFrom, start, target);
+            if (current == target)
+            {
+                List<Vector2Int> foundPath =
+                    ReconstructPath(cameFrom, start, target);
 
-        if (!closedSet.Add(current))
+                Debug.Log(
+                    $"{name}: PATHFINDING SUCCEEDED. " +
+                    $"Path cells: {foundPath.Count}, " +
+                    $"Expanded cells: {closedSet.Count}.",
+                    this);
+
+                return foundPath;
+            }
+
+            if (!closedSet.Add(current))
             continue;
 
         Vector2Int[] neighbors =
