@@ -77,20 +77,24 @@ public class AircraftTaxiTrafficFollowing : MonoBehaviour
             GetComponent<AircraftCargoPaxDepartureTaxiController>();
 
         if (departureController != null &&
-            departureController.CurrentState ==
-            AircraftCargoPaxDepartureTaxiController.DepartureState.MovingOntoRunway)
+            (departureController.CurrentState ==
+                AircraftCargoPaxDepartureTaxiController.DepartureState.TaxiingToRunwayEntry ||
+             departureController.CurrentState ==
+                AircraftCargoPaxDepartureTaxiController.DepartureState.MovingOntoRunway ||
+             departureController.CurrentState ==
+                AircraftCargoPaxDepartureTaxiController.DepartureState.AligningOnRunway))
         {
             aircraftStatus.SetCurrentSpeedKnots(cruisingSpeedKnots);
             debugCurrentSpeed = cruisingSpeedKnots;
 
             debugBlockingAircraft = "Raycasts disabled";
             debugBlockingDistance = 0f;
-            debugTrafficDecision = "Runway line-up: traffic detection disabled";
+            debugTrafficDecision = "Runway entry: traffic detection disabled";
 
-            debugForwardRay = "Disabled: aircraft moving onto runway";
-            debugLeftRay = "Disabled: aircraft moving onto runway";
-            debugRightRay = "Disabled: aircraft moving onto runway";
-            debugRaycastSummary = "Traffic raycasts disabled during runway line-up.";
+            debugForwardRay = "Disabled: runway entry";
+            debugLeftRay = "Disabled: runway entry";
+            debugRightRay = "Disabled: runway entry";
+            debugRaycastSummary = "Traffic raycasts disabled during runway entry and alignment.";
 
             return cruisingSpeedKnots;
         }
