@@ -46,6 +46,8 @@ public class CargoZone : MonoBehaviour
 
     public int StagedPackageCount => stagedPackageCount;
 
+    public bool HasFlightReservation => hasFlightReservation;
+
     private void OnEnable()
     {
         if (registeredZones.Add(this))
