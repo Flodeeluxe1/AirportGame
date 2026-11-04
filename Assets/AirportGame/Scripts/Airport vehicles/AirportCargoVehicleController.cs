@@ -435,7 +435,9 @@ public class AirportCargoVehicleController : MonoBehaviour
             $"{name}: Navigating to cargo zone '{zone.name}'.",
             this);
 
-        return MoveTo(zone.AirportVehicleStopPoint.position);
+        return MoveTo(
+            zone.AirportVehicleStopPoint.position,
+            zone.gameObject);
     }
 
     // ---------------------------------------------------------------------
