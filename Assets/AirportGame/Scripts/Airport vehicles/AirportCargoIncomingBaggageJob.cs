@@ -229,6 +229,9 @@ public class AirportCargoIncomingBaggageJob : MonoBehaviour
                 continue;
             }
 
+            if (!zone.TryReserveForFlight(currentOperationId))
+                continue;
+
             targetZone = zone;
             return true;
         }
@@ -446,7 +449,7 @@ public class AirportCargoIncomingBaggageJob : MonoBehaviour
             package.Initialize(
                 packageId,
                 CargoDirection.Incoming,
-                string.Empty,
+                currentOperationId,
                 targetZone
             );
 
@@ -467,6 +470,8 @@ public class AirportCargoIncomingBaggageJob : MonoBehaviour
             // one item at a time. Do not confirm the same baggage twice.
             deliveredCount++;
         }
+
+        targetZone.ReleaseFlightReservation(currentOperationId);
 
         Debug.Log(
             $"{name}: Delivered {deliveredCount} incoming baggage " +
@@ -542,6 +547,9 @@ public class AirportCargoIncomingBaggageJob : MonoBehaviour
 
     private void ResetJob()
     {
+        if (targetZone != null)
+            targetZone.ReleaseFlightReservation(currentOperationId);
+
         aircraft = null;
         manifest = null;
         targetZone = null;
