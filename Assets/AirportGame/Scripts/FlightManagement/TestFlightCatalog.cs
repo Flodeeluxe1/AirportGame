@@ -56,6 +56,8 @@ public class TestFlightCatalog : MonoBehaviour
             2
         );
 
+        AddAdditionalMorningGrassCargoFlights();
+
         AddPassengerTestFlights();
     }
 
@@ -91,6 +93,27 @@ public class TestFlightCatalog : MonoBehaviour
                 );
 
             flights.Add(flight);
+        }
+    }
+
+    private void AddAdditionalMorningGrassCargoFlights()
+    {
+        Color morningStripColor =
+            GetStripColor(FlightTimeWindow.Morning);
+
+        for (int i = 0; i < 6; i++)
+        {
+            flights.Add(
+                new FlightDefinition(
+                    $"AB{113 + i}",
+                    testAirlineName,
+                    35 + i * 5,
+                    AircraftGateSize.Grass,
+                    FlightTimeWindow.Morning,
+                    morningStripColor,
+                    FlightOperationType.CargoOnly
+                )
+            );
         }
     }
 
