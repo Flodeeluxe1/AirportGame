@@ -448,11 +448,14 @@ public class ScheduledAircraftSpawner : MonoBehaviour
         GateAssignmentController gateAssignmentController =
             GateAssignmentController.Instance;
 
+        AircraftGate reservedGate = null;
+        string reservationMessage = string.Empty;
+
         if (gateAssignmentController == null ||
             !gateAssignmentController.TryReserveGateAtSpawn(
                 identity,
-                out AircraftGate reservedGate,
-                out string reservationMessage))
+                out reservedGate,
+                out reservationMessage))
         {
             string reason = gateAssignmentController == null
                 ? "GateAssignmentController was not found."
