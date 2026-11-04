@@ -134,25 +134,6 @@ public class GateAssignmentController : MonoBehaviour
         gateRegistry.RefreshGates();
         RemoveDestroyedAircraftReservations();
 
-        // Preserve a reservation previously made by this controller.
-        if (aircraft.HasActualGate &&
-            gateReservations.TryGetValue(
-                aircraft.ActualGateStableId,
-                out AircraftFlightIdentity currentOwner) &&
-            currentOwner == aircraft &&
-            gateRegistry.TryGetGate(
-                aircraft.ActualGateStableId,
-                out AircraftGate existingGate))
-        {
-            assignedGate = existingGate;
-
-            reason =
-                $"{aircraft.FlightNumber} already has " +
-                $"{existingGate.DisplayName} reserved.";
-
-            return true;
-        }
-
         int minimumTaxiwayWidth =
             GetMinimumTaxiwayWidth(
                 aircraft.Definition.RequiredGateSize
@@ -179,6 +160,36 @@ public class GateAssignmentController : MonoBehaviour
 
             Debug.LogWarning(reason, aircraft);
             return false;
+        }
+
+        // A gate may already have been reserved when the aircraft spawned.
+        // Keep that reservation only if a valid taxi route exists from the runway.
+        if (aircraft.HasActualGate &&
+            gateReservations.TryGetValue(
+                aircraft.ActualGateStableId,
+                out AircraftFlightIdentity currentOwner) &&
+            currentOwner == aircraft &&
+            gateRegistry.TryGetGate(
+                aircraft.ActualGateStableId,
+                out AircraftGate existingGate))
+        {
+            if (TryFindTaxiRoute(
+                    startCandidates,
+                    existingGate,
+                    minimumTaxiwayWidth,
+                    out int existingRouteLength))
+            {
+                assignedGate = existingGate;
+                reason =
+                    $"{aircraft.FlightNumber} already has " +
+                    $"{existingGate.DisplayName} reserved. " +
+                    $"A* route length: {existingRouteLength} cells.";
+                return true;
+            }
+
+            reason =
+                $"The gate reserved at spawn, {existingGate.DisplayName}, " +
+                "has no valid taxi route. Checking other compatible gates.";
         }
 
         // First choice: the planned gate, but only if a usable route exists.
@@ -313,6 +324,122 @@ public class GateAssignmentController : MonoBehaviour
             $"Planned: {aircraft.PlannedGateStableId} | " +
             $"Actual: {assignedGate.StableId} | " +
             $"Reachable: Yes | Route cells: {bestRouteLength}",
+            aircraft
+        );
+
+        return true;
+    }
+
+
+    public bool TryReserveGateAtSpawn(
+        AircraftFlightIdentity aircraft,
+        out AircraftGate assignedGate,
+        out string reason)
+    {
+        assignedGate = null;
+        reason = string.Empty;
+
+        if (aircraft == null || !aircraft.IsInitialized ||
+            aircraft.Definition == null)
+        {
+            reason = "Cannot reserve a spawn gate: aircraft identity or flight definition is missing.";
+            return false;
+        }
+
+        if (gateRegistry == null)
+        {
+            reason = "Cannot reserve a spawn gate: AircraftGateRegistry is missing.";
+            return false;
+        }
+
+        gateRegistry.RefreshGates();
+        RemoveDestroyedAircraftReservations();
+
+        if (aircraft.HasActualGate &&
+            gateReservations.TryGetValue(
+                aircraft.ActualGateStableId,
+                out AircraftFlightIdentity currentOwner) &&
+            currentOwner == aircraft &&
+            gateRegistry.TryGetGate(
+                aircraft.ActualGateStableId,
+                out AircraftGate existingGate))
+        {
+            assignedGate = existingGate;
+            reason = $"{aircraft.FlightNumber} already has {existingGate.DisplayName} reserved.";
+            return true;
+        }
+
+        AircraftGate plannedGate = null;
+
+        if (gateRegistry.TryGetGate(
+                aircraft.PlannedGateStableId,
+                out AircraftGate foundPlannedGate))
+        {
+            plannedGate = foundPlannedGate;
+
+            if (plannedGate.CanAccommodate(aircraft.Definition.RequiredGateSize) &&
+                IsGateAvailable(plannedGate, aircraft))
+            {
+                ReserveGate(aircraft, plannedGate);
+                assignedGate = plannedGate;
+                reason = $"{aircraft.FlightNumber} reserved planned gate {plannedGate.DisplayName} at spawn.";
+                Debug.Log(
+                    $"GATE RESERVED AT SPAWN | Flight: {aircraft.FlightNumber} | " +
+                    $"Planned: {aircraft.PlannedGateStableId} | Actual: {plannedGate.StableId}",
+                    aircraft
+                );
+                return true;
+            }
+        }
+
+        IReadOnlyList<AircraftGate> candidates =
+            gateRegistry.GetCompatibleGates(
+                aircraft.Definition.RequiredGateSize
+            );
+
+        float bestDistanceSquared = float.MaxValue;
+
+        foreach (AircraftGate candidate in candidates)
+        {
+            if (candidate == null ||
+                candidate == plannedGate ||
+                !candidate.CanAccommodate(aircraft.Definition.RequiredGateSize) ||
+                !IsGateAvailable(candidate, aircraft))
+            {
+                continue;
+            }
+
+            float dx = candidate.transform.position.x - aircraft.transform.position.x;
+            float dz = candidate.transform.position.z - aircraft.transform.position.z;
+            float distanceSquared = dx * dx + dz * dz;
+
+            if (distanceSquared >= bestDistanceSquared)
+                continue;
+
+            bestDistanceSquared = distanceSquared;
+            assignedGate = candidate;
+        }
+
+        if (assignedGate == null)
+        {
+            reason =
+                $"{aircraft.FlightNumber}: planned gate " +
+                $"{aircraft.PlannedGateStableId} is unavailable and no " +
+                "compatible alternative gate is free.";
+            return false;
+        }
+
+        ReserveGate(aircraft, assignedGate);
+
+        reason =
+            $"{aircraft.FlightNumber}: planned gate " +
+            $"{aircraft.PlannedGateStableId} was unavailable. " +
+            $"Alternative gate {assignedGate.DisplayName} reserved at spawn.";
+
+        Debug.LogWarning(
+            $"GATE RESERVED AT SPAWN | Flight: {aircraft.FlightNumber} | " +
+            $"Planned: {aircraft.PlannedGateStableId} | " +
+            $"Alternative: {assignedGate.StableId}",
             aircraft
         );
 
