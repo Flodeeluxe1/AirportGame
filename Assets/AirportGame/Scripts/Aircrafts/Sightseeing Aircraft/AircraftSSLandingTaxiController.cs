@@ -210,11 +210,7 @@ public class AircraftSSLandingTaxiController : MonoBehaviour
 
     private void TryBuildTaxiRoute()
     {
-        Debug.Log(
-            $"[SS TAXI DIAG] START | Aircraft={name} | " +
-            $"Position={transform.position}",
-            this);
-
+        
         if (gridManager == null ||
             taxiwayNetwork == null ||
             taxiwayPathfinder == null ||
@@ -245,15 +241,7 @@ public class AircraftSSLandingTaxiController : MonoBehaviour
             return;
         }
 
-        Debug.Log(
-            $"[SS TAXI DIAG] PARKING | Spot={reservedSpot.name} | " +
-            $"Position={reservedSpot.ParkingWorldPosition} | " +
-            $"GridCell={gridManager.WorldToGrid(reservedSpot.ParkingWorldPosition)} | " +
-            $"Origin={parkingBuilding.Origin} | " +
-            $"Width={parkingBuilding.Width} | Depth={parkingBuilding.Depth} | " +
-            $"Rotation={parkingBuilding.Rotation}",
-            this);
-
+        
         selectedRunway = landingController.SelectedRunway;
         landingDirection = landingController.LandingDirection;
         landingDirection.y = 0f;
@@ -287,15 +275,7 @@ public class AircraftSSLandingTaxiController : MonoBehaviour
             return;
         }
 
-        Debug.Log(
-            $"[SS TAXI DIAG] RUNWAY | Name={selectedRunway.name} | " +
-            $"Center={runwayCenter} | Axis={runwayAxis} | " +
-            $"Length={runwayLength} | SurfaceY={runwaySurfaceY} | " +
-            $"Direction={landingDirection} | " +
-            $"Origin={runwayBuilding.Origin} | " +
-            $"Width={runwayBuilding.Width} | Depth={runwayBuilding.Depth}",
-            this);
-
+        
         taxiWorldY = runwaySurfaceY + taxiHeightOffset;
 
         Vector3 aircraftPosition = transform.position;
@@ -309,12 +289,7 @@ public class AircraftSSLandingTaxiController : MonoBehaviour
                 runwayEnd - aircraftPosition,
                 landingDirection);
 
-        Debug.Log(
-            $"[SS TAXI DIAG] RUNWAY POSITION | AircraftAt={aircraftPosition} | " +
-            $"RunwayEnd={runwayEnd} | " +
-            $"RemainingDistance={remainingRunwayDistance}",
-            this);
-
+        
         if (remainingRunwayDistance <= 0f)
         {
             Fail("Aircraft is at or beyond the runway end.");
@@ -327,21 +302,12 @@ public class AircraftSSLandingTaxiController : MonoBehaviour
             remainingRunwayDistance,
             runwayBuilding);
 
-        Debug.Log(
-            $"[SS TAXI DIAG] EXITS FOUND | Count={exits.Count} | " +
-            $"MinimumWidth={minimumTaxiwayWidth}",
-            this);
-
+        
         for (int i = 0; i < exits.Count; i++)
         {
             ExitCandidate e = exits[i];
 
-            Debug.Log(
-                $"[SS TAXI DIAG] EXIT {i} | Cell={e.Cell} | " +
-                $"Forward={e.ForwardDistance:F2} | " +
-                $"Lateral={e.LateralDistance:F2}",
-                this);
-        }
+                    }
 
         if (exits.Count == 0)
         {
@@ -358,14 +324,7 @@ public class AircraftSSLandingTaxiController : MonoBehaviour
         float connectorDistance =
             maximumParkingConnectorDistance * gridManager.CellSize;
 
-        Debug.Log(
-            $"[SS TAXI DIAG] TARGET SEARCH | ParkingTarget={parkingTarget} | " +
-            $"SearchRadius={connectionSearchRadiusCells} cells | " +
-            $"CellSize={gridManager.CellSize} | " +
-            $"MaxConnectorDistance={connectorDistance:F2} | " +
-            $"TargetsFound={targets.Count}",
-            this);
-
+        
         for (int i = 0; i < targets.Count; i++)
         {
             TargetCandidate t = targets[i];
@@ -374,14 +333,7 @@ public class AircraftSSLandingTaxiController : MonoBehaviour
             float edgeDistance =
                 GetDistanceToParkingFootprintEdge(t.Cell);
 
-            Debug.Log(
-                $"[SS TAXI DIAG] TARGET {i} | Cell={t.Cell} | " +
-                $"World={world} | " +
-                $"DistanceToFootprintEdge={edgeDistance:F2} | " +
-                $"DistanceToParkingRoot={HorizontalDistance(world, parkingTarget):F2} | " +
-                $"TaxiwayWidth={taxiwayNetwork.GetTaxiwayWidth(t.Cell)}",
-                this);
-        }
+                    }
 
         if (targets.Count == 0)
         {
@@ -477,15 +429,7 @@ public class AircraftSSLandingTaxiController : MonoBehaviour
             }
         }
 
-        Debug.Log(
-            $"[SS TAXI DIAG] SEARCH SUMMARY | " +
-            $"Exits={exits.Count} | Targets={targets.Count} | " +
-            $"PairsTested={attempts} | SkippedByDistance={skippedByDistance} | " +
-            $"FailedPaths={failedPaths} | RouteFound={foundRoute} | " +
-            $"ChosenExit={(foundRoute ? chosenExit.Cell.ToString() : "none")} | " +
-            $"BestPathLength={(foundRoute ? bestPathLength : 0)}",
-            this);
-
+        
         if (!foundRoute)
         {
             Fail(
@@ -529,14 +473,7 @@ public class AircraftSSLandingTaxiController : MonoBehaviour
             $"Sightseeing taxi route found. Forward exit {chosenExit.Cell}, " +
             $"target {chosenTarget.Cell}, {route.Count} route cells.";
 
-        Debug.Log(
-            $"[SS TAXI DIAG] ROUTE FOUND | Exit={chosenExit.Cell} | " +
-            $"ForwardDistance={chosenExit.ForwardDistance:F2} | " +
-            $"Target={chosenTarget.Cell} | Cells={route.Count} | " +
-            $"RunwayExitPoint={runwayExitPoint} | " +
-            $"TaxiwayJoinPoint={taxiwayJoinPoint}",
-            this);
-    }
+            }
 
 
 
@@ -1010,12 +947,7 @@ public class AircraftSSLandingTaxiController : MonoBehaviour
 
             if (logTaxiProgress)
             {
-                Debug.Log(
-                    $"SIGHTSEEING AIRCRAFT STARTING PARKING TURN | " +
-                    $"Aircraft: {name} | Parking: {reservedSpot.name} | " +
-                    $"Rotation speed: {parkingRotationSpeed:F1} degrees/second",
-                    this);
-            }
+                            }
         }
     }
 
@@ -1043,11 +975,7 @@ public class AircraftSSLandingTaxiController : MonoBehaviour
 
             if (logTaxiProgress)
             {
-                Debug.Log(
-                    $"SIGHTSEEING AIRCRAFT PARKED | Aircraft: {name} | " +
-                    $"Parking: {reservedSpot.name}",
-                    this);
-            }
+                            }
         }
     }
 
