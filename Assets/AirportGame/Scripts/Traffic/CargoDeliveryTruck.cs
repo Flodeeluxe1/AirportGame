@@ -80,6 +80,13 @@ public class CargoDeliveryTruck : MonoBehaviour
     [Min(0.01f)]
     [SerializeField] private float vanStopWaypointTolerance = 0.03f;
 
+    [Header("Cargo Zone Waiting")]
+    [Tooltip("Minimum time between retries while waiting for an available cargo zone.")]
+    [Min(0.1f)]
+    [SerializeField] private float waitingRetryInterval = 0.75f;
+
+    private float nextWaitingRetryTime;
+
     private Vector3 vanStopAlignmentPosition;
     private Vector3 vanStopPreEntryPosition;
     private Vector3 vanStopOutwardDirection;
@@ -153,10 +160,7 @@ public class CargoDeliveryTruck : MonoBehaviour
 
     public static bool HasAvailableCargoZoneForFlight(string operationId)
     {
-        CargoZone[] zones =
-            FindObjectsByType<CargoZone>(FindObjectsSortMode.None);
-
-        foreach (CargoZone zone in zones)
+        foreach (CargoZone zone in CargoZone.RegisteredZones)
         {
             if (zone == null ||
                 zone.VanStopPoint == null ||
@@ -165,8 +169,7 @@ public class CargoDeliveryTruck : MonoBehaviour
                 continue;
             }
 
-            PlacedBuilding building =
-                zone.GetComponent<PlacedBuilding>();
+            PlacedBuilding building = zone.Building;
 
             if (building == null ||
                 ReservedCargoZones.Contains(building) ||
@@ -272,11 +275,12 @@ public class CargoDeliveryTruck : MonoBehaviour
             return false;
         }
 
-        List<CargoPackage> incomingPackages =
-            zone.GetAvailablePackages(CargoDirection.Incoming);
-
-        if (incomingPackages.Count == 0)
+        if (!zone.TryGetFirstAvailablePackage(
+                CargoDirection.Incoming,
+                out CargoPackage firstIncomingPackage))
+        {
             return false;
+        }
 
         roadModuleSize = Mathf.Max(1, roadModuleSize);
 
@@ -285,7 +289,7 @@ public class CargoDeliveryTruck : MonoBehaviour
 
         incomingCollectionMode = true;
         incomingCollectionZone = zone;
-        deliveryOperationId = incomingPackages[0].FlightOperationId;
+        deliveryOperationId = firstIncomingPackage.FlightOperationId;
         deliveryFlightNumber = "Incoming cargo";
 
         routeInitializedBySpawner = true;
@@ -458,6 +462,8 @@ public class CargoDeliveryTruck : MonoBehaviour
         currentSpeed = 0f;
 
         SetTruckVisible(false);
+        nextWaitingRetryTime =
+            Time.unscaledTime + Mathf.Max(0.1f, waitingRetryInterval);
 
         if (!waitingLogShown)
         {
@@ -475,6 +481,12 @@ public class CargoDeliveryTruck : MonoBehaviour
 
     private void TryStartWaitingTruck()
     {
+        if (Time.unscaledTime < nextWaitingRetryTime)
+            return;
+
+        nextWaitingRetryTime =
+            Time.unscaledTime + Mathf.Max(0.1f, waitingRetryInterval);
+
         if (!TryReserveCargoZone(
                 incomingCollectionMode ? incomingCollectionZone : null))
         {
@@ -537,10 +549,6 @@ public class CargoDeliveryTruck : MonoBehaviour
         if (roadNetwork == null || gridManager == null)
             return false;
 
-        PlacedBuilding[] buildings =
-            FindObjectsByType<PlacedBuilding>(
-                FindObjectsSortMode.None);
-
         int shortestPathLength = int.MaxValue;
 
         PlacedBuilding bestBuilding = null;
@@ -551,17 +559,8 @@ public class CargoDeliveryTruck : MonoBehaviour
         Vector2Int bestApproachCell = default;
         List<Vector2Int> bestPath = null;
 
-        foreach (PlacedBuilding building in buildings)
+        foreach (CargoZone candidateCargoZone in CargoZone.RegisteredZones)
         {
-            if (building == null ||
-                ReservedCargoZones.Contains(building))
-            {
-                continue;
-            }
-
-            CargoZone candidateCargoZone =
-                building.GetComponent<CargoZone>();
-
             if (candidateCargoZone == null ||
                 (requiredZone != null && candidateCargoZone != requiredZone) ||
                 !candidateCargoZone.IsAvailableForFlight(deliveryOperationId))
@@ -569,11 +568,16 @@ public class CargoDeliveryTruck : MonoBehaviour
                 continue;
             }
 
-            Transform candidateVanStop =
-                FindChildByName(building.transform, "VanStopPoint");
+            PlacedBuilding building = candidateCargoZone.Building;
 
-            Transform candidateCargoArea =
-                FindChildByName(building.transform, "CargoAreaPoint");
+            if (building == null ||
+                ReservedCargoZones.Contains(building))
+            {
+                continue;
+            }
+
+            Transform candidateVanStop = candidateCargoZone.VanStopPoint;
+            Transform candidateCargoArea = candidateCargoZone.CargoAreaPoint;
 
             if (candidateVanStop == null ||
                 candidateCargoArea == null)
@@ -2114,20 +2118,6 @@ public class CargoDeliveryTruck : MonoBehaviour
         return Vector3.Distance(
             transform.position,
             targetPosition) <= 0.01f;
-    }
-
-    private Transform FindChildByName(
-        Transform parent,
-        string childName)
-    {
-        foreach (Transform child in
-                 parent.GetComponentsInChildren<Transform>(true))
-        {
-            if (child.name == childName)
-                return child;
-        }
-
-        return null;
     }
 
     // ---------------------------------------------------------
