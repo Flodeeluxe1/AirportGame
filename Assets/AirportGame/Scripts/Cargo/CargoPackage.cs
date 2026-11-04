@@ -79,10 +79,7 @@ public class CargoPackage : MonoBehaviour
 
         packageId = id;
         direction = cargoDirection;
-        flightOperationId =
-            cargoDirection == CargoDirection.Outgoing
-                ? assignedFlightOperationId
-                : string.Empty;
+        flightOperationId = assignedFlightOperationId ?? string.Empty;
 
         currentZone = startingZone;
         state = CargoPackageState.Staged;
