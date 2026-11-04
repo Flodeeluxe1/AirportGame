@@ -17,6 +17,7 @@ public class AirportCargoVehicleController : MonoBehaviour
     [Tooltip("The live CargoTugLot transform that spawned this vehicle.")]
     [SerializeField] private Transform homeSpawnPoint;
 
+
     [Tooltip("The tug's original spawn offset relative to the lot.")]
     [SerializeField] private Vector3 homeSpawnOffset;
 
@@ -158,7 +159,7 @@ public class AirportCargoVehicleController : MonoBehaviour
         }
 
         if (groundVehicleMovement != null)
-            groundVehicleMovement.SetHomeArea(homeSpawnPoint);
+            groundVehicleMovement.SetHomeArea(spawnPoint);
 
         Debug.Log(
             $"{name}: Home spawn point set to " +
