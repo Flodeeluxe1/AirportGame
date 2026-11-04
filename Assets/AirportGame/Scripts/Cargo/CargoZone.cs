@@ -194,6 +194,12 @@ public class CargoZone : MonoBehaviour
 
         foreach (CargoPackage package in packages)
         {
+            // Only packages physically staged in this zone should reserve
+            // it for a flight. In-transit or delivered package references
+            // must not make an otherwise empty zone unavailable.
+            if (package.State != CargoPackageState.Staged)
+                continue;
+
             if (package.FlightOperationId != requestedOperationId)
                 return true;
         }
