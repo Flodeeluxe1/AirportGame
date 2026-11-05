@@ -1072,6 +1072,12 @@ public class AircraftCargoPaxDepartureTaxiController : MonoBehaviour
         AircraftTaxiTrafficFollowing trafficFollowing =
             GetComponent<AircraftTaxiTrafficFollowing>();
 
+        if (trafficFollowing != null)
+            trafficFollowing.SetPlannedTaxiRoute(
+                currentState == DepartureState.TaxiingToRunwayEntry
+                    ? runwayJoinRoute
+                    : taxiRoute);
+
         float speedKnots;
 
         if (trafficFollowing != null)
