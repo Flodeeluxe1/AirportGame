@@ -1497,7 +1497,6 @@ public class ATCGroundTrafficManager : MonoBehaviour
                         otherStartIndex,
                         otherIndex);
                     conflictingAircraft = other;
-                }
             }
         }
 
