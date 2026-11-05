@@ -227,6 +227,15 @@ public class ATCGroundTrafficManager : MonoBehaviour
     private readonly Dictionary<AircraftTaxiTrafficFollowing, string> lastLoggedTaxiDecisions =
         new Dictionary<AircraftTaxiTrafficFollowing, string>();
 
+    [Header("Registered Route Diagnostics")]
+    [SerializeField] private bool logRegisteredRouteConflicts;
+
+    private readonly Dictionary<string, string> lastRegisteredAircraftStates =
+        new Dictionary<string, string>();
+
+    private readonly Dictionary<string, string> lastLoggedRoutePairStates =
+        new Dictionary<string, string>();
+
     public int DetectedIntersectionCount { get; private set; }
     public int ActiveReservationCount => activeReservations.Count;
 
@@ -279,6 +288,9 @@ public class ATCGroundTrafficManager : MonoBehaviour
 
         CleanupStaleReservations();
         CleanupStaleSectionReservations();
+
+        if (logRegisteredRouteConflicts)
+            RunRegisteredRouteDiagnostics();
     }
 
     private void OnDestroy()
@@ -404,6 +416,249 @@ public class ATCGroundTrafficManager : MonoBehaviour
 
         LogTaxiClearanceDecision(aircraft, granted, decision);
         return granted;
+    }
+
+    private void RunRegisteredRouteDiagnostics()
+    {
+        IReadOnlyList<AircraftTaxiTrafficFollowing> registered =
+            AircraftTaxiTrafficFollowing.ActiveAircraft;
+
+        HashSet<string> currentAircraftIds = new HashSet<string>();
+        HashSet<string> currentPairIds = new HashSet<string>();
+
+        for (int i = 0; i < registered.Count; i++)
+        {
+            AircraftTaxiTrafficFollowing aircraft = registered[i];
+            if (aircraft == null || !aircraft.isActiveAndEnabled)
+                continue;
+
+            string id = aircraft.GetEntityId().ToString();
+            currentAircraftIds.Add(id);
+
+            AircraftStatus status = aircraft.GetComponent<AircraftStatus>();
+            string state = status == null
+                ? "AircraftStatus missing"
+                : status.IsParked
+                    ? "PARKED"
+                    : status.IsTaxiing
+                        ? "TAXIING"
+                        : "NOT TAXIING";
+
+            string routeState = aircraft.PlannedTaxiRoute == null ||
+                                aircraft.PlannedTaxiRoute.Count == 0
+                ? "NO ROUTE"
+                : "ROUTE CELLS " + aircraft.PlannedTaxiRoute.Count;
+
+            string signature = state + " | " + routeState;
+            if (!lastRegisteredAircraftStates.TryGetValue(id, out string previous) ||
+                previous != signature)
+            {
+                lastRegisteredAircraftStates[id] = signature;
+
+                Debug.Log(
+                    "[ATC REGISTERED AIRCRAFT] " + aircraft.name +
+                    " | ID: " + id +
+                    " | " + signature +
+                    " | Position: " + aircraft.transform.position +
+                    " | Forward: " + aircraft.transform.forward,
+                    aircraft);
+            }
+        }
+
+        List<string> removedAircraftIds = null;
+        foreach (string previousId in lastRegisteredAircraftStates.Keys)
+        {
+            if (currentAircraftIds.Contains(previousId))
+                continue;
+
+            if (removedAircraftIds == null)
+                removedAircraftIds = new List<string>();
+
+            removedAircraftIds.Add(previousId);
+        }
+
+        if (removedAircraftIds != null)
+        {
+            foreach (string id in removedAircraftIds)
+            {
+                Debug.Log("[ATC REGISTERED AIRCRAFT] UNREGISTERED | ID: " + id);
+                lastRegisteredAircraftStates.Remove(id);
+            }
+        }
+
+        if (gridManager == null)
+            return;
+
+        for (int i = 0; i < registered.Count; i++)
+        {
+            AircraftTaxiTrafficFollowing first = registered[i];
+            if (!IsDiagnosticTaxiingAircraft(first))
+                continue;
+
+            for (int j = i + 1; j < registered.Count; j++)
+            {
+                AircraftTaxiTrafficFollowing second = registered[j];
+                if (!IsDiagnosticTaxiingAircraft(second))
+                    continue;
+
+                LogRegisteredRoutePair(first, second, currentPairIds);
+            }
+        }
+
+        List<string> clearedPairIds = null;
+        foreach (string previousPairId in lastLoggedRoutePairStates.Keys)
+        {
+            if (currentPairIds.Contains(previousPairId))
+                continue;
+
+            if (clearedPairIds == null)
+                clearedPairIds = new List<string>();
+
+            clearedPairIds.Add(previousPairId);
+        }
+
+        if (clearedPairIds != null)
+        {
+            foreach (string pairId in clearedPairIds)
+            {
+                Debug.Log("[ATC ROUTE PAIR] NO LONGER REGISTERED | Pair: " + pairId);
+                lastLoggedRoutePairStates.Remove(pairId);
+            }
+        }
+    }
+
+    private bool IsDiagnosticTaxiingAircraft(
+        AircraftTaxiTrafficFollowing aircraft)
+    {
+        if (aircraft == null ||
+            !aircraft.isActiveAndEnabled ||
+            aircraft.PlannedTaxiRoute == null ||
+            aircraft.PlannedTaxiRoute.Count < 2)
+        {
+            return false;
+        }
+
+        AircraftStatus status = aircraft.GetComponent<AircraftStatus>();
+        return status != null && !status.IsParked && status.IsTaxiing;
+    }
+
+    private void LogRegisteredRoutePair(
+        AircraftTaxiTrafficFollowing first,
+        AircraftTaxiTrafficFollowing second,
+        HashSet<string> currentPairIds)
+    {
+        string firstId = first.GetEntityId().ToString();
+        string secondId = second.GetEntityId().ToString();
+
+        bool firstComesFirst = string.CompareOrdinal(firstId, secondId) <= 0;
+        string pairId = firstComesFirst
+            ? firstId + "|" + secondId
+            : secondId + "|" + firstId;
+
+        currentPairIds.Add(pairId);
+
+        AircraftTaxiTrafficFollowing a = firstComesFirst ? first : second;
+        AircraftTaxiTrafficFollowing b = firstComesFirst ? second : first;
+
+        IReadOnlyList<Vector2Int> routeA = a.PlannedTaxiRoute;
+        IReadOnlyList<Vector2Int> routeB = b.PlannedTaxiRoute;
+
+        TryFindNearestRouteIndex(
+            routeA, a.transform.position, out int startA, out float distanceA);
+        TryFindNearestRouteIndex(
+            routeB, b.transform.position, out int startB, out float distanceB);
+
+        HashSet<string> sharedCellReports = new HashSet<string>();
+        int sharedCellCount = 0;
+        int conflictingCellCount = 0;
+        int sameDirectionCellCount = 0;
+
+        for (int ai = 0; ai < routeA.Count; ai++)
+        {
+            for (int bi = 0; bi < routeB.Count; bi++)
+            {
+                if (routeA[ai] != routeB[bi])
+                    continue;
+
+                Vector3 directionA = GetRouteDirection(routeA, ai);
+                Vector3 directionB = GetRouteDirection(routeB, bi);
+                float directionDot = Vector3.Dot(directionA, directionB);
+
+                string classification;
+                if (directionDot > 0.75f)
+                {
+                    classification = "SAME DIRECTION";
+                    sameDirectionCellCount++;
+                }
+                else
+                {
+                    classification = directionDot < -0.75f
+                        ? "OPPOSING"
+                        : "CROSSING/MERGING";
+                    conflictingCellCount++;
+                }
+
+                sharedCellCount++;
+
+                bool aheadA = startA >= 0 && ai >= startA;
+                bool aheadB = startB >= 0 && bi >= startB;
+
+                sharedCellReports.Add(
+                    routeA[ai] +
+                    " [" + classification +
+                    ", dot=" + directionDot.ToString("F2") +
+                    ", A index=" + ai + (aheadA ? " AHEAD" : " PASSED") +
+                    ", B index=" + bi + (aheadB ? " AHEAD" : " PASSED") +
+                    "]");
+            }
+        }
+
+        string pairState = conflictingCellCount > 0
+            ? "CONFLICT"
+            : sharedCellCount > 0
+                ? "SHARED ROUTE - SAME DIRECTION"
+                : "NO SHARED ROUTE CELLS";
+
+        List<string> orderedReports = new List<string>(sharedCellReports);
+        orderedReports.Sort(StringComparer.Ordinal);
+
+        string signature = pairState + " | " +
+                           string.Join("; ", orderedReports);
+
+        if (lastLoggedRoutePairStates.TryGetValue(pairId, out string previous) &&
+            previous == signature)
+        {
+            return;
+        }
+
+        lastLoggedRoutePairStates[pairId] = signature;
+
+        AircraftStatus statusA = a.GetComponent<AircraftStatus>();
+        AircraftStatus statusB = b.GetComponent<AircraftStatus>();
+
+        string report =
+            "[ATC ROUTE PAIR] " + pairState +
+            " | " + a.name + " (ID " + firstId + ")" +
+            " <-> " + b.name + " (ID " + secondId + ")" +
+            "\n  A position: " + a.transform.position +
+            " | forward: " + a.transform.forward +
+            " | speed: " + (statusA != null ? statusA.CurrentSpeedKnots.ToString("F2") : "n/a") +
+            " | nearest route index: " + startA +
+            " | distance to route: " + distanceA.ToString("F2") +
+            "\n  B position: " + b.transform.position +
+            " | forward: " + b.transform.forward +
+            " | speed: " + (statusB != null ? statusB.CurrentSpeedKnots.ToString("F2") : "n/a") +
+            " | nearest route index: " + startB +
+            " | distance to route: " + distanceB.ToString("F2") +
+            "\n  Shared cells: " +
+            (orderedReports.Count > 0
+                ? string.Join("; ", orderedReports)
+                : "none") +
+            "\n  Totals: shared=" + sharedCellCount +
+            ", conflicting=" + conflictingCellCount +
+            ", same-direction=" + sameDirectionCellCount;
+
+        Debug.Log(report, a);
     }
 
     private void LogTaxiClearanceDecision(
