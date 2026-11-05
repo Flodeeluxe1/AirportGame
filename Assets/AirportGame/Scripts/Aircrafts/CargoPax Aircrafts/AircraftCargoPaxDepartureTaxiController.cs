@@ -682,12 +682,6 @@ public class AircraftCargoPaxDepartureTaxiController : MonoBehaviour
         debugStatus =
             $"Lined up on {debugSelectedRunway}. Waiting for takeoff implementation.";
 
-        Debug.Log(
-            $"AIRCRAFT LINED UP READY FOR TAKEOFF | Aircraft: {name} | " +
-            $"Runway: {debugSelectedRunway} | Heading: {debugTakeoffHeading} | " +
-            $"Position: {transform.position}",
-            this
-        );
 
         // Reservations remain active until the takeoff system clears the runway.
     }
