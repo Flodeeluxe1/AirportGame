@@ -986,6 +986,9 @@ public class AircraftCargoPaxLandingTaxiController : MonoBehaviour
         if (movement.sqrMagnitude > 0.0001f)
             FaceMovementDirection(movement);
 
+        if (trafficFollowing != null)
+            trafficFollowing.SetPlannedTaxiRoute(taxiRoute);
+
         float taxiSpeedKnots = this.taxiSpeedKnots;
 
         if (trafficFollowing != null)
