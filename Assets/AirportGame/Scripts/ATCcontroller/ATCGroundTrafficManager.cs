@@ -1727,12 +1727,11 @@ public class ATCGroundTrafficManager : MonoBehaviour
             Mathf.Max(intersectionClearRadiusCells, 1.5f) *
             gridManager.CellSize;
 
-        int conflictOwnIndex = -1;
-        int conflictOtherIndex = -1;
-        float ownConflictDistance = float.MaxValue;
-        float otherConflictDistance = float.MaxValue;
-        AircraftTaxiTrafficFollowing conflictingAircraft = null;
-        bool otherPhysicallyOccupiesConflict = false;
+        // Evaluate every active aircraft. A single aircraft with priority
+        // at a shared route cell is enough to make this aircraft yield.
+        int yieldingConflictOwnIndex = -1;
+        float nearestYieldingConflictDistance = float.MaxValue;
+        AircraftTaxiTrafficFollowing yieldingAircraft = null;
 
         IReadOnlyList<AircraftTaxiTrafficFollowing> allAircraft =
             AircraftTaxiTrafficFollowing.ActiveAircraft;
@@ -1811,8 +1810,6 @@ public class ATCGroundTrafficManager : MonoBehaviour
                             other.transform.position,
                             conflictPosition) <= clearRadius;
 
-                    // A conflict behind the other aircraft is relevant only
-                    // while its physical position remains inside the clearance area.
                     if (otherHasPassedConflict &&
                         !otherStillOccupiesConflict)
                     {
@@ -1831,52 +1828,45 @@ public class ATCGroundTrafficManager : MonoBehaviour
                             otherStartIndex,
                             otherIndex);
 
-                    if (ownDistance >= ownConflictDistance)
+                    bool ownHasPriority;
+
+                    if (otherStillOccupiesConflict)
+                    {
+                        ownHasPriority = false;
+                    }
+                    else if (Mathf.Abs(ownDistance - otherDistance) >
+                             gridManager.CellSize * 0.25f)
+                    {
+                        ownHasPriority = ownDistance < otherDistance;
+                    }
+                    else
+                    {
+                        ownHasPriority =
+                            aircraft.GetEntityId() <
+                            other.GetEntityId();
+                    }
+
+                    // Do not stop at a conflict this aircraft wins. Continue
+                    // checking: another aircraft may have priority at a later
+                    // conflict along the same remaining route.
+                    if (ownHasPriority)
                         continue;
 
-                    conflictOwnIndex = ownIndex;
-                    conflictOtherIndex = otherIndex;
-                    ownConflictDistance = ownDistance;
-                    otherConflictDistance = otherDistance;
-                    conflictingAircraft = other;
-                    otherPhysicallyOccupiesConflict =
-                        otherStillOccupiesConflict;
+                    // Keep the nearest conflict that this aircraft must yield
+                    // to, regardless of which other aircraft was enumerated first.
+                    if (ownDistance >= nearestYieldingConflictDistance)
+                        continue;
+
+                    nearestYieldingConflictDistance = ownDistance;
+                    yieldingConflictOwnIndex = ownIndex;
+                    yieldingAircraft = other;
                 }
             }
         }
 
-        if (conflictingAircraft == null || conflictOwnIndex < 0)
+        if (yieldingAircraft == null || yieldingConflictOwnIndex < 0)
         {
             decision = "Route clear to next holding point";
-            return true;
-        }
-
-        bool ownHasPriority;
-
-        if (otherPhysicallyOccupiesConflict)
-        {
-            ownHasPriority = false;
-        }
-        else if (Mathf.Abs(ownConflictDistance - otherConflictDistance) >
-                 gridManager.CellSize * 0.25f)
-        {
-            // The aircraft nearer the shared route conflict proceeds first.
-            ownHasPriority =
-                ownConflictDistance < otherConflictDistance;
-        }
-        else
-        {
-            ownHasPriority =
-                aircraft.GetEntityId() <
-                conflictingAircraft.GetEntityId();
-        }
-
-        if (ownHasPriority)
-        {
-            decision =
-                "Route conflict with " + conflictingAircraft.name +
-                " at " + ownRoute[conflictOwnIndex] +
-                "; this aircraft has priority";
             return true;
         }
 
@@ -1887,7 +1877,7 @@ public class ATCGroundTrafficManager : MonoBehaviour
         FindNextRouteHoldingPoint(
             ownRoute,
             ownStartIndex,
-            conflictOwnIndex,
+            yieldingConflictOwnIndex,
             out holdingIndex,
             out holdingPosition,
             out holdingLabel);
@@ -1904,15 +1894,15 @@ public class ATCGroundTrafficManager : MonoBehaviour
             decision =
                 "Cleared to " + holdingLabel +
                 "; waiting for route conflict with " +
-                conflictingAircraft.name +
-                " at " + ownRoute[conflictOwnIndex];
+                yieldingAircraft.name +
+                " at " + ownRoute[yieldingConflictOwnIndex];
             return true;
         }
 
         decision =
             "HOLD at " + holdingLabel +
-            " for " + conflictingAircraft.name +
-            "; conflicting route cell " + ownRoute[conflictOwnIndex];
+            " for " + yieldingAircraft.name +
+            "; conflicting route cell " + ownRoute[yieldingConflictOwnIndex];
 
         return false;
     }
