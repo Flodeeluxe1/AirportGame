@@ -1050,15 +1050,11 @@ public class ATCGroundTrafficManager : MonoBehaviour
 
         if (showWaitingQueues)
         {
-            List<WaitRequest> orderedWaiters =
-                new List<WaitRequest>(state.Waiters);
-
-            orderedWaiters.Sort(
-                (a, b) => a.RequestedAt.CompareTo(b.RequestedAt));
-
-            for (int i = 0; i < orderedWaiters.Count; i++)
+            // Waiters are appended in request order, so the list is
+            // already ordered by priority. Avoid allocations in gizmo drawing.
+            for (int i = 0; i < state.Waiters.Count; i++)
             {
-                WaitRequest waiter = orderedWaiters[i];
+                WaitRequest waiter = state.Waiters[i];
 
                 if (waiter.Aircraft == null)
                     continue;
@@ -1120,4 +1116,5 @@ public class ATCGroundTrafficManager : MonoBehaviour
         Gizmos.DrawLine(
             end,
             end - direction * arrowHeadLength - side * arrowHeadWidth);
-    }}
+    }
+}
