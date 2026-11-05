@@ -1968,7 +1968,18 @@ public class ATCGroundTrafficManager : MonoBehaviour
         {
             Vector2Int cell = route[i];
 
-            if (GetCenterlineConnectionCount(cell) >= 3)
+            bool isJunction =
+                GetCenterlineConnectionCount(cell) >= 3;
+
+            bool isRouteTurn = false;
+            if (i > 0 && i < route.Count - 1)
+            {
+                Vector2Int incoming = cell - route[i - 1];
+                Vector2Int outgoing = route[i + 1] - cell;
+                isRouteTurn = incoming != outgoing;
+            }
+
+            if (isJunction || isRouteTurn)
                 return Mathf.Max(currentIndex, i - 15);
 
             Vector3 cellPosition = gridManager.GridToWorldCenter(cell);
