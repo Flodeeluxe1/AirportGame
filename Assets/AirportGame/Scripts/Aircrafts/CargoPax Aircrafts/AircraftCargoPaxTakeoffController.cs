@@ -253,13 +253,6 @@ public class AircraftCargoPaxTakeoffController : MonoBehaviour
             $"Accelerating on runway. Rotation begins at " +
             $"{rotationTriggerSpeedKnots:F1} knots.";
 
-        Debug.Log(
-            $"AIRCRAFT TAKEOFF ROLL STARTED | " +
-            $"Aircraft: {name} | Runway: {selectedRunway.name} | " +
-            $"Takeoff speed: {takeoffSpeedKnots:F1} knots | " +
-            $"Rotation threshold: {rotationTriggerSpeedKnots:F1} knots",
-            this
-        );
 
         return true;
     }
@@ -294,12 +287,6 @@ public class AircraftCargoPaxTakeoffController : MonoBehaviour
             debugStatus =
                 $"Rotation started at {currentSpeedKnots:F1} knots.";
 
-            Debug.Log(
-                $"AIRCRAFT ROTATION STARTED | Aircraft: {name} | " +
-                $"Speed: {currentSpeedKnots:F1} knots | " +
-                $"Nose rotation: {rotationRateDegreesPerSecond:F1} degrees/sec",
-                this
-            );
         }
     }
 
@@ -376,12 +363,6 @@ public class AircraftCargoPaxTakeoffController : MonoBehaviour
             debugStatus =
                 $"Climbing at {targetNoseUpDegrees:F1} degrees nose-up.";
 
-            Debug.Log(
-                $"AIRCRAFT ROTATION COMPLETE | Aircraft: {name} | " +
-                $"Speed: {currentSpeedKnots:F1} knots | " +
-                $"Nose-up attitude: {currentNoseUpDegrees:F1} degrees",
-                this
-            );
         }
 
         CheckTargetAltitude();
@@ -538,11 +519,6 @@ public class AircraftCargoPaxTakeoffController : MonoBehaviour
 
         ReleaseRunwayReservations();
 
-        Debug.Log(
-            $"AIRCRAFT CLEARED RUNWAY | Aircraft: {name} | " +
-            $"Runway: {selectedRunway.name}",
-            this
-        );
     }
 
     private void ReleaseRunwayReservations()
@@ -580,13 +556,6 @@ public class AircraftCargoPaxTakeoffController : MonoBehaviour
 
         debugStatus = "Target altitude reached. Aircraft despawning.";
 
-        Debug.Log(
-            $"AIRCRAFT TAKEOFF COMPLETE | Aircraft: {name} | " +
-            $"Runway: {(selectedRunway != null ? selectedRunway.name : "Unknown")} | " +
-            $"Final speed: {currentSpeedKnots:F1} knots | " +
-            $"Altitude above runway: {currentAltitudeAboveRunway:F1}",
-            this
-        );
 
         PassengerFlightRevenue passengerRevenue =
             GetComponent<PassengerFlightRevenue>();
