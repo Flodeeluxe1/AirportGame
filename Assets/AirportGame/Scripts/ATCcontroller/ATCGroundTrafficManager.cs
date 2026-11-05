@@ -1535,8 +1535,8 @@ public class ATCGroundTrafficManager : MonoBehaviour
         else
         {
             ownHasPriority =
-                aircraft.GetInstanceID() <
-                conflictingAircraft.GetInstanceID();
+                aircraft.GetEntityId() <
+                conflictingAircraft.GetEntityId();
         }
 
         if (ownHasPriority)
