@@ -156,6 +156,11 @@ public class TaxiwayNetwork : MonoBehaviour
                runwayCenterlineCells.Contains(position);
     }
 
+    public bool IsTaxiwayCenterlineCell(Vector2Int position)
+    {
+        return centerlineCells.Contains(position);
+    }
+
     public void AddTaxiwayCenterlineCell(
         Vector2Int position)
     {
