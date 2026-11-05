@@ -386,7 +386,10 @@ public class ATCGroundTrafficManager : MonoBehaviour
         }
 
         // This scans the complete remaining route, not just the next section.
-        if (!HasRouteConflictClearance(aircraft, out decision))
+        if (!HasRouteConflictClearance(
+                aircraft,
+                out decision,
+                out int conflictHoldingIndex))
         {
             LogTaxiClearanceDecision(aircraft, false, decision);
             return false;
@@ -399,11 +402,23 @@ public class ATCGroundTrafficManager : MonoBehaviour
                 out currentIndex,
                 out _))
         {
-            int nextBoundary = FindNextRouteBoundary(route, currentIndex);
+            // If a route conflict requires yielding, preserve the exact
+            // holding point selected by the conflict check. Do not replace
+            // it with a later junction or the parking destination.
+            int nextBoundary = conflictHoldingIndex >= 0
+                ? conflictHoldingIndex
+                : FindNextRouteBoundary(route, currentIndex);
+
+            nextBoundary = Mathf.Clamp(
+                nextBoundary,
+                currentIndex,
+                route.Count - 1);
+
             routeClearanceTargets[aircraft] = nextBoundary;
 
-            decision =
-                "Cleared to next holding point " + route[nextBoundary];
+            decision = conflictHoldingIndex >= 0
+                ? "Cleared only to conflict holding point " + route[nextBoundary]
+                : "Cleared to next holding point " + route[nextBoundary];
         }
         else
         {
@@ -1698,9 +1713,11 @@ public class ATCGroundTrafficManager : MonoBehaviour
 
     private bool HasRouteConflictClearance(
         AircraftTaxiTrafficFollowing aircraft,
-        out string decision)
+        out string decision,
+        out int clearanceBoundaryIndex)
     {
         decision = "Route clear to next holding point";
+        clearanceBoundaryIndex = -1;
 
         if (aircraft == null ||
             aircraft.PlannedTaxiRoute == null ||
@@ -1891,6 +1908,9 @@ public class ATCGroundTrafficManager : MonoBehaviour
 
         if (!reachedHoldingPoint)
         {
+            // Carry this exact holding index back to HasTaxiClearance so the
+            // granted clearance cannot extend past the conflict hold.
+            clearanceBoundaryIndex = holdingIndex;
             decision =
                 "Cleared to " + holdingLabel +
                 "; waiting for route conflict with " +
