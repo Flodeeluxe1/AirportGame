@@ -3,6 +3,38 @@ using UnityEngine;
 
 public class AircraftTaxiTrafficFollowing : MonoBehaviour
 {
+    private static readonly List<AircraftTaxiTrafficFollowing> activeAircraft =
+        new List<AircraftTaxiTrafficFollowing>();
+
+    private readonly List<Vector2Int> plannedTaxiRoute =
+        new List<Vector2Int>();
+
+    public static IReadOnlyList<AircraftTaxiTrafficFollowing> ActiveAircraft =>
+        activeAircraft;
+
+    public IReadOnlyList<Vector2Int> PlannedTaxiRoute => plannedTaxiRoute;
+
+    public void SetPlannedTaxiRoute(IReadOnlyList<Vector2Int> route)
+    {
+        plannedTaxiRoute.Clear();
+
+        if (route == null)
+            return;
+
+        for (int i = 0; i < route.Count; i++)
+            plannedTaxiRoute.Add(route[i]);
+    }
+
+    public void ClearPlannedTaxiRoute()
+    {
+        plannedTaxiRoute.Clear();
+    }
+
+    private void OnEnable()
+    {
+        if (!activeAircraft.Contains(this))
+            activeAircraft.Add(this);
+    }
     [Header("Traffic Layer")]
     [SerializeField] private LayerMask trafficLayer;
 
@@ -414,6 +446,9 @@ public class AircraftTaxiTrafficFollowing : MonoBehaviour
     {
         if (ATCGroundTrafficManager.Instance != null)
             ATCGroundTrafficManager.Instance.ReleaseAircraft(this);
+
+        plannedTaxiRoute.Clear();
+        activeAircraft.Remove(this);
     }
 
     private void OnDrawGizmosSelected()
