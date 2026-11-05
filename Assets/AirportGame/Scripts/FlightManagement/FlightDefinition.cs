@@ -57,10 +57,7 @@ public class FlightDefinition
     {
         FlightNumber = flightNumber;
         AirlineName = airlineName;
-        TurnaroundMinutes =
-            operationType == FlightOperationType.CargoOnly
-                ? 60
-                : turnaroundMinutes;
+        TurnaroundMinutes = 60;
         RequiredGateSize = requiredGateSize;
         TimeWindow = timeWindow;
         StripColor = stripColor;
