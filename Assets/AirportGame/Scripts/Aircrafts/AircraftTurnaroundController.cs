@@ -12,8 +12,19 @@ public enum AircraftTurnaroundTaskStatus
 
 public class AircraftTurnaroundController : MonoBehaviour
 {
+    private interface ITaskProgress
+    {
+        float DurationMinutes { get; }
+        float DurationSeconds { get; }
+        AircraftTurnaroundTaskStatus Status { get; }
+        void ResetTask();
+        void StartTask();
+        bool Advance(float deltaGameSeconds);
+        void MarkCompleted();
+    }
+
     [Serializable]
-    private sealed class TaskProgress
+    private sealed class TaskProgress : ITaskProgress
     {
         [SerializeField, Min(0f)]
         private float durationMinutes;
@@ -30,6 +41,63 @@ public class AircraftTurnaroundController : MonoBehaviour
         public AircraftTurnaroundTaskStatus Status => status;
 
         public TaskProgress(float defaultDurationMinutes)
+        {
+            durationMinutes = defaultDurationMinutes;
+        }
+
+        public void ResetTask()
+        {
+            status = AircraftTurnaroundTaskStatus.NotStarted;
+            elapsedGameSeconds = 0f;
+        }
+
+        public void StartTask()
+        {
+            if (status != AircraftTurnaroundTaskStatus.NotStarted)
+                return;
+
+            status = AircraftTurnaroundTaskStatus.InProgress;
+            elapsedGameSeconds = 0f;
+        }
+
+        public bool Advance(float deltaGameSeconds)
+        {
+            if (status != AircraftTurnaroundTaskStatus.InProgress)
+                return false;
+
+            elapsedGameSeconds = Mathf.Min(
+                elapsedGameSeconds + deltaGameSeconds,
+                DurationSeconds
+            );
+
+            return elapsedGameSeconds >= DurationSeconds;
+        }
+
+        public void MarkCompleted()
+        {
+            status = AircraftTurnaroundTaskStatus.Completed;
+            elapsedGameSeconds = DurationSeconds;
+        }
+    }
+
+    [Serializable]
+    private sealed class BaggageUnloadingProgress : ITaskProgress
+    {
+        [SerializeField, HideInInspector, Min(0f)]
+        private float durationMinutes = 10f;
+
+        [SerializeField]
+        private AircraftTurnaroundTaskStatus status =
+            AircraftTurnaroundTaskStatus.NotStarted;
+
+        [SerializeField, HideInInspector, Min(0f)]
+        private float elapsedGameSeconds;
+
+        public float DurationMinutes => Mathf.Max(0f, durationMinutes);
+        public float DurationSeconds => DurationMinutes * 60f;
+        public AircraftTurnaroundTaskStatus Status => status;
+
+        public BaggageUnloadingProgress(float defaultDurationMinutes)
         {
             durationMinutes = defaultDurationMinutes;
         }
@@ -93,7 +161,8 @@ public class AircraftTurnaroundController : MonoBehaviour
     private TaskProgress deboarding = new TaskProgress(10f);
 
     [SerializeField]
-    private TaskProgress baggageUnloading = new TaskProgress(10f);
+    private BaggageUnloadingProgress baggageUnloading =
+        new BaggageUnloadingProgress(10f);
 
     [SerializeField]
     private TaskProgress cleaning = new TaskProgress(10f);
@@ -579,7 +648,7 @@ public class AircraftTurnaroundController : MonoBehaviour
 
     private void AdvanceTask(TaskType taskType, float deltaGameSeconds)
     {
-        TaskProgress task = GetTask(taskType);
+        ITaskProgress task = GetTask(taskType);
 
         if (task.Advance(deltaGameSeconds))
             CompleteTask(taskType);
@@ -638,7 +707,7 @@ public class AircraftTurnaroundController : MonoBehaviour
             readyToDepart = AllTasksCompleted();
     }
 
-    private TaskProgress GetTask(TaskType taskType)
+    private ITaskProgress GetTask(TaskType taskType)
     {
         switch (taskType)
         {
