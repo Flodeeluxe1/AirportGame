@@ -124,6 +124,9 @@ public class CargoTugLotSpawner : MonoBehaviour
         trailerFollower =
             spawnedCargoTug.GetComponent<GuidedCargoTrailerFollower>();
 
+        if (trailerFollower != null)
+            trailerFollower.SetTrailers(new Transform[0]);
+
         if (tugParking != null)
         {
             tugController.SetHomeSpawnPoint(
