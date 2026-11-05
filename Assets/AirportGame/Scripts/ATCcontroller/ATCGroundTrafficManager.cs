@@ -1512,7 +1512,7 @@ public class ATCGroundTrafficManager : MonoBehaviour
             decision =
                 "Holding before route conflict with " +
                 conflictingAircraft.name;
-            return IsAlreadyPastRouteHoldingPoint(
+            return !HasReachedRouteHoldingPoint(
                 ownRoute,
                 ownStartIndex,
                 conflictOwnIndex);
@@ -1536,7 +1536,7 @@ public class ATCGroundTrafficManager : MonoBehaviour
         if (ownHasPriority)
             return true;
 
-        if (IsAlreadyPastRouteHoldingPoint(
+        if (!HasReachedRouteHoldingPoint(
                 ownRoute,
                 ownStartIndex,
                 conflictOwnIndex))
@@ -1553,7 +1553,7 @@ public class ATCGroundTrafficManager : MonoBehaviour
         return false;
     }
 
-    private bool IsAlreadyPastRouteHoldingPoint(
+    private bool HasReachedRouteHoldingPoint(
         IReadOnlyList<Vector2Int> route,
         int currentIndex,
         int conflictIndex)
@@ -1569,7 +1569,7 @@ public class ATCGroundTrafficManager : MonoBehaviour
             }
         }
 
-        return currentIndex > holdingIndex;
+        return currentIndex >= holdingIndex;
     }
 
     private int GetCenterlineConnectionCount(Vector2Int cell)
