@@ -40,6 +40,12 @@ public class AirportSaveData
         if (placedBuildings == null)
             placedBuildings = new List<PlacedBuildingSaveData>();
 
+        foreach (PlacedBuildingSaveData building in placedBuildings)
+        {
+            if (building != null && building.purchasedCargoTrailerSlots == null)
+                building.purchasedCargoTrailerSlots = new List<int>();
+        }
+
         if (roadCells == null)
             roadCells = new List<RoadCellSaveData>();
 
@@ -98,6 +104,9 @@ public class PlacedBuildingSaveData
     // the prefab's existing default designation.
     public bool hasFlightSchoolParkingDesignation;
     public bool reservedForFlightSchool;
+
+    // Purchased cargo trailer parking slots for CargoTugLotSpawner.
+    public List<int> purchasedCargoTrailerSlots = new List<int>();
 }
 
 [Serializable]
