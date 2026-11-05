@@ -328,14 +328,11 @@ public class ATCGroundTrafficManager : MonoBehaviour
 
         EnsureControlPoints();
 
-        if (!IsNearTaxiwayCenterline(aircraft.transform.position))
-        {
-            ReleaseWaitingRequest(aircraft);
-            ReleaseWaitingSectionRequest(aircraft);
-            decision = "Outside taxiway centerline";
-            LogTaxiClearanceDecision(aircraft, true, decision);
-            return true;
-        }
+        // Route conflicts are independent of the aircraft's exact position
+        // relative to the taxiway centerline. Check them before allowing the
+        // centerline fallback to grant clearance.
+        bool isNearTaxiwayCenterline =
+            IsNearTaxiwayCenterline(aircraft.transform.position);
 
         UpdateExistingSectionReservations(aircraft);
 
@@ -349,6 +346,17 @@ public class ATCGroundTrafficManager : MonoBehaviour
 
             LogTaxiClearanceDecision(aircraft, false, decision);
             return false;
+        }
+
+        // Physical section and intersection reservations still require the
+        // aircraft to be near the taxiway centerline.
+        if (!isNearTaxiwayCenterline)
+        {
+            ReleaseWaitingRequest(aircraft);
+            ReleaseWaitingSectionRequest(aircraft);
+            decision = "Outside taxiway centerline";
+            LogTaxiClearanceDecision(aircraft, true, decision);
+            return true;
         }
 
         if (TryFindNextTaxiwaySection(
@@ -1497,9 +1505,6 @@ public class ATCGroundTrafficManager : MonoBehaviour
             {
                 continue;
             }
-
-            if (!IsNearTaxiwayCenterline(other.transform.position))
-                continue;
 
             IReadOnlyList<Vector2Int> otherRoute = other.PlannedTaxiRoute;
 
