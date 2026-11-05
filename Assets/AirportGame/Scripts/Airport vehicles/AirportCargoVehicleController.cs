@@ -34,10 +34,6 @@ public class AirportCargoVehicleController : MonoBehaviour
     [SerializeField] private bool testCollectionOnArrival = true;
     [SerializeField] private string testFlightOperationId = "0:AB109";
 
-    [Header("Cargo Capacity")]
-    [Min(1)]
-    [SerializeField] private int maximumCargoCapacity = 10;
-
     [Header("Runtime Status")]
     [SerializeField] private int carriedPackageCount;
 
@@ -60,10 +56,11 @@ public class AirportCargoVehicleController : MonoBehaviour
 
     public int CarriedPackageCount => carriedPackages.Count;
 
-    public int MaximumCargoCapacity => maximumCargoCapacity;
+    public int MaximumCargoCapacity =>
+        trailerFollower != null ? trailerFollower.TotalCargoCapacity : 0;
 
     public int AvailableCargoCapacity =>
-        Mathf.Max(0, maximumCargoCapacity - carriedPackages.Count);
+        Mathf.Max(0, MaximumCargoCapacity - carriedPackages.Count);
 
     public IReadOnlyList<CargoPackage> CarriedPackages =>
         carriedPackages;
@@ -90,8 +87,6 @@ public class AirportCargoVehicleController : MonoBehaviour
 
         if (trailerFollower == null)
             trailerFollower = GetComponent<GuidedCargoTrailerFollower>();
-
-        maximumCargoCapacity = Mathf.Max(1, maximumCargoCapacity);
 
         RefreshCarriedPackageCount();
     }
