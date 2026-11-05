@@ -35,10 +35,6 @@ public class AirportBaggageDispatcher : MonoBehaviour
         public AirportCargoVehicleController AssignedVehicle;
     }
 
-    [Header("Dispatcher Settings")]
-    [Min(1)]
-    [SerializeField] private int defaultVehicleCapacity = 10;
-
     [Header("Runtime Status")]
     [SerializeField] private int queuedRequestCount;
     [SerializeField] private int activeRequestCount;
@@ -189,10 +185,7 @@ public class AirportBaggageDispatcher : MonoBehaviour
             Aircraft = aircraft,
             FlightIdentity = identity,
             ActualGate = actualGate,
-            RequestedPackageCount = Mathf.Min(
-                packageCount,
-                Mathf.Max(1, defaultVehicleCapacity)
-            ),
+            RequestedPackageCount = Mathf.Max(0, packageCount),
             Status = RequestStatus.Queued
         };
 
@@ -484,10 +477,7 @@ public class AirportBaggageDispatcher : MonoBehaviour
             Aircraft = incomingRequest.Aircraft,
             FlightIdentity = incomingRequest.FlightIdentity,
             ActualGate = incomingRequest.ActualGate,
-            RequestedPackageCount = Mathf.Min(
-                manifest.RemainingOutgoingBaggage,
-                Mathf.Max(1, defaultVehicleCapacity)
-            ),
+            RequestedPackageCount = manifest.RemainingOutgoingBaggage,
             Status = RequestStatus.AtPickup,
             AssignedVehicle = vehicle
         };
