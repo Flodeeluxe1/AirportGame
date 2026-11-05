@@ -957,6 +957,7 @@ public class AircraftTrainingLandingTaxiController : MonoBehaviour
 
         if (trafficFollowing != null)
         {
+            trafficFollowing.SetPlannedTaxiRoute(route);
             speedKnots =
                 trafficFollowing.GetTrafficFollowingSpeed(taxiSpeedKnots);
         }
