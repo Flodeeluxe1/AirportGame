@@ -9,13 +9,13 @@ public class ATCGroundTrafficManager : MonoBehaviour
     {
         public bool IsManual;
         public Vector2Int Cell;
-        public int InstanceId;
+        public EntityId EntityId;
 
         public bool Equals(ControlPointKey other)
         {
             return IsManual == other.IsManual &&
                    Cell == other.Cell &&
-                   InstanceId == other.InstanceId;
+                   EntityId == other.EntityId;
         }
 
         public override bool Equals(object obj)
@@ -28,7 +28,7 @@ public class ATCGroundTrafficManager : MonoBehaviour
             unchecked
             {
                 int hash = Cell.GetHashCode();
-                hash = (hash * 397) ^ InstanceId;
+                hash = (hash * 397) ^ EntityId.GetHashCode();
                 hash = (hash * 397) ^ IsManual.GetHashCode();
                 return hash;
             }
@@ -311,7 +311,7 @@ public class ATCGroundTrafficManager : MonoBehaviour
             {
                 IsManual = false,
                 Cell = cell,
-                InstanceId = 0
+                EntityId = default
             };
 
             ControlPoint point = new ControlPoint
@@ -346,7 +346,7 @@ public class ATCGroundTrafficManager : MonoBehaviour
             {
                 IsManual = true,
                 Cell = cell,
-                InstanceId = holdingPoint.GetInstanceID()
+                EntityId = holdingPoint.GetEntityId()
             };
 
             float entryRadius =
@@ -458,7 +458,7 @@ public class ATCGroundTrafficManager : MonoBehaviour
                 Vector2Int candidate =
                     centerCell + new Vector2Int(x, z);
 
-                if (!taxiwayNetwork.TaxiwayCenterlineCells.Contains(candidate))
+                if (!taxiwayNetwork.IsTaxiwayCenterlineCell(candidate))
                     continue;
 
                 Vector3 center =
