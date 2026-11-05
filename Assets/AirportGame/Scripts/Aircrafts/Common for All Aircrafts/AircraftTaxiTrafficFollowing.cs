@@ -18,6 +18,42 @@ public class AircraftTaxiTrafficFollowing : MonoBehaviour
         activeAircraft.Clear();
     }
 
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+    private static void RebuildActiveAircraftRegistry()
+    {
+        activeAircraft.Clear();
+
+        AircraftTaxiTrafficFollowing[] foundAircraft =
+            FindObjectsByType<AircraftTaxiTrafficFollowing>(
+                FindObjectsSortMode.None);
+
+        for (int i = 0; i < foundAircraft.Length; i++)
+            RegisterActiveAircraft(foundAircraft[i]);
+    }
+
+    public static void RegisterActiveAircraft(
+        AircraftTaxiTrafficFollowing aircraft)
+    {
+        if (aircraft == null || !aircraft.isActiveAndEnabled)
+            return;
+
+        for (int i = activeAircraft.Count - 1; i >= 0; i--)
+        {
+            if (activeAircraft[i] == null)
+                activeAircraft.RemoveAt(i);
+        }
+
+        if (!activeAircraft.Contains(aircraft))
+            activeAircraft.Add(aircraft);
+    }
+
+    public static void UnregisterActiveAircraft(
+        AircraftTaxiTrafficFollowing aircraft)
+    {
+        if (aircraft != null)
+            activeAircraft.Remove(aircraft);
+    }
+
     public IReadOnlyList<Vector2Int> PlannedTaxiRoute => plannedTaxiRoute;
 
     public void SetPlannedTaxiRoute(IReadOnlyList<Vector2Int> route)
@@ -38,8 +74,7 @@ public class AircraftTaxiTrafficFollowing : MonoBehaviour
 
     private void OnEnable()
     {
-        if (!activeAircraft.Contains(this))
-            activeAircraft.Add(this);
+        RegisterActiveAircraft(this);
     }
     [Header("Traffic Layer")]
     [SerializeField] private LayerMask trafficLayer;
@@ -454,7 +489,7 @@ public class AircraftTaxiTrafficFollowing : MonoBehaviour
             ATCGroundTrafficManager.Instance.ReleaseAircraft(this);
 
         plannedTaxiRoute.Clear();
-        activeAircraft.Remove(this);
+        UnregisterActiveAircraft(this);
     }
 
     private void OnDrawGizmosSelected()
