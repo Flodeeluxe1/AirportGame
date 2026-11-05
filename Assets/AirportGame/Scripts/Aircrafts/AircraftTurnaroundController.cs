@@ -414,7 +414,7 @@ public class AircraftTurnaroundController : MonoBehaviour
         turnaroundStarted = true;
 
         Debug.Log(
-            $"{name}: Turnaround started. Deboarding and baggage unloading begin.",
+            $"{name}: Turnaround started.",
             this
         );
 
