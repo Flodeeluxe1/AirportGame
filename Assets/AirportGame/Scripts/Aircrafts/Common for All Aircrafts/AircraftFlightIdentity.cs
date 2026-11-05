@@ -170,4 +170,17 @@ public class AircraftFlightIdentity : MonoBehaviour
 
         return $"{minutes / 60:00}:{minutes % 60:00}";
     }
+
+    private void OnDestroy()
+    {
+        if (!Application.isPlaying ||
+            !IsInitialized ||
+            GetComponent<AircraftCargoPaxTakeoffController>() == null)
+        {
+            return;
+        }
+
+        IncomingCargoCollectionSpawner.QueueOutgoingRecoveryForFlight(
+            OperationId);
+    }
 }
