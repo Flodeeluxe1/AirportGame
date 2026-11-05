@@ -1406,7 +1406,6 @@ public class ATCGroundTrafficManager : MonoBehaviour
         }
 
         int conflictOwnIndex = -1;
-        int conflictOtherIndex = -1;
         float ownConflictDistance = float.MaxValue;
         float otherConflictDistance = float.MaxValue;
         AircraftTaxiTrafficFollowing conflictingAircraft = null;
@@ -1451,18 +1450,27 @@ public class ATCGroundTrafficManager : MonoBehaviour
                 continue;
             }
 
+            Dictionary<Vector2Int, int> otherRouteIndices =
+                new Dictionary<Vector2Int, int>();
+
+            for (int i = otherStartIndex; i < otherRoute.Count; i++)
+            {
+                if (!otherRouteIndices.ContainsKey(otherRoute[i]))
+                    otherRouteIndices.Add(otherRoute[i], i);
+            }
+
             for (int ownIndex = ownStartIndex;
                  ownIndex < ownRoute.Count;
                  ownIndex++)
             {
                 Vector2Int ownCell = ownRoute[ownIndex];
 
-                for (int otherIndex = otherStartIndex;
-                     otherIndex < otherRoute.Count;
-                     otherIndex++)
+                if (!otherRouteIndices.TryGetValue(
+                        ownCell,
+                        out int otherIndex))
                 {
-                    if (otherRoute[otherIndex] != ownCell)
-                        continue;
+                    continue;
+                }
 
                     Vector3 ownDirection =
                         GetRouteDirection(ownRoute, ownIndex);
@@ -1483,7 +1491,6 @@ public class ATCGroundTrafficManager : MonoBehaviour
                         continue;
 
                     conflictOwnIndex = ownIndex;
-                    conflictOtherIndex = otherIndex;
                     ownConflictDistance = ownDistance;
                     otherConflictDistance = GetRouteDistance(
                         otherRoute,
