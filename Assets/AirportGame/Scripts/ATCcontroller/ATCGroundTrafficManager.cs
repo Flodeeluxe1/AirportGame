@@ -329,6 +329,11 @@ public class ATCGroundTrafficManager : MonoBehaviour
         if (aircraft == null)
             return true;
 
+        // Defensively register the requester before any route-conflict scan.
+        // This also covers play sessions where Unity skips scene OnEnable
+        // callbacks after static state has been reset.
+        AircraftTaxiTrafficFollowing.RegisterActiveAircraft(aircraft);
+
         ResolveReferences();
 
         if (gridManager == null || taxiwayNetwork == null)
@@ -422,6 +427,9 @@ public class ATCGroundTrafficManager : MonoBehaviour
     {
         IReadOnlyList<AircraftTaxiTrafficFollowing> registered =
             AircraftTaxiTrafficFollowing.ActiveAircraft;
+
+        Debug.Log(
+            "[ATC REGISTRY] Active registered aircraft: " + registered.Count);
 
         HashSet<string> currentAircraftIds = new HashSet<string>();
         HashSet<string> currentPairIds = new HashSet<string>();
