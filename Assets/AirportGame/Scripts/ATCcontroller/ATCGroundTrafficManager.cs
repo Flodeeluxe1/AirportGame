@@ -2003,22 +2003,29 @@ public class ATCGroundTrafficManager : MonoBehaviour
             gridManager.GridToWorldCenter(route[holdingIndex]);
         holdingLabel = "taxiway cell " + route[holdingIndex];
 
-        // Find the first holding point ahead of the aircraft, not the
-        // junction immediately before the eventual conflict.
-        for (int i = currentIndex; i < conflictIndex; i++)
+        // Anchor the holding target to the last junction before the
+        // conflicting route cell, even if the aircraft has passed the
+        // target index already. This lets ATC detect the conflict early
+        // and stop the aircraft before it enters the junction.
+        for (int i = conflictIndex - 1; i >= 0; i--)
         {
             Vector2Int cell = route[i];
 
-            if (GetCenterlineConnectionCount(cell) >= 3)
-            {
-                // Stop fifteen route cells before entering the junction.
-                holdingIndex = Mathf.Max(currentIndex, i - 15);
-                holdingPosition =
-                    gridManager.GridToWorldCenter(route[holdingIndex]);
-                holdingLabel = "two cells before junction " + cell;
-                return;
-            }
+            if (GetCenterlineConnectionCount(cell) < 3)
+                continue;
 
+            holdingIndex = Mathf.Max(0, i - 15);
+            holdingPosition =
+                gridManager.GridToWorldCenter(route[holdingIndex]);
+            holdingLabel = "15 cells before junction " + cell;
+            return;
+        }
+
+        // If there is no automatic junction before the conflict, retain
+        // the existing manual holding-point behavior.
+        for (int i = currentIndex; i < conflictIndex; i++)
+        {
+            Vector2Int cell = route[i];
             Vector3 cellPosition = gridManager.GridToWorldCenter(cell);
 
             for (int p = 0; p < controlPoints.Count; p++)
