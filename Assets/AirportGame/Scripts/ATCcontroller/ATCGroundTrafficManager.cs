@@ -1000,6 +1000,27 @@ public class ATCGroundTrafficManager : MonoBehaviour
         else
             pointColor = new Color(0.2f, 0.85f, 0.35f, 1f);
 
+#if UNITY_EDITOR
+        UnityEngine.Rendering.CompareFunction previousZTest =
+            UnityEditor.Handles.zTest;
+        UnityEditor.Handles.zTest =
+            UnityEngine.Rendering.CompareFunction.Always;
+
+        if (showControlPoints)
+        {
+            UnityEditor.Handles.color = pointColor;
+            Vector3 discPosition = point.Position + Vector3.up * 0.35f;
+            UnityEditor.Handles.DrawSolidDisc(discPosition, Vector3.up, 0.32f);
+            UnityEditor.Handles.DrawWireDisc(
+                discPosition, Vector3.up, Mathf.Max(0.35f, point.EntryRadius));
+            UnityEditor.Handles.color =
+                new Color(pointColor.r, pointColor.g, pointColor.b, 0.65f);
+            UnityEditor.Handles.DrawWireDisc(
+                discPosition, Vector3.up,
+                Mathf.Max(point.EntryRadius + 0.1f, point.ClearRadius));
+        }
+#endif
+
         if (showControlPoints)
         {
             Gizmos.color = pointColor;
@@ -1035,12 +1056,9 @@ public class ATCGroundTrafficManager : MonoBehaviour
                 Vector3 aircraftPosition =
                     owner.Aircraft.transform.position + Vector3.up * 0.3f;
 
-                Gizmos.color = pointColor;
-                Gizmos.DrawLine(aircraftPosition, point.Position);
-                DrawDirectionArrow(
-                    aircraftPosition,
-                    owner.TravelDirection,
-                    pointColor);
+                DrawDebugConnection(
+                    aircraftPosition, point.Position,
+                    owner.TravelDirection, pointColor);
 
                 label.Append("\nGRANTED: ")
                     .Append(owner.Aircraft.name)
@@ -1062,12 +1080,10 @@ public class ATCGroundTrafficManager : MonoBehaviour
                 Vector3 aircraftPosition =
                     waiter.Aircraft.transform.position + Vector3.up * 0.3f;
 
-                Gizmos.color = new Color(1f, 0.2f, 0.15f, 1f);
-                Gizmos.DrawLine(aircraftPosition, point.Position);
-                DrawDirectionArrow(
-                    aircraftPosition,
-                    waiter.TravelDirection,
-                    Gizmos.color);
+                Color waitingColor = new Color(1f, 0.2f, 0.15f, 1f);
+                DrawDebugConnection(
+                    aircraftPosition, point.Position,
+                    waiter.TravelDirection, waitingColor);
 
                 float waitSeconds =
                     Mathf.Max(0f, Time.unscaledTime - waiter.RequestedAt);
@@ -1087,6 +1103,40 @@ public class ATCGroundTrafficManager : MonoBehaviour
         {
             UnityEditor.Handles.color = pointColor;
             UnityEditor.Handles.Label(labelPosition, label.ToString());
+        }
+
+        UnityEditor.Handles.zTest = previousZTest;
+#endif
+    }
+
+    private void DrawDebugConnection(
+        Vector3 aircraftPosition,
+        Vector3 controlPointPosition,
+        Vector3 direction,
+        Color color)
+    {
+        Gizmos.color = color;
+        Gizmos.DrawLine(aircraftPosition, controlPointPosition);
+        DrawDirectionArrow(aircraftPosition, direction, color);
+
+#if UNITY_EDITOR
+        UnityEditor.Handles.color = color;
+        UnityEditor.Handles.DrawAAPolyLine(4f, aircraftPosition, controlPointPosition);
+
+        direction.y = 0f;
+        if (direction.sqrMagnitude > 0.0001f)
+        {
+            direction.Normalize();
+            Vector3 end = aircraftPosition + direction * directionArrowLength;
+            Vector3 side = Vector3.Cross(Vector3.up, direction).normalized;
+            float headLength = directionArrowLength * 0.25f;
+            float headWidth = headLength * 0.55f;
+            UnityEditor.Handles.DrawAAPolyLine(
+                4f, end,
+                end - direction * headLength + side * headWidth);
+            UnityEditor.Handles.DrawAAPolyLine(
+                4f, end,
+                end - direction * headLength - side * headWidth);
         }
 #endif
     }
