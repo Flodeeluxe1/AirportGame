@@ -938,7 +938,7 @@ public class CargoDeliveryTruck : MonoBehaviour
 
         if (!cargoUnloaded)
         {
-            if (incomingCollectionMode)
+            if (incomingCollectionMode || outgoingRecoveryMode)
                 CollectIncomingCargoPackages();
             else
                 UnloadCargoBoxes();
