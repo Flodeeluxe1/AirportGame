@@ -178,6 +178,9 @@ public class ATCGroundTrafficManager : MonoBehaviour
     [Min(0.5f)]
     [SerializeField] private float intersectionClearRadiusCells = 2.5f;
 
+    [Header("ATC Diagnostics")]
+    [SerializeField] private bool logTaxiClearanceChanges;
+
     [Header("Reservation Cleanup")]
     [Min(0.25f)]
     [SerializeField] private float staleReservationTimeout = 3f;
@@ -220,6 +223,9 @@ public class ATCGroundTrafficManager : MonoBehaviour
     private int cachedNetworkVersion = int.MinValue;
     private int cachedManualPointVersion = int.MinValue;
     private float nextCleanupTime;
+
+    private readonly Dictionary<AircraftTaxiTrafficFollowing, string> lastLoggedTaxiDecisions =
+        new Dictionary<AircraftTaxiTrafficFollowing, string>();
 
     public int DetectedIntersectionCount { get; private set; }
     public int ActiveReservationCount => activeReservations.Count;
@@ -316,6 +322,7 @@ public class ATCGroundTrafficManager : MonoBehaviour
         if (gridManager == null || taxiwayNetwork == null)
         {
             decision = "ATC references not ready";
+            LogTaxiClearanceDecision(aircraft, true, decision);
             return true;
         }
 
@@ -326,6 +333,7 @@ public class ATCGroundTrafficManager : MonoBehaviour
             ReleaseWaitingRequest(aircraft);
             ReleaseWaitingSectionRequest(aircraft);
             decision = "Outside taxiway centerline";
+            LogTaxiClearanceDecision(aircraft, true, decision);
             return true;
         }
 
@@ -339,6 +347,7 @@ public class ATCGroundTrafficManager : MonoBehaviour
                 ReleaseAllSectionReservations(aircraft);
             }
 
+            LogTaxiClearanceDecision(aircraft, false, decision);
             return false;
         }
 
@@ -353,6 +362,7 @@ public class ATCGroundTrafficManager : MonoBehaviour
                     sectionDirection,
                     out decision))
             {
+                LogTaxiClearanceDecision(aircraft, false, decision);
                 return false;
             }
         }
@@ -364,6 +374,7 @@ public class ATCGroundTrafficManager : MonoBehaviour
         if (UpdateExistingReservation(aircraft))
         {
             decision = "Cleared through reserved intersection";
+            LogTaxiClearanceDecision(aircraft, true, decision);
             return true;
         }
 
@@ -373,6 +384,7 @@ public class ATCGroundTrafficManager : MonoBehaviour
         {
             ReleaseWaitingRequest(aircraft);
             decision = "No conflict point ahead";
+            LogTaxiClearanceDecision(aircraft, true, decision);
             return true;
         }
 
@@ -382,6 +394,7 @@ public class ATCGroundTrafficManager : MonoBehaviour
             aircraft.transform.forward,
             out decision);
 
+        LogTaxiClearanceDecision(aircraft, granted, decision);
         return granted;
     }
 
@@ -389,6 +402,58 @@ public class ATCGroundTrafficManager : MonoBehaviour
     /// Releases any current or queued clearance when an aircraft stops
     /// taxiing or its traffic-following component is disabled.
     /// </summary>
+    private void LogTaxiClearanceDecision(
+        AircraftTaxiTrafficFollowing aircraft,
+        bool cleared,
+        string decision)
+    {
+        if (!logTaxiClearanceChanges || aircraft == null)
+            return;
+
+        string result = cleared ? "CLEAR" : "HOLD";
+        string signature = result + ": " + decision;
+
+        if (lastLoggedTaxiDecisions.TryGetValue(aircraft, out string previous) &&
+            previous == signature)
+            return;
+
+        lastLoggedTaxiDecisions[aircraft] = signature;
+
+        string message = "[ATC ROUTE DEBUG] " + aircraft.name +
+            " | " + result +
+            " | " + decision +
+            " | Position: " + aircraft.transform.position +
+            " | Route: " + FormatTaxiRoute(aircraft.PlannedTaxiRoute);
+
+        IReadOnlyList<AircraftTaxiTrafficFollowing> allAircraft =
+            AircraftTaxiTrafficFollowing.ActiveAircraft;
+
+        for (int i = 0; i < allAircraft.Count; i++)
+        {
+            AircraftTaxiTrafficFollowing other = allAircraft[i];
+            if (other == null || other == aircraft)
+                continue;
+
+            AircraftStatus status = other.GetComponent<AircraftStatus>();
+            if (status == null || status.IsParked || !status.IsTaxiing)
+                continue;
+
+            message += "\\n  Traffic: " + other.name +
+                " | Position: " + other.transform.position +
+                " | Route: " + FormatTaxiRoute(other.PlannedTaxiRoute);
+        }
+
+        Debug.Log(message, aircraft);
+    }
+
+    private static string FormatTaxiRoute(IReadOnlyList<Vector2Int> route)
+    {
+        if (route == null || route.Count == 0)
+            return "<no planned route>";
+
+        return string.Join(" -> ", route);
+    }
+
     public void ReleaseAircraft(
         AircraftTaxiTrafficFollowing aircraft)
     {
@@ -1517,7 +1582,8 @@ public class ATCGroundTrafficManager : MonoBehaviour
         {
             decision =
                 "Holding before route conflict with " +
-                conflictingAircraft.name;
+                conflictingAircraft.name +
+                " at cell " + ownRoute[conflictOwnIndex];
             return !HasReachedRouteHoldingPoint(
                 ownRoute,
                 ownStartIndex,
@@ -1554,7 +1620,8 @@ public class ATCGroundTrafficManager : MonoBehaviour
 
         decision =
             "Holding at the preceding taxiway junction for route conflict with " +
-            conflictingAircraft.name;
+            conflictingAircraft.name +
+            " at cell " + ownRoute[conflictOwnIndex];
 
         return false;
     }
