@@ -2006,11 +2006,20 @@ public class ATCGroundTrafficManager : MonoBehaviour
         // The conflict cell can itself be the junction (for example,
         // (80,66)). Include it when searching backwards so the holding
         // target is placed 15 route cells before that junction.
-        for (int i = conflictIndex; i >= 0; i--)
+        for (int i = conflictIndex; i >= 1 && i < route.Count - 1; i--)
         {
             Vector2Int cell = route[i];
 
-            if (GetCenterlineConnectionCount(cell) < 3)
+            Vector2Int incoming = cell - route[i - 1];
+            Vector2Int outgoing = route[i + 1] - cell;
+
+            bool routeChangesDirection =
+                incoming != outgoing;
+
+            bool isJunction =
+                GetCenterlineConnectionCount(cell) >= 3;
+
+            if (!isJunction && !routeChangesDirection)
                 continue;
 
             holdingIndex = Mathf.Max(0, i - 15);
