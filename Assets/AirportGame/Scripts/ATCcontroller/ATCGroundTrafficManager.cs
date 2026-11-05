@@ -676,6 +676,11 @@ public class ATCGroundTrafficManager : MonoBehaviour
                     section.Cells[0],
                     section.Cells[section.Cells.Count - 1]);
 
+                // Keep section ordering stable so the direction token
+                // remains consistent across rebuilds.
+                if (section.Cells[0] != section.Key.Start)
+                    section.Cells.Reverse();
+
                 if (!validKeys.Add(section.Key))
                     continue;
 
@@ -827,8 +832,11 @@ public class ATCGroundTrafficManager : MonoBehaviour
 
                 bestScore = score;
                 selectedState = state;
+                // Section direction is represented along its stable
+                // cell ordering, not by the local tangent. This allows
+                // same-direction aircraft to share curved sections.
                 travelDirection =
-                    alignment >= 0f ? tangent : -tangent;
+                    alignment >= 0f ? Vector3.forward : Vector3.back;
             }
         }
 
