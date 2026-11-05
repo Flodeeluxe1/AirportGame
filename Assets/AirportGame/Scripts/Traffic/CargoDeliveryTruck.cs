@@ -264,6 +264,7 @@ public class CargoDeliveryTruck : MonoBehaviour
     private string deliveryFlightNumber = string.Empty;
 
     private bool incomingCollectionMode;
+    private bool outgoingRecoveryMode;
     private CargoZone incomingCollectionZone;
 
     private readonly List<CargoPackage> collectedIncomingPackages =
@@ -309,6 +310,35 @@ public class CargoDeliveryTruck : MonoBehaviour
             $"Route received from spawner: {startCell} -> {exitCell}. " +
             $"Flight: {deliveryFlightNumber}, " +
             $"Operation: {deliveryOperationId}";
+    }
+
+    public bool InitializeOutgoingRecoveryRoute(
+        Vector2Int newStartCell,
+        Vector2Int newExitCell,
+        CargoZone zone,
+        string operationId)
+    {
+        if (zone == null ||
+            string.IsNullOrWhiteSpace(operationId) ||
+            ActiveIncomingCollectionZones.Contains(zone) ||
+            !zone.HasAvailablePackages(CargoDirection.Outgoing, operationId))
+        {
+            return false;
+        }
+
+        roadModuleSize = Mathf.Max(1, roadModuleSize);
+        startCell = GetRoadModuleAnchor(newStartCell);
+        exitCell = GetRoadModuleAnchor(newExitCell);
+        outgoingRecoveryMode = true;
+        incomingCollectionZone = zone;
+        deliveryOperationId = operationId;
+        deliveryFlightNumber = "Undelivered cargo recovery";
+        routeInitializedBySpawner = true;
+        ActiveIncomingCollectionZones.Add(zone);
+        debugMessage =
+            $"Outgoing cargo recovery route: {startCell} -> {exitCell}. " +
+            $"Zone: {zone.name}, Operation: {operationId}";
+        return true;
     }
 
     public bool InitializeIncomingCollectionRoute(
@@ -1014,9 +1044,14 @@ public class CargoDeliveryTruck : MonoBehaviour
         if (reservedCargoZoneComponent == null)
             return;
 
+        CargoDirection collectionDirection = outgoingRecoveryMode
+            ? CargoDirection.Outgoing
+            : CargoDirection.Incoming;
+
         List<CargoPackage> packages =
             reservedCargoZoneComponent.GetAvailablePackages(
-                CargoDirection.Incoming);
+                collectionDirection,
+                outgoingRecoveryMode ? deliveryOperationId : null);
 
         foreach (CargoPackage package in packages)
         {
@@ -2178,7 +2213,7 @@ public class CargoDeliveryTruck : MonoBehaviour
 
         if (state == TruckState.Arrived)
         {
-            if (incomingCollectionMode)
+            if (incomingCollectionMode || outgoingRecoveryMode)
                 ResolveCollectedIncomingPackages(true);
 
             ReleaseCargoZone();
@@ -2196,7 +2231,7 @@ public class CargoDeliveryTruck : MonoBehaviour
     {
         debugMessage = message;
 
-        if (incomingCollectionMode)
+        if (incomingCollectionMode || outgoingRecoveryMode)
             ResolveCollectedIncomingPackages(false);
 
         Debug.LogWarning(
@@ -2241,8 +2276,11 @@ public class CargoDeliveryTruck : MonoBehaviour
 
     private void OnDisable()
     {
-        if (incomingCollectionMode && collectedIncomingPackages.Count > 0)
+        if ((incomingCollectionMode || outgoingRecoveryMode) &&
+            collectedIncomingPackages.Count > 0)
+        {
             ResolveCollectedIncomingPackages(false);
+        }
 
         if (intersectionManager != null)
         {
