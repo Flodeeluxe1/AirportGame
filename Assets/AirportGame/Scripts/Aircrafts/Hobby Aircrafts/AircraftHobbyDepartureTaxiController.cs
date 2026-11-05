@@ -1216,6 +1216,10 @@ public class AircraftHobbyDepartureTaxiController : MonoBehaviour
 
         if (trafficFollowing != null)
         {
+            trafficFollowing.SetPlannedTaxiRoute(
+                currentState == DepartureState.TaxiingToRunwayEntry
+                    ? runwayJoinRoute
+                    : taxiRoute);
             speedKnots =
                 trafficFollowing.GetTrafficFollowingSpeed(taxiSpeedKnots);
         }
