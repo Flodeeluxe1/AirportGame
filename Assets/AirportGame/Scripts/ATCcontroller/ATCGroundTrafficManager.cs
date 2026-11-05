@@ -86,6 +86,17 @@ public class ATCGroundTrafficManager : MonoBehaviour
     [Min(0.5f)]
     [SerializeField] private float intersectionClearRadiusCells = 2.5f;
 
+    [Header("Scene View Debugging")]
+    [SerializeField] private bool showSceneDebug = true;
+    [SerializeField] private bool showControlPoints = true;
+    [SerializeField] private bool showReservations = true;
+    [SerializeField] private bool showWaitingQueues = true;
+    [SerializeField] private bool showDebugLabels = true;
+    [Min(0.1f)]
+    [SerializeField] private float debugLabelHeight = 2f;
+    [Min(0.1f)]
+    [SerializeField] private float directionArrowLength = 1.5f;
+
     [Header("Reservation Cleanup")]
     [Min(0.25f)]
     [SerializeField] private float staleReservationTimeout = 3f;
@@ -960,18 +971,153 @@ public class ATCGroundTrafficManager : MonoBehaviour
 
     private void OnDrawGizmosSelected()
     {
-        if (!Application.isPlaying)
+        if (!Application.isPlaying || !showSceneDebug)
             return;
 
-        foreach (ControlPoint point in controlPoints)
+        foreach (ControlPointState state in pointStates.Values)
         {
-            Gizmos.color = point.AllowSameDirectionTraffic
-                ? Color.yellow
-                : Color.cyan;
+            if (state == null || state.Point == null)
+                continue;
 
+            DrawControlPointDebug(state);
+        }
+    }
+
+    private void DrawControlPointDebug(ControlPointState state)
+    {
+        ControlPoint point = state.Point;
+        Vector3 labelPosition =
+            point.Position + Vector3.up * debugLabelHeight;
+
+        Color pointColor;
+
+        if (state.Owners.Count > 1)
+            pointColor = new Color(0.1f, 0.55f, 1f, 1f);
+        else if (state.Waiters.Count > 0)
+            pointColor = new Color(1f, 0.2f, 0.15f, 1f);
+        else if (state.Owners.Count > 0)
+            pointColor = new Color(1f, 0.7f, 0.1f, 1f);
+        else
+            pointColor = new Color(0.2f, 0.85f, 0.35f, 1f);
+
+        if (showControlPoints)
+        {
+            Gizmos.color = pointColor;
+            Gizmos.DrawSphere(
+                point.Position + Vector3.up * 0.12f,
+                0.22f);
             Gizmos.DrawWireSphere(
                 point.Position,
                 Mathf.Max(0.25f, point.EntryRadius));
+            Gizmos.DrawWireSphere(
+                point.Position,
+                Mathf.Max(point.EntryRadius + 0.1f, point.ClearRadius));
         }
+
+        System.Text.StringBuilder label =
+            new System.Text.StringBuilder();
+
+        label.Append(point.Label);
+
+        if (state.Owners.Count > 0)
+            label.Append("\nGranted: ").Append(state.Owners.Count);
+
+        if (state.Waiters.Count > 0)
+            label.Append("\nWaiting: ").Append(state.Waiters.Count);
+
+        if (showReservations)
+        {
+            foreach (AircraftReservation owner in state.Owners)
+            {
+                if (owner.Aircraft == null)
+                    continue;
+
+                Vector3 aircraftPosition =
+                    owner.Aircraft.transform.position + Vector3.up * 0.3f;
+
+                Gizmos.color = pointColor;
+                Gizmos.DrawLine(aircraftPosition, point.Position);
+                DrawDirectionArrow(
+                    aircraftPosition,
+                    owner.TravelDirection,
+                    pointColor);
+
+                label.Append("\nGRANTED: ")
+                    .Append(owner.Aircraft.name)
+                    .Append(owner.HasEntered ? " (inside)" : " (approaching)");
+            }
+        }
+
+        if (showWaitingQueues)
+        {
+            List<WaitRequest> orderedWaiters =
+                new List<WaitRequest>(state.Waiters);
+
+            orderedWaiters.Sort(
+                (a, b) => a.RequestedAt.CompareTo(b.RequestedAt));
+
+            for (int i = 0; i < orderedWaiters.Count; i++)
+            {
+                WaitRequest waiter = orderedWaiters[i];
+
+                if (waiter.Aircraft == null)
+                    continue;
+
+                Vector3 aircraftPosition =
+                    waiter.Aircraft.transform.position + Vector3.up * 0.3f;
+
+                Gizmos.color = new Color(1f, 0.2f, 0.15f, 1f);
+                Gizmos.DrawLine(aircraftPosition, point.Position);
+                DrawDirectionArrow(
+                    aircraftPosition,
+                    waiter.TravelDirection,
+                    Gizmos.color);
+
+                float waitSeconds =
+                    Mathf.Max(0f, Time.unscaledTime - waiter.RequestedAt);
+
+                label.Append("\n")
+                    .Append(i + 1)
+                    .Append(". WAIT: ")
+                    .Append(waiter.Aircraft.name)
+                    .Append(" (")
+                    .Append(waitSeconds.ToString("0.0"))
+                    .Append("s)");
+            }
+        }
+
+#if UNITY_EDITOR
+        if (showDebugLabels)
+        {
+            UnityEditor.Handles.color = pointColor;
+            UnityEditor.Handles.Label(labelPosition, label.ToString());
+        }
+#endif
     }
-}
+
+    private void DrawDirectionArrow(
+        Vector3 start,
+        Vector3 direction,
+        Color color)
+    {
+        direction.y = 0f;
+
+        if (direction.sqrMagnitude < 0.0001f)
+            return;
+
+        direction.Normalize();
+
+        Vector3 end = start + direction * directionArrowLength;
+        Vector3 side = Vector3.Cross(Vector3.up, direction).normalized;
+        float arrowHeadLength = directionArrowLength * 0.25f;
+        float arrowHeadWidth = arrowHeadLength * 0.55f;
+
+        Gizmos.color = color;
+        Gizmos.DrawLine(start, end);
+        Gizmos.DrawLine(
+            end,
+            end - direction * arrowHeadLength + side * arrowHeadWidth);
+        Gizmos.DrawLine(
+            end,
+            end - direction * arrowHeadLength - side * arrowHeadWidth);
+    }}
