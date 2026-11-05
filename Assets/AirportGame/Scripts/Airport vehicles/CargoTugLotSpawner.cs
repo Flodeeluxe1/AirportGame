@@ -1,4 +1,5 @@
 
+using System.Collections.Generic;
 using UnityEngine;
 
 [DisallowMultipleComponent]
@@ -48,6 +49,9 @@ public class CargoTugLotSpawner : MonoBehaviour
 
     private readonly GameObject[] purchasedTrailers =
         new GameObject[4];
+
+    private readonly List<int> restoredTrailerSlots =
+        new List<int>();
 
     private AirportEconomyManager economyManager;
 
@@ -139,6 +143,8 @@ public class CargoTugLotSpawner : MonoBehaviour
 
         economyManager =
             FindFirstObjectByType<AirportEconomyManager>();
+
+        SpawnRestoredTrailers();
 
         if (showDebugMessages)
         {
@@ -262,26 +268,8 @@ public class CargoTugLotSpawner : MonoBehaviour
             return false;
         }
 
-        Transform parkingPosition =
-            trailerParkingPositions[slotIndex];
-
-        Vector3 spawnPosition = parkingPosition.position;
-        spawnPosition.y = trailerSpawnHeight;
-
-        GameObject trailer = Instantiate(
-            cargoTrailerPrefab,
-            spawnPosition,
-            parkingPosition.rotation
-        );
-
-        trailer.name = "CargoTrailer_P" + (slotIndex + 1);
-
-        purchasedTrailers[slotIndex] = trailer;
-
-        // If the tug is already moving, add the newly purchased
-        // trailer to the existing trailer chain immediately.
-        if (tugController != null && tugController.IsMoving)
-            AttachPurchasedTrailers();
+        if (!SpawnTrailerInSlot(slotIndex))
+            return false;
 
         if (showDebugMessages)
         {
@@ -293,6 +281,89 @@ public class CargoTugLotSpawner : MonoBehaviour
         }
 
         return true;
+    }
+
+    public List<int> GetPurchasedTrailerSlotsForSave()
+    {
+        List<int> slots = new List<int>();
+
+        for (int i = 0; i < purchasedTrailers.Length; i++)
+        {
+            if (purchasedTrailers[i] != null)
+                slots.Add(i);
+        }
+
+        return slots;
+    }
+
+    public void RestorePurchasedTrailerSlots(List<int> slots)
+    {
+        restoredTrailerSlots.Clear();
+
+        if (slots == null)
+            return;
+
+        foreach (int slot in slots)
+        {
+            if (slot < 0 || slot >= purchasedTrailers.Length ||
+                restoredTrailerSlots.Contains(slot))
+            {
+                continue;
+            }
+
+            restoredTrailerSlots.Add(slot);
+        }
+    }
+
+    private void SpawnRestoredTrailers()
+    {
+        foreach (int slotIndex in restoredTrailerSlots)
+            SpawnTrailerInSlot(slotIndex);
+
+        restoredTrailerSlots.Clear();
+    }
+
+    private bool SpawnTrailerInSlot(int slotIndex)
+    {
+        if (slotIndex < 0 || slotIndex >= purchasedTrailers.Length ||
+            purchasedTrailers[slotIndex] != null ||
+            cargoTrailerPrefab == null ||
+            trailerParkingPositions == null ||
+            trailerParkingPositions[slotIndex] == null)
+        {
+            return false;
+        }
+
+        Transform parkingPosition = trailerParkingPositions[slotIndex];
+
+        Vector3 spawnPosition = parkingPosition.position;
+        spawnPosition.y = trailerSpawnHeight;
+
+        GameObject trailer = Instantiate(
+            cargoTrailerPrefab,
+            spawnPosition,
+            parkingPosition.rotation
+        );
+
+        trailer.name = "CargoTrailer_P" + (slotIndex + 1);
+        purchasedTrailers[slotIndex] = trailer;
+
+        if (tugController != null && tugController.IsMoving)
+            AttachPurchasedTrailers();
+
+        return true;
+    }
+
+    private void OnDestroy()
+    {
+        if (spawnedCargoTug != null)
+            Destroy(spawnedCargoTug);
+
+        for (int i = 0; i < purchasedTrailers.Length; i++)
+        {
+            if (purchasedTrailers[i] != null)
+                Destroy(purchasedTrailers[i]);
+        }
     }
 
     private void AttachPurchasedTrailers()
