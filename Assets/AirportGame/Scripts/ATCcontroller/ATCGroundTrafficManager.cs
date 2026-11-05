@@ -1980,7 +1980,7 @@ public class ATCGroundTrafficManager : MonoBehaviour
             }
 
             if (isJunction || isRouteTurn)
-                return Mathf.Max(currentIndex, i - 15);
+                return Mathf.Max(currentIndex, i - 10);
 
             Vector3 cellPosition = gridManager.GridToWorldCenter(cell);
 
@@ -2033,10 +2033,10 @@ public class ATCGroundTrafficManager : MonoBehaviour
             if (!isJunction && !routeChangesDirection)
                 continue;
 
-            holdingIndex = Mathf.Max(0, i - 15);
+            holdingIndex = Mathf.Max(0, i - 10);
             holdingPosition =
                 gridManager.GridToWorldCenter(route[holdingIndex]);
-            holdingLabel = "15 cells before junction " + cell;
+            holdingLabel = "10 cells before junction " + cell;
             return;
         }
 
