@@ -137,6 +137,63 @@ public class AircraftTurnaroundController : MonoBehaviour
         }
     }
 
+    [Serializable]
+    private sealed class BaggageLoadingProgress : ITaskProgress
+    {
+        [SerializeField, HideInInspector, Min(0f)]
+        private float durationMinutes = 10f;
+
+        [SerializeField]
+        private AircraftTurnaroundTaskStatus status =
+            AircraftTurnaroundTaskStatus.NotStarted;
+
+        [SerializeField, HideInInspector, Min(0f)]
+        private float elapsedGameSeconds;
+
+        public float DurationMinutes => Mathf.Max(0f, durationMinutes);
+        public float DurationSeconds => DurationMinutes * 60f;
+        public AircraftTurnaroundTaskStatus Status => status;
+
+        public BaggageLoadingProgress(float defaultDurationMinutes)
+        {
+            durationMinutes = defaultDurationMinutes;
+        }
+
+        public void ResetTask()
+        {
+            status = AircraftTurnaroundTaskStatus.NotStarted;
+            elapsedGameSeconds = 0f;
+        }
+
+        public void StartTask()
+        {
+            if (status != AircraftTurnaroundTaskStatus.NotStarted)
+                return;
+
+            status = AircraftTurnaroundTaskStatus.InProgress;
+            elapsedGameSeconds = 0f;
+        }
+
+        public bool Advance(float deltaGameSeconds)
+        {
+            if (status != AircraftTurnaroundTaskStatus.InProgress)
+                return false;
+
+            elapsedGameSeconds = Mathf.Min(
+                elapsedGameSeconds + deltaGameSeconds,
+                DurationSeconds
+            );
+
+            return elapsedGameSeconds >= DurationSeconds;
+        }
+
+        public void MarkCompleted()
+        {
+            status = AircraftTurnaroundTaskStatus.Completed;
+            elapsedGameSeconds = DurationSeconds;
+        }
+    }
+
     private enum TaskType
     {
         Deboarding,
@@ -160,6 +217,7 @@ public class AircraftTurnaroundController : MonoBehaviour
     [SerializeField]
     private TaskProgress deboarding = new TaskProgress(10f);
 
+    [Header("Baggage Unloading")]
     [SerializeField]
     private BaggageUnloadingProgress baggageUnloading =
         new BaggageUnloadingProgress(10f);
@@ -170,8 +228,10 @@ public class AircraftTurnaroundController : MonoBehaviour
     [SerializeField]
     private TaskProgress fueling = new TaskProgress(15f);
 
+    [Header("Baggage Loading")]
     [SerializeField]
-    private TaskProgress baggageLoading = new TaskProgress(10f);
+    private BaggageLoadingProgress baggageLoading =
+        new BaggageLoadingProgress(10f);
 
     [SerializeField]
     private TaskProgress boarding = new TaskProgress(15f);
