@@ -331,6 +331,17 @@ public class ATCGroundTrafficManager : MonoBehaviour
 
         UpdateExistingSectionReservations(aircraft);
 
+        if (!HasRouteConflictClearance(aircraft, out decision))
+        {
+            if (!HasEnteredReservedSection(aircraft) &&
+                !activeReservations.ContainsKey(aircraft))
+            {
+                ReleaseAllSectionReservations(aircraft);
+            }
+
+            return false;
+        }
+
         if (TryFindNextTaxiwaySection(
                 aircraft.transform,
                 out TaxiwaySectionState nextSection,
@@ -387,6 +398,7 @@ public class ATCGroundTrafficManager : MonoBehaviour
         ReleaseActiveReservation(aircraft);
         ReleaseWaitingRequest(aircraft);
         ReleaseAllSectionReservations(aircraft);
+        aircraft.ClearPlannedTaxiRoute();
     }
 
     private void EnsureControlPoints()
@@ -1327,6 +1339,331 @@ public class ATCGroundTrafficManager : MonoBehaviour
             foreach (AircraftTaxiTrafficFollowing aircraft in nullEntries)
                 activeSectionReservations.Remove(aircraft);
         }
+    }
+
+
+    private bool HasEnteredReservedSection(
+        AircraftTaxiTrafficFollowing aircraft)
+    {
+        if (!activeSectionReservations.TryGetValue(
+                aircraft,
+                out List<TaxiwaySectionKey> keys))
+        {
+            return false;
+        }
+
+        foreach (TaxiwaySectionKey key in keys)
+        {
+            if (!taxiwaySectionStates.TryGetValue(
+                    key,
+                    out TaxiwaySectionState state))
+            {
+                continue;
+            }
+
+            AircraftReservation reservation =
+                FindSectionOwner(state, aircraft);
+
+            if (reservation != null && reservation.HasEntered)
+                return true;
+        }
+
+        return false;
+    }
+
+    private bool HasRouteConflictClearance(
+        AircraftTaxiTrafficFollowing aircraft,
+        out string decision)
+    {
+        decision = string.Empty;
+
+        if (aircraft == null ||
+            aircraft.PlannedTaxiRoute == null ||
+            aircraft.PlannedTaxiRoute.Count < 2 ||
+            gridManager == null ||
+            taxiwayNetwork == null)
+        {
+            return true;
+        }
+
+        // An aircraft already holding an intersection reservation or
+        // physically inside a reserved section is committed to clearing it.
+        if (activeReservations.ContainsKey(aircraft) ||
+            HasEnteredReservedSection(aircraft))
+        {
+            return true;
+        }
+
+        IReadOnlyList<Vector2Int> ownRoute = aircraft.PlannedTaxiRoute;
+
+        if (!TryFindNearestRouteIndex(
+                ownRoute,
+                aircraft.transform.position,
+                out int ownStartIndex,
+                out _))
+        {
+            return true;
+        }
+
+        int conflictOwnIndex = -1;
+        int conflictOtherIndex = -1;
+        float ownConflictDistance = float.MaxValue;
+        float otherConflictDistance = float.MaxValue;
+        AircraftTaxiTrafficFollowing conflictingAircraft = null;
+
+        IReadOnlyList<AircraftTaxiTrafficFollowing> allAircraft =
+            AircraftTaxiTrafficFollowing.ActiveAircraft;
+
+        for (int a = 0; a < allAircraft.Count; a++)
+        {
+            AircraftTaxiTrafficFollowing other = allAircraft[a];
+
+            if (other == null ||
+                other == aircraft ||
+                !other.isActiveAndEnabled ||
+                other.PlannedTaxiRoute == null ||
+                other.PlannedTaxiRoute.Count < 2)
+            {
+                continue;
+            }
+
+            AircraftStatus otherStatus =
+                other.GetComponent<AircraftStatus>();
+
+            if (otherStatus == null ||
+                otherStatus.IsParked ||
+                !otherStatus.IsTaxiing)
+            {
+                continue;
+            }
+
+            if (!IsNearTaxiwayCenterline(other.transform.position))
+                continue;
+
+            IReadOnlyList<Vector2Int> otherRoute = other.PlannedTaxiRoute;
+
+            if (!TryFindNearestRouteIndex(
+                    otherRoute,
+                    other.transform.position,
+                    out int otherStartIndex,
+                    out _))
+            {
+                continue;
+            }
+
+            for (int ownIndex = ownStartIndex;
+                 ownIndex < ownRoute.Count;
+                 ownIndex++)
+            {
+                Vector2Int ownCell = ownRoute[ownIndex];
+
+                for (int otherIndex = otherStartIndex;
+                     otherIndex < otherRoute.Count;
+                     otherIndex++)
+                {
+                    if (otherRoute[otherIndex] != ownCell)
+                        continue;
+
+                    Vector3 ownDirection =
+                        GetRouteDirection(ownRoute, ownIndex);
+                    Vector3 otherDirection =
+                        GetRouteDirection(otherRoute, otherIndex);
+
+                    // Parallel traffic travelling the same way can use
+                    // the existing following and section reservation rules.
+                    if (Vector3.Dot(ownDirection, otherDirection) > 0.75f)
+                        continue;
+
+                    float ownDistance = GetRouteDistance(
+                        ownRoute,
+                        ownStartIndex,
+                        ownIndex);
+
+                    if (ownDistance >= ownConflictDistance)
+                        continue;
+
+                    conflictOwnIndex = ownIndex;
+                    conflictOtherIndex = otherIndex;
+                    ownConflictDistance = ownDistance;
+                    otherConflictDistance = GetRouteDistance(
+                        otherRoute,
+                        otherStartIndex,
+                        otherIndex);
+                    conflictingAircraft = other;
+                }
+            }
+        }
+
+        if (conflictingAircraft == null || conflictOwnIndex < 0)
+            return true;
+
+        float conflictClearDistance = gridManager.CellSize * 1.25f;
+
+        bool ownAircraftCommitted =
+            ownConflictDistance <= conflictClearDistance;
+        bool otherAircraftCommitted =
+            otherConflictDistance <= conflictClearDistance;
+
+        if (ownAircraftCommitted && !otherAircraftCommitted)
+            return true;
+
+        if (otherAircraftCommitted && !ownAircraftCommitted)
+        {
+            decision =
+                "Holding before route conflict with " +
+                conflictingAircraft.name;
+            return IsAlreadyPastRouteHoldingPoint(
+                ownRoute,
+                ownStartIndex,
+                conflictOwnIndex);
+        }
+
+        bool ownHasPriority;
+
+        if (Mathf.Abs(ownConflictDistance - otherConflictDistance) >
+            gridManager.CellSize * 0.25f)
+        {
+            ownHasPriority =
+                ownConflictDistance < otherConflictDistance;
+        }
+        else
+        {
+            ownHasPriority =
+                aircraft.GetInstanceID() <
+                conflictingAircraft.GetInstanceID();
+        }
+
+        if (ownHasPriority)
+            return true;
+
+        if (IsAlreadyPastRouteHoldingPoint(
+                ownRoute,
+                ownStartIndex,
+                conflictOwnIndex))
+        {
+            // It is too late to stop safely before this conflict. Let the
+            // aircraft clear it; the other aircraft must yield instead.
+            return true;
+        }
+
+        decision =
+            "Holding at the preceding taxiway junction for route conflict with " +
+            conflictingAircraft.name;
+
+        return false;
+    }
+
+    private bool IsAlreadyPastRouteHoldingPoint(
+        IReadOnlyList<Vector2Int> route,
+        int currentIndex,
+        int conflictIndex)
+    {
+        int holdingIndex = Mathf.Max(0, conflictIndex - 1);
+
+        for (int i = conflictIndex - 1; i >= currentIndex; i--)
+        {
+            if (GetCenterlineConnectionCount(route[i]) >= 3)
+            {
+                holdingIndex = i;
+                break;
+            }
+        }
+
+        return currentIndex > holdingIndex;
+    }
+
+    private int GetCenterlineConnectionCount(Vector2Int cell)
+    {
+        int count = 0;
+
+        if (taxiwayNetwork.IsTaxiwayCenterlineCell(
+                cell + Vector2Int.up))
+            count++;
+
+        if (taxiwayNetwork.IsTaxiwayCenterlineCell(
+                cell + Vector2Int.right))
+            count++;
+
+        if (taxiwayNetwork.IsTaxiwayCenterlineCell(
+                cell + Vector2Int.down))
+            count++;
+
+        if (taxiwayNetwork.IsTaxiwayCenterlineCell(
+                cell + Vector2Int.left))
+            count++;
+
+        return count;
+    }
+
+    private bool TryFindNearestRouteIndex(
+        IReadOnlyList<Vector2Int> route,
+        Vector3 worldPosition,
+        out int nearestIndex,
+        out float nearestDistance)
+    {
+        nearestIndex = -1;
+        nearestDistance = float.MaxValue;
+
+        for (int i = 0; i < route.Count; i++)
+        {
+            Vector3 cellPosition =
+                gridManager.GridToWorldCenter(route[i]);
+
+            float distance =
+                HorizontalDistance(worldPosition, cellPosition);
+
+            if (distance >= nearestDistance)
+                continue;
+
+            nearestDistance = distance;
+            nearestIndex = i;
+        }
+
+        float maximumDistance =
+            (centerlineSearchRadiusCells + 1f) *
+            gridManager.CellSize;
+
+        return nearestIndex >= 0 &&
+               nearestDistance <= maximumDistance;
+    }
+
+    private Vector3 GetRouteDirection(
+        IReadOnlyList<Vector2Int> route,
+        int index)
+    {
+        int previousIndex = Mathf.Max(0, index - 1);
+        int nextIndex = Mathf.Min(route.Count - 1, index + 1);
+
+        Vector3 direction =
+            gridManager.GridToWorldCenter(route[nextIndex]) -
+            gridManager.GridToWorldCenter(route[previousIndex]);
+
+        direction.y = 0f;
+
+        if (direction.sqrMagnitude < 0.0001f)
+            return Vector3.zero;
+
+        return direction.normalized;
+    }
+
+    private float GetRouteDistance(
+        IReadOnlyList<Vector2Int> route,
+        int startIndex,
+        int endIndex)
+    {
+        float distance = 0f;
+
+        for (int i = startIndex + 1; i <= endIndex; i++)
+        {
+            Vector3 previous =
+                gridManager.GridToWorldCenter(route[i - 1]);
+            Vector3 current =
+                gridManager.GridToWorldCenter(route[i]);
+
+            distance += HorizontalDistance(previous, current);
+        }
+
+        return distance;
     }
 
     private bool IsNearTaxiwayCenterline(Vector3 worldPosition)
