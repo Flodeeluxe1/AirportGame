@@ -12,6 +12,10 @@ public class GuidedCargoTrailerFollower : MonoBehaviour
     [Tooltip("An empty child Transform at the rear towing point of the tug.")]
     [SerializeField] private Transform tugHitchPoint;
 
+    [Header("Trailer Capacity")]
+    [Min(1)]
+    [SerializeField] private int cargoCapacityPerTrailer = 10;
+
     [Header("Trailer Position")]
     [Min(0.1f)]
     [Tooltip("Distance between the tug hitch and the first trailer.")]
@@ -44,6 +48,14 @@ public class GuidedCargoTrailerFollower : MonoBehaviour
     private readonly List<float> trailerHeights =
         new List<float>();
 
+    private bool hasExplicitTrailerSet;
+
+    public int AttachedTrailerCount =>
+        trailers.FindAll(item => item != null).Count;
+
+    public int TotalCargoCapacity =>
+        AttachedTrailerCount * Mathf.Max(1, cargoCapacityPerTrailer);
+
     public void SetTrailer(Transform trailerTransform)
     {
         Transform[] newTrailers = trailerTransform != null
@@ -55,6 +67,7 @@ public class GuidedCargoTrailerFollower : MonoBehaviour
 
     public void SetTrailers(Transform[] trailerTransforms)
     {
+        hasExplicitTrailerSet = true;
         trailers.Clear();
         trailerHeights.Clear();
 
@@ -131,7 +144,7 @@ public class GuidedCargoTrailerFollower : MonoBehaviour
         }
 
         // Preserve support for a trailer assigned directly in the Inspector.
-        if (trailer != null && trailers.Count == 0)
+        if (!hasExplicitTrailerSet && trailer != null && trailers.Count == 0)
         {
             SetTrailers(new[] { trailer });
 
