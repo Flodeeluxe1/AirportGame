@@ -21,6 +21,9 @@ public class IncomingCargoCollectionSpawner : MonoBehaviour
     private readonly List<CargoZone> pendingZoneBuffer =
         new List<CargoZone>();
 
+    private readonly HashSet<string> pendingOutgoingRecoveryOperations =
+        new HashSet<string>();
+
     private Vector2Int startCell;
     private Vector2Int exitCell;
     private Vector3 spawnPosition;
@@ -95,17 +98,95 @@ public class IncomingCargoCollectionSpawner : MonoBehaviour
         QueueRegisteredZones();
     }
 
+    public static void QueueOutgoingRecoveryForFlight(string operationId)
+    {
+        if (string.IsNullOrWhiteSpace(operationId))
+            return;
+
+        IncomingCargoCollectionSpawner spawner =
+            FindFirstObjectByType<IncomingCargoCollectionSpawner>();
+
+        if (spawner != null)
+            spawner.pendingOutgoingRecoveryOperations.Add(operationId);
+        else
+            Debug.LogWarning(
+                "Cannot recover undelivered cargo: IncomingCargoCollectionSpawner " +
+                "was not found.");
+    }
+
     private void Update()
     {
-        if (!initialized ||
-            pendingZones.Count == 0 ||
-            Time.unscaledTime < nextRetryTime)
-        {
+        if (!initialized || Time.unscaledTime < nextRetryTime)
             return;
-        }
 
         nextRetryTime = Time.unscaledTime + RetryInterval;
-        ProcessPendingZones();
+
+        if (pendingOutgoingRecoveryOperations.Count > 0)
+            ProcessOutgoingRecoveryOperations();
+
+        if (pendingZones.Count > 0)
+            ProcessPendingZones();
+    }
+
+    private void ProcessOutgoingRecoveryOperations()
+    {
+        List<string> operations =
+            new List<string>(pendingOutgoingRecoveryOperations);
+
+        foreach (string operationId in operations)
+        {
+            bool packagesRemain = false;
+
+            foreach (CargoZone zone in CargoZone.RegisteredZones)
+            {
+                if (zone == null ||
+                    !zone.HasAvailablePackages(
+                        CargoDirection.Outgoing, operationId))
+                {
+                    continue;
+                }
+
+                packagesRemain = true;
+
+                if (CargoDeliveryTruck.HasActiveIncomingCollection(zone))
+                    continue;
+
+                if (!roadNetwork.IsRoad(startCell) ||
+                    !roadNetwork.IsRoad(exitCell))
+                    continue;
+
+                GameObject truckObject = Instantiate(
+                    cargoTruckPrefab, spawnPosition, spawnPoint.rotation);
+
+                CargoDeliveryTruck truck =
+                    truckObject.GetComponent<CargoDeliveryTruck>();
+
+                if (truck == null)
+                {
+                    Debug.LogError(
+                        "IncomingCargoCollectionSpawner: Cargo Truck Prefab " +
+                        "does not have CargoDeliveryTruck attached.", truckObject);
+                    Destroy(truckObject);
+                    continue;
+                }
+
+                if (!truck.InitializeOutgoingRecoveryRoute(
+                        startCell, exitCell, zone, operationId))
+                {
+                    Destroy(truckObject);
+                    continue;
+                }
+
+                Debug.Log(
+                    "UNDELIVERED OUTGOING CARGO RECOVERY VAN SPAWNED | " +
+                    $"Zone: {zone.name} | Operation: {operationId} | " +
+                    $"Packages: {zone.CountAvailablePackages(CargoDirection.Outgoing, operationId)}",
+                    truckObject);
+            }
+
+            if (!packagesRemain)
+                pendingOutgoingRecoveryOperations.Remove(operationId);
+        }
     }
 
     private void QueueRegisteredZones()
