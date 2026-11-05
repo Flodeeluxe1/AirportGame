@@ -60,6 +60,22 @@ public class CargoTugLotSpawner : MonoBehaviour
 
     public int TrailerPrice => trailerPrice;
 
+    public int PurchasedTrailerCount
+    {
+        get
+        {
+            int count = 0;
+
+            for (int i = 0; i < purchasedTrailers.Length; i++)
+            {
+                if (purchasedTrailers[i] != null)
+                    count++;
+            }
+
+            return count;
+        }
+    }
+
     private void Start()
     {
         ResolveSpawnPoints();
@@ -108,6 +124,12 @@ public class CargoTugLotSpawner : MonoBehaviour
 
         tugController =
             spawnedCargoTug.GetComponent<AirportCargoVehicleController>();
+
+        AirportCargoVehicleDispatcherRegistration dispatcherRegistration =
+            spawnedCargoTug.GetComponent<AirportCargoVehicleDispatcherRegistration>();
+
+        if (dispatcherRegistration != null)
+            dispatcherRegistration.SetTrailerAvailabilitySource(this);
 
         if (tugController == null)
         {
