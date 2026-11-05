@@ -82,7 +82,6 @@ MonoBehaviour:
   testCargoZoneOnPlay: 0
   testCollectionOnArrival: 0
   testFlightOperationId: 
-  maximumCargoCapacity: 10
   carriedPackageCount: 0
 --- !u!114 &4770373362077910615
 MonoBehaviour:
