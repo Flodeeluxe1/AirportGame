@@ -341,6 +341,15 @@ public class AirportWorldResetController : MonoBehaviour
                 scaleZ = building.transform.localScale.z
             };
 
+            CargoTugLotSpawner cargoTugLot =
+                building.GetComponent<CargoTugLotSpawner>();
+
+            if (cargoTugLot != null)
+            {
+                savedBuilding.purchasedCargoTrailerSlots =
+                    cargoTugLot.GetPurchasedTrailerSlotsForSave();
+            }
+
             HobbyAircraftParkingSpot parkingSpot =
                 building.GetComponent<HobbyAircraftParkingSpot>();
 
@@ -599,6 +608,15 @@ public class AirportWorldResetController : MonoBehaviour
                     Mathf.Max(1, saved.width),
                     Mathf.Max(1, saved.depth),
                     saved.rotation);
+            }
+
+            CargoTugLotSpawner cargoTugLot =
+                placedObject.GetComponent<CargoTugLotSpawner>();
+
+            if (cargoTugLot != null)
+            {
+                cargoTugLot.RestorePurchasedTrailerSlots(
+                    saved.purchasedCargoTrailerSlots);
             }
 
             // Rebuild the runway's logical ground-movement registration on load.
