@@ -398,10 +398,6 @@ public class ATCGroundTrafficManager : MonoBehaviour
         return granted;
     }
 
-    /// <summary>
-    /// Releases any current or queued clearance when an aircraft stops
-    /// taxiing or its traffic-following component is disabled.
-    /// </summary>
     private void LogTaxiClearanceDecision(
         AircraftTaxiTrafficFollowing aircraft,
         bool cleared,
@@ -438,7 +434,7 @@ public class ATCGroundTrafficManager : MonoBehaviour
             if (status == null || status.IsParked || !status.IsTaxiing)
                 continue;
 
-            message += "\\n  Traffic: " + other.name +
+            message += "\n  Traffic: " + other.name +
                 " | Position: " + other.transform.position +
                 " | Route: " + FormatTaxiRoute(other.PlannedTaxiRoute);
         }
@@ -463,6 +459,7 @@ public class ATCGroundTrafficManager : MonoBehaviour
         ReleaseActiveReservation(aircraft);
         ReleaseWaitingRequest(aircraft);
         ReleaseAllSectionReservations(aircraft);
+        lastLoggedTaxiDecisions.Remove(aircraft);
         aircraft.ClearPlannedTaxiRoute();
     }
 
