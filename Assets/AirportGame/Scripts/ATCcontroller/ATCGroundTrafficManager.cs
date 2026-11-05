@@ -227,6 +227,10 @@ public class ATCGroundTrafficManager : MonoBehaviour
     private readonly Dictionary<AircraftTaxiTrafficFollowing, string> lastLoggedTaxiDecisions =
         new Dictionary<AircraftTaxiTrafficFollowing, string>();
 
+    private readonly Dictionary<AircraftTaxiTrafficFollowing, int>
+        routeClearanceTargets =
+            new Dictionary<AircraftTaxiTrafficFollowing, int>();
+
     [Header("Registered Route Diagnostics")]
     [SerializeField] private bool logRegisteredRouteConflicts;
 
@@ -341,11 +345,73 @@ public class ATCGroundTrafficManager : MonoBehaviour
 
         EnsureControlPoints();
 
-        // Every request evaluates the complete remaining route. A conflict
-        // only stops the aircraft at its next automatic or manual holding point.
-        bool cleared = HasRouteConflictClearance(aircraft, out decision);
-        LogTaxiClearanceDecision(aircraft, cleared, decision);
-        return cleared;
+        IReadOnlyList<Vector2Int> route = aircraft.PlannedTaxiRoute;
+        if (route != null && route.Count >= 2 &&
+            TryFindNearestRouteIndex(
+                route,
+                aircraft.transform.position,
+                out int currentIndex,
+                out _))
+        {
+            // A granted clearance remains valid only up to its recorded
+            // boundary. At that boundary the aircraft must request again.
+            if (routeClearanceTargets.TryGetValue(
+                    aircraft,
+                    out int targetIndex))
+            {
+                Vector3 targetPosition =
+                    gridManager.GridToWorldCenter(
+                        route[Mathf.Clamp(targetIndex, 0, route.Count - 1)]);
+
+                bool reachedBoundary =
+                    currentIndex >= targetIndex ||
+                    HorizontalDistance(
+                        aircraft.transform.position,
+                        targetPosition) <=
+                    Mathf.Max(0.75f, gridManager.CellSize * 0.75f);
+
+                if (!reachedBoundary)
+                {
+                    decision = "Cleared to " + route[targetIndex];
+                    LogTaxiClearanceDecision(aircraft, true, decision);
+                    return true;
+                }
+
+                routeClearanceTargets.Remove(aircraft);
+            }
+        }
+        else
+        {
+            routeClearanceTargets.Remove(aircraft);
+        }
+
+        // This scans the complete remaining route, not just the next section.
+        if (!HasRouteConflictClearance(aircraft, out decision))
+        {
+            LogTaxiClearanceDecision(aircraft, false, decision);
+            return false;
+        }
+
+        if (route != null && route.Count >= 2 &&
+            TryFindNearestRouteIndex(
+                route,
+                aircraft.transform.position,
+                out currentIndex,
+                out _))
+        {
+            int nextBoundary = FindNextRouteBoundary(route, currentIndex);
+            routeClearanceTargets[aircraft] = nextBoundary;
+
+            decision =
+                "Cleared to next holding point " + route[nextBoundary];
+        }
+        else
+        {
+            decision = "Route clear; no route boundary available";
+        }
+
+        LogTaxiClearanceDecision(aircraft, true, decision);
+        return true;
     }
 
     private void RunRegisteredRouteDiagnostics()
@@ -656,6 +722,7 @@ public class ATCGroundTrafficManager : MonoBehaviour
         ReleaseWaitingRequest(aircraft);
         ReleaseAllSectionReservations(aircraft);
         lastLoggedTaxiDecisions.Remove(aircraft);
+        routeClearanceTargets.Remove(aircraft);
         aircraft.ClearPlannedTaxiRoute();
     }
 
@@ -1848,6 +1915,38 @@ public class ATCGroundTrafficManager : MonoBehaviour
             "; conflicting route cell " + ownRoute[conflictOwnIndex];
 
         return false;
+    }
+
+    private int FindNextRouteBoundary(
+        IReadOnlyList<Vector2Int> route,
+        int currentIndex)
+    {
+        int startIndex = Mathf.Clamp(currentIndex + 1, 0, route.Count - 1);
+
+        for (int i = startIndex; i < route.Count; i++)
+        {
+            Vector2Int cell = route[i];
+
+            if (GetCenterlineConnectionCount(cell) >= 3)
+                return i;
+
+            Vector3 cellPosition = gridManager.GridToWorldCenter(cell);
+
+            for (int p = 0; p < controlPoints.Count; p++)
+            {
+                ControlPoint point = controlPoints[p];
+                if (point == null || !point.Key.IsManual)
+                    continue;
+
+                if (HorizontalDistance(point.Position, cellPosition) <=
+                    Mathf.Max(point.EntryRadius, gridManager.CellSize * 0.75f))
+                {
+                    return i;
+                }
+            }
+        }
+
+        return route.Count - 1;
     }
 
     private void FindNextRouteHoldingPoint(
