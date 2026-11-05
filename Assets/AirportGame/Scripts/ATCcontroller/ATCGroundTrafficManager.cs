@@ -969,10 +969,19 @@ public class ATCGroundTrafficManager : MonoBehaviour
         return (first - second).sqrMagnitude;
     }
 
-    private void OnDrawGizmosSelected()
+    private void OnDrawGizmos()
     {
         if (!Application.isPlaying || !showSceneDebug)
             return;
+
+        // Build the visualization even before the first aircraft requests
+        // clearance, so detected junctions are visible as soon as Play starts.
+        ResolveReferences();
+
+        if (gridManager == null || taxiwayNetwork == null)
+            return;
+
+        EnsureControlPoints();
 
         foreach (ControlPointState state in pointStates.Values)
         {
