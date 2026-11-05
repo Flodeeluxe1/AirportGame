@@ -86,17 +86,6 @@ public class ATCGroundTrafficManager : MonoBehaviour
     [Min(0.5f)]
     [SerializeField] private float intersectionClearRadiusCells = 2.5f;
 
-    [Header("Scene View Debugging")]
-    [SerializeField] private bool showSceneDebug = true;
-    [SerializeField] private bool showControlPoints = true;
-    [SerializeField] private bool showReservations = true;
-    [SerializeField] private bool showWaitingQueues = true;
-    [SerializeField] private bool showDebugLabels = true;
-    [Min(0.1f)]
-    [SerializeField] private float debugLabelHeight = 2f;
-    [Min(0.1f)]
-    [SerializeField] private float directionArrowLength = 1.5f;
-
     [Header("Reservation Cleanup")]
     [Min(0.25f)]
     [SerializeField] private float staleReservationTimeout = 3f;
@@ -969,211 +958,20 @@ public class ATCGroundTrafficManager : MonoBehaviour
         return (first - second).sqrMagnitude;
     }
 
-    private void OnDrawGizmos()
+    private void OnDrawGizmosSelected()
     {
-        if (!Application.isPlaying || !showSceneDebug)
+        if (!Application.isPlaying)
             return;
 
-        // Build the visualization even before the first aircraft requests
-        // clearance, so detected junctions are visible as soon as Play starts.
-        ResolveReferences();
-
-        if (gridManager == null || taxiwayNetwork == null)
-            return;
-
-        EnsureControlPoints();
-
-        foreach (ControlPointState state in pointStates.Values)
+        foreach (ControlPoint point in controlPoints)
         {
-            if (state == null || state.Point == null)
-                continue;
+            Gizmos.color = point.AllowSameDirectionTraffic
+                ? Color.yellow
+                : Color.cyan;
 
-            DrawControlPointDebug(state);
-        }
-    }
-
-    private void DrawControlPointDebug(ControlPointState state)
-    {
-        ControlPoint point = state.Point;
-        Vector3 labelPosition =
-            point.Position + Vector3.up * debugLabelHeight;
-
-        Color pointColor;
-
-        if (state.Owners.Count > 1)
-            pointColor = new Color(0.1f, 0.55f, 1f, 1f);
-        else if (state.Waiters.Count > 0)
-            pointColor = new Color(1f, 0.2f, 0.15f, 1f);
-        else if (state.Owners.Count > 0)
-            pointColor = new Color(1f, 0.7f, 0.1f, 1f);
-        else
-            pointColor = new Color(0.2f, 0.85f, 0.35f, 1f);
-
-#if UNITY_EDITOR
-        UnityEngine.Rendering.CompareFunction previousZTest =
-            UnityEditor.Handles.zTest;
-        UnityEditor.Handles.zTest =
-            UnityEngine.Rendering.CompareFunction.Always;
-
-        if (showControlPoints)
-        {
-            UnityEditor.Handles.color = pointColor;
-            Vector3 discPosition = point.Position + Vector3.up * 0.35f;
-            UnityEditor.Handles.DrawSolidDisc(discPosition, Vector3.up, 0.32f);
-            UnityEditor.Handles.DrawWireDisc(
-                discPosition, Vector3.up, Mathf.Max(0.35f, point.EntryRadius));
-            UnityEditor.Handles.color =
-                new Color(pointColor.r, pointColor.g, pointColor.b, 0.65f);
-            UnityEditor.Handles.DrawWireDisc(
-                discPosition, Vector3.up,
-                Mathf.Max(point.EntryRadius + 0.1f, point.ClearRadius));
-        }
-#endif
-
-        if (showControlPoints)
-        {
-            Gizmos.color = pointColor;
-            Gizmos.DrawSphere(
-                point.Position + Vector3.up * 0.12f,
-                0.22f);
             Gizmos.DrawWireSphere(
                 point.Position,
                 Mathf.Max(0.25f, point.EntryRadius));
-            Gizmos.DrawWireSphere(
-                point.Position,
-                Mathf.Max(point.EntryRadius + 0.1f, point.ClearRadius));
         }
-
-        System.Text.StringBuilder label =
-            new System.Text.StringBuilder();
-
-        label.Append(point.Label);
-
-        if (state.Owners.Count > 0)
-            label.Append("\nGranted: ").Append(state.Owners.Count);
-
-        if (state.Waiters.Count > 0)
-            label.Append("\nWaiting: ").Append(state.Waiters.Count);
-
-        if (showReservations)
-        {
-            foreach (AircraftReservation owner in state.Owners)
-            {
-                if (owner.Aircraft == null)
-                    continue;
-
-                Vector3 aircraftPosition =
-                    owner.Aircraft.transform.position + Vector3.up * 0.3f;
-
-                DrawDebugConnection(
-                    aircraftPosition, point.Position,
-                    owner.TravelDirection, pointColor);
-
-                label.Append("\nGRANTED: ")
-                    .Append(owner.Aircraft.name)
-                    .Append(owner.HasEntered ? " (inside)" : " (approaching)");
-            }
-        }
-
-        if (showWaitingQueues)
-        {
-            // Waiters are appended in request order, so the list is
-            // already ordered by priority. Avoid allocations in gizmo drawing.
-            for (int i = 0; i < state.Waiters.Count; i++)
-            {
-                WaitRequest waiter = state.Waiters[i];
-
-                if (waiter.Aircraft == null)
-                    continue;
-
-                Vector3 aircraftPosition =
-                    waiter.Aircraft.transform.position + Vector3.up * 0.3f;
-
-                Color waitingColor = new Color(1f, 0.2f, 0.15f, 1f);
-                DrawDebugConnection(
-                    aircraftPosition, point.Position,
-                    waiter.TravelDirection, waitingColor);
-
-                float waitSeconds =
-                    Mathf.Max(0f, Time.unscaledTime - waiter.RequestedAt);
-
-                label.Append("\n")
-                    .Append(i + 1)
-                    .Append(". WAIT: ")
-                    .Append(waiter.Aircraft.name)
-                    .Append(" (")
-                    .Append(waitSeconds.ToString("0.0"))
-                    .Append("s)");
-            }
-        }
-
-#if UNITY_EDITOR
-        if (showDebugLabels)
-        {
-            UnityEditor.Handles.color = pointColor;
-            UnityEditor.Handles.Label(labelPosition, label.ToString());
-        }
-
-        UnityEditor.Handles.zTest = previousZTest;
-#endif
-    }
-
-    private void DrawDebugConnection(
-        Vector3 aircraftPosition,
-        Vector3 controlPointPosition,
-        Vector3 direction,
-        Color color)
-    {
-        Gizmos.color = color;
-        Gizmos.DrawLine(aircraftPosition, controlPointPosition);
-        DrawDirectionArrow(aircraftPosition, direction, color);
-
-#if UNITY_EDITOR
-        UnityEditor.Handles.color = color;
-        UnityEditor.Handles.DrawAAPolyLine(4f, aircraftPosition, controlPointPosition);
-
-        direction.y = 0f;
-        if (direction.sqrMagnitude > 0.0001f)
-        {
-            direction.Normalize();
-            Vector3 end = aircraftPosition + direction * directionArrowLength;
-            Vector3 side = Vector3.Cross(Vector3.up, direction).normalized;
-            float headLength = directionArrowLength * 0.25f;
-            float headWidth = headLength * 0.55f;
-            UnityEditor.Handles.DrawAAPolyLine(
-                4f, end,
-                end - direction * headLength + side * headWidth);
-            UnityEditor.Handles.DrawAAPolyLine(
-                4f, end,
-                end - direction * headLength - side * headWidth);
-        }
-#endif
-    }
-
-    private void DrawDirectionArrow(
-        Vector3 start,
-        Vector3 direction,
-        Color color)
-    {
-        direction.y = 0f;
-
-        if (direction.sqrMagnitude < 0.0001f)
-            return;
-
-        direction.Normalize();
-
-        Vector3 end = start + direction * directionArrowLength;
-        Vector3 side = Vector3.Cross(Vector3.up, direction).normalized;
-        float arrowHeadLength = directionArrowLength * 0.25f;
-        float arrowHeadWidth = arrowHeadLength * 0.55f;
-
-        Gizmos.color = color;
-        Gizmos.DrawLine(start, end);
-        Gizmos.DrawLine(
-            end,
-            end - direction * arrowHeadLength + side * arrowHeadWidth);
-        Gizmos.DrawLine(
-            end,
-            end - direction * arrowHeadLength - side * arrowHeadWidth);
     }
 }
