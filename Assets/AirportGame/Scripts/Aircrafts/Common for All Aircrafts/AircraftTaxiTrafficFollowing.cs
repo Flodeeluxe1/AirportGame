@@ -12,6 +12,12 @@ public class AircraftTaxiTrafficFollowing : MonoBehaviour
     public static IReadOnlyList<AircraftTaxiTrafficFollowing> ActiveAircraft =>
         activeAircraft;
 
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetActiveAircraft()
+    {
+        activeAircraft.Clear();
+    }
+
     public IReadOnlyList<Vector2Int> PlannedTaxiRoute => plannedTaxiRoute;
 
     public void SetPlannedTaxiRoute(IReadOnlyList<Vector2Int> route)
