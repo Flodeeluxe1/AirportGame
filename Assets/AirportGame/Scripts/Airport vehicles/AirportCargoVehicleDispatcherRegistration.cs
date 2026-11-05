@@ -7,6 +7,7 @@ public class AirportCargoVehicleDispatcherRegistration : MonoBehaviour
 
     public bool HasActiveAssignment => waitingForPickupArrival;
     private AirportCargoVehicleController vehicle;
+    private CargoTugLotSpawner trailerAvailabilitySource;
 
     private string assignedOperationId;
     private bool waitingForPickupArrival;
@@ -75,6 +76,13 @@ public class AirportCargoVehicleDispatcherRegistration : MonoBehaviour
     }
 
 
+    public void SetTrailerAvailabilitySource(CargoTugLotSpawner source)
+    {
+        trailerAvailabilitySource = source;
+        SyncDispatcherAvailability();
+    }
+
+
     private void SyncDispatcherAvailability()
     {
         if (vehicle == null)
@@ -86,7 +94,9 @@ public class AirportCargoVehicleDispatcherRegistration : MonoBehaviour
         if (dispatcher == null)
             return;
 
-        bool hasTrailerCapacity = vehicle.MaximumCargoCapacity > 0;
+        bool hasTrailerCapacity = trailerAvailabilitySource != null
+            ? trailerAvailabilitySource.PurchasedTrailerCount > 0
+            : vehicle.MaximumCargoCapacity > 0;
 
         if (hasTrailerCapacity && !registeredWithDispatcher)
         {
