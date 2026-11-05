@@ -394,6 +394,23 @@ public class AircraftTurnaroundController : MonoBehaviour
             loadingManifest != null &&
             loadingManifest.ExpectedOutgoingBaggageCount > 0;
 
+        AircraftFlightIdentity identity =
+            GetComponent<AircraftFlightIdentity>();
+
+        bool isCargoOnlyFlight =
+            identity != null &&
+            identity.IsInitialized &&
+            identity.Definition != null &&
+            identity.Definition.OperationType == FlightOperationType.CargoOnly;
+
+        if (isCargoOnlyFlight)
+        {
+            // Cargo-only flights do not perform passenger turnaround tasks.
+            deboarding.MarkCompleted();
+            cleaning.MarkCompleted();
+            boarding.MarkCompleted();
+        }
+
         turnaroundStarted = true;
 
         Debug.Log(
@@ -401,7 +418,16 @@ public class AircraftTurnaroundController : MonoBehaviour
             this
         );
 
-        StartTask(TaskType.Deboarding);
+        if (isCargoOnlyFlight)
+        {
+            // Fueling still applies to cargo-only aircraft.
+            StartTask(TaskType.Fueling);
+        }
+        else
+        {
+            StartTask(TaskType.Deboarding);
+        }
+
         StartTask(TaskType.BaggageUnloading);
 
         if (setReadyToDepartAutomatically)
@@ -423,9 +449,6 @@ public class AircraftTurnaroundController : MonoBehaviour
 
             return;
         }
-
-        AircraftFlightIdentity identity =
-            GetComponent<AircraftFlightIdentity>();
 
         if (identity == null ||
             !identity.IsInitialized ||
@@ -656,7 +679,7 @@ public class AircraftTurnaroundController : MonoBehaviour
 
     private void StartTask(TaskType taskType)
     {
-        TaskProgress task = GetTask(taskType);
+        ITaskProgress task = GetTask(taskType);
 
         if (task.Status != AircraftTurnaroundTaskStatus.NotStarted)
             return;
@@ -675,7 +698,7 @@ public class AircraftTurnaroundController : MonoBehaviour
 
     private void CompleteTask(TaskType taskType)
     {
-        TaskProgress task = GetTask(taskType);
+        ITaskProgress task = GetTask(taskType);
 
         if (task.Status == AircraftTurnaroundTaskStatus.Completed)
             return;
