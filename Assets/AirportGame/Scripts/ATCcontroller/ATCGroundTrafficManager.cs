@@ -2003,11 +2003,10 @@ public class ATCGroundTrafficManager : MonoBehaviour
             gridManager.GridToWorldCenter(route[holdingIndex]);
         holdingLabel = "taxiway cell " + route[holdingIndex];
 
-        // Anchor the holding target to the last junction before the
-        // conflicting route cell, even if the aircraft has passed the
-        // target index already. This lets ATC detect the conflict early
-        // and stop the aircraft before it enters the junction.
-        for (int i = conflictIndex - 1; i >= 0; i--)
+        // The conflict cell can itself be the junction (for example,
+        // (80,66)). Include it when searching backwards so the holding
+        // target is placed 15 route cells before that junction.
+        for (int i = conflictIndex; i >= 0; i--)
         {
             Vector2Int cell = route[i];
 
