@@ -35,6 +35,98 @@ public class ATCGroundTrafficManager : MonoBehaviour
         }
     }
 
+
+    private struct TaxiwaySectionKey : IEquatable<TaxiwaySectionKey>
+    {
+        public Vector2Int Start;
+        public Vector2Int End;
+
+        public TaxiwaySectionKey(Vector2Int first, Vector2Int second)
+        {
+            bool firstComesFirst =
+                first.x < second.x ||
+                (first.x == second.x && first.y <= second.y);
+
+            Start = firstComesFirst ? first : second;
+            End = firstComesFirst ? second : first;
+        }
+
+        public bool Equals(TaxiwaySectionKey other)
+        {
+            return Start == other.Start && End == other.End;
+        }
+
+        public override bool Equals(object obj)
+        {
+            return obj is TaxiwaySectionKey other && Equals(other);
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                return (Start.GetHashCode() * 397) ^ End.GetHashCode();
+            }
+        }
+    }
+
+    private struct TaxiwayEdgeKey : IEquatable<TaxiwayEdgeKey>
+    {
+        public Vector2Int First;
+        public Vector2Int Second;
+
+        public TaxiwayEdgeKey(Vector2Int first, Vector2Int second)
+        {
+            bool firstComesFirst =
+                first.x < second.x ||
+                (first.x == second.x && first.y <= second.y);
+
+            First = firstComesFirst ? first : second;
+            Second = firstComesFirst ? second : first;
+        }
+
+        public bool Equals(TaxiwayEdgeKey other)
+        {
+            return First == other.First && Second == other.Second;
+        }
+
+        public override bool Equals(object obj)
+        {
+            return obj is TaxiwayEdgeKey other && Equals(other);
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                return (First.GetHashCode() * 397) ^ Second.GetHashCode();
+            }
+        }
+    }
+
+    private sealed class TaxiwaySection
+    {
+        public TaxiwaySectionKey Key;
+        public readonly List<Vector2Int> Cells = new List<Vector2Int>();
+    }
+
+    private sealed class TaxiwaySectionState
+    {
+        public TaxiwaySection Section;
+        public readonly List<AircraftReservation> Owners =
+            new List<AircraftReservation>();
+        public readonly List<WaitRequest> Waiters =
+            new List<WaitRequest>();
+    }
+
+    private static readonly Vector2Int[] TaxiwayDirections =
+    {
+        Vector2Int.up,
+        Vector2Int.right,
+        Vector2Int.down,
+        Vector2Int.left
+    };
+
     private sealed class ControlPoint
     {
         public ControlPointKey Key;
@@ -108,6 +200,23 @@ public class ATCGroundTrafficManager : MonoBehaviour
         waitingRequests =
             new Dictionary<AircraftTaxiTrafficFollowing, ControlPointKey>();
 
+
+    private readonly Dictionary<TaxiwaySectionKey, TaxiwaySectionState>
+        taxiwaySectionStates =
+            new Dictionary<TaxiwaySectionKey, TaxiwaySectionState>();
+
+    private readonly Dictionary<Vector2Int, List<TaxiwaySectionKey>>
+        taxiwaySectionsByCell =
+            new Dictionary<Vector2Int, List<TaxiwaySectionKey>>();
+
+    private readonly Dictionary<AircraftTaxiTrafficFollowing, List<TaxiwaySectionKey>>
+        activeSectionReservations =
+            new Dictionary<AircraftTaxiTrafficFollowing, List<TaxiwaySectionKey>>();
+
+    private readonly Dictionary<AircraftTaxiTrafficFollowing, TaxiwaySectionKey>
+        waitingSectionRequests =
+            new Dictionary<AircraftTaxiTrafficFollowing, TaxiwaySectionKey>();
+
     private int cachedNetworkVersion = int.MinValue;
     private int cachedManualPointVersion = int.MinValue;
     private float nextCleanupTime;
@@ -163,6 +272,7 @@ public class ATCGroundTrafficManager : MonoBehaviour
             Time.unscaledTime + Mathf.Max(0.1f, cleanupInterval);
 
         CleanupStaleReservations();
+        CleanupStaleSectionReservations();
     }
 
     private void OnDestroy()
@@ -173,6 +283,10 @@ public class ATCGroundTrafficManager : MonoBehaviour
         activeReservations.Clear();
         waitingRequests.Clear();
         pointStates.Clear();
+        activeSectionReservations.Clear();
+        waitingSectionRequests.Clear();
+        taxiwaySectionStates.Clear();
+        taxiwaySectionsByCell.Clear();
     }
 
     private void ResolveReferences()
@@ -210,13 +324,35 @@ public class ATCGroundTrafficManager : MonoBehaviour
         if (!IsNearTaxiwayCenterline(aircraft.transform.position))
         {
             ReleaseWaitingRequest(aircraft);
+            ReleaseWaitingSectionRequest(aircraft);
             decision = "Outside taxiway centerline";
             return true;
         }
 
+        UpdateExistingSectionReservations(aircraft);
+
+        if (TryFindNextTaxiwaySection(
+                aircraft.transform,
+                out TaxiwaySectionState nextSection,
+                out Vector3 sectionDirection))
+        {
+            if (!RequestTaxiwaySection(
+                    aircraft,
+                    nextSection,
+                    sectionDirection,
+                    out decision))
+            {
+                return false;
+            }
+        }
+        else
+        {
+            ReleaseWaitingSectionRequest(aircraft);
+        }
+
         if (UpdateExistingReservation(aircraft))
         {
-            decision = "Cleared through reserved section";
+            decision = "Cleared through reserved intersection";
             return true;
         }
 
@@ -250,6 +386,7 @@ public class ATCGroundTrafficManager : MonoBehaviour
 
         ReleaseActiveReservation(aircraft);
         ReleaseWaitingRequest(aircraft);
+        ReleaseAllSectionReservations(aircraft);
     }
 
     private void EnsureControlPoints()
@@ -409,6 +546,8 @@ public class ATCGroundTrafficManager : MonoBehaviour
             }
         }
 
+        RebuildTaxiwaySections(centerlineCells);
+
         DetectedIntersectionCount = intersectionCount;
         cachedNetworkVersion = networkVersion;
         cachedManualPointVersion = manualVersion;
@@ -435,6 +574,751 @@ public class ATCGroundTrafficManager : MonoBehaviour
             {
                 Point = point
             });
+    }
+
+
+    private void RebuildTaxiwaySections(HashSet<Vector2Int> centerlineCells)
+    {
+        Dictionary<Vector2Int, int> connectionCounts =
+            new Dictionary<Vector2Int, int>();
+
+        foreach (Vector2Int cell in centerlineCells)
+        {
+            int count = 0;
+
+            foreach (Vector2Int direction in TaxiwayDirections)
+            {
+                if (centerlineCells.Contains(cell + direction))
+                    count++;
+            }
+
+            connectionCounts[cell] = count;
+        }
+
+        HashSet<TaxiwayEdgeKey> visitedEdges =
+            new HashSet<TaxiwayEdgeKey>();
+
+        HashSet<TaxiwaySectionKey> validKeys =
+            new HashSet<TaxiwaySectionKey>();
+
+        taxiwaySectionsByCell.Clear();
+
+        foreach (Vector2Int startCell in centerlineCells)
+        {
+            // Junctions and dead ends divide the network into sections.
+            // Cells with exactly two connections are traversed as part
+            // of the section between those nodes.
+            if (connectionCounts[startCell] == 2)
+                continue;
+
+            foreach (Vector2Int direction in TaxiwayDirections)
+            {
+                Vector2Int nextCell = startCell + direction;
+
+                if (!centerlineCells.Contains(nextCell))
+                    continue;
+
+                TaxiwayEdgeKey firstEdge =
+                    new TaxiwayEdgeKey(startCell, nextCell);
+
+                if (!visitedEdges.Add(firstEdge))
+                    continue;
+
+                TaxiwaySection section = new TaxiwaySection();
+                section.Cells.Add(startCell);
+
+                Vector2Int previousCell = startCell;
+                Vector2Int currentCell = nextCell;
+                section.Cells.Add(currentCell);
+
+                int safety = centerlineCells.Count + 1;
+
+                while (safety-- > 0 &&
+                       connectionCounts.TryGetValue(
+                           currentCell,
+                           out int connections) &&
+                       connections == 2)
+                {
+                    Vector2Int followingCell = currentCell;
+                    bool foundNext = false;
+
+                    foreach (Vector2Int nextDirection in TaxiwayDirections)
+                    {
+                        Vector2Int candidate =
+                            currentCell + nextDirection;
+
+                        if (candidate == previousCell ||
+                            !centerlineCells.Contains(candidate))
+                        {
+                            continue;
+                        }
+
+                        followingCell = candidate;
+                        foundNext = true;
+                        break;
+                    }
+
+                    if (!foundNext)
+                        break;
+
+                    visitedEdges.Add(
+                        new TaxiwayEdgeKey(currentCell, followingCell));
+
+                    previousCell = currentCell;
+                    currentCell = followingCell;
+                    section.Cells.Add(currentCell);
+                }
+
+                if (section.Cells.Count < 2)
+                    continue;
+
+                section.Key = new TaxiwaySectionKey(
+                    section.Cells[0],
+                    section.Cells[section.Cells.Count - 1]);
+
+                if (!validKeys.Add(section.Key))
+                    continue;
+
+                if (!taxiwaySectionStates.TryGetValue(
+                        section.Key,
+                        out TaxiwaySectionState state))
+                {
+                    state = new TaxiwaySectionState();
+                    taxiwaySectionStates.Add(section.Key, state);
+                }
+
+                state.Section = section;
+
+                foreach (Vector2Int cell in section.Cells)
+                {
+                    if (!taxiwaySectionsByCell.TryGetValue(
+                            cell,
+                            out List<TaxiwaySectionKey> keys))
+                    {
+                        keys = new List<TaxiwaySectionKey>();
+                        taxiwaySectionsByCell.Add(cell, keys);
+                    }
+
+                    if (!keys.Contains(section.Key))
+                        keys.Add(section.Key);
+                }
+            }
+        }
+
+        List<TaxiwaySectionKey> removedKeys = null;
+
+        foreach (TaxiwaySectionKey key in taxiwaySectionStates.Keys)
+        {
+            if (validKeys.Contains(key))
+                continue;
+
+            if (removedKeys == null)
+                removedKeys = new List<TaxiwaySectionKey>();
+
+            removedKeys.Add(key);
+        }
+
+        if (removedKeys == null)
+            return;
+
+        foreach (TaxiwaySectionKey key in removedKeys)
+        {
+            TaxiwaySectionState state = taxiwaySectionStates[key];
+
+            foreach (AircraftReservation owner in state.Owners)
+            {
+                if (owner.Aircraft != null)
+                    RemoveActiveSectionKey(owner.Aircraft, key);
+            }
+
+            foreach (WaitRequest waiter in state.Waiters)
+            {
+                if (waiter.Aircraft != null)
+                    waitingSectionRequests.Remove(waiter.Aircraft);
+            }
+
+            taxiwaySectionStates.Remove(key);
+        }
+    }
+
+    private bool TryFindNextTaxiwaySection(
+        Transform aircraft,
+        out TaxiwaySectionState selectedState,
+        out Vector3 travelDirection)
+    {
+        selectedState = null;
+        travelDirection = Vector3.zero;
+
+        Vector3 forward = aircraft.forward;
+        forward.y = 0f;
+
+        if (forward.sqrMagnitude < 0.0001f)
+            return false;
+
+        forward.Normalize();
+
+        float cellSize = gridManager.CellSize;
+        float approachDistance = approachDistanceCells * cellSize;
+        float lateralTolerance = centerlineSearchRadiusCells * cellSize;
+        float bestScore = float.MaxValue;
+
+        foreach (TaxiwaySectionState state in taxiwaySectionStates.Values)
+        {
+            TaxiwaySection section = state.Section;
+
+            if (section == null || section.Cells.Count < 2)
+                continue;
+
+            for (int i = 0; i < section.Cells.Count; i++)
+            {
+                Vector3 cellPosition =
+                    gridManager.GridToWorldCenter(section.Cells[i]);
+
+                Vector3 toCell = cellPosition - aircraft.position;
+                toCell.y = 0f;
+
+                float distance = toCell.magnitude;
+
+                if (distance > approachDistance)
+                    continue;
+
+                float forwardDistance = Vector3.Dot(toCell, forward);
+
+                if (forwardDistance < -cellSize * 0.25f)
+                    continue;
+
+                float lateralDistance =
+                    Mathf.Sqrt(Mathf.Max(
+                        0f,
+                        toCell.sqrMagnitude -
+                        forwardDistance * forwardDistance));
+
+                if (lateralDistance > lateralTolerance)
+                    continue;
+
+                int previousIndex = Mathf.Max(0, i - 1);
+                int nextIndex = Mathf.Min(section.Cells.Count - 1, i + 1);
+
+                Vector3 tangent =
+                    gridManager.GridToWorldCenter(
+                        section.Cells[nextIndex]) -
+                    gridManager.GridToWorldCenter(
+                        section.Cells[previousIndex]);
+
+                tangent.y = 0f;
+
+                if (tangent.sqrMagnitude < 0.0001f)
+                    continue;
+
+                tangent.Normalize();
+
+                float alignment = Vector3.Dot(tangent, forward);
+                float absoluteAlignment = Mathf.Abs(alignment);
+
+                if (absoluteAlignment < 0.5f)
+                    continue;
+
+                float score =
+                    distance +
+                    (1f - absoluteAlignment) * cellSize * 2f;
+
+                if (score >= bestScore)
+                    continue;
+
+                bestScore = score;
+                selectedState = state;
+                travelDirection =
+                    alignment >= 0f ? tangent : -tangent;
+            }
+        }
+
+        return selectedState != null;
+    }
+
+    private bool RequestTaxiwaySection(
+        AircraftTaxiTrafficFollowing aircraft,
+        TaxiwaySectionState state,
+        Vector3 travelDirection,
+        out string decision)
+    {
+        decision = string.Empty;
+
+        travelDirection.y = 0f;
+
+        if (travelDirection.sqrMagnitude < 0.0001f)
+        {
+            decision = "Taxiway section direction unavailable";
+            return false;
+        }
+
+        travelDirection.Normalize();
+        TaxiwaySectionKey key = state.Section.Key;
+
+        if (waitingSectionRequests.TryGetValue(
+                aircraft,
+                out TaxiwaySectionKey previousKey) &&
+            !previousKey.Equals(key))
+        {
+            ReleaseWaitingSectionRequest(aircraft);
+        }
+
+        AircraftReservation existingOwner =
+            FindSectionOwner(state, aircraft);
+
+        if (existingOwner != null)
+        {
+            existingOwner.LastSeenTime = Time.unscaledTime;
+            decision = "Cleared on taxiway section";
+            return true;
+        }
+
+        WaitRequest request = FindSectionWaiter(state, aircraft);
+
+        if (request == null)
+        {
+            request = new WaitRequest
+            {
+                Aircraft = aircraft,
+                TravelDirection = travelDirection,
+                RequestedAt = Time.unscaledTime,
+                LastSeenTime = Time.unscaledTime
+            };
+
+            state.Waiters.Add(request);
+            waitingSectionRequests[aircraft] = key;
+        }
+        else
+        {
+            request.TravelDirection = travelDirection;
+            request.LastSeenTime = Time.unscaledTime;
+        }
+
+        if (HasSameDirectionSectionOwner(state, travelDirection) &&
+            !HasEarlierOpposingSectionWaiter(state, request))
+        {
+            GrantSectionReservation(state, request);
+            decision = "Same-direction traffic cleared on taxiway section";
+            return true;
+        }
+
+        if (state.Owners.Count == 0 &&
+            IsOldestActiveSectionWaiter(state, request))
+        {
+            GrantSectionReservation(state, request);
+            decision = "Cleared onto taxiway section";
+            return true;
+        }
+
+        AircraftReservation blockingOwner =
+            state.Owners.Count > 0 ? state.Owners[0] : null;
+
+        string ownerName =
+            blockingOwner != null && blockingOwner.Aircraft != null
+                ? blockingOwner.Aircraft.name
+                : "opposing traffic";
+
+        decision = "Holding for opposing traffic on taxiway section (" +
+                   ownerName + ")";
+        return false;
+    }
+
+    private void UpdateExistingSectionReservations(
+        AircraftTaxiTrafficFollowing aircraft)
+    {
+        if (!activeSectionReservations.TryGetValue(
+                aircraft,
+                out List<TaxiwaySectionKey> keys))
+        {
+            return;
+        }
+
+        List<TaxiwaySectionKey> completed = null;
+        float clearDistance =
+            Mathf.Max(intersectionClearRadiusCells, 1f) *
+            gridManager.CellSize;
+        float entryDistance =
+            Mathf.Max(intersectionEntryRadiusCells, 0.5f) *
+            gridManager.CellSize;
+
+        foreach (TaxiwaySectionKey key in keys)
+        {
+            if (!taxiwaySectionStates.TryGetValue(
+                    key,
+                    out TaxiwaySectionState state))
+            {
+                if (completed == null)
+                    completed = new List<TaxiwaySectionKey>();
+
+                completed.Add(key);
+                continue;
+            }
+
+            AircraftReservation reservation =
+                FindSectionOwner(state, aircraft);
+
+            if (reservation == null)
+            {
+                if (completed == null)
+                    completed = new List<TaxiwaySectionKey>();
+
+                completed.Add(key);
+                continue;
+            }
+
+            reservation.LastSeenTime = Time.unscaledTime;
+
+            float nearestDistance = float.MaxValue;
+
+            foreach (Vector2Int cell in state.Section.Cells)
+            {
+                Vector3 cellPosition =
+                    gridManager.GridToWorldCenter(cell);
+
+                nearestDistance = Mathf.Min(
+                    nearestDistance,
+                    HorizontalDistance(
+                        aircraft.transform.position,
+                        cellPosition));
+            }
+
+            if (nearestDistance <= entryDistance)
+                reservation.HasEntered = true;
+
+            bool clearedSection =
+                reservation.HasEntered &&
+                nearestDistance > clearDistance;
+
+            bool movedAwayBeforeEntry =
+                !reservation.HasEntered &&
+                nearestDistance >
+                    approachDistanceCells * gridManager.CellSize +
+                    gridManager.CellSize;
+
+            if (clearedSection || movedAwayBeforeEntry)
+            {
+                if (completed == null)
+                    completed = new List<TaxiwaySectionKey>();
+
+                completed.Add(key);
+            }
+        }
+
+        if (completed == null)
+            return;
+
+        foreach (TaxiwaySectionKey key in completed)
+            ReleaseActiveSectionReservation(aircraft, key);
+    }
+
+    private bool HasSameDirectionSectionOwner(
+        TaxiwaySectionState state,
+        Vector3 direction)
+    {
+        if (state.Owners.Count == 0)
+            return false;
+
+        foreach (AircraftReservation owner in state.Owners)
+        {
+            if (owner.Aircraft == null)
+                continue;
+
+            if (Vector3.Dot(owner.TravelDirection, direction) < 0.85f)
+                return false;
+        }
+
+        return true;
+    }
+
+    private bool HasEarlierOpposingSectionWaiter(
+        TaxiwaySectionState state,
+        WaitRequest requestingWaiter)
+    {
+        foreach (WaitRequest waiter in state.Waiters)
+        {
+            if (waiter == requestingWaiter ||
+                waiter.Aircraft == null ||
+                waiter.RequestedAt >= requestingWaiter.RequestedAt)
+            {
+                continue;
+            }
+
+            if (Vector3.Dot(
+                    waiter.TravelDirection,
+                    requestingWaiter.TravelDirection) < 0.85f)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private bool IsOldestActiveSectionWaiter(
+        TaxiwaySectionState state,
+        WaitRequest requestingWaiter)
+    {
+        WaitRequest oldest = null;
+
+        foreach (WaitRequest waiter in state.Waiters)
+        {
+            if (waiter.Aircraft == null ||
+                !waiter.Aircraft.gameObject.activeInHierarchy)
+            {
+                continue;
+            }
+
+            if (oldest == null ||
+                waiter.RequestedAt < oldest.RequestedAt)
+            {
+                oldest = waiter;
+            }
+        }
+
+        return oldest == requestingWaiter;
+    }
+
+    private void GrantSectionReservation(
+        TaxiwaySectionState state,
+        WaitRequest request)
+    {
+        AircraftTaxiTrafficFollowing aircraft = request.Aircraft;
+
+        if (aircraft == null)
+            return;
+
+        state.Waiters.Remove(request);
+        waitingSectionRequests.Remove(aircraft);
+
+        state.Owners.Add(new AircraftReservation
+        {
+            Aircraft = aircraft,
+            TravelDirection = request.TravelDirection,
+            LastSeenTime = Time.unscaledTime
+        });
+
+        if (!activeSectionReservations.TryGetValue(
+                aircraft,
+                out List<TaxiwaySectionKey> keys))
+        {
+            keys = new List<TaxiwaySectionKey>();
+            activeSectionReservations.Add(aircraft, keys);
+        }
+
+        if (!keys.Contains(state.Section.Key))
+            keys.Add(state.Section.Key);
+    }
+
+    private AircraftReservation FindSectionOwner(
+        TaxiwaySectionState state,
+        AircraftTaxiTrafficFollowing aircraft)
+    {
+        foreach (AircraftReservation owner in state.Owners)
+        {
+            if (owner.Aircraft == aircraft)
+                return owner;
+        }
+
+        return null;
+    }
+
+    private WaitRequest FindSectionWaiter(
+        TaxiwaySectionState state,
+        AircraftTaxiTrafficFollowing aircraft)
+    {
+        foreach (WaitRequest waiter in state.Waiters)
+        {
+            if (waiter.Aircraft == aircraft)
+                return waiter;
+        }
+
+        return null;
+    }
+
+    private void RemoveActiveSectionKey(
+        AircraftTaxiTrafficFollowing aircraft,
+        TaxiwaySectionKey key)
+    {
+        if (!activeSectionReservations.TryGetValue(
+                aircraft,
+                out List<TaxiwaySectionKey> keys))
+        {
+            return;
+        }
+
+        keys.Remove(key);
+
+        if (keys.Count == 0)
+            activeSectionReservations.Remove(aircraft);
+    }
+
+    private void ReleaseActiveSectionReservation(
+        AircraftTaxiTrafficFollowing aircraft,
+        TaxiwaySectionKey key)
+    {
+        RemoveActiveSectionKey(aircraft, key);
+
+        if (!taxiwaySectionStates.TryGetValue(
+                key,
+                out TaxiwaySectionState state))
+        {
+            return;
+        }
+
+        for (int i = state.Owners.Count - 1; i >= 0; i--)
+        {
+            if (state.Owners[i].Aircraft == aircraft)
+                state.Owners.RemoveAt(i);
+        }
+    }
+
+    private void ReleaseWaitingSectionRequest(
+        AircraftTaxiTrafficFollowing aircraft)
+    {
+        if (!waitingSectionRequests.TryGetValue(
+                aircraft,
+                out TaxiwaySectionKey key))
+        {
+            return;
+        }
+
+        waitingSectionRequests.Remove(aircraft);
+
+        if (!taxiwaySectionStates.TryGetValue(
+                key,
+                out TaxiwaySectionState state))
+        {
+            return;
+        }
+
+        for (int i = state.Waiters.Count - 1; i >= 0; i--)
+        {
+            if (state.Waiters[i].Aircraft == aircraft)
+                state.Waiters.RemoveAt(i);
+        }
+    }
+
+    private void ReleaseAllSectionReservations(
+        AircraftTaxiTrafficFollowing aircraft)
+    {
+        if (activeSectionReservations.TryGetValue(
+                aircraft,
+                out List<TaxiwaySectionKey> keys))
+        {
+            List<TaxiwaySectionKey> copy =
+                new List<TaxiwaySectionKey>(keys);
+
+            foreach (TaxiwaySectionKey key in copy)
+                ReleaseActiveSectionReservation(aircraft, key);
+        }
+
+        ReleaseWaitingSectionRequest(aircraft);
+    }
+
+    private void CleanupStaleSectionReservations()
+    {
+        float now = Time.unscaledTime;
+        List<AircraftTaxiTrafficFollowing> staleAircraft = null;
+
+        foreach (KeyValuePair<AircraftTaxiTrafficFollowing, List<TaxiwaySectionKey>> pair
+                 in activeSectionReservations)
+        {
+            bool stale =
+                pair.Key == null ||
+                !pair.Key.gameObject.activeInHierarchy;
+
+            if (!stale)
+            {
+                foreach (TaxiwaySectionKey key in pair.Value)
+                {
+                    if (!taxiwaySectionStates.TryGetValue(
+                            key,
+                            out TaxiwaySectionState state))
+                    {
+                        stale = true;
+                        break;
+                    }
+
+                    AircraftReservation reservation =
+                        FindSectionOwner(state, pair.Key);
+
+                    if (reservation == null ||
+                        now - reservation.LastSeenTime > staleReservationTimeout)
+                    {
+                        stale = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!stale)
+                continue;
+
+            if (staleAircraft == null)
+                staleAircraft = new List<AircraftTaxiTrafficFollowing>();
+
+            staleAircraft.Add(pair.Key);
+        }
+
+        if (staleAircraft != null)
+        {
+            foreach (AircraftTaxiTrafficFollowing aircraft in staleAircraft)
+            {
+                if (aircraft != null)
+                    ReleaseAllSectionReservations(aircraft);
+                else
+                    RemoveNullSectionReservations();
+            }
+        }
+
+        foreach (TaxiwaySectionState state in taxiwaySectionStates.Values)
+        {
+            for (int i = state.Waiters.Count - 1; i >= 0; i--)
+            {
+                WaitRequest waiter = state.Waiters[i];
+
+                if (waiter.Aircraft == null ||
+                    !waiter.Aircraft.gameObject.activeInHierarchy ||
+                    now - waiter.LastSeenTime > staleWaitRequestTimeout)
+                {
+                    if (waiter.Aircraft != null)
+                        waitingSectionRequests.Remove(waiter.Aircraft);
+
+                    state.Waiters.RemoveAt(i);
+                }
+            }
+        }
+    }
+
+    private void RemoveNullSectionReservations()
+    {
+        foreach (TaxiwaySectionState state in taxiwaySectionStates.Values)
+        {
+            for (int i = state.Owners.Count - 1; i >= 0; i--)
+            {
+                if (state.Owners[i].Aircraft == null)
+                    state.Owners.RemoveAt(i);
+            }
+        }
+
+        List<AircraftTaxiTrafficFollowing> nullEntries = null;
+
+        foreach (AircraftTaxiTrafficFollowing aircraft
+                 in activeSectionReservations.Keys)
+        {
+            if (aircraft != null)
+                continue;
+
+            if (nullEntries == null)
+                nullEntries = new List<AircraftTaxiTrafficFollowing>();
+
+            nullEntries.Add(aircraft);
+        }
+
+        if (nullEntries != null)
+        {
+            foreach (AircraftTaxiTrafficFollowing aircraft in nullEntries)
+                activeSectionReservations.Remove(aircraft);
+        }
     }
 
     private bool IsNearTaxiwayCenterline(Vector3 worldPosition)
