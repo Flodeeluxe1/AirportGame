@@ -10,6 +10,7 @@ public class AirportCargoVehicleDispatcherRegistration : MonoBehaviour
 
     private string assignedOperationId;
     private bool waitingForPickupArrival;
+    private bool registeredWithDispatcher;
 
     private void Awake()
     {
@@ -29,11 +30,13 @@ public class AirportCargoVehicleDispatcherRegistration : MonoBehaviour
             return;
         }
 
-        AirportBaggageDispatcher.Instance.RegisterVehicle(vehicle);
+        SyncDispatcherAvailability();
     }
 
     private void Update()
     {
+        SyncDispatcherAvailability();
+
         if (!waitingForPickupArrival || vehicle == null)
             return;
 
@@ -68,6 +71,32 @@ public class AirportCargoVehicleDispatcherRegistration : MonoBehaviour
                     vehicle.MovementStatus
                 );
             }
+        }
+    }
+
+
+    private void SyncDispatcherAvailability()
+    {
+        if (vehicle == null)
+            return;
+
+        AirportBaggageDispatcher dispatcher =
+            AirportBaggageDispatcher.Instance;
+
+        if (dispatcher == null)
+            return;
+
+        bool hasTrailerCapacity = vehicle.MaximumCargoCapacity > 0;
+
+        if (hasTrailerCapacity && !registeredWithDispatcher)
+        {
+            dispatcher.RegisterVehicle(vehicle);
+            registeredWithDispatcher = true;
+        }
+        else if (!hasTrailerCapacity && registeredWithDispatcher)
+        {
+            dispatcher.UnregisterVehicle(vehicle);
+            registeredWithDispatcher = false;
         }
     }
 
@@ -162,9 +191,11 @@ public class AirportCargoVehicleDispatcherRegistration : MonoBehaviour
         if (vehicle == null)
             return;
 
-        if (AirportBaggageDispatcher.Instance != null)
+        if (registeredWithDispatcher &&
+            AirportBaggageDispatcher.Instance != null)
         {
             AirportBaggageDispatcher.Instance.UnregisterVehicle(vehicle);
+            registeredWithDispatcher = false;
         }
     }
 }
