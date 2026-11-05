@@ -329,11 +329,7 @@ public class ATCGroundTrafficManager : MonoBehaviour
         if (aircraft == null)
             return true;
 
-        // Defensively register the requester before any route-conflict scan.
-        // This also covers play sessions where Unity skips scene OnEnable
-        // callbacks after static state has been reset.
         AircraftTaxiTrafficFollowing.RegisterActiveAircraft(aircraft);
-
         ResolveReferences();
 
         if (gridManager == null || taxiwayNetwork == null)
@@ -345,82 +341,11 @@ public class ATCGroundTrafficManager : MonoBehaviour
 
         EnsureControlPoints();
 
-        // Route conflicts are independent of the aircraft's exact position
-        // relative to the taxiway centerline. Check them before allowing the
-        // centerline fallback to grant clearance.
-        bool isNearTaxiwayCenterline =
-            IsNearTaxiwayCenterline(aircraft.transform.position);
-
-        UpdateExistingSectionReservations(aircraft);
-
-        if (!HasRouteConflictClearance(aircraft, out decision))
-        {
-            if (!HasEnteredReservedSection(aircraft) &&
-                !activeReservations.ContainsKey(aircraft))
-            {
-                ReleaseAllSectionReservations(aircraft);
-            }
-
-            LogTaxiClearanceDecision(aircraft, false, decision);
-            return false;
-        }
-
-        // Physical section and intersection reservations still require the
-        // aircraft to be near the taxiway centerline.
-        if (!isNearTaxiwayCenterline)
-        {
-            ReleaseWaitingRequest(aircraft);
-            ReleaseWaitingSectionRequest(aircraft);
-            decision = "Outside taxiway centerline";
-            LogTaxiClearanceDecision(aircraft, true, decision);
-            return true;
-        }
-
-        if (TryFindNextTaxiwaySection(
-                aircraft.transform,
-                out TaxiwaySectionState nextSection,
-                out Vector3 sectionDirection))
-        {
-            if (!RequestTaxiwaySection(
-                    aircraft,
-                    nextSection,
-                    sectionDirection,
-                    out decision))
-            {
-                LogTaxiClearanceDecision(aircraft, false, decision);
-                return false;
-            }
-        }
-        else
-        {
-            ReleaseWaitingSectionRequest(aircraft);
-        }
-
-        if (UpdateExistingReservation(aircraft))
-        {
-            decision = "Cleared through reserved intersection";
-            LogTaxiClearanceDecision(aircraft, true, decision);
-            return true;
-        }
-
-        if (!TryFindNextControlPoint(
-                aircraft.transform,
-                out ControlPoint nextPoint))
-        {
-            ReleaseWaitingRequest(aircraft);
-            decision = "No conflict point ahead";
-            LogTaxiClearanceDecision(aircraft, true, decision);
-            return true;
-        }
-
-        bool granted = RequestControlPoint(
-            aircraft,
-            nextPoint,
-            aircraft.transform.forward,
-            out decision);
-
-        LogTaxiClearanceDecision(aircraft, granted, decision);
-        return granted;
+        // Every request evaluates the complete remaining route. A conflict
+        // only stops the aircraft at its next automatic or manual holding point.
+        bool cleared = HasRouteConflictClearance(aircraft, out decision);
+        LogTaxiClearanceDecision(aircraft, cleared, decision);
+        return cleared;
     }
 
     private void RunRegisteredRouteDiagnostics()
@@ -1708,21 +1633,13 @@ public class ATCGroundTrafficManager : MonoBehaviour
         AircraftTaxiTrafficFollowing aircraft,
         out string decision)
     {
-        decision = string.Empty;
+        decision = "Route clear to next holding point";
 
         if (aircraft == null ||
             aircraft.PlannedTaxiRoute == null ||
             aircraft.PlannedTaxiRoute.Count < 2 ||
             gridManager == null ||
             taxiwayNetwork == null)
-        {
-            return true;
-        }
-
-        // An aircraft already holding an intersection reservation or
-        // physically inside a reserved section must be allowed to clear it.
-        if (activeReservations.ContainsKey(aircraft) ||
-            HasEnteredReservedSection(aircraft))
         {
             return true;
         }
@@ -1735,14 +1652,20 @@ public class ATCGroundTrafficManager : MonoBehaviour
                 out int ownStartIndex,
                 out _))
         {
+            decision = "Aircraft is not close enough to its planned route";
             return true;
         }
 
+        float clearRadius =
+            Mathf.Max(intersectionClearRadiusCells, 1.5f) *
+            gridManager.CellSize;
+
         int conflictOwnIndex = -1;
+        int conflictOtherIndex = -1;
         float ownConflictDistance = float.MaxValue;
         float otherConflictDistance = float.MaxValue;
         AircraftTaxiTrafficFollowing conflictingAircraft = null;
-        bool conflictingAircraftAlreadyOnSharedRoute = false;
+        bool otherPhysicallyOccupiesConflict = false;
 
         IReadOnlyList<AircraftTaxiTrafficFollowing> allAircraft =
             AircraftTaxiTrafficFollowing.ActiveAircraft;
@@ -1781,107 +1704,96 @@ public class ATCGroundTrafficManager : MonoBehaviour
                 continue;
             }
 
-            Dictionary<Vector2Int, int> otherRouteIndices =
-                new Dictionary<Vector2Int, int>();
-
-            for (int i = otherStartIndex; i < otherRoute.Count; i++)
-            {
-                if (!otherRouteIndices.ContainsKey(otherRoute[i]))
-                    otherRouteIndices.Add(otherRoute[i], i);
-            }
-
-            // If the other aircraft's current route cell is already on
-            // our remaining route, it has entered the shared taxiway.
-            bool otherAlreadyOnSharedRoute = false;
-
-            if (otherStartIndex >= 0 &&
-                otherStartIndex < otherRoute.Count)
-            {
-                for (int i = ownStartIndex; i < ownRoute.Count; i++)
-                {
-                    if (ownRoute[i] == otherRoute[otherStartIndex])
-                    {
-                        Vector3 ownCurrentDirection =
-                            GetRouteDirection(ownRoute, i);
-                        Vector3 otherCurrentDirection =
-                            GetRouteDirection(otherRoute, otherStartIndex);
-
-                        otherAlreadyOnSharedRoute =
-                            Vector3.Dot(
-                                ownCurrentDirection,
-                                otherCurrentDirection) <= 0.75f;
-                        break;
-                    }
-                }
-            }
-
             for (int ownIndex = ownStartIndex;
                  ownIndex < ownRoute.Count;
                  ownIndex++)
             {
                 Vector2Int ownCell = ownRoute[ownIndex];
 
-                if (!otherRouteIndices.TryGetValue(
-                        ownCell,
-                        out int otherIndex))
+                for (int otherIndex = 0;
+                     otherIndex < otherRoute.Count;
+                     otherIndex++)
                 {
-                    continue;
+                    if (otherRoute[otherIndex] != ownCell)
+                        continue;
+
+                    Vector3 ownDirection =
+                        GetRouteDirection(ownRoute, ownIndex);
+                    Vector3 otherDirection =
+                        GetRouteDirection(otherRoute, otherIndex);
+
+                    if (ownDirection.sqrMagnitude < 0.0001f ||
+                        otherDirection.sqrMagnitude < 0.0001f)
+                    {
+                        continue;
+                    }
+
+                    // Same-direction traffic is handled by local following.
+                    if (Vector3.Dot(ownDirection, otherDirection) > 0.75f)
+                        continue;
+
+                    Vector3 conflictPosition =
+                        gridManager.GridToWorldCenter(ownCell);
+
+                    bool otherHasPassedConflict =
+                        otherIndex < otherStartIndex;
+
+                    bool otherStillOccupiesConflict =
+                        otherHasPassedConflict &&
+                        HorizontalDistance(
+                            other.transform.position,
+                            conflictPosition) <= clearRadius;
+
+                    // A conflict behind the other aircraft is relevant only
+                    // while its physical position remains inside the clearance area.
+                    if (otherHasPassedConflict &&
+                        !otherStillOccupiesConflict)
+                    {
+                        continue;
+                    }
+
+                    float ownDistance = GetRouteDistance(
+                        ownRoute,
+                        ownStartIndex,
+                        ownIndex);
+
+                    float otherDistance = otherHasPassedConflict
+                        ? 0f
+                        : GetRouteDistance(
+                            otherRoute,
+                            otherStartIndex,
+                            otherIndex);
+
+                    if (ownDistance >= ownConflictDistance)
+                        continue;
+
+                    conflictOwnIndex = ownIndex;
+                    conflictOtherIndex = otherIndex;
+                    ownConflictDistance = ownDistance;
+                    otherConflictDistance = otherDistance;
+                    conflictingAircraft = other;
+                    otherPhysicallyOccupiesConflict =
+                        otherStillOccupiesConflict;
                 }
-
-                Vector3 ownDirection =
-                    GetRouteDirection(ownRoute, ownIndex);
-                Vector3 otherDirection =
-                    GetRouteDirection(otherRoute, otherIndex);
-
-                // Parallel traffic travelling the same way can use
-                // the existing following and section reservation rules.
-                if (Vector3.Dot(ownDirection, otherDirection) > 0.75f)
-                    continue;
-
-                float ownDistance = GetRouteDistance(
-                    ownRoute,
-                    ownStartIndex,
-                    ownIndex);
-
-                if (ownDistance >= ownConflictDistance)
-                    continue;
-
-                conflictOwnIndex = ownIndex;
-                ownConflictDistance = ownDistance;
-                otherConflictDistance = GetRouteDistance(
-                    otherRoute,
-                    otherStartIndex,
-                    otherIndex);
-                conflictingAircraft = other;
-                conflictingAircraftAlreadyOnSharedRoute =
-                    otherAlreadyOnSharedRoute;
             }
         }
 
         if (conflictingAircraft == null || conflictOwnIndex < 0)
-            return true;
-
-        // Traffic already travelling on the shared route owns the section.
-        // Hold the approaching aircraft at the preceding junction instead
-        // of granting it priority merely because it is closer to the merge.
-        if (conflictingAircraftAlreadyOnSharedRoute)
         {
-            decision =
-                "Holding before shared taxiway occupied by " +
-                conflictingAircraft.name +
-                " at cell " + ownRoute[conflictOwnIndex];
-
-            return !HasReachedRouteHoldingPoint(
-                ownRoute,
-                ownStartIndex,
-                conflictOwnIndex);
+            decision = "Route clear to next holding point";
+            return true;
         }
 
         bool ownHasPriority;
 
-        if (Mathf.Abs(ownConflictDistance - otherConflictDistance) >
-            gridManager.CellSize * 0.25f)
+        if (otherPhysicallyOccupiesConflict)
         {
+            ownHasPriority = false;
+        }
+        else if (Mathf.Abs(ownConflictDistance - otherConflictDistance) >
+                 gridManager.CellSize * 0.25f)
+        {
+            // The aircraft nearer the shared route conflict proceeds first.
             ownHasPriority =
                 ownConflictDistance < otherConflictDistance;
         }
@@ -1893,17 +1805,98 @@ public class ATCGroundTrafficManager : MonoBehaviour
         }
 
         if (ownHasPriority)
+        {
+            decision =
+                "Route conflict with " + conflictingAircraft.name +
+                " at " + ownRoute[conflictOwnIndex] +
+                "; this aircraft has priority";
             return true;
+        }
 
-        decision =
-            "Holding at the preceding taxiway junction for route conflict with " +
-            conflictingAircraft.name +
-            " at cell " + ownRoute[conflictOwnIndex];
+        int holdingIndex;
+        Vector3 holdingPosition;
+        string holdingLabel;
 
-        return !HasReachedRouteHoldingPoint(
+        FindNextRouteHoldingPoint(
             ownRoute,
             ownStartIndex,
-            conflictOwnIndex);
+            conflictOwnIndex,
+            out holdingIndex,
+            out holdingPosition,
+            out holdingLabel);
+
+        bool reachedHoldingPoint =
+            ownStartIndex >= holdingIndex ||
+            HorizontalDistance(
+                aircraft.transform.position,
+                holdingPosition) <=
+            Mathf.Max(0.75f, gridManager.CellSize * 0.75f);
+
+        if (!reachedHoldingPoint)
+        {
+            decision =
+                "Cleared to " + holdingLabel +
+                "; waiting for route conflict with " +
+                conflictingAircraft.name +
+                " at " + ownRoute[conflictOwnIndex];
+            return true;
+        }
+
+        decision =
+            "HOLD at " + holdingLabel +
+            " for " + conflictingAircraft.name +
+            "; conflicting route cell " + ownRoute[conflictOwnIndex];
+
+        return false;
+    }
+
+    private void FindNextRouteHoldingPoint(
+        IReadOnlyList<Vector2Int> route,
+        int currentIndex,
+        int conflictIndex,
+        out int holdingIndex,
+        out Vector3 holdingPosition,
+        out string holdingLabel)
+    {
+        holdingIndex = Mathf.Max(currentIndex, conflictIndex - 1);
+        holdingPosition =
+            gridManager.GridToWorldCenter(route[holdingIndex]);
+        holdingLabel = "taxiway cell " + route[holdingIndex];
+
+        // Find the first holding point ahead of the aircraft, not the
+        // junction immediately before the eventual conflict.
+        for (int i = currentIndex; i < conflictIndex; i++)
+        {
+            Vector2Int cell = route[i];
+
+            if (GetCenterlineConnectionCount(cell) >= 3)
+            {
+                holdingIndex = i;
+                holdingPosition = gridManager.GridToWorldCenter(cell);
+                holdingLabel = "junction " + cell;
+                return;
+            }
+
+            Vector3 cellPosition = gridManager.GridToWorldCenter(cell);
+
+            for (int p = 0; p < controlPoints.Count; p++)
+            {
+                ControlPoint point = controlPoints[p];
+                if (point == null || !point.Key.IsManual)
+                    continue;
+
+                if (HorizontalDistance(point.Position, cellPosition) >
+                    Mathf.Max(point.EntryRadius, gridManager.CellSize * 0.75f))
+                {
+                    continue;
+                }
+
+                holdingIndex = i;
+                holdingPosition = point.Position;
+                holdingLabel = "manual holding point " + point.Label;
+                return;
+            }
+        }
     }
 
     private bool HasReachedRouteHoldingPoint(
@@ -1984,12 +1977,21 @@ public class ATCGroundTrafficManager : MonoBehaviour
         IReadOnlyList<Vector2Int> route,
         int index)
     {
-        int previousIndex = Mathf.Max(0, index - 1);
+        // Use the outgoing route segment at this cell. Averaging the incoming
+        // and outgoing segments misclassifies ordinary 90-degree turns.
         int nextIndex = Mathf.Min(route.Count - 1, index + 1);
+        int previousIndex = Mathf.Max(0, index - 1);
 
         Vector3 direction =
             gridManager.GridToWorldCenter(route[nextIndex]) -
-            gridManager.GridToWorldCenter(route[previousIndex]);
+            gridManager.GridToWorldCenter(route[index]);
+
+        if (direction.sqrMagnitude < 0.0001f)
+        {
+            direction =
+                gridManager.GridToWorldCenter(route[index]) -
+                gridManager.GridToWorldCenter(route[previousIndex]);
+        }
 
         direction.y = 0f;
 
