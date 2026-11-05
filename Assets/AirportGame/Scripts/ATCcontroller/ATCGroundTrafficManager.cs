@@ -1969,7 +1969,7 @@ public class ATCGroundTrafficManager : MonoBehaviour
             Vector2Int cell = route[i];
 
             if (GetCenterlineConnectionCount(cell) >= 3)
-                return Mathf.Max(currentIndex, i - 2);
+                return Mathf.Max(currentIndex, i - 15);
 
             Vector3 cellPosition = gridManager.GridToWorldCenter(cell);
 
@@ -2011,8 +2011,8 @@ public class ATCGroundTrafficManager : MonoBehaviour
 
             if (GetCenterlineConnectionCount(cell) >= 3)
             {
-                // Stop two route cells before entering the junction.
-                holdingIndex = Mathf.Max(currentIndex, i - 2);
+                // Stop fifteen route cells before entering the junction.
+                holdingIndex = Mathf.Max(currentIndex, i - 15);
                 holdingPosition =
                     gridManager.GridToWorldCenter(route[holdingIndex]);
                 holdingLabel = "two cells before junction " + cell;
