@@ -574,6 +574,12 @@ public class AircraftCargoPaxTakeoffController : MonoBehaviour
         FlightScheduleBoardPanel.RecordDeparture(
             GetComponent<AircraftFlightIdentity>());
 
+        if (flightIdentity != null && flightIdentity.IsInitialized)
+        {
+            IncomingCargoCollectionSpawner.QueueOutgoingRecoveryForFlight(
+                flightIdentity.OperationId);
+        }
+
         Destroy(gameObject);
     }
 
