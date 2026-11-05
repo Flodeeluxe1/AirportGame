@@ -345,6 +345,9 @@ public class ATCGroundTrafficManager : MonoBehaviour
 
         EnsureControlPoints();
 
+        float holdBrakingBuffer =
+            Mathf.Max(1f, approachDistanceCells) * gridManager.CellSize;
+
         IReadOnlyList<Vector2Int> route = aircraft.PlannedTaxiRoute;
         if (route != null && route.Count >= 2 &&
             TryFindNearestRouteIndex(
@@ -353,8 +356,9 @@ public class ATCGroundTrafficManager : MonoBehaviour
                 out int currentIndex,
                 out _))
         {
-            // A granted clearance remains valid only up to its recorded
-            // boundary. At that boundary the aircraft must request again.
+            // Recheck before reaching the clearance boundary. Taxi speed is
+            // reduced over time, so waiting until the boundary is reached
+            // can make the aircraft physically unable to stop there.
             if (routeClearanceTargets.TryGetValue(
                     aircraft,
                     out int targetIndex))
@@ -363,14 +367,17 @@ public class ATCGroundTrafficManager : MonoBehaviour
                     gridManager.GridToWorldCenter(
                         route[Mathf.Clamp(targetIndex, 0, route.Count - 1)]);
 
-                bool reachedBoundary =
-                    currentIndex >= targetIndex ||
+                float distanceToBoundary =
                     HorizontalDistance(
                         aircraft.transform.position,
-                        targetPosition) <=
-                    Mathf.Max(0.75f, gridManager.CellSize * 0.75f);
+                        targetPosition);
 
-                if (!reachedBoundary)
+                bool insideBrakingBuffer =
+                    distanceToBoundary <= holdBrakingBuffer;
+
+                bool passedBoundary = currentIndex > targetIndex;
+
+                if (!insideBrakingBuffer && !passedBoundary)
                 {
                     decision = "Cleared to " + route[targetIndex];
                     LogTaxiClearanceDecision(aircraft, true, decision);
@@ -402,9 +409,33 @@ public class ATCGroundTrafficManager : MonoBehaviour
                 out currentIndex,
                 out _))
         {
-            // If a route conflict requires yielding, preserve the exact
-            // holding point selected by the conflict check. Do not replace
-            // it with a later junction or the parking destination.
+            if (conflictHoldingIndex >= 0)
+            {
+                Vector3 conflictHoldPosition =
+                    gridManager.GridToWorldCenter(
+                        route[Mathf.Clamp(
+                            conflictHoldingIndex,
+                            0,
+                            route.Count - 1)]);
+
+                float distanceToConflictHold =
+                    HorizontalDistance(
+                        aircraft.transform.position,
+                        conflictHoldPosition);
+
+                // Start braking before the actual holding point. Keep the
+                // aircraft stopped here while the route conflict remains.
+                if (distanceToConflictHold <= holdBrakingBuffer)
+                {
+                    decision =
+                        "HOLD before conflict holding point " +
+                        route[conflictHoldingIndex] + ": " + decision;
+
+                    LogTaxiClearanceDecision(aircraft, false, decision);
+                    return false;
+                }
+            }
+
             int nextBoundary = conflictHoldingIndex >= 0
                 ? conflictHoldingIndex
                 : FindNextRouteBoundary(route, currentIndex);
@@ -417,7 +448,7 @@ public class ATCGroundTrafficManager : MonoBehaviour
             routeClearanceTargets[aircraft] = nextBoundary;
 
             decision = conflictHoldingIndex >= 0
-                ? "Cleared only to conflict holding point " + route[nextBoundary]
+                ? "Cleared only toward conflict holding point " + route[nextBoundary]
                 : "Cleared to next holding point " + route[nextBoundary];
         }
         else
