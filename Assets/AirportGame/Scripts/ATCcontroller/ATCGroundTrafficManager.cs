@@ -1818,6 +1818,18 @@ public class ATCGroundTrafficManager : MonoBehaviour
                 continue;
             }
 
+            // Decide right of way once for this aircraft pair using
+            // their nearest upcoming opposing/crossing route conflict.
+            // Per-cell distance comparisons can otherwise create a cycle:
+            // each aircraft wins one shared cell and yields at another.
+            bool ownHasPairPriority = HasPairwiseRoutePriority(
+                aircraft,
+                ownRoute,
+                ownStartIndex,
+                other,
+                otherRoute,
+                otherStartIndex);
+
             for (int ownIndex = ownStartIndex;
                  ownIndex < ownRoute.Count;
                  ownIndex++)
@@ -1876,23 +1888,12 @@ public class ATCGroundTrafficManager : MonoBehaviour
                             otherStartIndex,
                             otherIndex);
 
-                    bool ownHasPriority;
-
-                    if (otherStillOccupiesConflict)
-                    {
-                        ownHasPriority = false;
-                    }
-                    else if (Mathf.Abs(ownDistance - otherDistance) >
-                             gridManager.CellSize * 0.25f)
-                    {
-                        ownHasPriority = ownDistance < otherDistance;
-                    }
-                    else
-                    {
-                        ownHasPriority =
-                            aircraft.GetEntityId() <
-                            other.GetEntityId();
-                    }
+                    // An aircraft still occupying the conflict always
+                    // keeps priority until it has physically cleared it.
+                    // Otherwise use the same pair-wide decision for every
+                    // shared conflict cell to prevent circular waiting.
+                    bool ownHasPriority = !otherStillOccupiesConflict &&
+                                          ownHasPairPriority;
 
                     // Do not stop at a conflict this aircraft wins. Continue
                     // checking: another aircraft may have priority at a later
@@ -1956,6 +1957,75 @@ public class ATCGroundTrafficManager : MonoBehaviour
             "; conflicting route cell " + ownRoute[yieldingConflictOwnIndex];
 
         return false;
+    }
+
+    private bool HasPairwiseRoutePriority(
+        AircraftTaxiTrafficFollowing firstAircraft,
+        IReadOnlyList<Vector2Int> firstRoute,
+        int firstStartIndex,
+        AircraftTaxiTrafficFollowing secondAircraft,
+        IReadOnlyList<Vector2Int> secondRoute,
+        int secondStartIndex)
+    {
+        float firstNearestConflictDistance = float.MaxValue;
+        float secondNearestConflictDistance = float.MaxValue;
+
+        for (int firstIndex = firstStartIndex;
+             firstIndex < firstRoute.Count;
+             firstIndex++)
+        {
+            Vector3 firstDirection =
+                GetRouteDirection(firstRoute, firstIndex);
+
+            if (firstDirection.sqrMagnitude < 0.0001f)
+                continue;
+
+            for (int secondIndex = secondStartIndex;
+                 secondIndex < secondRoute.Count;
+                 secondIndex++)
+            {
+                if (firstRoute[firstIndex] != secondRoute[secondIndex])
+                    continue;
+
+                Vector3 secondDirection =
+                    GetRouteDirection(secondRoute, secondIndex);
+
+                if (secondDirection.sqrMagnitude < 0.0001f ||
+                    Vector3.Dot(firstDirection, secondDirection) > 0.75f)
+                {
+                    continue;
+                }
+
+                firstNearestConflictDistance = Mathf.Min(
+                    firstNearestConflictDistance,
+                    GetRouteDistance(firstRoute, firstStartIndex, firstIndex));
+
+                secondNearestConflictDistance = Mathf.Min(
+                    secondNearestConflictDistance,
+                    GetRouteDistance(secondRoute, secondStartIndex, secondIndex));
+            }
+        }
+
+        if (firstNearestConflictDistance == float.MaxValue ||
+            secondNearestConflictDistance == float.MaxValue)
+        {
+            // Fallback to a stable tie-break if route data changes between
+            // the pair scan and the detailed conflict scan.
+            return firstAircraft.GetEntityId() <
+                   secondAircraft.GetEntityId();
+        }
+
+        float distanceDifference =
+            firstNearestConflictDistance - secondNearestConflictDistance;
+
+        if (Mathf.Abs(distanceDifference) >
+            gridManager.CellSize * 0.25f)
+        {
+            return distanceDifference < 0f;
+        }
+
+        return firstAircraft.GetEntityId() <
+               secondAircraft.GetEntityId();
     }
 
     private int FindNextRouteBoundary(
