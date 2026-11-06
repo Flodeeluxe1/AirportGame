@@ -3,18 +3,23 @@ using UnityEngine;
 
 /// <summary>
 /// Finds aircraft fuel stations requesting stock and dispatches fuel tankers
-/// through the road network to the shared Fuel Delivery Station location.
+/// through the road network to the Fuel Delivery Station's stop point.
 /// </summary>
 public class FuelTruckSpawner : MonoBehaviour
 {
     [Header("References")]
     [SerializeField] private GameObject fuelTruckPrefab;
     [SerializeField] private Transform spawnPoint;
-    [Tooltip("Place this marker on the road module where the tanker should stop beside the Fuel Delivery Station.")]
-    [SerializeField] private Transform fuelDeliveryRoadPoint;
+    [Tooltip("Child object named FuelTruckStopPoint on the Fuel Delivery Station.")]
+    [SerializeField] private Transform fuelTruckStopPoint;
     [SerializeField] private Transform exitPoint;
     [SerializeField] private GridManager gridManager;
     [SerializeField] private RoadNetwork roadNetwork;
+
+    [Header("Road Approach")]
+    [Tooltip("Maximum distance from FuelTruckStopPoint to the road module used for the final approach.")]
+    [Min(0.1f)]
+    [SerializeField] private float maximumRoadApproachDistance = 8f;
 
     [Header("Fuel Delivery")]
     [Min(1f)]
@@ -40,20 +45,27 @@ public class FuelTruckSpawner : MonoBehaviour
 
         if (roadNetwork == null)
             roadNetwork = FindFirstObjectByType<RoadNetwork>();
+
+        if (fuelTruckStopPoint == null)
+        {
+            GameObject stopPointObject = GameObject.Find("FuelTruckStopPoint");
+            if (stopPointObject != null)
+                fuelTruckStopPoint = stopPointObject.transform;
+        }
     }
 
     private void Start()
     {
         if (fuelTruckPrefab == null ||
             spawnPoint == null ||
-            fuelDeliveryRoadPoint == null ||
+            fuelTruckStopPoint == null ||
             exitPoint == null ||
             gridManager == null ||
             roadNetwork == null)
         {
             Debug.LogError(
                 "FuelTruckSpawner: Assign the tanker prefab, spawn point, " +
-                "fuel-delivery road point, exit point, GridManager and RoadNetwork.",
+                "FuelTruckStopPoint, exit point, GridManager and RoadNetwork.",
                 this);
             enabled = false;
             return;
@@ -94,7 +106,7 @@ public class FuelTruckSpawner : MonoBehaviour
 
             if (!TryGetRouteCells(
                     out Vector2Int startCell,
-                    out Vector2Int deliveryCell,
+                    out Vector2Int stationRoadCell,
                     out Vector2Int endCell))
             {
                 station.CompleteFuelDelivery();
@@ -102,17 +114,18 @@ public class FuelTruckSpawner : MonoBehaviour
             }
 
             List<Vector2Int> outboundPath =
-                roadNetwork.FindPath(startCell, deliveryCell);
+                roadNetwork.FindPath(startCell, stationRoadCell);
 
             List<Vector2Int> returnPath =
-                roadNetwork.FindPath(deliveryCell, endCell);
+                roadNetwork.FindPath(stationRoadCell, endCell);
 
             if (outboundPath == null || outboundPath.Count == 0 ||
                 returnPath == null || returnPath.Count == 0)
             {
                 Debug.LogWarning(
-                    "FuelTruckSpawner: No complete road route to the Fuel " +
-                    "Delivery Station and exit. Delivery will be retried.",
+                    "FuelTruckSpawner: No complete road route to the road " +
+                    "module beside FuelTruckStopPoint and the exit. " +
+                    "Delivery will be retried.",
                     this);
                 station.CompleteFuelDelivery();
                 continue;
@@ -134,28 +147,33 @@ public class FuelTruckSpawner : MonoBehaviour
             {
                 Debug.LogError(
                     "FuelTruckSpawner: The assigned tanker prefab needs a " +
-                    "FuelTruckController component.",
+                    "FuelTruckController component on its root object.",
                     truckObject);
                 Destroy(truckObject);
                 station.CompleteFuelDelivery();
                 continue;
             }
 
+            float amountToDeliver =
+                Mathf.Min(tankerCapacityLitres, station.RemainingFuelCapacity);
+
             activeStations.Add(station);
 
             truck.InitializeDelivery(
                 startCell,
-                deliveryCell,
+                stationRoadCell,
                 endCell,
+                fuelTruckStopPoint,
                 station,
-                Mathf.Min(tankerCapacityLitres, station.RemainingFuelCapacity),
+                amountToDeliver,
                 this);
 
             if (logDispatches)
             {
                 Debug.Log(
                     $"FUEL TANKER DISPATCHED | Station: {station.name} | " +
-                    $"Fuel: {Mathf.Min(tankerCapacityLitres, station.RemainingFuelCapacity):F0} L",
+                    $"Fuel: {amountToDeliver:F0} L | " +
+                    $"Approach road: {stationRoadCell}",
                     truckObject);
             }
         }
@@ -163,28 +181,61 @@ public class FuelTruckSpawner : MonoBehaviour
 
     private bool TryGetRouteCells(
         out Vector2Int startCell,
-        out Vector2Int deliveryCell,
+        out Vector2Int stationRoadCell,
         out Vector2Int endCell)
     {
         startCell = Vector2Int.zero;
-        deliveryCell = Vector2Int.zero;
+        stationRoadCell = Vector2Int.zero;
         endCell = Vector2Int.zero;
 
-        if (gridManager == null || roadNetwork == null)
+        if (gridManager == null || roadNetwork == null ||
+            fuelTruckStopPoint == null)
             return false;
 
         startCell = roadNetwork.GetRoadAnchor(
             gridManager.WorldToGrid(spawnPoint.position));
 
-        deliveryCell = roadNetwork.GetRoadAnchor(
-            gridManager.WorldToGrid(fuelDeliveryRoadPoint.position));
-
         endCell = roadNetwork.GetRoadAnchor(
             gridManager.WorldToGrid(exitPoint.position));
 
-        return roadNetwork.IsRoad(startCell) &&
-               roadNetwork.IsRoad(deliveryCell) &&
-               roadNetwork.IsRoad(endCell);
+        if (!roadNetwork.IsRoad(startCell) || !roadNetwork.IsRoad(endCell))
+            return false;
+
+        List<Vector2Int> roadPositions = roadNetwork.GetRoadPositions();
+        float bestDistance = float.MaxValue;
+        bool foundCandidate = false;
+
+        foreach (Vector2Int candidate in roadPositions)
+        {
+            Vector3 candidatePosition =
+                roadNetwork.GetRoadCenterWorldPosition(candidate, gridManager);
+
+            float distance = Vector3.Distance(
+                candidatePosition,
+                fuelTruckStopPoint.position);
+
+            if (distance > maximumRoadApproachDistance ||
+                distance >= bestDistance)
+                continue;
+
+            List<Vector2Int> outbound =
+                roadNetwork.FindPath(startCell, candidate);
+
+            if (outbound == null || outbound.Count == 0)
+                continue;
+
+            List<Vector2Int> returning =
+                roadNetwork.FindPath(candidate, endCell);
+
+            if (returning == null || returning.Count == 0)
+                continue;
+
+            bestDistance = distance;
+            stationRoadCell = candidate;
+            foundCandidate = true;
+        }
+
+        return foundCandidate;
     }
 
     public void NotifyTruckFinished(AircraftFuelStation station)
