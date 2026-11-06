@@ -101,7 +101,7 @@ public class AircraftFuelStation : MonoBehaviour
         {
             currentlyServicedAircraft = null;
             fuelTransferredThisSession = 0f;
-            fuelCostChargedThisSession = 0;
+            fuelRevenueEarnedThisSession = 0;
 
             if (!deliveryInProgress && !deliveryRequested)
                 debugStatus = "Waiting for a parked hobby aircraft";
@@ -143,7 +143,7 @@ public class AircraftFuelStation : MonoBehaviour
                     additionalCost,
                     $"Hobby aircraft fuel sales ({aircraft.name})"))
             {
-                debugStatus = $"{aircraft.name}: insufficient funds for refuelling";
+                debugStatus = $"{aircraft.name}: could not record fuel sale";
                 return;
             }
 
@@ -177,8 +177,8 @@ public class AircraftFuelStation : MonoBehaviour
             if (status == null || !status.IsParked)
                 continue;
 
-            AircraftHobbyDepartureTaxiController departure =
-                status.GetComponent<AircraftHobbyDepartureTaxiController>();
+            AircraftHobbyFuelDepartureController departure =
+                status.GetComponent<AircraftHobbyFuelDepartureController>();
 
             if (departure == null || !departure.IsAtFuelStation)
                 continue;
