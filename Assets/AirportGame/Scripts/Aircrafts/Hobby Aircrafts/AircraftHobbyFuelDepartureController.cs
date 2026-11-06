@@ -279,7 +279,11 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
             foreach (Vector2Int target in targets)
             {
                 List<Vector2Int> route = taxiwayPathfinder.FindPath(start, target);
-                if (route == null || route.Count == 0)
+
+                // A one-cell path means the selected start is already the
+                // destination cell. Accepting it would skip taxiway travel
+                // and send the aircraft directly toward the station stop point.
+                if (route == null || route.Count < 2)
                     continue;
 
                 float distance = Vector3.Distance(
