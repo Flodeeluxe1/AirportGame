@@ -231,6 +231,12 @@ public class ATCGroundTrafficManager : MonoBehaviour
         routeClearanceTargets =
             new Dictionary<AircraftTaxiTrafficFollowing, int>();
 
+    // Only populated when clearance is denied. Granted route boundaries
+    // must not act as physical stop points.
+    private readonly Dictionary<AircraftTaxiTrafficFollowing, int>
+        routeHoldTargets =
+            new Dictionary<AircraftTaxiTrafficFollowing, int>();
+
     [Header("Registered Route Diagnostics")]
     [SerializeField] private bool logRegisteredRouteConflicts;
 
@@ -303,6 +309,7 @@ public class ATCGroundTrafficManager : MonoBehaviour
             Instance = null;
 
         routeClearanceTargets.Clear();
+        routeHoldTargets.Clear();
         activeReservations.Clear();
         waitingRequests.Clear();
         pointStates.Clear();
@@ -403,15 +410,24 @@ public class ATCGroundTrafficManager : MonoBehaviour
                 route.Count >= 2 &&
                 conflictHoldingIndex >= 0)
             {
-                routeClearanceTargets[aircraft] = Mathf.Clamp(
+                int holdIndex = Mathf.Clamp(
                     conflictHoldingIndex,
                     0,
                     route.Count - 1);
+
+                routeClearanceTargets[aircraft] = holdIndex;
+                routeHoldTargets[aircraft] = holdIndex;
+            }
+            else
+            {
+                routeHoldTargets.Remove(aircraft);
             }
 
             LogTaxiClearanceDecision(aircraft, false, decision);
             return false;
         }
+
+        routeHoldTargets.Remove(aircraft);
 
         if (route != null && route.Count >= 2 &&
             TryFindNearestRouteIndex(
@@ -483,7 +499,7 @@ public class ATCGroundTrafficManager : MonoBehaviour
 
         if (aircraft == null ||
             gridManager == null ||
-            !routeClearanceTargets.TryGetValue(
+            !routeHoldTargets.TryGetValue(
                 aircraft,
                 out int targetIndex))
         {
