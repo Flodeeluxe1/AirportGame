@@ -57,6 +57,7 @@ public class FuelTruckController : MonoBehaviour
     private float deliveryLitres;
     private float deliveryLitresOffloaded;
     private float fuelPricePerLitre = 1f;
+    private int prepaidFuelCost;
     private AirportEconomyManager economyManager;
 
     private bool waitingForIntersection;
@@ -364,6 +365,7 @@ public class FuelTruckController : MonoBehaviour
         }
 
         deliveryLitres = affordableLitres;
+        prepaidFuelCost = cost;
         deliveryLitresOffloaded = 0f;
         offloading = true;
         debugState = $"Offloading fuel: 0/{deliveryLitres:F0} L";
@@ -402,6 +404,7 @@ public class FuelTruckController : MonoBehaviour
         if (targetAircraftStation != null)
             targetAircraftStation.CompleteFuelDelivery();
 
+        RefundUndeliveredFuel(deliveredLitres);
         returningToRoad = true;
         debugState = $"Delivered {deliveredLitres:F0} L";
 
@@ -415,6 +418,21 @@ public class FuelTruckController : MonoBehaviour
                 $"Fuel cost: ${(deliveredLitres * fuelPricePerLitre):N0}",
                 this);
         }
+    }
+
+    private void RefundUndeliveredFuel(float deliveredLitres)
+    {
+        if (prepaidFuelCost <= 0)
+            return;
+
+        int actualCost = Mathf.CeilToInt(
+            Mathf.Max(0f, deliveredLitres) * fuelPricePerLitre);
+        int refund = Mathf.Max(0, prepaidFuelCost - actualCost);
+
+        if (refund > 0 && economyManager != null)
+            economyManager.AddRevenue(refund, "Refund for undelivered fuel");
+
+        prepaidFuelCost = 0;
     }
 
     private Vector3 GetRoadWorldPosition(Vector2Int cell)
@@ -432,8 +450,13 @@ public class FuelTruckController : MonoBehaviour
 
         deliveryClosed = true;
 
-        if (!delivered && targetAircraftStation != null)
-            targetAircraftStation.CompleteFuelDelivery();
+        if (!delivered)
+        {
+            if (targetAircraftStation != null)
+                targetAircraftStation.CompleteFuelDelivery();
+
+            RefundUndeliveredFuel(deliveryLitresOffloaded);
+        }
 
         if (deliveryStation != null)
             deliveryStation.ReleaseTruck(this);
