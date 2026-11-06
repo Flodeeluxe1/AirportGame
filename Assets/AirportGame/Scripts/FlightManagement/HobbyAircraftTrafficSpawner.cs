@@ -72,6 +72,19 @@ public class HobbyAircraftTrafficSpawner : MonoBehaviour
     [Min(0f)]
     [SerializeField] private float weekendDemandMultiplier = 1.25f;
 
+    [Header("Fuel Station Attraction")]
+    [Tooltip("Arrival probability multiplier while an aircraft fuel station is available.")]
+    [Min(1f)]
+    [SerializeField] private float fuelStationDemandMultiplier = 1.5f;
+
+    [Tooltip("Minimum starting fuel percentage for hobby visitors when a fuel station exists.")]
+    [Range(0f, 1f)]
+    [SerializeField] private float minimumVisitorFuelPercentage = 0.25f;
+
+    [Tooltip("Maximum starting fuel percentage for hobby visitors when a fuel station exists.")]
+    [Range(0f, 1f)]
+    [SerializeField] private float maximumVisitorFuelPercentage = 0.75f;
+
     [Header("Fee Sensitivity")]
     [Tooltip("Higher configured fees reduce demand. 0.001 means a $100 fee adds 0.1 to the fee penalty.")]
     [Min(0f)]
@@ -311,9 +324,13 @@ public class HobbyAircraftTrafficSpawner : MonoBehaviour
 
         if (!ignoreDemandRoll)
         {
+            bool hasFuelStation =
+                FindFirstObjectByType<AircraftFuelStation>() != null;
+
             float probability = CalculateArrivalProbability(
                 parkingSpotCount,
-                runwayCount
+                runwayCount,
+                hasFuelStation
             );
 
             bool arrivalRequested = Random.value < probability;
@@ -323,6 +340,7 @@ public class HobbyAircraftTrafficSpawner : MonoBehaviour
                 Debug.Log(
                     $"Hobby demand check | Parking: {parkingSpotCount} | " +
                     $"Free: {freeSpotCount} | Active: {activeAircraftCount} | " +
+                    $"Fuel station: {hasFuelStation} | " +
                     $"Arrival probability: {probability:P1} | " +
                     $"Arrival selected: {arrivalRequested}",
                     this
@@ -446,7 +464,8 @@ public class HobbyAircraftTrafficSpawner : MonoBehaviour
 
     private float CalculateArrivalProbability(
         int parkingSpotCount,
-        int runwayCount)
+        int runwayCount,
+        bool hasFuelStation)
     {
         float expectedDailyVisits =
             baseDailyVisits +
@@ -462,6 +481,9 @@ public class HobbyAircraftTrafficSpawner : MonoBehaviour
         expectedDailyVisits *= GetTimeOfDayMultiplier();
         expectedDailyVisits *= GetDayOfWeekMultiplier();
         expectedDailyVisits *= GetFeeDemandMultiplier();
+
+        if (hasFuelStation)
+            expectedDailyVisits *= Mathf.Max(1f, fuelStationDemandMultiplier);
 
         float checksPerDay =
             1440f / Mathf.Max(1, demandCheckIntervalMinutes);
@@ -548,6 +570,8 @@ public class HobbyAircraftTrafficSpawner : MonoBehaviour
             gameTimeManager.CurrentDay
         );
 
+        InitializeVisitorFuel(aircraft);
+
         debugStatus = $"Spawned visiting aircraft {flightNumber}";
 
         Debug.Log(
@@ -558,6 +582,36 @@ public class HobbyAircraftTrafficSpawner : MonoBehaviour
         );
 
         return true;
+    }
+
+    private void InitializeVisitorFuel(GameObject aircraft)
+    {
+        if (aircraft == null ||
+            FindFirstObjectByType<AircraftFuelStation>() == null)
+        {
+            return;
+        }
+
+        AircraftFuelTank fuelTank =
+            aircraft.GetComponent<AircraftFuelTank>();
+
+        if (fuelTank == null)
+        {
+            Debug.LogWarning(
+                "Hobby visitor has no AircraftFuelTank; starting fuel was not randomized.",
+                aircraft);
+            return;
+        }
+
+        float minimum = Mathf.Clamp01(minimumVisitorFuelPercentage);
+        float maximum = Mathf.Clamp01(maximumVisitorFuelPercentage);
+
+        if (maximum < minimum)
+            maximum = minimum;
+
+        float startingPercentage = Random.Range(minimum, maximum);
+        fuelTank.RestoreFuel(
+            fuelTank.MaximumFuelLitres * startingPercentage);
     }
 
     private string GetNextFlightNumber()
