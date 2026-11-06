@@ -186,6 +186,24 @@ public class AircraftTaxiTrafficFollowing : MonoBehaviour
                 }
             }
 
+            if (!hasATCClearance &&
+                Time.deltaTime > 0.0001f &&
+                ATCGroundTrafficManager.Instance != null &&
+                ATCGroundTrafficManager.Instance.TryGetTaxiHoldPosition(
+                    this,
+                    out Vector3 runwayHoldPosition))
+            {
+                float distanceToHold = Vector3.Distance(
+                    transform.position,
+                    runwayHoldPosition);
+                float maximumWorldSpeed = distanceToHold / Time.deltaTime;
+
+                runwayEntrySpeed = Mathf.Min(
+                    runwayEntrySpeed,
+                    maximumWorldSpeed /
+                    AircraftStatus.WorldUnitsPerSecondPerKnot);
+            }
+
             aircraftStatus.SetCurrentSpeedKnots(runwayEntrySpeed);
             debugCurrentSpeed = runwayEntrySpeed;
             debugATCClearance = atcDecision;
@@ -286,6 +304,28 @@ public class AircraftTaxiTrafficFollowing : MonoBehaviour
             0f,
             cruisingSpeedKnots
         );
+
+        // A denied ATC clearance is a physical boundary, not just a
+        // requested speed reduction. Limit this frame's travel so a large
+        // time step cannot carry the aircraft past its holding position.
+        if (Time.deltaTime > 0.0001f &&
+            ATCGroundTrafficManager.Instance != null &&
+            ATCGroundTrafficManager.Instance.TryGetTaxiHoldPosition(
+                this,
+                out Vector3 holdPosition))
+        {
+            float distanceToHold = Vector3.Distance(
+                transform.position,
+                holdPosition);
+            float maximumWorldSpeed = distanceToHold / Time.deltaTime;
+            float maximumKnots =
+                maximumWorldSpeed /
+                AircraftStatus.WorldUnitsPerSecondPerKnot;
+
+            currentSpeedKnots = Mathf.Min(
+                currentSpeedKnots,
+                maximumKnots);
+        }
 
         aircraftStatus.SetCurrentSpeedKnots(currentSpeedKnots);
 
