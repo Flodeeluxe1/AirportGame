@@ -17,6 +17,11 @@ public class FuelTruckController : MonoBehaviour
     [Min(0.01f)]
     [SerializeField] private float waypointTolerance = 0.08f;
 
+    [Header("Fuel Offloading")]
+    [Tooltip("Fuel pumped into the airport fuel station per minute.")]
+    [Min(0.1f)]
+    [SerializeField] private float offloadRateLitresPerMinute = 1000f;
+
     [Header("Intersection Control")]
     [Min(0)]
     [SerializeField] private int intersectionLookAheadModules = 1;
@@ -37,6 +42,7 @@ public class FuelTruckController : MonoBehaviour
     private int pathIndex;
     private bool routeInitialized;
     private bool delivered;
+    private bool offloading;
     private bool deliveryClosed;
     private bool approachingStopPoint;
     private bool returningToRoad;
@@ -49,6 +55,9 @@ public class FuelTruckController : MonoBehaviour
     private AircraftFuelStation targetAircraftStation;
     private FuelTruckSpawner ownerSpawner;
     private float deliveryLitres;
+    private float deliveryLitresOffloaded;
+    private float fuelPricePerLitre = 1f;
+    private AirportEconomyManager economyManager;
 
     private bool waitingForIntersection;
     private bool hasIntersectionReservation;
@@ -72,6 +81,7 @@ public class FuelTruckController : MonoBehaviour
         FuelDeliveryStation selectedStation,
         AircraftFuelStation aircraftStation,
         float amountLitres,
+        float pricePerLitre,
         FuelTruckSpawner spawner)
     {
         if (routeInitialized)
@@ -81,6 +91,8 @@ public class FuelTruckController : MonoBehaviour
         targetAircraftStation = aircraftStation;
         ownerSpawner = spawner;
         deliveryLitres = amountLitres;
+        fuelPricePerLitre = Mathf.Max(0.01f, pricePerLitre);
+        economyManager = FindFirstObjectByType<AirportEconomyManager>();
 
         if (roadNetwork == null)
             roadNetwork = FindFirstObjectByType<RoadNetwork>();
@@ -132,9 +144,14 @@ public class FuelTruckController : MonoBehaviour
             {
                 transform.position = stopWorldPosition;
                 approachingStopPoint = false;
-                returningToRoad = true;
-                PerformFuelDelivery();
+                BeginFuelOffloading();
             }
+            return;
+        }
+
+        if (offloading)
+        {
+            UpdateFuelOffloading();
             return;
         }
 
@@ -310,25 +327,94 @@ public class FuelTruckController : MonoBehaviour
         return true;
     }
 
-    private void PerformFuelDelivery()
+    private void BeginFuelOffloading()
     {
-        if (delivered)
+        if (delivered || offloading)
             return;
 
-        float accepted = targetAircraftStation != null
-            ? targetAircraftStation.ReceiveFuelDelivery(deliveryLitres)
-            : 0f;
+        if (economyManager == null)
+            economyManager = FindFirstObjectByType<AirportEconomyManager>();
 
+        if (economyManager == null || targetAircraftStation == null)
+        {
+            Debug.LogError(
+                "FuelTruckController: AirportEconomyManager or target fuel station is missing.",
+                this);
+            FinishFuelOffloading(0f);
+            return;
+        }
+
+        float affordableLitres = Mathf.Min(
+            deliveryLitres,
+            targetAircraftStation.RemainingFuelCapacity,
+            Mathf.Floor(economyManager.Balance / fuelPricePerLitre));
+
+        if (affordableLitres <= 0f)
+        {
+            debugState = "Delivery cancelled: insufficient airport funds";
+            FinishFuelOffloading(0f);
+            return;
+        }
+
+        int cost = Mathf.CeilToInt(affordableLitres * fuelPricePerLitre);
+        if (!economyManager.TrySpend(cost, $"Fuel delivery ({affordableLitres:F0} litres)"))
+        {
+            FinishFuelOffloading(0f);
+            return;
+        }
+
+        deliveryLitres = affordableLitres;
+        deliveryLitresOffloaded = 0f;
+        offloading = true;
+        debugState = $"Offloading fuel: 0/{deliveryLitres:F0} L";
+    }
+
+    private void UpdateFuelOffloading()
+    {
+        if (targetAircraftStation == null)
+        {
+            FinishFuelOffloading(deliveryLitresOffloaded);
+            return;
+        }
+
+        float remaining = deliveryLitres - deliveryLitresOffloaded;
+        float amountThisFrame = Mathf.Min(
+            remaining,
+            offloadRateLitresPerMinute * Time.deltaTime / 60f);
+
+        if (amountThisFrame > 0f)
+        {
+            float accepted = targetAircraftStation.ReceiveFuelDelivery(amountThisFrame);
+            deliveryLitresOffloaded += accepted;
+        }
+
+        if (deliveryLitresOffloaded >= deliveryLitres - 0.001f)
+            FinishFuelOffloading(deliveryLitresOffloaded);
+        else
+            debugState = $"Offloading fuel: {deliveryLitresOffloaded:F0}/{deliveryLitres:F0} L";
+    }
+
+    private void FinishFuelOffloading(float deliveredLitres)
+    {
+        offloading = false;
         delivered = true;
+
         if (targetAircraftStation != null)
             targetAircraftStation.CompleteFuelDelivery();
 
-        debugState = $"Delivered {accepted:F0} L";
-        Debug.Log(
-            $"FUEL TANKER DELIVERY COMPLETE | Aircraft fuel station: " +
-            $"{(targetAircraftStation != null ? targetAircraftStation.name : "Missing")} | " +
-            $"Delivery station: {deliveryStation.name} | Accepted: {accepted:F0} L",
-            this);
+        returningToRoad = true;
+        debugState = $"Delivered {deliveredLitres:F0} L";
+
+        if (deliveredLitres > 0f)
+        {
+            Debug.Log(
+                $"FUEL TANKER DELIVERY COMPLETE | Aircraft fuel station: " +
+                $"{(targetAircraftStation != null ? targetAircraftStation.name : "Missing")} | " +
+                $"Delivery station: {deliveryStation.name} | " +
+                $"Accepted: {deliveredLitres:F0} L | " +
+                $"Fuel cost: ${(deliveredLitres * fuelPricePerLitre):N0}",
+                this);
+        }
     }
 
     private Vector3 GetRoadWorldPosition(Vector2Int cell)
