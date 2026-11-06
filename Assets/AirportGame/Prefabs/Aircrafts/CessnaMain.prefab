@@ -4877,7 +4877,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 128
   trafficDetectionDistance: 10
-  safeFollowingDistance: 7
+  safeFollowingDistance: 6
   rayOriginHeight: 0.5
   rayOriginForwardOffset: 2
   acceleration: 0.3
