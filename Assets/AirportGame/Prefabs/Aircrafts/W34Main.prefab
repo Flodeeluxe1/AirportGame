@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 2423156278310145653}
   - component: {fileID: 2058485056701865831}
   - component: {fileID: 8664738503010462070}
+  - component: {fileID: 2162022500710187571}
   - component: {fileID: 5153398351784972899}
   - component: {fileID: -3780748238844713195}
   - component: {fileID: 1572968075970986140}
@@ -89,6 +90,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 03afd6a5301d25e4fa7cef7aa0ee0a5f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AircraftStatus
+--- !u!114 &2162022500710187571
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 753756043139321930}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4c0d8e2a7f6b4e9d9a1c3f5b7d2e8a60, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AircraftFuelTank
+  maximumFuelLitres: 200
+  currentFuelLitres: 200
+  consumptionLitresPerHour: 40
 --- !u!114 &5153398351784972899
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -109,7 +125,6 @@ MonoBehaviour:
   approachSpeedKnots: 90
   touchdownSpeedKnots: 70
   rolloutTargetSpeedKnots: 15
-  worldUnitsPerSecondPerKnot: 0.15
   speedChangeRate: 3
   rolloutDeceleration: 1
   flareHeight: 1.5
@@ -153,7 +168,6 @@ MonoBehaviour:
   runwayEndTolerance: 1
   maximumParkingConnectorDistance: 12
   taxiSpeedKnots: 15
-  worldUnitsPerSecondPerKnot: 0.15
   rotationSpeed: 2
   parkingRotationSpeed: 10
   waypointArrivalDistance: 0.2
@@ -209,7 +223,6 @@ MonoBehaviour:
   maximumStartCandidates: 10
   runwaySafetyMarginInCells: 1
   taxiSpeedKnots: 15
-  worldUnitsPerSecondPerKnot: 0.15
   rotationSpeedDegreesPerSecond: 45
   waypointArrivalDistance: 0.15
   modelRotationOffset: {x: 0, y: 0, z: 0}
@@ -251,7 +264,6 @@ MonoBehaviour:
   takeoffSpeedKnots: 80
   groundAccelerationKnotsPerSecond: 15
   airborneAccelerationKnotsPerSecond: 3
-  worldUnitsPerSecondPerKnot: 0.15
   rotationStartSpeedFraction: 0.8
   rotationRateDegreesPerSecond: 3
   targetNoseUpDegrees: 13
@@ -292,10 +304,11 @@ MonoBehaviour:
   debugCurrentSpeed: 0
   debugBlockingAircraft: None
   debugBlockingDistance: 0
-  debugLastRayHitCollider: None
-  debugLastRayDirection: None
-  debugLastRayDistance: 0
   debugTrafficDecision: Not tested
+  debugATCClearance: Not requested
+  debugForwardRay: Not scanned
+  debugLeftRay: Not scanned
+  debugRightRay: Not scanned
   debugRaycastSummary: No raycast performed yet.
 --- !u!1001 &3583963974137580783
 PrefabInstance:

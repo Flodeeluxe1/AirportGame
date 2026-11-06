@@ -91,6 +91,9 @@ PrefabInstance:
       addedObject: {fileID: -7825726159349142036}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 329bd202958094e408464039e61f03d4, type: 3}
       insertIndex: -1
+      addedObject: {fileID: -701716032693025371}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 329bd202958094e408464039e61f03d4, type: 3}
+      insertIndex: -1
       addedObject: {fileID: -5687118414093639624}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 329bd202958094e408464039e61f03d4, type: 3}
       insertIndex: -1
@@ -170,6 +173,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 03afd6a5301d25e4fa7cef7aa0ee0a5f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AircraftStatus
+--- !u!114 &-701716032693025371
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2387620211239937619}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4c0d8e2a7f6b4e9d9a1c3f5b7d2e8a60, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AircraftFuelTank
+  maximumFuelLitres: 200
+  currentFuelLitres: 200
+  consumptionLitresPerHour: 40
 --- !u!114 &-5687118414093639624
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -210,7 +228,6 @@ MonoBehaviour:
   approachSpeedKnots: 90
   touchdownSpeedKnots: 80
   rolloutTargetSpeedKnots: 15
-  worldUnitsPerSecondPerKnot: 0.15
   speedChangeRate: 2.5
   rolloutDeceleration: 1.3
   flareHeight: 1.5
@@ -255,7 +272,6 @@ MonoBehaviour:
   minimumExitForwardDistance: 0.5
   runwayEndTolerance: 1
   taxiSpeedKnots: 15
-  worldUnitsPerSecondPerKnot: 0.15
   rotationSpeed: 2
   waypointArrivalDistance: 0.2
   gateArrivalDistance: 0.5
@@ -375,7 +391,6 @@ MonoBehaviour:
   maximumStartCandidates: 10
   runwaySafetyMarginInCells: 1
   taxiSpeedKnots: 15
-  worldUnitsPerSecondPerKnot: 0.15
   rotationSpeedDegreesPerSecond: 45
   waypointArrivalDistance: 0.15
   modelRotationOffset: {x: 0, y: 0, z: 0}
@@ -414,11 +429,11 @@ MonoBehaviour:
   trafficManager: {fileID: 0}
   gameTimeManager: {fileID: 0}
   gridManager: {fileID: 0}
+  aircraftStatus: {fileID: 0}
   aircraftCollider: {fileID: 0}
   takeoffSpeedKnots: 90
   groundAccelerationKnotsPerSecond: 20
   airborneAccelerationKnotsPerSecond: 3
-  worldUnitsPerSecondPerKnot: 0.15
   rotationStartSpeedFraction: 0.8
   rotationRateDegreesPerSecond: 3
   targetNoseUpDegrees: 15
@@ -458,6 +473,7 @@ MonoBehaviour:
   debugBlockingAircraft: None
   debugBlockingDistance: 0
   debugTrafficDecision: Not tested
+  debugATCClearance: Not requested
   debugForwardRay: Not scanned
   debugLeftRay: Not scanned
   debugRightRay: Not scanned

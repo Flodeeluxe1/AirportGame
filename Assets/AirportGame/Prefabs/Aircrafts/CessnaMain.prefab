@@ -4575,6 +4575,7 @@ GameObject:
   - component: {fileID: -1437335864178184074}
   - component: {fileID: -5828195141393434414}
   - component: {fileID: 7115448970014184870}
+  - component: {fileID: 887766554433221100}
   - component: {fileID: -8064365332280727941}
   - component: {fileID: 4611748060777580918}
   - component: {fileID: 510167352823672194}
@@ -4582,7 +4583,6 @@ GameObject:
   - component: {fileID: 277294173312402616}
   - component: {fileID: -1894496117262883330}
   - component: {fileID: 7165853331674213948}
-  - component: {fileID: 887766554433221100}
   m_Layer: 7
   m_Name: CessnaMain
   m_TagString: Untagged
@@ -4667,6 +4667,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 03afd6a5301d25e4fa7cef7aa0ee0a5f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AircraftStatus
+--- !u!114 &887766554433221100
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5782728294546788241}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4c0d8e2a7f6b4e9d9a1c3f5b7d2e8a60, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AircraftFuelTank
+  maximumFuelLitres: 200
+  currentFuelLitres: 200
+  consumptionLitresPerHour: 40
 --- !u!114 &-8064365332280727941
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4687,7 +4702,6 @@ MonoBehaviour:
   approachSpeedKnots: 75
   touchdownSpeedKnots: 55
   rolloutTargetSpeedKnots: 12
-  worldUnitsPerSecondPerKnot: 0.15
   speedChangeRate: 3
   rolloutDeceleration: 1
   flareHeight: 1.5
@@ -4733,7 +4747,6 @@ MonoBehaviour:
   runwayEndTolerance: 1
   maximumParkingConnectorDistance: 12
   taxiSpeedKnots: 12
-  worldUnitsPerSecondPerKnot: 0.15
   rotationSpeed: 3
   waypointArrivalDistance: 0.2
   parkingArrivalDistance: 0.5
@@ -4791,7 +4804,6 @@ MonoBehaviour:
   maximumStartCandidates: 10
   runwaySafetyMarginInCells: 1
   taxiSpeedKnots: 12
-  worldUnitsPerSecondPerKnot: 0.15
   rotationSpeedDegreesPerSecond: 45
   waypointArrivalDistance: 0.15
   modelRotationOffset: {x: 0, y: 0, z: 0}
@@ -4834,7 +4846,6 @@ MonoBehaviour:
   takeoffSpeedKnots: 75
   groundAccelerationKnotsPerSecond: 20
   airborneAccelerationKnotsPerSecond: 3
-  worldUnitsPerSecondPerKnot: 0.15
   rotationStartSpeedFraction: 0.8
   rotationRateDegreesPerSecond: 2
   targetNoseUpDegrees: 8
@@ -4870,6 +4881,15 @@ MonoBehaviour:
   rayOriginForwardOffset: 2
   acceleration: 0.3
   braking: 0.3
+  debugCurrentSpeed: 0
+  debugBlockingAircraft: None
+  debugBlockingDistance: 0
+  debugTrafficDecision: Not tested
+  debugATCClearance: Not requested
+  debugForwardRay: Not scanned
+  debugLeftRay: Not scanned
+  debugRightRay: Not scanned
+  debugRaycastSummary: No raycast performed yet.
 --- !u!114 &7165853331674213948
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7820,19 +7840,3 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 3069c9eb92867d7418f2a6e6518c74fb, type: 3}
-
---- !u!114 &887766554433221100
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5782728294546788241}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4c0d8e2a7f6b4e9d9a1c3f5b7d2e8a60, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::AircraftFuelTank
-  maximumFuelLitres: 200
-  currentFuelLitres: 200
-  consumptionLitresPerHour: 40

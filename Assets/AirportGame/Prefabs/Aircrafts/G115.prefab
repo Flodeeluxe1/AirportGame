@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 6708039799144440726}
   - component: {fileID: 7563263625542891464}
   - component: {fileID: 1520858476857260160}
+  - component: {fileID: 7602803925440224080}
   - component: {fileID: 5705690150798237064}
   - component: {fileID: 4737968444723569948}
   - component: {fileID: 6070543810844894910}
@@ -90,6 +91,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 03afd6a5301d25e4fa7cef7aa0ee0a5f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AircraftStatus
+--- !u!114 &7602803925440224080
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2931056182657766213}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4c0d8e2a7f6b4e9d9a1c3f5b7d2e8a60, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AircraftFuelTank
+  maximumFuelLitres: 200
+  currentFuelLitres: 200
+  consumptionLitresPerHour: 40
 --- !u!114 &5705690150798237064
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -137,7 +153,6 @@ MonoBehaviour:
   maximumStartCandidates: 10
   runwaySafetyMarginInCells: 1
   taxiSpeedKnots: 10
-  worldUnitsPerSecondPerKnot: 0.15
   rotationSpeedDegreesPerSecond: 45
   waypointArrivalDistance: 0.15
   modelRotationOffset: {x: 0, y: 0, z: 0}
@@ -175,7 +190,6 @@ MonoBehaviour:
   takeoffSpeedKnots: 60
   groundAccelerationKnotsPerSecond: 18
   airborneAccelerationKnotsPerSecond: 3
-  worldUnitsPerSecondPerKnot: 0.15
   rotationStartSpeedFraction: 0.7
   rotationRateDegreesPerSecond: 2
   targetNoseUpDegrees: 10
@@ -210,7 +224,6 @@ MonoBehaviour:
   approachSpeedKnots: 75
   touchdownSpeedKnots: 65
   rolloutTargetSpeedKnots: 30
-  worldUnitsPerSecondPerKnot: 0.15
   speedChangeRate: 3
   rolloutDeceleration: 1
   flareHeight: 1.5
@@ -254,7 +267,6 @@ MonoBehaviour:
   runwayEndTolerance: 1
   maximumParkingConnectorDistance: 12
   taxiSpeedKnots: 10
-  worldUnitsPerSecondPerKnot: 0.15
   rotationSpeed: 2
   waypointArrivalDistance: 0.2
   parkingArrivalDistance: 0.5
@@ -289,10 +301,11 @@ MonoBehaviour:
   debugCurrentSpeed: 0
   debugBlockingAircraft: None
   debugBlockingDistance: 0
-  debugLastRayHitCollider: None
-  debugLastRayDirection: None
-  debugLastRayDistance: 0
   debugTrafficDecision: Not tested
+  debugATCClearance: Not requested
+  debugForwardRay: Not scanned
+  debugLeftRay: Not scanned
+  debugRightRay: Not scanned
   debugRaycastSummary: No raycast performed yet.
 --- !u!114 &4301875829656427440
 MonoBehaviour:

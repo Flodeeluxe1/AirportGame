@@ -127,6 +127,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b9b0d6ea1c9c34f42aba7cd8c03fca59, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
+  maximumFuelLitres: 5000
+  currentFuelLitres: 5000
+  refuellingRadius: 6
+  refuellingRateLitresPerMinute: 50
+  deliveryRequestThreshold: 0.25
+  deliveryRequested: 0
+  deliveryInProgress: 0
+  debugStatus: Fuel station ready
 --- !u!1001 &1606625444814612270
 PrefabInstance:
   m_ObjectHideFlags: 0
