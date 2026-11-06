@@ -226,7 +226,38 @@ public class FuelTruckSpawner : MonoBehaviour
                 continue;
 
             List<Vector2Int> outbound = roadNetwork.FindPath(startCell, candidate);
-            if (outbound == null || outbound.Count == 0)
+            if (outbound == null || outbound.Count < 2)
+                continue;
+
+            // The final road segment must run perpendicular to the stop point's
+            // forward axis, with the stop point directly ahead of the truck.
+            Vector3 stopForward = stopPoint.forward;
+            stopForward.y = 0f;
+            Vector3 approachDirection = stopPoint.position - roadPosition;
+            approachDirection.y = 0f;
+
+            if (stopForward.sqrMagnitude < 0.0001f ||
+                approachDirection.sqrMagnitude < 0.0001f)
+                continue;
+
+            stopForward.Normalize();
+            approachDirection.Normalize();
+
+            if (Vector3.Dot(approachDirection, stopForward) < 0.95f)
+                continue;
+
+            Vector3 previousRoadPosition =
+                roadNetwork.GetRoadCenterWorldPosition(
+                    outbound[outbound.Count - 2], gridManager);
+            Vector3 roadTravelDirection = roadPosition - previousRoadPosition;
+            roadTravelDirection.y = 0f;
+
+            if (roadTravelDirection.sqrMagnitude < 0.0001f)
+                continue;
+
+            roadTravelDirection.Normalize();
+
+            if (Mathf.Abs(Vector3.Dot(roadTravelDirection, stopForward)) > 0.15f)
                 continue;
 
             List<Vector2Int> returning = roadNetwork.FindPath(candidate, exitCell);
