@@ -12,14 +12,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b707bf0339cdddd48ac715a8e271822e, type: 3}
   m_Name: BD_TaxiwayStop
   m_EditorClassIdentifier: Assembly-CSharp::BuildableDefinition
+  id: airport.taxiway.stop
+  displayName: TaxiwayStop
+  prefab: {fileID: 1164336239030874389, guid: 43926e09f7567ac46b71a7c0febede21, type: 3}
+  placementType: 0
+  requiredSurface: 3
+  width: 3
+  depth: 1
+  edgeLength: 1
+  requiresExistingWall: 0
+  isWallMounted: 0
+  mountHeight: 2
+  canRotate: 1
+  buildCost: 100
+  blocksPathfinding: 0
   category: 3
   icon: {fileID: 0}
-  id: airport.info.counter
-  displayName: Info Counter
-  prefab: {fileID: 6860734732833718646, guid: 9192939f3f38a9146b5f59f8ec50130c, type: 3}
-  placementType: 0
-  requiredSurface: 1
-  width: 8
-  depth: 8
-  canRotate: 1
-  buildCost: 1000
+  roomFurnitureRole: 0
