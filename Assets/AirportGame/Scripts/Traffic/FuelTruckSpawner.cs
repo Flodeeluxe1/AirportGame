@@ -15,7 +15,9 @@ public class FuelTruckSpawner : MonoBehaviour
 
     [Header("Fuel Delivery")]
     [Min(1f)]
-    [SerializeField] private float tankerCapacityLitres = 5000f;
+    [SerializeField] private float tankerCapacityLitres = 20000f;
+    [Min(0.01f)]
+    [SerializeField] private float fuelPricePerLitre = 1f;
 
     [Header("Spawner")]
     [Min(0.1f)]
@@ -125,6 +127,7 @@ public class FuelTruckSpawner : MonoBehaviour
                 selectedRoute.Station,
                 aircraftStation,
                 amount,
+                fuelPricePerLitre,
                 this);
 
             if (logDispatches)
