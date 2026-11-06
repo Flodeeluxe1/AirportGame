@@ -2203,7 +2203,7 @@ public class ATCGroundTrafficManager : MonoBehaviour
         string bestHoldingLabel = holdingLabel;
 
         // Automatic junction / direction-change holding positions.
-        for (int i = conflictIndex; i >= 1 && i < route.Count - 1; i--)
+        for (int i = conflictIndex; i > currentIndex && i < route.Count - 1; i--)
         {
             Vector2Int cell = route[i];
 
