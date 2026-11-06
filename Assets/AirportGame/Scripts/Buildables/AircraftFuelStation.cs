@@ -40,7 +40,7 @@ public class AircraftFuelStation : MonoBehaviour
 
     private AircraftFuelTank currentlyServicedAircraft;
     private float fuelTransferredThisSession;
-    private int fuelCostChargedThisSession;
+    private int fuelRevenueEarnedThisSession;
     private AirportEconomyManager economyManager;
 
     public float SellingPricePerLitre => sellingPricePerLitre;
@@ -139,9 +139,9 @@ public class AircraftFuelStation : MonoBehaviour
                 economyManager = FindFirstObjectByType<AirportEconomyManager>();
 
             if (economyManager == null ||
-                !economyManager.TrySpend(
+                !economyManager.AddRevenue(
                     additionalCost,
-                    $"Aircraft refuelling ({aircraft.name})"))
+                    $"Hobby aircraft fuel sales ({aircraft.name})"))
             {
                 debugStatus = $"{aircraft.name}: insufficient funds for refuelling";
                 return;
