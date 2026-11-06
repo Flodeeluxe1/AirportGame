@@ -41,6 +41,12 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
     [Min(1)]
     [SerializeField] private int stopSearchRadiusCells = 6;
 
+    [Range(1, 20)]
+    [SerializeField] private int maximumStartCandidates = 10;
+
+    [Range(1, 20)]
+    [SerializeField] private int maximumStopCandidates = 10;
+
     [Header("References")]
     [SerializeField] private GridManager gridManager;
     [SerializeField] private TaxiwayNetwork taxiwayNetwork;
@@ -230,6 +236,14 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
             }
         }
 
+        starts.Sort((a, b) =>
+            Vector2Int.Distance(a, aircraftCell).CompareTo(
+                Vector2Int.Distance(b, aircraftCell)));
+
+        if (starts.Count > maximumStartCandidates)
+            starts.RemoveRange(maximumStartCandidates,
+                starts.Count - maximumStartCandidates);
+
         List<Vector2Int> targets = new();
         for (int x = -stopSearchRadiusCells; x <= stopSearchRadiusCells; x++)
         {
@@ -244,6 +258,14 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
                 }
             }
         }
+
+        targets.Sort((a, b) =>
+            Vector2Int.Distance(a, stopCell).CompareTo(
+                Vector2Int.Distance(b, stopCell)));
+
+        if (targets.Count > maximumStopCandidates)
+            targets.RemoveRange(maximumStopCandidates,
+                targets.Count - maximumStopCandidates);
 
         foreach (Vector2Int start in starts)
         {
