@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 6337581904095210698}
   - component: {fileID: 2636895984051759986}
   - component: {fileID: 8961849278155636370}
-  - component: {fileID: 2802474084468693057}
+  - component: {fileID: -2897053180808845171}
   - component: {fileID: 1304579184345742578}
   m_Layer: 0
   m_Name: TaxiwayStop
@@ -29,8 +29,8 @@ Transform:
   m_GameObject: {fileID: 1164336239030874389}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 55.51, y: 0.01, z: 66.51}
-  m_LocalScale: {x: 0.27, y: 1, z: 0.07}
+  m_LocalPosition: {x: 55.51, y: 0.1, z: 66.51}
+  m_LocalScale: {x: 0.5, y: 1, z: 0.07}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -92,8 +92,8 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!64 &2802474084468693057
-MeshCollider:
+--- !u!65 &-2897053180808845171
+BoxCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -110,10 +110,9 @@ MeshCollider:
   m_IsTrigger: 0
   m_ProvidesContacts: 0
   m_Enabled: 1
-  serializedVersion: 5
-  m_Convex: 0
-  m_CookingOptions: 30
-  m_Mesh: {fileID: 10209, guid: 0000000000000000e000000000000000, type: 0}
+  serializedVersion: 3
+  m_Size: {x: 10, y: 0.2, z: 10.000001}
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!114 &1304579184345742578
 MonoBehaviour:
   m_ObjectHideFlags: 0
