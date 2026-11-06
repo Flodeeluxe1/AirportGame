@@ -4221,6 +4221,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e964f9beef1f0ce43a888d78988df280, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FuelTruckSpawner
+  fuelTruckPrefab: {fileID: 5019100724431002640, guid: e6371642692c28f4fb820f552bec9e9a, type: 3}
+  spawnPoint: {fileID: 2134991058}
+  fuelDeliveryRoadPoint: {fileID: 0}
+  exitPoint: {fileID: 1964681761}
+  gridManager: {fileID: 728659359}
+  roadNetwork: {fileID: 401526682}
+  tankerCapacityLitres: 5000
+  scanInterval: 2
+  spawnHeightOffset: 0.2
+  logDispatches: 1
 --- !u!1 &2136825550
 GameObject:
   m_ObjectHideFlags: 0
