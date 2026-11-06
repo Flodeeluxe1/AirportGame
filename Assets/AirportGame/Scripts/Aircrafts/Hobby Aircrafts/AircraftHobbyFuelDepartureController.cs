@@ -77,6 +77,12 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
         fuelTank = GetComponent<AircraftFuelTank>();
         aircraftStatus = GetComponent<AircraftStatus>();
 
+        // The normal departure controller must not select a runway or begin
+        // turning as soon as the visit ends. Fuel station availability is
+        // decided first, while the aircraft is still parked.
+        if (departureController != null)
+            departureController.enabled = false;
+
         ResolveReferences();
     }
 
@@ -651,6 +657,14 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
 
         state = FuelDepartureState.Finished;
         debugStatus = reason;
+
+        // No refuelling is required (or the aircraft declined it). Only now
+        // allow the normal departure controller to select a runway and turn.
+        if (departureController != null)
+        {
+            departureController.ResetRouteFromCurrentPosition();
+            departureController.enabled = true;
+        }
 
         if (logFuelDecision)
             Debug.Log($"{name}: {reason}", this);
