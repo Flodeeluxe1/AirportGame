@@ -74,6 +74,10 @@ public class FuelTruckController : MonoBehaviour
         if (routeInitialized)
             return;
 
+        targetStation = station;
+        ownerSpawner = spawner;
+        deliveryLitres = amountLitres;
+
         if (roadNetwork == null)
             roadNetwork = FindFirstObjectByType<RoadNetwork>();
 
@@ -81,7 +85,7 @@ public class FuelTruckController : MonoBehaviour
             gridManager = FindFirstObjectByType<GridManager>();
 
         if (roadNetwork == null || gridManager == null ||
-            station == null || amountLitres <= 0f)
+            targetStation == null || deliveryLitres <= 0f)
         {
             CloseDeliveryRequest();
             Destroy(gameObject);
@@ -108,9 +112,6 @@ public class FuelTruckController : MonoBehaviour
         for (int i = 1; i < returning.Count; i++)
             route.Add(returning[i]);
 
-        targetStation = station;
-        deliveryLitres = amountLitres;
-        ownerSpawner = spawner;
         routeInitialized = true;
         pathIndex = 0;
         debugPathLength = route.Count;
@@ -125,12 +126,6 @@ public class FuelTruckController : MonoBehaviour
         if (!routeInitialized || route.Count == 0)
             return;
 
-        if (pathIndex == deliveryPathIndex && !delivered)
-        {
-            PerformFuelDelivery();
-            return;
-        }
-
         if (pathIndex >= route.Count)
         {
             debugState = "Exited";
@@ -143,6 +138,12 @@ public class FuelTruckController : MonoBehaviour
         {
             currentSpeed = 0f;
             debugState = "Waiting for intersection";
+            return;
+        }
+
+        if (pathIndex == deliveryPathIndex && !delivered)
+        {
+            PerformFuelDelivery();
             return;
         }
 
