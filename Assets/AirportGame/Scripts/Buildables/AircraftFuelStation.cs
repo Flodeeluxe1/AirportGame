@@ -264,59 +264,47 @@ public class AircraftFuelStation : MonoBehaviour
 
     private AircraftFuelTank FindParkedAircraftAtStation()
     {
-        AircraftStatus[] aircraftStatuses =
-            FindObjectsByType<AircraftStatus>(FindObjectsSortMode.None);
+        // Only the aircraft holding this station's reservation can refuel.
+        // Checking it directly avoids scanning every AircraftStatus in the scene.
+        AircraftHobbyFuelDepartureController departure = reservedAircraft;
 
-        AircraftFuelTank nearestAircraft = null;
-        float nearestDistanceSquared = refuellingRadius * refuellingRadius;
-
-        Vector3 stationPosition = transform.position;
-
-        foreach (AircraftStatus status in aircraftStatuses)
+        if (departure == null ||
+            !departure.IsAtFuelStation ||
+            departure.SelectedStation != this)
         {
-            if (status == null || !status.IsParked)
-                continue;
-
-            AircraftHobbyFuelDepartureController departure =
-                status.GetComponent<AircraftHobbyFuelDepartureController>();
-
-            if (departure == null ||
-                departure != reservedAircraft ||
-                !departure.IsAtFuelStation ||
-                departure.SelectedStation != this)
-                continue;
-
-            AircraftFlightIdentity identity =
-                status.GetComponent<AircraftFlightIdentity>();
-
-            if (identity == null ||
-                !identity.IsInitialized ||
-                !identity.IsHobbyFlight)
-            {
-                continue;
-            }
-
-            AircraftFuelTank fuelTank =
-                status.GetComponent<AircraftFuelTank>();
-
-            if (fuelTank == null || fuelTank.IsFull)
-                continue;
-
-            Vector3 offset =
-                status.transform.position - stationPosition;
-
-            offset.y = 0f;
-
-            float distanceSquared = offset.sqrMagnitude;
-
-            if (distanceSquared > nearestDistanceSquared)
-                continue;
-
-            nearestDistanceSquared = distanceSquared;
-            nearestAircraft = fuelTank;
+            return null;
         }
 
-        return nearestAircraft;
+        AircraftStatus status = departure.GetComponent<AircraftStatus>();
+
+        if (status == null || !status.IsParked)
+            return null;
+
+        AircraftFlightIdentity identity =
+            departure.GetComponent<AircraftFlightIdentity>();
+
+        if (identity == null ||
+            !identity.IsInitialized ||
+            !identity.IsHobbyFlight)
+        {
+            return null;
+        }
+
+        AircraftFuelTank fuelTank =
+            departure.GetComponent<AircraftFuelTank>();
+
+        if (fuelTank == null || fuelTank.IsFull)
+            return null;
+
+        Vector3 offset = departure.transform.position - transform.position;
+        offset.y = 0f;
+
+        float radiusSquared = refuellingRadius * refuellingRadius;
+
+        if (offset.sqrMagnitude > radiusSquared)
+            return null;
+
+        return fuelTank;
     }
 
     private void UpdateDeliveryRequest()
