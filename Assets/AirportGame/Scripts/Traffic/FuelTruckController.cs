@@ -318,6 +318,8 @@ public class FuelTruckController : MonoBehaviour
 
         hasIntersectionReservation = false;
         waitingForIntersection = false;
+
+        CloseDeliveryRequest();
     }
 
     private void OnDestroy()
