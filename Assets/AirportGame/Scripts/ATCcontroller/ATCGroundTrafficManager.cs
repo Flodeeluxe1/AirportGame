@@ -2264,7 +2264,6 @@ public class ATCGroundTrafficManager : MonoBehaviour
 
             int nearestRouteIndex = -1;
             float nearestRouteDistance = float.MaxValue;
-
             for (int i = 0; i < route.Count; i++)
             {
                 Vector3 cellPosition = gridManager.GridToWorldCenter(route[i]);
@@ -2279,34 +2278,48 @@ public class ATCGroundTrafficManager : MonoBehaviour
             float matchRadius =
                 Mathf.Max(point.EntryRadius, gridManager.CellSize * 0.75f);
             bool withinRadius = nearestRouteDistance <= matchRadius;
-            bool aheadOfAircraft =
-                nearestRouteIndex >= currentIndex;
+            bool aheadOfAircraft = nearestRouteIndex >= currentIndex;
             bool beforeConflict =
                 nearestRouteIndex >= currentIndex &&
                 nearestRouteIndex < conflictIndex;
-            bool wouldBeSelected =
-                withinRadius &&
-                beforeConflict &&
-                nearestRouteIndex < bestHoldingIndex;
+
+            int firstMatchingRouteIndex = -1;
+            for (int i = currentIndex; i < conflictIndex; i++)
+            {
+                Vector3 cellPosition =
+                    gridManager.GridToWorldCenter(route[i]);
+
+                if (HorizontalDistance(point.Position, cellPosition) <= matchRadius)
+                {
+                    firstMatchingRouteIndex = i;
+                    break;
+                }
+            }
+
+            bool wouldSelectManual =
+                firstMatchingRouteIndex >= 0 &&
+                firstMatchingRouteIndex < bestHoldingIndex;
 
             if (logManualHoldingPointSelection)
             {
-                string diagnosticKey =
-                    aircraftName + "|" + point.Label;
+                string diagnosticKey = aircraftName + "|" + point.Label;
                 string diagnostic =
                     "currentIndex=" + currentIndex +
                     " (" + route[currentIndex] + ")" +
                     " | conflictIndex=" + conflictIndex +
                     " (" + route[conflictIndex] + ")" +
                     " | nearestRouteIndex=" + nearestRouteIndex +
-                    " (" + route[nearestRouteIndex] + ")" +
+                    (nearestRouteIndex >= 0
+                        ? " (" + route[nearestRouteIndex] + ")"
+                        : " (none)") +
                     " | distance=" + nearestRouteDistance.ToString("F2") +
                     "m | matchRadius=" + matchRadius.ToString("F2") +
                     "m | withinRadius=" + withinRadius +
                     " | aheadOfAircraft=" + aheadOfAircraft +
                     " | beforeConflict=" + beforeConflict +
+                    " | firstMatchingRouteIndex=" + firstMatchingRouteIndex +
                     " | automaticCandidateIndex=" + bestHoldingIndex +
-                    " | wouldSelectManual=" + wouldBeSelected;
+                    " | wouldSelectManual=" + wouldSelectManual;
 
                 if (!lastManualHoldingDiagnostics.TryGetValue(
                         diagnosticKey, out string previousDiagnostic) ||
@@ -2320,13 +2333,15 @@ public class ATCGroundTrafficManager : MonoBehaviour
                 }
             }
 
-            if (!withinRadius || !beforeConflict ||
-                nearestRouteIndex >= bestHoldingIndex)
+            // Preserve the existing selection logic while diagnostics are
+            // collected: select the first matching route cell before conflict.
+            if (firstMatchingRouteIndex < 0 ||
+                firstMatchingRouteIndex >= bestHoldingIndex)
             {
                 continue;
             }
 
-            bestHoldingIndex = nearestRouteIndex;
+            bestHoldingIndex = firstMatchingRouteIndex;
             bestHoldingPosition = point.Position;
             bestHoldingLabel = "manual holding point " + point.Label;
         }
