@@ -69,6 +69,7 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
     private bool decisionMade;
 
     public bool IsAtFuelStation => state == FuelDepartureState.AtFuelStation;
+    public AircraftFuelStation SelectedStation => selectedStation;
 
     private void Awake()
     {
