@@ -4773,8 +4773,8 @@ MonoBehaviour:
   landingFee: 20
   parkingFee: 5
   parkingIntervalMinutes: 10
-  minimumStayMinutes: 60
-  maximumStayMinutes: 180
+  minimumStayMinutes: 5
+  maximumStayMinutes: 10
   parkingSpotReleaseDistance: 2
   landingFeeCharged: 0
   hasParked: 0
@@ -4891,6 +4891,32 @@ MonoBehaviour:
   debugLeftRay: Not scanned
   debugRightRay: Not scanned
   debugRaycastSummary: No raycast performed yet.
+--- !u!114 &8327461950283746102
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5782728294546788241}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8c4f2a7e1b6d49c3a5f0e2d7b9c61483, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AircraftHobbyFuelDepartureController
+  mandatoryRefuellingBelowFuelPercentage: 0.4
+  logFuelDecision: 1
+  taxiSpeedKnots: 8
+  rotationSpeedDegreesPerSecond: 35
+  arrivalDistance: 0.2
+  startSearchRadiusCells: 12
+  maximumStopApproachDistanceCells: 12
+  maximumStartCandidates: 10
+  gridManager: {fileID: 0}
+  taxiwayNetwork: {fileID: 0}
+  taxiwayPathfinder: {fileID: 0}
+  state: 0
+  selectedStation: {fileID: 0}
+  debugStatus: Waiting for hobby aircraft visit
 --- !u!114 &7165853331674213948
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7841,30 +7867,3 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 3069c9eb92867d7418f2a6e6518c74fb, type: 3}
---- !u!114 &8327461950283746102
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5782728294546788241}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8c4f2a7e1b6d49c3a5f0e2d7b9c61483, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::AircraftHobbyFuelDepartureController
-  mandatoryRefuellingBelowFuelPercentage: 0.4
-  logFuelDecision: 1
-  taxiSpeedKnots: 8
-  rotationSpeedDegreesPerSecond: 35
-  arrivalDistance: 0.2
-  startSearchRadiusCells: 12
-  stopSearchRadiusCells: 6
-  maximumStartCandidates: 10
-  maximumStopCandidates: 10
-  gridManager: {fileID: 0}
-  taxiwayNetwork: {fileID: 0}
-  taxiwayPathfinder: {fileID: 0}
-  state: 0
-  selectedStation: {fileID: 0}
-  debugStatus: Waiting for hobby aircraft visit
