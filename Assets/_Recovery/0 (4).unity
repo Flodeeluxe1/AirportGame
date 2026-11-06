@@ -1726,6 +1726,9 @@ MonoBehaviour:
   dawnDuskMultiplier: 0.5
   nighttimeMultiplier: 0.1
   weekendDemandMultiplier: 2
+  fuelStationDemandMultiplier: 1.5
+  minimumVisitorFuelPercentage: 0.25
+  maximumVisitorFuelPercentage: 0.75
   landingFeeSensitivity: 0.001
   parkingFeeSensitivity: 0.001
   nextFlightNumber: 101
@@ -4223,11 +4226,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FuelTruckSpawner
   fuelTruckPrefab: {fileID: 5019100724431002640, guid: e6371642692c28f4fb820f552bec9e9a, type: 3}
   spawnPoint: {fileID: 2134991058}
-  fuelDeliveryRoadPoint: {fileID: 0}
   exitPoint: {fileID: 1964681761}
   gridManager: {fileID: 728659359}
   roadNetwork: {fileID: 401526682}
-  tankerCapacityLitres: 5000
+  tankerCapacityLitres: 20000
+  fuelPricePerLitre: 1
   scanInterval: 2
   spawnHeightOffset: 0.2
   logDispatches: 1
