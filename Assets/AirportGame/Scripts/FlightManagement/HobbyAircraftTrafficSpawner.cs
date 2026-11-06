@@ -656,6 +656,7 @@ public class HobbyAircraftTrafficSpawner : MonoBehaviour
             hobbyAircraftPrefab.GetComponent<AircraftHobbyLandingTaxiController>() == null ||
             hobbyAircraftPrefab.GetComponent<AircraftHobbyVisitController>() == null ||
             hobbyAircraftPrefab.GetComponent<AircraftHobbyDepartureTaxiController>() == null ||
+            hobbyAircraftPrefab.GetComponent<AircraftHobbyFuelDepartureController>() == null ||
             hobbyAircraftPrefab.GetComponent<AircraftHobbyTakeoffController>() == null)
         {
             Debug.LogError(
@@ -663,7 +664,8 @@ public class HobbyAircraftTrafficSpawner : MonoBehaviour
                 "root components: AircraftFlightIdentity, " +
                 "AircraftLandingController, HobbyAircraftTaxiController, " +
                 "HobbyAircraftVisitController, " +
-                "AircraftDepartureTaxiController or AircraftTakeoffController.",
+                "AircraftDepartureTaxiController, AircraftHobbyFuelDepartureController " +
+                "or AircraftTakeoffController.",
                 this
             );
 
