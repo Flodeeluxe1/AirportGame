@@ -161,6 +161,12 @@ public class FuelTruckController : MonoBehaviour
             return;
         }
 
+        if (ShouldWaitForIntersection())
+        {
+            debugState = "Waiting for intersection";
+            return;
+        }
+
         if (pathIndex == deliveryPathIndex && !delivered)
         {
             if (!deliveryStation.TryOccupyStop(this))
@@ -171,12 +177,6 @@ public class FuelTruckController : MonoBehaviour
 
             approachingStopPoint = true;
             debugState = "Approaching FuelTruckStopPoint";
-            return;
-        }
-
-        if (ShouldWaitForIntersection())
-        {
-            debugState = "Waiting for intersection";
             return;
         }
 
