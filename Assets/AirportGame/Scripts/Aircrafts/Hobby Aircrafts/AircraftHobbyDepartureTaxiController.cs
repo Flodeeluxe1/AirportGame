@@ -226,6 +226,15 @@ public class AircraftHobbyDepartureTaxiController : MonoBehaviour
         runwayJoinRoute.Clear();
         movementWaypoints.Clear();
 
+        // Remove the fuel-station route immediately. ATC must not keep
+        // treating this aircraft as travelling along its previous route
+        // while the departure route is being recalculated.
+        AircraftTaxiTrafficFollowing trafficFollowing =
+            GetComponent<AircraftTaxiTrafficFollowing>();
+
+        if (trafficFollowing != null)
+            trafficFollowing.ClearPlannedTaxiRoute();
+
         currentWaypointIndex = 0;
         holdingRouteIndex = 0;
         holdingCell = default;
@@ -497,6 +506,14 @@ public class AircraftHobbyDepartureTaxiController : MonoBehaviour
 
         taxiRoute.Clear();
         taxiRoute.AddRange(bestSafeRoute);
+
+        // Publish the newly selected departure route before the aircraft
+        // begins moving, rather than waiting for its first movement update.
+        AircraftTaxiTrafficFollowing trafficFollowing =
+            GetComponent<AircraftTaxiTrafficFollowing>();
+
+        if (trafficFollowing != null)
+            trafficFollowing.SetPlannedTaxiRoute(taxiRoute);
 
         runwayJoinRoute.Clear();
         runwayJoinRoute.AddRange(bestJoinRoute);
