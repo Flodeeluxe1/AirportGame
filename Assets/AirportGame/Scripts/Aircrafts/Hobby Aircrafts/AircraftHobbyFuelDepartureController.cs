@@ -198,6 +198,30 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
         plannedRoute.AddRange(bestRoute);
         BuildFuelStationMovementPoints(bestRoute, bestStation.AircraftFuelStopPoint);
 
+        // Log the complete selected taxi route and the actual world-space
+        // movement points once when the aircraft commits to refuelling.
+        string routeLog = $"\\nSelected fuel station: {bestStation.name}" +
+            $"\\nAircraft world position: {transform.position}" +
+            $"\\nFuel stop point: {bestStation.AircraftFuelStopPoint.position}" +
+            $"\\nRoute cells ({bestRoute.Count}): ";
+        for (int i = 0; i < bestRoute.Count; i++)
+        {
+            Vector2Int cell = bestRoute[i];
+            routeLog += $"[{i}] {cell} -> {gridManager.GridToWorldCenter(cell)}";
+            if (i < bestRoute.Count - 1)
+                routeLog += " | ";
+        }
+
+        routeLog += $"\\nMovement points ({movementPoints.Count}): ";
+        for (int i = 0; i < movementPoints.Count; i++)
+        {
+            routeLog += $"[{i}] {movementPoints[i]}";
+            if (i < movementPoints.Count - 1)
+                routeLog += " | ";
+        }
+
+        Debug.Log($"{name}: FUEL TAXI ROUTE{routeLog}", this);
+
         if (movementPoints.Count == 0)
         {
             FinishWithoutRefuelling("Could not build a route to the fuel stop.");
