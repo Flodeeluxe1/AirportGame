@@ -159,7 +159,10 @@ public class FuelTruckController : MonoBehaviour
 
         if (returningToRoad)
         {
-            MoveBackwardsTowardsRoad(stationRoadWorldPosition);
+            if (!TurnTowardsRoad(stationRoadWorldPosition))
+                return;
+
+            MoveTowards(stationRoadWorldPosition);
             if (HasReached(stationRoadWorldPosition))
             {
                 transform.position = stationRoadWorldPosition;
@@ -255,18 +258,23 @@ public class FuelTruckController : MonoBehaviour
             transform.rotation = Quaternion.LookRotation(forward.normalized, Vector3.up);
     }
 
-    private void MoveBackwardsTowardsRoad(Vector3 target)
+    private bool TurnTowardsRoad(Vector3 roadPosition)
     {
-        Vector3 offset = target - transform.position;
-        offset.y = 0f;
+        Vector3 direction = roadPosition - transform.position;
+        direction.y = 0f;
 
-        FaceStopPoint();
+        if (direction.sqrMagnitude < 0.0001f)
+            return true;
 
-        Vector3 flatTarget = new Vector3(target.x, transform.position.y, target.z);
-        transform.position = Vector3.MoveTowards(
-            transform.position,
-            flatTarget,
-            movementSpeed * Time.deltaTime);
+        Quaternion targetRotation =
+            Quaternion.LookRotation(direction.normalized, Vector3.up);
+
+        transform.rotation = Quaternion.RotateTowards(
+            transform.rotation,
+            targetRotation,
+            rotationSpeed * 90f * Time.deltaTime);
+
+        return Quaternion.Angle(transform.rotation, targetRotation) <= 1f;
     }
 
     private bool HasReached(Vector3 target)
