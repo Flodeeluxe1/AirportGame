@@ -15,6 +15,7 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
         Deciding,
         TaxiingToFuelStation,
         AtFuelStation,
+        WaitingForFuelStation,
         Finished
     }
 
@@ -64,6 +65,7 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
     private readonly List<Vector2Int> plannedRoute = new();
     private readonly List<Vector3> movementPoints = new();
     private int movementIndex;
+    private float decisionRetryTimer;
     private bool decisionMade;
 
     public bool IsAtFuelStation => state == FuelDepartureState.AtFuelStation;
@@ -82,6 +84,17 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
     {
         if (visitController == null || !visitController.DepartureRequested)
             return;
+
+        if (state == FuelDepartureState.WaitingForFuelStation)
+        {
+            decisionRetryTimer -= Time.deltaTime;
+            if (decisionRetryTimer <= 0f)
+            {
+                decisionMade = false;
+                state = FuelDepartureState.Deciding;
+            }
+            return;
+        }
 
         if (!decisionMade)
         {
@@ -124,7 +137,10 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
 
         if (stations.Length == 0)
         {
-            FinishWithoutRefuelling("No aircraft fuel station is available.");
+            if (mandatory)
+                WaitForFuelStation("Fuel is below 40%; waiting for an aircraft fuel station.");
+            else
+                FinishWithoutRefuelling("No aircraft fuel station is available.");
             return;
         }
 
@@ -157,10 +173,10 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
 
         if (bestStation == null || bestRoute == null)
         {
-            FinishWithoutRefuelling(
-                mandatory
-                    ? "Fuel is below 40%, but no reachable fuel station was found."
-                    : "No reachable fuel station was found.");
+            if (mandatory)
+                WaitForFuelStation("Fuel is below 40%; waiting for a stocked, reachable fuel station.");
+            else
+                FinishWithoutRefuelling("No stocked, reachable fuel station was found.");
             return;
         }
 
@@ -445,6 +461,16 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
 
         if (departureController != null)
             departureController.enabled = true;
+    }
+
+    private void WaitForFuelStation(string reason)
+    {
+        state = FuelDepartureState.WaitingForFuelStation;
+        decisionRetryTimer = 5f;
+        debugStatus = reason;
+
+        if (logFuelDecision)
+            Debug.Log($"{name}: {reason}", this);
     }
 
     private void FinishWithoutRefuelling(string reason)
