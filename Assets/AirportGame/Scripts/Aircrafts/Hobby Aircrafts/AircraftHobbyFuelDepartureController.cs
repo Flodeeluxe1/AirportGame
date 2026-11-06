@@ -437,6 +437,8 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
         movementPoints.Add(stopPosition);
         movementIndex = 0;
         state = FuelDepartureState.TaxiingToFuelStation;
+        if (aircraftStatus != null)
+            aircraftStatus.SetTaxiing(true);
         debugStatus = $"Fuel station available; approaching {selectedStation.name}";
     }
 
