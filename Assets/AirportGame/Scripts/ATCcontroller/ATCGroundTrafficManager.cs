@@ -829,6 +829,7 @@ public class ATCGroundTrafficManager : MonoBehaviour
         ReleaseAllSectionReservations(aircraft);
         lastLoggedTaxiDecisions.Remove(aircraft);
         routeClearanceTargets.Remove(aircraft);
+        routeHoldTargets.Remove(aircraft);
         aircraft.ClearPlannedTaxiRoute();
     }
 
