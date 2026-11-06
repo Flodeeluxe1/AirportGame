@@ -144,6 +144,7 @@ public class FuelTruckController : MonoBehaviour
             if (HasReached(stopWorldPosition))
             {
                 transform.position = stopWorldPosition;
+                FaceStopPoint();
                 approachingStopPoint = false;
                 BeginFuelOffloading();
             }
@@ -158,7 +159,7 @@ public class FuelTruckController : MonoBehaviour
 
         if (returningToRoad)
         {
-            MoveTowards(stationRoadWorldPosition);
+            MoveBackwardsTowardsRoad(stationRoadWorldPosition);
             if (HasReached(stationRoadWorldPosition))
             {
                 transform.position = stationRoadWorldPosition;
@@ -234,6 +235,32 @@ public class FuelTruckController : MonoBehaviour
                 targetRotation,
                 rotationSpeed * Time.deltaTime);
         }
+
+        Vector3 flatTarget = new Vector3(target.x, transform.position.y, target.z);
+        transform.position = Vector3.MoveTowards(
+            transform.position,
+            flatTarget,
+            movementSpeed * Time.deltaTime);
+    }
+
+    private void FaceStopPoint()
+    {
+        if (stopPoint == null)
+            return;
+
+        Vector3 forward = stopPoint.forward;
+        forward.y = 0f;
+
+        if (forward.sqrMagnitude > 0.0001f)
+            transform.rotation = Quaternion.LookRotation(forward.normalized, Vector3.up);
+    }
+
+    private void MoveBackwardsTowardsRoad(Vector3 target)
+    {
+        Vector3 offset = target - transform.position;
+        offset.y = 0f;
+
+        FaceStopPoint();
 
         Vector3 flatTarget = new Vector3(target.x, transform.position.y, target.z);
         transform.position = Vector3.MoveTowards(
