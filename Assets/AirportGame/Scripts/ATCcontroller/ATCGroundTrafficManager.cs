@@ -302,6 +302,7 @@ public class ATCGroundTrafficManager : MonoBehaviour
         if (Instance == this)
             Instance = null;
 
+        routeClearanceTargets.Clear();
         activeReservations.Clear();
         waitingRequests.Clear();
         pointStates.Clear();
@@ -398,6 +399,16 @@ public class ATCGroundTrafficManager : MonoBehaviour
                 out decision,
                 out int conflictHoldingIndex))
         {
+            if (route != null &&
+                route.Count >= 2 &&
+                conflictHoldingIndex >= 0)
+            {
+                routeClearanceTargets[aircraft] = Mathf.Clamp(
+                    conflictHoldingIndex,
+                    0,
+                    route.Count - 1);
+            }
+
             LogTaxiClearanceDecision(aircraft, false, decision);
             return false;
         }
@@ -457,6 +468,34 @@ public class ATCGroundTrafficManager : MonoBehaviour
         }
 
         LogTaxiClearanceDecision(aircraft, true, decision);
+        return true;
+    }
+
+    /// <summary>
+    /// Returns the exact route holding position currently enforced for an
+    /// aircraft whose route clearance has been denied.
+    /// </summary>
+    public bool TryGetTaxiHoldPosition(
+        AircraftTaxiTrafficFollowing aircraft,
+        out Vector3 holdPosition)
+    {
+        holdPosition = default;
+
+        if (aircraft == null ||
+            gridManager == null ||
+            !routeClearanceTargets.TryGetValue(
+                aircraft,
+                out int targetIndex))
+        {
+            return false;
+        }
+
+        IReadOnlyList<Vector2Int> route = aircraft.PlannedTaxiRoute;
+        if (route == null || route.Count < 2)
+            return false;
+
+        targetIndex = Mathf.Clamp(targetIndex, 0, route.Count - 1);
+        holdPosition = gridManager.GridToWorldCenter(route[targetIndex]);
         return true;
     }
 
