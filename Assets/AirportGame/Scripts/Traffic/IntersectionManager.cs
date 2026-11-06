@@ -183,7 +183,8 @@ public class IntersectionManager : MonoBehaviour
             return false;
 
         return vehicle is TrafficTestVehicle ||
-               vehicle is CargoDeliveryTruck;
+               vehicle is CargoDeliveryTruck ||
+               vehicle is FuelTruckController;
     }
 
     private IntersectionState GetState(Vector2Int intersection)
