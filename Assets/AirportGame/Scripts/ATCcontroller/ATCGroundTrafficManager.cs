@@ -237,6 +237,11 @@ public class ATCGroundTrafficManager : MonoBehaviour
         routeHoldTargets =
             new Dictionary<AircraftTaxiTrafficFollowing, int>();
 
+    // Reused by the sequential route-pair scans to avoid per-frame
+    // dictionary allocations while comparing active taxi routes.
+    private readonly Dictionary<Vector2Int, int> routeCellIndexScratch =
+        new Dictionary<Vector2Int, int>();
+
     [Header("Registered Route Diagnostics")]
     [SerializeField] private bool logRegisteredRouteConflicts;
 
@@ -1876,14 +1881,13 @@ public class ATCGroundTrafficManager : MonoBehaviour
             // Index the other route once. The routes are pathfinder-generated
             // cell paths, so each cell occurs at most once. This avoids the
             // previous route-length x route-length nested cell comparison.
-            Dictionary<Vector2Int, int> otherRouteIndices =
-                new Dictionary<Vector2Int, int>(otherRoute.Count);
+            routeCellIndexScratch.Clear();
 
             for (int otherIndex = 0;
                  otherIndex < otherRoute.Count;
                  otherIndex++)
             {
-                otherRouteIndices[otherRoute[otherIndex]] = otherIndex;
+                routeCellIndexScratch[otherRoute[otherIndex]] = otherIndex;
             }
 
             // Decide right of way once for this aircraft pair using
@@ -1902,7 +1906,7 @@ public class ATCGroundTrafficManager : MonoBehaviour
             {
                 Vector2Int ownCell = ownRoute[ownIndex];
 
-                if (!otherRouteIndices.TryGetValue(
+                if (!routeCellIndexScratch.TryGetValue(
                         ownCell,
                         out int otherIndex))
                 {
@@ -2021,22 +2025,20 @@ public class ATCGroundTrafficManager : MonoBehaviour
         float firstNearestConflictDistance = float.MaxValue;
         float secondNearestConflictDistance = float.MaxValue;
 
-        Dictionary<Vector2Int, int> secondRouteIndices =
-            new Dictionary<Vector2Int, int>(
-                secondRoute.Count - secondStartIndex);
+        routeCellIndexScratch.Clear();
 
         for (int secondIndex = secondStartIndex;
              secondIndex < secondRoute.Count;
              secondIndex++)
         {
-            secondRouteIndices[secondRoute[secondIndex]] = secondIndex;
+            routeCellIndexScratch[secondRoute[secondIndex]] = secondIndex;
         }
 
         for (int firstIndex = firstStartIndex;
              firstIndex < firstRoute.Count;
              firstIndex++)
         {
-            if (!secondRouteIndices.TryGetValue(
+            if (!routeCellIndexScratch.TryGetValue(
                     firstRoute[firstIndex],
                     out int secondIndex))
             {
