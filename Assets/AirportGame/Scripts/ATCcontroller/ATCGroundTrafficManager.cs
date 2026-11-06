@@ -914,11 +914,20 @@ public class ATCGroundTrafficManager : MonoBehaviour
             intersectionCount++;
         }
 
+        Debug.Log(
+            "[ATC MANUAL HOLD REGISTRY] Rebuilding manual points. " +
+            "RegisteredPoints count: " +
+            ATCManualHoldingPoint.RegisteredPoints.Count);
+
         foreach (ATCManualHoldingPoint holdingPoint
                  in ATCManualHoldingPoint.RegisteredPoints)
         {
             if (holdingPoint == null)
+            {
+                Debug.LogWarning(
+                    "[ATC MANUAL HOLD REGISTRY] Null entry in RegisteredPoints.");
                 continue;
+            }
 
             // Keep every enabled manual point registered. Whether it is
             // relevant to an aircraft is decided later by matching it
@@ -949,7 +958,20 @@ public class ATCGroundTrafficManager : MonoBehaviour
             };
 
             AddOrUpdateControlPoint(point, validKeys);
+
+            Debug.Log(
+                "[ATC MANUAL HOLD REGISTERED] " + holdingPoint.name +
+                " | Active: " + holdingPoint.isActiveAndEnabled +
+                " | World position: " + holdingPoint.transform.position +
+                " | Grid cell: " + cell +
+                " | Control radius: " + holdingPoint.ControlRadiusCells +
+                " cells");
         }
+
+        Debug.Log(
+            "[ATC MANUAL HOLD REGISTRY] Rebuild complete. " +
+            "Registered manual points processed: " +
+            ATCManualHoldingPoint.RegisteredPoints.Count);
 
         List<ControlPointKey> removedKeys = null;
 
