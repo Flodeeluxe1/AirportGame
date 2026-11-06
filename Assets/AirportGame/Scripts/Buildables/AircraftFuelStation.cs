@@ -40,27 +40,63 @@ public class AircraftFuelStation : MonoBehaviour
 
     private AircraftFuelTank currentlyServicedAircraft;
     private AircraftHobbyFuelDepartureController reservedAircraft;
+    private readonly System.Collections.Generic.List<AircraftHobbyFuelDepartureController> reservationQueue = new();
     private float fuelTransferredThisSession;
     private float fuelSessionPricePerLitre;
     private AirportEconomyManager economyManager;
 
     public float SellingPricePerLitre => sellingPricePerLitre;
 
-    public bool TryReserveForAircraft(AircraftHobbyFuelDepartureController aircraft)
+    /// <summary>
+    /// Adds an aircraft to the FIFO queue. The first aircraft reserves the
+    /// station immediately when it is free; later aircraft wait at parking.
+    /// </summary>
+    public bool RequestAircraftReservation(AircraftHobbyFuelDepartureController aircraft)
     {
         if (aircraft == null)
             return false;
 
-        if (reservedAircraft != null && reservedAircraft != aircraft)
-            return false;
+        RemoveInvalidQueueEntries();
 
-        reservedAircraft = aircraft;
-        return true;
+        if (reservedAircraft == aircraft)
+            return true;
+
+        if (!reservationQueue.Contains(aircraft))
+            reservationQueue.Add(aircraft);
+
+        return TryGrantNextReservation();
     }
 
     public bool IsReservedForAircraft(AircraftHobbyFuelDepartureController aircraft)
     {
         return aircraft != null && reservedAircraft == aircraft;
+    }
+
+    public bool IsQueuedForAircraft(AircraftHobbyFuelDepartureController aircraft)
+    {
+        return aircraft != null && reservationQueue.Contains(aircraft);
+    }
+
+    public bool TryAcquireQueuedReservation(AircraftHobbyFuelDepartureController aircraft)
+    {
+        if (aircraft == null)
+            return false;
+
+        RemoveInvalidQueueEntries();
+        return TryGrantNextReservation() && reservedAircraft == aircraft;
+    }
+
+    public void CancelAircraftReservationRequest(AircraftHobbyFuelDepartureController aircraft)
+    {
+        if (aircraft == null)
+            return;
+
+        reservationQueue.Remove(aircraft);
+
+        if (reservedAircraft == aircraft)
+            reservedAircraft = null;
+
+        TryGrantNextReservation();
     }
 
     public void ReleaseAircraftReservation(AircraftHobbyFuelDepartureController aircraft)
@@ -69,6 +105,29 @@ public class AircraftFuelStation : MonoBehaviour
             return;
 
         reservedAircraft = null;
+        TryGrantNextReservation();
+    }
+
+    private bool TryGrantNextReservation()
+    {
+        RemoveInvalidQueueEntries();
+
+        if (reservedAircraft != null)
+            return false;
+
+        if (reservationQueue.Count == 0)
+            return false;
+
+        reservedAircraft = reservationQueue[0];
+        reservationQueue.RemoveAt(0);
+        return true;
+    }
+
+    private void RemoveInvalidQueueEntries()
+    {
+        reservationQueue.RemoveAll(aircraft => aircraft == null);
+        if (reservedAircraft == null)
+            reservedAircraft = null;
     }
     public Transform AircraftFuelStopPoint
     {
