@@ -214,6 +214,33 @@ public class AircraftHobbyDepartureTaxiController : MonoBehaviour
             aircraftCollider = GetComponentInChildren<BoxCollider>(true);
     }
 
+    public void ResetRouteFromCurrentPosition()
+    {
+        ResolveReferences();
+
+        if (trafficManager != null)
+            trafficManager.ReleaseDepartureReservation(this);
+
+        selectedRunway = null;
+        taxiRoute.Clear();
+        runwayJoinRoute.Clear();
+        movementWaypoints.Clear();
+
+        currentWaypointIndex = 0;
+        holdingRouteIndex = 0;
+        holdingCell = default;
+        runwayJoinCell = default;
+        hasHoldingCell = false;
+
+        currentState = DepartureState.WaitingForRunway;
+        retryTimer = 0f;
+        hasLoggedWaitingMessage = false;
+        lastRunwayWaitReason = string.Empty;
+        debugSelectedRunway = "None";
+        debugTakeoffHeading = "None";
+        debugStatus = "Recalculating departure route from current position.";
+    }
+
     public bool TrySelectDepartureRunway()
     {
         ResolveReferences();
