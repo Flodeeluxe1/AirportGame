@@ -7860,6 +7860,8 @@ MonoBehaviour:
   arrivalDistance: 0.2
   startSearchRadiusCells: 12
   stopSearchRadiusCells: 6
+  maximumStartCandidates: 10
+  maximumStopCandidates: 10
   gridManager: {fileID: 0}
   taxiwayNetwork: {fileID: 0}
   taxiwayPathfinder: {fileID: 0}
