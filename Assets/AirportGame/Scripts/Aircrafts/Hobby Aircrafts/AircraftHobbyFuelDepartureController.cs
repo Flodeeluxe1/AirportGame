@@ -39,6 +39,9 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
     [Min(1)]
     [SerializeField] private int startSearchRadiusCells = 12;
 
+    [Min(1)]
+    [SerializeField] private int maximumStopApproachDistanceCells = 12;
+
     [Range(1, 20)]
     [SerializeField] private int maximumStartCandidates = 10;
 
@@ -279,14 +282,16 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
             starts.RemoveRange(maximumStartCandidates,
                 starts.Count - maximumStartCandidates);
 
-        // Search every registered taxiway centerline cell. The fuel stop
-        // point is allowed to be inside the station prefab, away from the
-        // taxiway grid; only the final approach from the selected cell to
-        // the stop point is handled as a direct movement segment.
+        // The stop point may be inside the station prefab and offset from
+        // the taxiway. Only consider centerline cells within the configured
+        // grid distance so the final approach cannot cut across the airport.
         List<Vector2Int> targets = new();
         foreach (Vector2Int cell in taxiwayNetwork.TaxiwayCenterlineCells)
         {
-            if (gridManager.IsInsideGrid(cell) && taxiwayNetwork.IsTaxiway(cell))
+            if (!gridManager.IsInsideGrid(cell) || !taxiwayNetwork.IsTaxiway(cell))
+                continue;
+
+            if (Vector2Int.Distance(cell, stopCell) <= maximumStopApproachDistanceCells)
                 targets.Add(cell);
         }
 
