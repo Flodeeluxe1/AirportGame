@@ -2,8 +2,8 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// Drives a fuel tanker from the road spawn point to the Fuel Delivery
-/// Station, transfers fuel to the requesting AircraftFuelStation, and exits.
+/// Drives a fuel tanker along the road network, makes a short direct approach
+/// to FuelTruckStopPoint, delivers fuel, then reverses that approach and exits.
 /// </summary>
 [DisallowMultipleComponent]
 public class FuelTruckController : MonoBehaviour
@@ -39,6 +39,12 @@ public class FuelTruckController : MonoBehaviour
     private bool delivered;
     private bool deliveryClosed;
 
+    private Transform stopPoint;
+    private Vector3 stopWorldPosition;
+    private Vector3 stationRoadWorldPosition;
+    private bool approachingStopPoint;
+    private bool returningToRoad;
+
     private AircraftFuelStation targetStation;
     private FuelTruckSpawner ownerSpawner;
     private float deliveryLitres;
@@ -49,8 +55,6 @@ public class FuelTruckController : MonoBehaviour
     private Vector2Int reservedIntersection;
     private int reservedIntersectionPathIndex = -1;
 
-    private float currentSpeed;
-
     private void Awake()
     {
         roadNetwork = FindFirstObjectByType<RoadNetwork>();
@@ -59,14 +63,13 @@ public class FuelTruckController : MonoBehaviour
 
         if (GetComponent<VehicleSpawnID>() == null)
             gameObject.AddComponent<VehicleSpawnID>();
-
-        currentSpeed = movementSpeed;
     }
 
     public void InitializeDelivery(
         Vector2Int startCell,
-        Vector2Int deliveryCell,
+        Vector2Int stationRoadCell,
         Vector2Int exitCell,
+        Transform fuelTruckStopPoint,
         AircraftFuelStation station,
         float amountLitres,
         FuelTruckSpawner spawner)
@@ -77,6 +80,7 @@ public class FuelTruckController : MonoBehaviour
         targetStation = station;
         ownerSpawner = spawner;
         deliveryLitres = amountLitres;
+        stopPoint = fuelTruckStopPoint;
 
         if (roadNetwork == null)
             roadNetwork = FindFirstObjectByType<RoadNetwork>();
@@ -85,7 +89,8 @@ public class FuelTruckController : MonoBehaviour
             gridManager = FindFirstObjectByType<GridManager>();
 
         if (roadNetwork == null || gridManager == null ||
-            targetStation == null || deliveryLitres <= 0f)
+            targetStation == null || stopPoint == null ||
+            deliveryLitres <= 0f)
         {
             CloseDeliveryRequest();
             Destroy(gameObject);
@@ -93,10 +98,10 @@ public class FuelTruckController : MonoBehaviour
         }
 
         List<Vector2Int> outbound =
-            roadNetwork.FindPath(startCell, deliveryCell);
+            roadNetwork.FindPath(startCell, stationRoadCell);
 
         List<Vector2Int> returning =
-            roadNetwork.FindPath(deliveryCell, exitCell);
+            roadNetwork.FindPath(stationRoadCell, exitCell);
 
         if (outbound == null || outbound.Count == 0 ||
             returning == null || returning.Count == 0)
@@ -112,19 +117,51 @@ public class FuelTruckController : MonoBehaviour
         for (int i = 1; i < returning.Count; i++)
             route.Add(returning[i]);
 
+        stationRoadWorldPosition = GetRoadWorldPosition(stationRoadCell);
+        stopWorldPosition = stopPoint.position;
+        stopWorldPosition.y += heightOffset;
+
         routeInitialized = true;
         pathIndex = 0;
-        debugPathLength = route.Count;
+        debugPathLength = route.Count + 2;
         debugState = "Driving to Fuel Delivery Station";
 
-        transform.position =
-            GetRoadWorldPosition(route[0]);
+        transform.position = GetRoadWorldPosition(route[0]);
     }
 
     private void Update()
     {
         if (!routeInitialized || route.Count == 0)
             return;
+
+        if (approachingStopPoint)
+        {
+            MoveToDirectPoint(stopWorldPosition);
+
+            if (HasReachedDirectPoint(stopWorldPosition))
+            {
+                approachingStopPoint = false;
+                returningToRoad = true;
+                PerformFuelDelivery();
+            }
+
+            return;
+        }
+
+        if (returningToRoad)
+        {
+            MoveToDirectPoint(stationRoadWorldPosition);
+
+            if (HasReachedDirectPoint(stationRoadWorldPosition))
+            {
+                returningToRoad = false;
+                pathIndex = deliveryPathIndex + 1;
+                debugPathIndex = pathIndex;
+                debugState = "Driving to exit";
+            }
+
+            return;
+        }
 
         if (pathIndex >= route.Count)
         {
@@ -136,21 +173,21 @@ public class FuelTruckController : MonoBehaviour
 
         if (ShouldWaitForIntersection())
         {
-            currentSpeed = 0f;
             debugState = "Waiting for intersection";
             return;
         }
 
         if (pathIndex == deliveryPathIndex && !delivered)
         {
-            PerformFuelDelivery();
+            approachingStopPoint = true;
+            debugState = "Approaching FuelTruckStopPoint";
             return;
         }
 
         MoveToCurrentWaypoint();
 
         debugPathIndex = pathIndex;
-        if (pathIndex < deliveryPathIndex)
+        if (pathIndex <= deliveryPathIndex)
             debugState = "Driving to Fuel Delivery Station";
         else
             debugState = "Driving to exit";
@@ -159,6 +196,8 @@ public class FuelTruckController : MonoBehaviour
     private void MoveToCurrentWaypoint()
     {
         Vector3 target = GetRoadWorldPosition(route[pathIndex]);
+        MoveTowards(target);
+
         Vector3 offset = target - transform.position;
         offset.y = 0f;
 
@@ -166,9 +205,21 @@ public class FuelTruckController : MonoBehaviour
         {
             transform.position = target;
             pathIndex++;
-            currentSpeed = movementSpeed;
-            return;
         }
+    }
+
+    private void MoveToDirectPoint(Vector3 target)
+    {
+        MoveTowards(target);
+
+        if (HasReachedDirectPoint(target))
+            transform.position = target;
+    }
+
+    private void MoveTowards(Vector3 target)
+    {
+        Vector3 offset = target - transform.position;
+        offset.y = 0f;
 
         if (offset.sqrMagnitude > 0.0001f)
         {
@@ -181,10 +232,18 @@ public class FuelTruckController : MonoBehaviour
                 rotationSpeed * Time.deltaTime);
         }
 
+        Vector3 flatTarget = new Vector3(target.x, transform.position.y, target.z);
         transform.position = Vector3.MoveTowards(
             transform.position,
-            target,
+            flatTarget,
             movementSpeed * Time.deltaTime);
+    }
+
+    private bool HasReachedDirectPoint(Vector3 target)
+    {
+        Vector3 offset = target - transform.position;
+        offset.y = 0f;
+        return offset.magnitude <= waypointTolerance;
     }
 
     private bool ShouldWaitForIntersection()
@@ -209,8 +268,11 @@ public class FuelTruckController : MonoBehaviour
 
         int nextIntersectionIndex = -1;
         Vector2Int nextIntersection = Vector2Int.zero;
+        int lastIndexToCheck = pathIndex <= deliveryPathIndex
+            ? deliveryPathIndex
+            : route.Count - 1;
 
-        for (int i = pathIndex; i < route.Count; i++)
+        for (int i = pathIndex; i <= lastIndexToCheck; i++)
         {
             Vector2Int anchor = roadNetwork.GetRoadAnchor(route[i]);
             if (!roadNetwork.IsIntersection(anchor))
@@ -268,25 +330,22 @@ public class FuelTruckController : MonoBehaviour
 
     private void PerformFuelDelivery()
     {
-        if (!delivered)
-        {
-            float accepted = targetStation != null
-                ? targetStation.ReceiveFuelDelivery(deliveryLitres)
-                : 0f;
+        if (delivered)
+            return;
 
-            delivered = true;
-            CloseDeliveryRequest();
+        float accepted = targetStation != null
+            ? targetStation.ReceiveFuelDelivery(deliveryLitres)
+            : 0f;
 
-            debugState = $"Delivered {accepted:F0} L";
-            Debug.Log(
-                $"FUEL TANKER DELIVERY COMPLETE | " +
-                $"Station: {(targetStation != null ? targetStation.name : "Missing")} | " +
-                $"Accepted: {accepted:F0} L",
-                this);
-        }
+        delivered = true;
+        CloseDeliveryRequest();
 
-        // The next Update continues along the return portion of the route.
-        pathIndex++;
+        debugState = $"Delivered {accepted:F0} L";
+        Debug.Log(
+            $"FUEL TANKER DELIVERY COMPLETE | " +
+            $"Station: {(targetStation != null ? targetStation.name : "Missing")} | " +
+            $"Accepted: {accepted:F0} L",
+            this);
     }
 
     private Vector3 GetRoadWorldPosition(Vector2Int cell)
