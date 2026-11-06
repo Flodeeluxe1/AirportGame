@@ -23,6 +23,12 @@ public class AircraftFuelStation : MonoBehaviour
     [Min(0.1f)]
     [SerializeField] private float refuellingRateLitresPerMinute = 50f;
 
+    [Tooltip("Selling price charged to hobby aircraft per litre.")]
+    [Min(0f)]
+    [SerializeField] private float sellingPricePerLitre = 1.5f;
+
+    [SerializeField] private Transform aircraftFuelStopPoint;
+
     [Header("Automatic Fuel Delivery")]
     [Range(0f, 1f)]
     [SerializeField] private float deliveryRequestThreshold = 0.25f;
@@ -33,6 +39,30 @@ public class AircraftFuelStation : MonoBehaviour
     [SerializeField] private string debugStatus = "Fuel station ready";
 
     private AircraftFuelTank currentlyServicedAircraft;
+    private float fuelTransferredThisSession;
+    private int fuelCostChargedThisSession;
+    private AirportEconomyManager economyManager;
+
+    public float SellingPricePerLitre => sellingPricePerLitre;
+    public Transform AircraftFuelStopPoint
+    {
+        get
+        {
+            if (aircraftFuelStopPoint == null)
+            {
+                Transform[] children = GetComponentsInChildren<Transform>(true);
+                foreach (Transform child in children)
+                {
+                    if (child != transform && child.name == "AircraftFuelStopPoint")
+                    {
+                        aircraftFuelStopPoint = child;
+                        break;
+                    }
+                }
+            }
+            return aircraftFuelStopPoint;
+        }
+    }
 
     public float MaximumFuelLitres => maximumFuelLitres;
     public float CurrentFuelLitres => currentFuelLitres;
@@ -46,6 +76,8 @@ public class AircraftFuelStation : MonoBehaviour
     private void Awake()
     {
         maximumFuelLitres = Mathf.Max(1f, maximumFuelLitres);
+        sellingPricePerLitre = Mathf.Max(0f, sellingPricePerLitre);
+        economyManager = FindFirstObjectByType<AirportEconomyManager>();
         currentFuelLitres = Mathf.Clamp(
             currentFuelLitres,
             0f,
@@ -68,6 +100,8 @@ public class AircraftFuelStation : MonoBehaviour
         if (aircraft == null)
         {
             currentlyServicedAircraft = null;
+            fuelTransferredThisSession = 0f;
+            fuelCostChargedThisSession = 0;
 
             if (!deliveryInProgress && !deliveryRequested)
                 debugStatus = "Waiting for a parked hobby aircraft";
@@ -75,7 +109,12 @@ public class AircraftFuelStation : MonoBehaviour
             return;
         }
 
-        currentlyServicedAircraft = aircraft;
+        if (currentlyServicedAircraft != aircraft)
+        {
+            currentlyServicedAircraft = aircraft;
+            fuelTransferredThisSession = 0f;
+            fuelCostChargedThisSession = 0;
+        }
 
         if (aircraft.CurrentFuelLitres >= aircraft.MaximumFuelLitres)
         {
@@ -89,12 +128,31 @@ public class AircraftFuelStation : MonoBehaviour
         if (amountToTransfer <= 0f)
             return;
 
-        float transferred = aircraft.AddFuel(
-            Mathf.Min(amountToTransfer, currentFuelLitres));
+        float proposedAmount = Mathf.Min(amountToTransfer, currentFuelLitres);
+        float proposedTotal = fuelTransferredThisSession + proposedAmount;
+        int totalCost = Mathf.CeilToInt(proposedTotal * sellingPricePerLitre);
+        int additionalCost = Mathf.Max(0, totalCost - fuelCostChargedThisSession);
 
-        currentFuelLitres = Mathf.Max(
-            0f,
-            currentFuelLitres - transferred);
+        if (additionalCost > 0)
+        {
+            if (economyManager == null)
+                economyManager = FindFirstObjectByType<AirportEconomyManager>();
+
+            if (economyManager == null ||
+                !economyManager.TrySpend(
+                    additionalCost,
+                    $"Aircraft refuelling ({aircraft.name})"))
+            {
+                debugStatus = $"{aircraft.name}: insufficient funds for refuelling";
+                return;
+            }
+
+            fuelCostChargedThisSession += additionalCost;
+        }
+
+        float transferred = aircraft.AddFuel(proposedAmount);
+        fuelTransferredThisSession += transferred;
+        currentFuelLitres = Mathf.Max(0f, currentFuelLitres - transferred);
 
         debugStatus =
             $"Refuelling {aircraft.name}: " +
@@ -117,6 +175,12 @@ public class AircraftFuelStation : MonoBehaviour
         foreach (AircraftStatus status in aircraftStatuses)
         {
             if (status == null || !status.IsParked)
+                continue;
+
+            AircraftHobbyDepartureTaxiController departure =
+                status.GetComponent<AircraftHobbyDepartureTaxiController>();
+
+            if (departure == null || !departure.IsAtFuelStation)
                 continue;
 
             AircraftFlightIdentity identity =
