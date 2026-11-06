@@ -79,6 +79,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 7b13d5c763509d740949491588b11a0a, type: 3}
       insertIndex: -1
       addedObject: {fileID: 8683889228866015899}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 7b13d5c763509d740949491588b11a0a, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: -6662293146020897560}
   m_SourcePrefab: {fileID: 100100000, guid: 7b13d5c763509d740949491588b11a0a, type: 3}
 --- !u!1 &5019100724431002640 stripped
 GameObject:
@@ -106,3 +109,24 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1.8, y: 2.2, z: 7.5}
   m_Center: {x: 0, y: 1.1, z: -0.79}
+--- !u!114 &-6662293146020897560
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5019100724431002640}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6a4e9d1c8b2f47a5a3c6e0d91f7b8245, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FuelTruckController
+  movementSpeed: 5
+  rotationSpeed: 10
+  heightOffset: 0.2
+  waypointTolerance: 0.08
+  intersectionLookAheadModules: 1
+  intersectionClearModules: 2
+  debugState: Waiting for route
+  debugPathIndex: 0
+  debugPathLength: 0
