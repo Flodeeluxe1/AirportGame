@@ -214,18 +214,27 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
         plannedRoute.Clear();
         plannedRoute.AddRange(bestRoute);
 
-        reservationHeld = selectedStation.TryReserveForAircraft(this);
-        if (reservationHeld)
+        // Reserve before moving away from the parking stand. If another
+        // aircraft owns the station, this aircraft joins the FIFO queue and
+        // remains parked until the station grants its reservation.
+        reservationHeld = selectedStation.RequestAircraftReservation(this);
+
+        if (!reservationHeld)
         {
-            BuildFuelStationMovementPoints(bestRoute, bestStation.AircraftFuelStopPoint);
+            if (departureController != null)
+            {
+                departureController.ResetRouteFromCurrentPosition();
+                departureController.enabled = false;
+            }
+
+            state = FuelDepartureState.WaitingForStationAccess;
+            debugStatus = $"Queued at parking; waiting for {selectedStation.name}";
+            if (logFuelDecision)
+                Debug.Log($"{name}: queued for fuel station {selectedStation.name}; remaining at parking.", this);
+            return;
         }
-        else
-        {
-            // The nearest reachable taxiway centerline cell to the station
-            // is the holding position. It is calculated from the existing
-            // taxiway network; no extra prefab transform is required.
-            BuildFuelStationHoldingMovementPoints(bestRoute);
-        }
+
+        BuildFuelStationMovementPoints(bestRoute, bestStation.AircraftFuelStopPoint);
 
         // Log the complete selected taxi route and the actual world-space
         // movement points once when the aircraft commits to refuelling.
@@ -397,49 +406,54 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
         }
     }
 
-    private void BuildFuelStationHoldingMovementPoints(List<Vector2Int> route)
-    {
-        movementPoints.Clear();
-
-        foreach (Vector2Int cell in route)
-        {
-            Vector3 point = gridManager.GridToWorldCenter(cell);
-            point.y = transform.position.y;
-
-            if (movementPoints.Count == 0 ||
-                Vector3.Distance(movementPoints[movementPoints.Count - 1], point) > 0.05f)
-            {
-                movementPoints.Add(point);
-            }
-        }
-    }
-
     private void TryAcquireStationAndApproach()
     {
         if (selectedStation == null ||
             selectedStation.AircraftFuelStopPoint == null)
         {
-            AbortFuelTaxi("Fuel station became unavailable while waiting.");
+            if (selectedStation != null)
+                selectedStation.CancelAircraftReservationRequest(this);
+
+            AbortFuelTaxi("Fuel station became unavailable while queued.");
             return;
         }
 
-        if (!selectedStation.TryReserveForAircraft(this))
+        if (!selectedStation.TryAcquireQueuedReservation(this))
         {
-            debugStatus = $"Holding on taxiway; {selectedStation.name} is occupied";
+            debugStatus = $"Queued at parking; waiting for {selectedStation.name}";
             return;
         }
 
         reservationHeld = true;
-        movementPoints.Clear();
 
-        Vector3 stopPosition = selectedStation.AircraftFuelStopPoint.position;
-        stopPosition.y = transform.position.y;
-        movementPoints.Add(stopPosition);
+        if (!TryFindRouteToStation(selectedStation, out List<Vector2Int> route, out _))
+        {
+            selectedStation.ReleaseAircraftReservation(this);
+            reservationHeld = false;
+            AbortFuelTaxi("No taxi route to fuel station after reservation became available.");
+            return;
+        }
+
+        plannedRoute.Clear();
+        plannedRoute.AddRange(route);
+        BuildFuelStationMovementPoints(route, selectedStation.AircraftFuelStopPoint);
+
+        if (movementPoints.Count == 0)
+        {
+            selectedStation.ReleaseAircraftReservation(this);
+            reservationHeld = false;
+            AbortFuelTaxi("Could not build taxi route after fuel station became available.");
+            return;
+        }
+
+        if (departureController != null)
+            departureController.enabled = false;
+
         movementIndex = 0;
         state = FuelDepartureState.TaxiingToFuelStation;
         if (aircraftStatus != null)
             aircraftStatus.SetTaxiing(true);
-        debugStatus = $"Fuel station available; approaching {selectedStation.name}";
+        debugStatus = $"Fuel station available; taxiing from parking to {selectedStation.name}";
     }
 
     private void ReleaseStationAfterClearingStop()
@@ -460,20 +474,28 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
 
     private void OnDisable()
     {
-        if (reservationHeld && selectedStation != null)
+        if (selectedStation != null)
         {
-            selectedStation.ReleaseAircraftReservation(this);
-            reservationHeld = false;
+            if (reservationHeld)
+                selectedStation.ReleaseAircraftReservation(this);
+            else
+                selectedStation.CancelAircraftReservationRequest(this);
         }
+
+        reservationHeld = false;
     }
 
     private void OnDestroy()
     {
-        if (reservationHeld && selectedStation != null)
+        if (selectedStation != null)
         {
-            selectedStation.ReleaseAircraftReservation(this);
-            reservationHeld = false;
+            if (reservationHeld)
+                selectedStation.ReleaseAircraftReservation(this);
+            else
+                selectedStation.CancelAircraftReservationRequest(this);
         }
+
+        reservationHeld = false;
     }
 
     private void UpdateFuelStationTaxi()
@@ -624,6 +646,9 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
 
     private void FinishWithoutRefuelling(string reason)
     {
+        if (selectedStation != null && !reservationHeld)
+            selectedStation.CancelAircraftReservationRequest(this);
+
         state = FuelDepartureState.Finished;
         debugStatus = reason;
 
