@@ -39,14 +39,8 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
     [Min(1)]
     [SerializeField] private int startSearchRadiusCells = 12;
 
-    [Min(1)]
-    [SerializeField] private int stopSearchRadiusCells = 6;
-
     [Range(1, 20)]
     [SerializeField] private int maximumStartCandidates = 10;
-
-    [Range(1, 20)]
-    [SerializeField] private int maximumStopCandidates = 10;
 
     [Header("References")]
     [SerializeField] private GridManager gridManager;
@@ -261,28 +255,24 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
             starts.RemoveRange(maximumStartCandidates,
                 starts.Count - maximumStartCandidates);
 
+        // Search every registered taxiway centerline cell. The fuel stop
+        // point is allowed to be inside the station prefab, away from the
+        // taxiway grid; only the final approach from the selected cell to
+        // the stop point is handled as a direct movement segment.
         List<Vector2Int> targets = new();
-        for (int x = -stopSearchRadiusCells; x <= stopSearchRadiusCells; x++)
+        foreach (Vector2Int cell in taxiwayNetwork.TaxiwayCenterlineCells)
         {
-            for (int z = -stopSearchRadiusCells; z <= stopSearchRadiusCells; z++)
-            {
-                Vector2Int cell = stopCell + new Vector2Int(x, z);
-                if (gridManager.IsInsideGrid(cell) &&
-                    taxiwayNetwork.IsTaxiway(cell) &&
-                    taxiwayNetwork.IsCenterlineCell(cell))
-                {
-                    targets.Add(cell);
-                }
-            }
+            if (gridManager.IsInsideGrid(cell) && taxiwayNetwork.IsTaxiway(cell))
+                targets.Add(cell);
         }
 
         targets.Sort((a, b) =>
-            Vector2Int.Distance(a, stopCell).CompareTo(
-                Vector2Int.Distance(b, stopCell)));
-
-        if (targets.Count > maximumStopCandidates)
-            targets.RemoveRange(maximumStopCandidates,
-                targets.Count - maximumStopCandidates);
+            Vector3.Distance(
+                gridManager.GridToWorldCenter(a),
+                station.AircraftFuelStopPoint.position).CompareTo(
+            Vector3.Distance(
+                gridManager.GridToWorldCenter(b),
+                station.AircraftFuelStopPoint.position)));
 
         foreach (Vector2Int start in starts)
         {
