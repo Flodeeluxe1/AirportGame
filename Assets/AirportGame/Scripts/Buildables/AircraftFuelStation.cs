@@ -180,7 +180,9 @@ public class AircraftFuelStation : MonoBehaviour
             AircraftHobbyFuelDepartureController departure =
                 status.GetComponent<AircraftHobbyFuelDepartureController>();
 
-            if (departure == null || !departure.IsAtFuelStation)
+            if (departure == null ||
+                !departure.IsAtFuelStation ||
+                departure.SelectedStation != this)
                 continue;
 
             AircraftFlightIdentity identity =
