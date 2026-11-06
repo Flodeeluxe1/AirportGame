@@ -40,7 +40,7 @@ public class AircraftFuelStation : MonoBehaviour
 
     private AircraftFuelTank currentlyServicedAircraft;
     private float fuelTransferredThisSession;
-    private int fuelRevenueEarnedThisSession;
+    private float fuelSessionPricePerLitre;
     private AirportEconomyManager economyManager;
 
     public float SellingPricePerLitre => sellingPricePerLitre;
@@ -90,6 +90,7 @@ public class AircraftFuelStation : MonoBehaviour
 
         if (currentFuelLitres <= 0f)
         {
+            CompleteFuelSaleSession();
             currentlyServicedAircraft = null;
             debugStatus = "Out of fuel; waiting for fuel delivery";
             return;
@@ -99,9 +100,8 @@ public class AircraftFuelStation : MonoBehaviour
 
         if (aircraft == null)
         {
+            CompleteFuelSaleSession();
             currentlyServicedAircraft = null;
-            fuelTransferredThisSession = 0f;
-            fuelRevenueEarnedThisSession = 0;
 
             if (!deliveryInProgress && !deliveryRequested)
                 debugStatus = "Waiting for a parked hobby aircraft";
@@ -111,9 +111,10 @@ public class AircraftFuelStation : MonoBehaviour
 
         if (currentlyServicedAircraft != aircraft)
         {
+            CompleteFuelSaleSession();
             currentlyServicedAircraft = aircraft;
             fuelTransferredThisSession = 0f;
-            fuelRevenueEarnedThisSession = 0;
+            fuelSessionPricePerLitre = sellingPricePerLitre;
         }
 
         if (aircraft.CurrentFuelLitres >= aircraft.MaximumFuelLitres)
@@ -133,27 +134,6 @@ public class AircraftFuelStation : MonoBehaviour
             Mathf.Min(
                 currentFuelLitres,
                 aircraft.MaximumFuelLitres - aircraft.CurrentFuelLitres));
-        float proposedTotal = fuelTransferredThisSession + proposedAmount;
-        int totalCost = Mathf.CeilToInt(proposedTotal * sellingPricePerLitre);
-        int additionalCost = Mathf.Max(0, totalCost - fuelRevenueEarnedThisSession);
-
-        if (additionalCost > 0)
-        {
-            if (economyManager == null)
-                economyManager = FindFirstObjectByType<AirportEconomyManager>();
-
-            if (economyManager == null ||
-                !economyManager.AddRevenue(
-                    additionalCost,
-                    $"Hobby aircraft fuel sales ({aircraft.name})"))
-            {
-                debugStatus = $"{aircraft.name}: could not record fuel sale";
-                return;
-            }
-
-            fuelRevenueEarnedThisSession += additionalCost;
-        }
-
         float transferred = aircraft.AddFuel(proposedAmount);
         fuelTransferredThisSession += transferred;
         currentFuelLitres = Mathf.Max(0f, currentFuelLitres - transferred);
@@ -164,6 +144,32 @@ public class AircraftFuelStation : MonoBehaviour
             $"{aircraft.MaximumFuelLitres:F1} L";
 
         UpdateDeliveryRequest();
+    }
+
+    private void CompleteFuelSaleSession()
+    {
+        if (fuelTransferredThisSession <= 0f)
+            return;
+
+        int totalCost = Mathf.CeilToInt(
+            fuelTransferredThisSession * fuelSessionPricePerLitre);
+
+        if (totalCost > 0)
+        {
+            if (economyManager == null)
+                economyManager = FindFirstObjectByType<AirportEconomyManager>();
+
+            if (economyManager == null ||
+                !economyManager.AddRevenue(
+                    totalCost,
+                    $"Hobby aircraft fuel sales ({currentlyServicedAircraft?.name ?? "aircraft"})"))
+            {
+                debugStatus = "Could not record completed aircraft fuel sale";
+            }
+        }
+
+        fuelTransferredThisSession = 0f;
+        fuelSessionPricePerLitre = 0f;
     }
 
     private AircraftFuelTank FindParkedAircraftAtStation()
