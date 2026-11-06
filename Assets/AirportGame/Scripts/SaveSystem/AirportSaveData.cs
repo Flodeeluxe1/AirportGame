@@ -107,6 +107,10 @@ public class PlacedBuildingSaveData
 
     // Purchased cargo trailer parking slots for CargoTugLotSpawner.
     public List<int> purchasedCargoTrailerSlots = new List<int>();
+
+    // Fuel station stock. The flag keeps older save files compatible.
+    public bool hasSavedFuelStock;
+    public float fuelStationStockLitres;
 }
 
 [Serializable]
