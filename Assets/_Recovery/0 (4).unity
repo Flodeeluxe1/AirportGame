@@ -3938,7 +3938,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2059796009}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6761c6dde941eb843a4e03767420dd01, type: 3}
   m_Name: 
@@ -4061,8 +4061,9 @@ GameObject:
   - component: {fileID: 2134991056}
   - component: {fileID: 2134991055}
   - component: {fileID: 2134991059}
+  - component: {fileID: 2134991060}
   m_Layer: 0
-  m_Name: TrafficTestSpawner
+  m_Name: RoadTrafficSpawner
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -4155,8 +4156,8 @@ Transform:
   m_GameObject: {fileID: 2134991054}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 46.5, y: -0, z: 0.5}
-  m_LocalScale: {x: 1, y: 0.01, z: 1}
+  m_LocalPosition: {x: 47, y: -0, z: 0.5}
+  m_LocalScale: {x: 2, y: 0.01, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -4181,6 +4182,32 @@ MonoBehaviour:
   spawnInterval: 3
   spawnHeightOffset: 0.2
   exitPoint: {fileID: 1964681761}
+--- !u!114 &2134991060
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2134991054}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6761c6dde941eb843a4e03767420dd01, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ScheduledCargoDeliverySpawner
+  cargoTruckPrefab: {fileID: 7704799895376171895, guid: 739ed671cc5ea6c459769b72b223d80d, type: 3}
+  spawnPoint: {fileID: 2134991058}
+  exitPoint: {fileID: 1964681761}
+  gridManager: {fileID: 728659359}
+  flightManagement: {fileID: 1478484325}
+  gameTimeManager: {fileID: 449210932}
+  roadModuleSize: 2
+  minutesBeforeDeparture: 30
+  scheduleRefreshInterval: 1
+  spawnIntervalGameSeconds: 2
+  spawnHeightOffset: 0.2
+  logScheduleChanges: 1
+  logTruckSpawns: 1
+  logQueueChanges: 1
 --- !u!1 &2136825550
 GameObject:
   m_ObjectHideFlags: 0
