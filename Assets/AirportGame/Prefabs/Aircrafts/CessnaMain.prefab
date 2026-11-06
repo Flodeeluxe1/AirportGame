@@ -4582,6 +4582,7 @@ GameObject:
   - component: {fileID: 277294173312402616}
   - component: {fileID: -1894496117262883330}
   - component: {fileID: 7165853331674213948}
+  - component: {fileID: 887766554433221100}
   m_Layer: 7
   m_Name: CessnaMain
   m_TagString: Untagged
@@ -7819,3 +7820,19 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 3069c9eb92867d7418f2a6e6518c74fb, type: 3}
+
+--- !u!114 &887766554433221100
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5782728294546788241}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4c0d8e2a7f6b4e9d9a1c3f5b7d2e8a60, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AircraftFuelTank
+  maximumFuelLitres: 200
+  currentFuelLitres: 200
+  consumptionLitresPerHour: 40
