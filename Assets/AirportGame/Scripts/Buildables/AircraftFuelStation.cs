@@ -157,8 +157,7 @@ public class AircraftFuelStation : MonoBehaviour
         float requestLevel =
             maximumFuelLitres * deliveryRequestThreshold;
 
-        if (currentFuelLitres <= requestLevel)
-            deliveryRequested = true;
+        deliveryRequested = currentFuelLitres <= requestLevel;
     }
 
     /// <summary>
