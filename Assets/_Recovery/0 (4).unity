@@ -4062,6 +4062,7 @@ GameObject:
   - component: {fileID: 2134991055}
   - component: {fileID: 2134991059}
   - component: {fileID: 2134991060}
+  - component: {fileID: 2134991061}
   m_Layer: 0
   m_Name: RoadTrafficSpawner
   m_TagString: Untagged
@@ -4208,6 +4209,18 @@ MonoBehaviour:
   logScheduleChanges: 1
   logTruckSpawns: 1
   logQueueChanges: 1
+--- !u!114 &2134991061
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2134991054}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e964f9beef1f0ce43a888d78988df280, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FuelTruckSpawner
 --- !u!1 &2136825550
 GameObject:
   m_ObjectHideFlags: 0
