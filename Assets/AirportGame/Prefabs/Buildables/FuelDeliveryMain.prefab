@@ -24,13 +24,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1336628147508732345}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 1, z: 0, w: 0}
-  m_LocalPosition: {x: 0.303, y: 0, z: 0}
+  m_LocalRotation: {x: 0, y: 0.7071068, z: -0, w: -0.7071068}
+  m_LocalPosition: {x: 0.16, y: 0, z: 0}
   m_LocalScale: {x: 0.2, y: 100, z: 0.2}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 8448261024485853772}
-  m_LocalEulerAnglesHint: {x: 0, y: 180, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 270, z: 0}
 --- !u!1 &7348275283343004157
 GameObject:
   m_ObjectHideFlags: 0
@@ -60,8 +60,8 @@ Transform:
   m_GameObject: {fileID: 7348275283343004157}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 55.5, y: -0, z: 4.5}
-  m_LocalScale: {x: 5, y: 0.01, z: 5}
+  m_LocalPosition: {x: 55.9, y: -0, z: 4.5}
+  m_LocalScale: {x: 10, y: 0.01, z: 5}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1625596523127466651}
@@ -146,6 +146,20 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1, y: 370, z: 1}
   m_Center: {x: 0, y: 185, z: 0}
+--- !u!114 &7654321098765432101
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7348275283343004157}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b71d9a4f6c2e48f3a5d7c9e1b2f40685, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  fuelTruckStopPoint: {fileID: 0}
+  maximumRoadApproachDistance: 8
 --- !u!1001 &1226665825509969264
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -156,7 +170,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: 70e378c92b53a9e47b91fdc9420a3791, type: 3}
       propertyPath: m_LocalScale.x
-      value: 0.2
+      value: 0.1
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 70e378c92b53a9e47b91fdc9420a3791, type: 3}
       propertyPath: m_LocalScale.y
@@ -168,7 +182,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 70e378c92b53a9e47b91fdc9420a3791, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -0.21192323
+      value: -0.373
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 70e378c92b53a9e47b91fdc9420a3791, type: 3}
       propertyPath: m_LocalPosition.y
@@ -220,18 +234,3 @@ Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 70e378c92b53a9e47b91fdc9420a3791, type: 3}
   m_PrefabInstance: {fileID: 1226665825509969264}
   m_PrefabAsset: {fileID: 0}
-
---- !u!114 &7654321098765432101
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7348275283343004157}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b71d9a4f6c2e48f3a5d7c9e1b2f40685, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  fuelTruckStopPoint: {fileID: 0}
-  maximumRoadApproachDistance: 8
