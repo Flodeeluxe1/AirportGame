@@ -163,6 +163,8 @@ MonoBehaviour:
   currentFuelLitres: 5000
   refuellingRadius: 6
   refuellingRateLitresPerMinute: 50
+  sellingPricePerLitre: 1.5
+  aircraftFuelStopPoint: {fileID: 0}
   deliveryRequestThreshold: 0.25
   deliveryRequested: 0
   deliveryInProgress: 0
