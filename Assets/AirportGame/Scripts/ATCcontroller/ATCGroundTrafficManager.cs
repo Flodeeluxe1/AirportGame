@@ -920,9 +920,9 @@ public class ATCGroundTrafficManager : MonoBehaviour
             if (holdingPoint == null)
                 continue;
 
-            if (!IsNearTaxiwayCenterline(holdingPoint.transform.position))
-                continue;
-
+            // Keep every enabled manual point registered. Whether it is
+            // relevant to an aircraft is decided later by matching it
+            // against that aircraft's remaining planned taxi route.
             Vector2Int cell =
                 gridManager.WorldToGrid(holdingPoint.transform.position);
 
