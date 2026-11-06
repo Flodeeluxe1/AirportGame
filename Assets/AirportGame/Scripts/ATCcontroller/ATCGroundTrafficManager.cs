@@ -242,6 +242,9 @@ public class ATCGroundTrafficManager : MonoBehaviour
     private readonly Dictionary<Vector2Int, int> routeCellIndexScratch =
         new Dictionary<Vector2Int, int>();
 
+    private float[] routeDistanceScratchA = Array.Empty<float>();
+    private float[] routeDistanceScratchB = Array.Empty<float>();
+
     [Header("Registered Route Diagnostics")]
     [SerializeField] private bool logRegisteredRouteConflicts;
 
@@ -1947,10 +1950,8 @@ public class ATCGroundTrafficManager : MonoBehaviour
                     continue;
                 }
 
-                float ownDistance = GetRouteDistance(
-                    ownRoute,
-                    ownStartIndex,
-                    ownIndex);
+                float ownDistance =
+                    routeDistanceScratchA[ownIndex];
 
                 // An aircraft still occupying the conflict always
                 // keeps priority until it has physically cleared it.
@@ -2026,6 +2027,20 @@ public class ATCGroundTrafficManager : MonoBehaviour
         float firstNearestConflictDistance = float.MaxValue;
         float secondNearestConflictDistance = float.MaxValue;
 
+        EnsureRouteDistanceScratch(
+            firstRoute.Count,
+            secondRoute.Count);
+
+        BuildRouteDistances(
+            firstRoute,
+            firstStartIndex,
+            routeDistanceScratchA);
+
+        BuildRouteDistances(
+            secondRoute,
+            secondStartIndex,
+            routeDistanceScratchB);
+
         routeCellIndexScratch.Clear();
 
         for (int secondIndex = secondStartIndex;
@@ -2060,11 +2075,11 @@ public class ATCGroundTrafficManager : MonoBehaviour
 
             firstNearestConflictDistance = Mathf.Min(
                 firstNearestConflictDistance,
-                GetRouteDistance(firstRoute, firstStartIndex, firstIndex));
+                routeDistanceScratchA[firstIndex]);
 
             secondNearestConflictDistance = Mathf.Min(
                 secondNearestConflictDistance,
-                GetRouteDistance(secondRoute, secondStartIndex, secondIndex));
+                routeDistanceScratchB[secondIndex]);
         }
 
         if (firstNearestConflictDistance == float.MaxValue ||
@@ -2087,6 +2102,40 @@ public class ATCGroundTrafficManager : MonoBehaviour
 
         return firstAircraft.GetEntityId() <
                secondAircraft.GetEntityId();
+    }
+
+    private void EnsureRouteDistanceScratch(
+        int firstRouteCount,
+        int secondRouteCount)
+    {
+        if (routeDistanceScratchA.Length < firstRouteCount)
+            Array.Resize(ref routeDistanceScratchA, firstRouteCount);
+
+        if (routeDistanceScratchB.Length < secondRouteCount)
+            Array.Resize(ref routeDistanceScratchB, secondRouteCount);
+    }
+
+    private void BuildRouteDistances(
+        IReadOnlyList<Vector2Int> route,
+        int startIndex,
+        float[] distances)
+    {
+        if (route == null || route.Count == 0)
+            return;
+
+        distances[startIndex] = 0f;
+
+        for (int i = startIndex + 1; i < route.Count; i++)
+        {
+            Vector3 previous =
+                gridManager.GridToWorldCenter(route[i - 1]);
+            Vector3 current =
+                gridManager.GridToWorldCenter(route[i]);
+
+            distances[i] =
+                distances[i - 1] +
+                HorizontalDistance(previous, current);
+        }
     }
 
     private int FindNextRouteBoundary(
