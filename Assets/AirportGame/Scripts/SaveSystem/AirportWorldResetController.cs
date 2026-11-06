@@ -350,6 +350,16 @@ public class AirportWorldResetController : MonoBehaviour
                     cargoTugLot.GetPurchasedTrailerSlotsForSave();
             }
 
+            AircraftFuelStation fuelStation =
+                building.GetComponent<AircraftFuelStation>();
+
+            if (fuelStation != null)
+            {
+                savedBuilding.hasSavedFuelStock = true;
+                savedBuilding.fuelStationStockLitres =
+                    fuelStation.CurrentFuelLitres;
+            }
+
             HobbyAircraftParkingSpot parkingSpot =
                 building.GetComponent<HobbyAircraftParkingSpot>();
 
@@ -617,6 +627,15 @@ public class AirportWorldResetController : MonoBehaviour
             {
                 cargoTugLot.RestorePurchasedTrailerSlots(
                     saved.purchasedCargoTrailerSlots);
+            }
+
+            AircraftFuelStation fuelStation =
+                placedObject.GetComponent<AircraftFuelStation>();
+
+            if (fuelStation != null && saved.hasSavedFuelStock)
+            {
+                fuelStation.RestoreFuelStock(
+                    saved.fuelStationStockLitres);
             }
 
             // Rebuild the runway's logical ground-movement registration on load.
