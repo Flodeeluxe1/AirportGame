@@ -180,6 +180,10 @@ public class ATCGroundTrafficManager : MonoBehaviour
 
     [Header("ATC Diagnostics")]
     [SerializeField] private bool logTaxiClearanceChanges;
+    [SerializeField] private bool logManualHoldingPointSelection;
+
+    private readonly Dictionary<string, string> lastManualHoldingDiagnostics =
+        new Dictionary<string, string>();
 
     [Header("Reservation Cleanup")]
     [Min(0.25f)]
@@ -2003,6 +2007,7 @@ public class ATCGroundTrafficManager : MonoBehaviour
         string holdingLabel;
 
         FindNextRouteHoldingPoint(
+            aircraft.name,
             ownRoute,
             ownStartIndex,
             yieldingConflictOwnIndex,
@@ -2204,6 +2209,7 @@ public class ATCGroundTrafficManager : MonoBehaviour
     }
 
     private void FindNextRouteHoldingPoint(
+        string aircraftName,
         IReadOnlyList<Vector2Int> route,
         int currentIndex,
         int conflictIndex,
@@ -2250,30 +2256,79 @@ public class ATCGroundTrafficManager : MonoBehaviour
 
         // Manual holding points are candidates even when an automatic
         // junction also exists farther along the route.
-        for (int i = currentIndex; i < conflictIndex; i++)
+        for (int p = 0; p < controlPoints.Count; p++)
         {
-            Vector2Int cell = route[i];
-            Vector3 cellPosition = gridManager.GridToWorldCenter(cell);
+            ControlPoint point = controlPoints[p];
+            if (point == null || !point.Key.IsManual)
+                continue;
 
-            for (int p = 0; p < controlPoints.Count; p++)
+            int nearestRouteIndex = -1;
+            float nearestRouteDistance = float.MaxValue;
+
+            for (int i = 0; i < route.Count; i++)
             {
-                ControlPoint point = controlPoints[p];
-                if (point == null || !point.Key.IsManual)
-                    continue;
-
-                if (HorizontalDistance(point.Position, cellPosition) >
-                    Mathf.Max(point.EntryRadius, gridManager.CellSize * 0.75f))
+                Vector3 cellPosition = gridManager.GridToWorldCenter(route[i]);
+                float distance = HorizontalDistance(point.Position, cellPosition);
+                if (distance < nearestRouteDistance)
                 {
-                    continue;
+                    nearestRouteDistance = distance;
+                    nearestRouteIndex = i;
                 }
-
-                if (i >= bestHoldingIndex)
-                    continue;
-
-                bestHoldingIndex = i;
-                bestHoldingPosition = point.Position;
-                bestHoldingLabel = "manual holding point " + point.Label;
             }
+
+            float matchRadius =
+                Mathf.Max(point.EntryRadius, gridManager.CellSize * 0.75f);
+            bool withinRadius = nearestRouteDistance <= matchRadius;
+            bool aheadOfAircraft =
+                nearestRouteIndex >= currentIndex;
+            bool beforeConflict =
+                nearestRouteIndex >= currentIndex &&
+                nearestRouteIndex < conflictIndex;
+            bool wouldBeSelected =
+                withinRadius &&
+                beforeConflict &&
+                nearestRouteIndex < bestHoldingIndex;
+
+            if (logManualHoldingPointSelection)
+            {
+                string diagnosticKey =
+                    aircraftName + "|" + point.Label;
+                string diagnostic =
+                    "currentIndex=" + currentIndex +
+                    " (" + route[currentIndex] + ")" +
+                    " | conflictIndex=" + conflictIndex +
+                    " (" + route[conflictIndex] + ")" +
+                    " | nearestRouteIndex=" + nearestRouteIndex +
+                    " (" + route[nearestRouteIndex] + ")" +
+                    " | distance=" + nearestRouteDistance.ToString("F2") +
+                    "m | matchRadius=" + matchRadius.ToString("F2") +
+                    "m | withinRadius=" + withinRadius +
+                    " | aheadOfAircraft=" + aheadOfAircraft +
+                    " | beforeConflict=" + beforeConflict +
+                    " | automaticCandidateIndex=" + bestHoldingIndex +
+                    " | wouldSelectManual=" + wouldBeSelected;
+
+                if (!lastManualHoldingDiagnostics.TryGetValue(
+                        diagnosticKey, out string previousDiagnostic) ||
+                    previousDiagnostic != diagnostic)
+                {
+                    lastManualHoldingDiagnostics[diagnosticKey] = diagnostic;
+                    Debug.Log(
+                        "[ATC MANUAL HOLD SELECT] " + aircraftName +
+                        " | " + point.Label + " | " + diagnostic,
+                        this);
+                }
+            }
+
+            if (!withinRadius || !beforeConflict ||
+                nearestRouteIndex >= bestHoldingIndex)
+            {
+                continue;
+            }
+
+            bestHoldingIndex = nearestRouteIndex;
+            bestHoldingPosition = point.Position;
+            bestHoldingLabel = "manual holding point " + point.Label;
         }
 
         if (bestHoldingIndex != int.MaxValue)
