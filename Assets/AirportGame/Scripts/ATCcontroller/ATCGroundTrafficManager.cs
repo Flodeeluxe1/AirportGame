@@ -2194,9 +2194,15 @@ public class ATCGroundTrafficManager : MonoBehaviour
             gridManager.GridToWorldCenter(route[holdingIndex]);
         holdingLabel = "taxiway cell " + route[holdingIndex];
 
-        // The conflict cell can itself be the junction (for example,
-        // (80,66)). Include it when searching backwards so the holding
-        // target is placed 15 route cells before that junction.
+        // Choose the first valid holding point encountered from the
+        // aircraft's current position. Check both automatic and manual
+        // points before deciding, rather than allowing an automatic
+        // junction to hide a closer upstream manual holding point.
+        int bestHoldingIndex = int.MaxValue;
+        Vector3 bestHoldingPosition = holdingPosition;
+        string bestHoldingLabel = holdingLabel;
+
+        // Automatic junction / direction-change holding positions.
         for (int i = conflictIndex; i >= 1 && i < route.Count - 1; i--)
         {
             Vector2Int cell = route[i];
@@ -2204,24 +2210,24 @@ public class ATCGroundTrafficManager : MonoBehaviour
             Vector2Int incoming = cell - route[i - 1];
             Vector2Int outgoing = route[i + 1] - cell;
 
-            bool routeChangesDirection =
-                incoming != outgoing;
-
-            bool isJunction =
-                GetCenterlineConnectionCount(cell) >= 3;
+            bool routeChangesDirection = incoming != outgoing;
+            bool isJunction = GetCenterlineConnectionCount(cell) >= 3;
 
             if (!isJunction && !routeChangesDirection)
                 continue;
 
-            holdingIndex = Mathf.Max(0, i - 10);
-            holdingPosition =
-                gridManager.GridToWorldCenter(route[holdingIndex]);
-            holdingLabel = "10 cells before junction " + cell;
-            return;
+            int candidateIndex = Mathf.Max(currentIndex, i - 10);
+            if (candidateIndex >= bestHoldingIndex)
+                continue;
+
+            bestHoldingIndex = candidateIndex;
+            bestHoldingPosition =
+                gridManager.GridToWorldCenter(route[candidateIndex]);
+            bestHoldingLabel = "10 cells before junction " + cell;
         }
 
-        // If there is no automatic junction before the conflict, retain
-        // the existing manual holding-point behavior.
+        // Manual holding points are candidates even when an automatic
+        // junction also exists farther along the route.
         for (int i = currentIndex; i < conflictIndex; i++)
         {
             Vector2Int cell = route[i];
@@ -2239,11 +2245,20 @@ public class ATCGroundTrafficManager : MonoBehaviour
                     continue;
                 }
 
-                holdingIndex = i;
-                holdingPosition = point.Position;
-                holdingLabel = "manual holding point " + point.Label;
-                return;
+                if (i >= bestHoldingIndex)
+                    continue;
+
+                bestHoldingIndex = i;
+                bestHoldingPosition = point.Position;
+                bestHoldingLabel = "manual holding point " + point.Label;
             }
+        }
+
+        if (bestHoldingIndex != int.MaxValue)
+        {
+            holdingIndex = bestHoldingIndex;
+            holdingPosition = bestHoldingPosition;
+            holdingLabel = bestHoldingLabel;
         }
     }
 
