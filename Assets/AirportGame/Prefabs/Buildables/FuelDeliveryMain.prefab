@@ -43,6 +43,7 @@ GameObject:
   - component: {fileID: 2380030092538860454}
   - component: {fileID: 6609177529707344227}
   - component: {fileID: 6786705110392949207}
+  - component: {fileID: 7654321098765432101}
   m_Layer: 0
   m_Name: FuelDeliveryMain
   m_TagString: Untagged
@@ -219,3 +220,18 @@ Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 70e378c92b53a9e47b91fdc9420a3791, type: 3}
   m_PrefabInstance: {fileID: 1226665825509969264}
   m_PrefabAsset: {fileID: 0}
+
+--- !u!114 &7654321098765432101
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7348275283343004157}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b71d9a4f6c2e48f3a5d7c9e1b2f40685, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  fuelTruckStopPoint: {fileID: 0}
+  maximumRoadApproachDistance: 8
