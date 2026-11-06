@@ -128,7 +128,11 @@ public class AircraftFuelStation : MonoBehaviour
         if (amountToTransfer <= 0f)
             return;
 
-        float proposedAmount = Mathf.Min(amountToTransfer, currentFuelLitres);
+        float proposedAmount = Mathf.Min(
+            amountToTransfer,
+            Mathf.Min(
+                currentFuelLitres,
+                aircraft.MaximumFuelLitres - aircraft.CurrentFuelLitres));
         float proposedTotal = fuelTransferredThisSession + proposedAmount;
         int totalCost = Mathf.CeilToInt(proposedTotal * sellingPricePerLitre);
         int additionalCost = Mathf.Max(0, totalCost - fuelRevenueEarnedThisSession);
