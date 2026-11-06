@@ -83,7 +83,12 @@ public class AircraftFuelStation : MonoBehaviour
             return false;
 
         RemoveInvalidQueueEntries();
-        return TryGrantNextReservation() && reservedAircraft == aircraft;
+
+        if (reservedAircraft == aircraft)
+            return true;
+
+        TryGrantNextReservation();
+        return reservedAircraft == aircraft;
     }
 
     public void CancelAircraftReservationRequest(AircraftHobbyFuelDepartureController aircraft)
