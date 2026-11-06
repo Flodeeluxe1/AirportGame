@@ -16,6 +16,7 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
         TaxiingToFuelStation,
         AtFuelStation,
         WaitingForFuelStation,
+        WaitingForStationAccess,
         Finished
     }
 
@@ -64,6 +65,7 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
     private int movementIndex;
     private float decisionRetryTimer;
     private bool decisionMade;
+    private bool reservationHeld;
 
     public bool IsAtFuelStation => state == FuelDepartureState.AtFuelStation;
     public AircraftFuelStation SelectedStation => selectedStation;
@@ -80,8 +82,20 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
 
     private void Update()
     {
+        if (state == FuelDepartureState.Finished)
+        {
+            ReleaseStationAfterClearingStop();
+            return;
+        }
+
         if (visitController == null || !visitController.DepartureRequested)
             return;
+
+        if (state == FuelDepartureState.WaitingForStationAccess)
+        {
+            TryAcquireStationAndApproach();
+            return;
+        }
 
         if (state == FuelDepartureState.WaitingForFuelStation)
         {
@@ -199,7 +213,19 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
         selectedStation = bestStation;
         plannedRoute.Clear();
         plannedRoute.AddRange(bestRoute);
-        BuildFuelStationMovementPoints(bestRoute, bestStation.AircraftFuelStopPoint);
+
+        reservationHeld = selectedStation.TryReserveForAircraft(this);
+        if (reservationHeld)
+        {
+            BuildFuelStationMovementPoints(bestRoute, bestStation.AircraftFuelStopPoint);
+        }
+        else
+        {
+            // The nearest reachable taxiway centerline cell to the station
+            // is the holding position. It is calculated from the existing
+            // taxiway network; no extra prefab transform is required.
+            BuildFuelStationHoldingMovementPoints(bestRoute);
+        }
 
         // Log the complete selected taxi route and the actual world-space
         // movement points once when the aircraft commits to refuelling.
@@ -240,7 +266,9 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
         if (aircraftStatus != null)
             aircraftStatus.SetTaxiing(true);
 
-        debugStatus = $"Taxiing to fuel station {selectedStation.name}";
+        debugStatus = reservationHeld
+            ? $"Taxiing to fuel station {selectedStation.name}"
+            : $"Taxiing to taxiway holding point for {selectedStation.name}";
     }
 
     private bool TryFindRouteToStation(
@@ -366,6 +394,83 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
             Vector3.Distance(movementPoints[movementPoints.Count - 1], stopPosition) > 0.05f)
         {
             movementPoints.Add(stopPosition);
+        }
+    }
+
+    private void BuildFuelStationHoldingMovementPoints(List<Vector2Int> route)
+    {
+        movementPoints.Clear();
+
+        foreach (Vector2Int cell in route)
+        {
+            Vector3 point = gridManager.GridToWorldCenter(cell);
+            point.y = transform.position.y;
+
+            if (movementPoints.Count == 0 ||
+                Vector3.Distance(movementPoints[movementPoints.Count - 1], point) > 0.05f)
+            {
+                movementPoints.Add(point);
+            }
+        }
+    }
+
+    private void TryAcquireStationAndApproach()
+    {
+        if (selectedStation == null ||
+            selectedStation.AircraftFuelStopPoint == null)
+        {
+            AbortFuelTaxi("Fuel station became unavailable while waiting.");
+            return;
+        }
+
+        if (!selectedStation.TryReserveForAircraft(this))
+        {
+            debugStatus = $"Holding on taxiway; {selectedStation.name} is occupied";
+            return;
+        }
+
+        reservationHeld = true;
+        movementPoints.Clear();
+
+        Vector3 stopPosition = selectedStation.AircraftFuelStopPoint.position;
+        stopPosition.y = transform.position.y;
+        movementPoints.Add(stopPosition);
+        movementIndex = 0;
+        state = FuelDepartureState.TaxiingToFuelStation;
+        debugStatus = $"Fuel station available; approaching {selectedStation.name}";
+    }
+
+    private void ReleaseStationAfterClearingStop()
+    {
+        if (!reservationHeld || selectedStation == null ||
+            selectedStation.AircraftFuelStopPoint == null)
+            return;
+
+        Vector3 offset = transform.position - selectedStation.AircraftFuelStopPoint.position;
+        offset.y = 0f;
+
+        if (offset.sqrMagnitude >= 9f)
+        {
+            selectedStation.ReleaseAircraftReservation(this);
+            reservationHeld = false;
+        }
+    }
+
+    private void OnDisable()
+    {
+        if (reservationHeld && selectedStation != null)
+        {
+            selectedStation.ReleaseAircraftReservation(this);
+            reservationHeld = false;
+        }
+    }
+
+    private void OnDestroy()
+    {
+        if (reservationHeld && selectedStation != null)
+        {
+            selectedStation.ReleaseAircraftReservation(this);
+            reservationHeld = false;
         }
     }
 
@@ -514,6 +619,13 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
     private void AbortFuelTaxi(string reason)
     {
         debugStatus = reason;
+
+        if (reservationHeld && selectedStation != null)
+        {
+            selectedStation.ReleaseAircraftReservation(this);
+            reservationHeld = false;
+        }
+
         FinishFueling();
     }
 }
