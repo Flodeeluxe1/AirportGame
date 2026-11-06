@@ -113,7 +113,7 @@ public class AircraftFuelStation : MonoBehaviour
         {
             currentlyServicedAircraft = aircraft;
             fuelTransferredThisSession = 0f;
-            fuelCostChargedThisSession = 0;
+            fuelRevenueEarnedThisSession = 0;
         }
 
         if (aircraft.CurrentFuelLitres >= aircraft.MaximumFuelLitres)
@@ -131,7 +131,7 @@ public class AircraftFuelStation : MonoBehaviour
         float proposedAmount = Mathf.Min(amountToTransfer, currentFuelLitres);
         float proposedTotal = fuelTransferredThisSession + proposedAmount;
         int totalCost = Mathf.CeilToInt(proposedTotal * sellingPricePerLitre);
-        int additionalCost = Mathf.Max(0, totalCost - fuelCostChargedThisSession);
+        int additionalCost = Mathf.Max(0, totalCost - fuelRevenueEarnedThisSession);
 
         if (additionalCost > 0)
         {
@@ -147,7 +147,7 @@ public class AircraftFuelStation : MonoBehaviour
                 return;
             }
 
-            fuelCostChargedThisSession += additionalCost;
+            fuelRevenueEarnedThisSession += additionalCost;
         }
 
         float transferred = aircraft.AddFuel(proposedAmount);
