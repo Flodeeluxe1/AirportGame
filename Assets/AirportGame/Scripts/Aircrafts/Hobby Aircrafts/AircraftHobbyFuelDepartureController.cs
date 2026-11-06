@@ -509,7 +509,12 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
         {
             movementIndex++;
             if (movementIndex >= movementPoints.Count)
-                ArriveAtFuelStation();
+            {
+                if (reservationHeld)
+                    ArriveAtFuelStation();
+                else
+                    ArriveAtTaxiwayHoldingPoint();
+            }
             return;
         }
 
@@ -532,6 +537,14 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
                 target,
                 speed * Time.deltaTime);
         }
+    }
+
+    private void ArriveAtTaxiwayHoldingPoint()
+    {
+        state = FuelDepartureState.WaitingForStationAccess;
+        debugStatus = $"Holding on taxiway; waiting for {selectedStation.name}";
+        if (aircraftStatus != null)
+            aircraftStatus.SetTaxiing(false);
     }
 
     private void ArriveAtFuelStation()
