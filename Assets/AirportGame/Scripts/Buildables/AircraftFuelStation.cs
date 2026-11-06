@@ -39,11 +39,37 @@ public class AircraftFuelStation : MonoBehaviour
     [SerializeField] private string debugStatus = "Fuel station ready";
 
     private AircraftFuelTank currentlyServicedAircraft;
+    private AircraftHobbyFuelDepartureController reservedAircraft;
     private float fuelTransferredThisSession;
     private float fuelSessionPricePerLitre;
     private AirportEconomyManager economyManager;
 
     public float SellingPricePerLitre => sellingPricePerLitre;
+
+    public bool TryReserveForAircraft(AircraftHobbyFuelDepartureController aircraft)
+    {
+        if (aircraft == null)
+            return false;
+
+        if (reservedAircraft != null && reservedAircraft != aircraft)
+            return false;
+
+        reservedAircraft = aircraft;
+        return true;
+    }
+
+    public bool IsReservedForAircraft(AircraftHobbyFuelDepartureController aircraft)
+    {
+        return aircraft != null && reservedAircraft == aircraft;
+    }
+
+    public void ReleaseAircraftReservation(AircraftHobbyFuelDepartureController aircraft)
+    {
+        if (aircraft == null || reservedAircraft != aircraft)
+            return;
+
+        reservedAircraft = null;
+    }
     public Transform AircraftFuelStopPoint
     {
         get
@@ -191,6 +217,7 @@ public class AircraftFuelStation : MonoBehaviour
                 status.GetComponent<AircraftHobbyFuelDepartureController>();
 
             if (departure == null ||
+                departure != reservedAircraft ||
                 !departure.IsAtFuelStation ||
                 departure.SelectedStation != this)
                 continue;
