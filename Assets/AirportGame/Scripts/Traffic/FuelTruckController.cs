@@ -384,13 +384,25 @@ public class FuelTruckController : MonoBehaviour
             remaining,
             offloadRateLitresPerMinute * Time.deltaTime / 60f);
 
+        float acceptedThisFrame = 0f;
+
         if (amountThisFrame > 0f)
         {
-            float accepted = targetAircraftStation.ReceiveFuelDelivery(amountThisFrame);
-            deliveryLitresOffloaded += accepted;
+            acceptedThisFrame =
+                targetAircraftStation.ReceiveFuelDelivery(amountThisFrame);
+            deliveryLitresOffloaded += acceptedThisFrame;
         }
 
-        if (deliveryLitresOffloaded >= deliveryLitres - 0.001f)
+        bool requestedAmountDelivered =
+            deliveryLitresOffloaded >= deliveryLitres - 0.05f;
+
+        bool airportTankFull =
+            targetAircraftStation.RemainingFuelCapacity <= 0.05f;
+
+        bool transferCannotContinue =
+            amountThisFrame > 0f && acceptedThisFrame <= 0.0001f;
+
+        if (requestedAmountDelivered || airportTankFull || transferCannotContinue)
             FinishFuelOffloading(deliveryLitresOffloaded);
         else
             debugState = $"Offloading fuel: {deliveryLitresOffloaded:F0}/{deliveryLitres:F0} L";
