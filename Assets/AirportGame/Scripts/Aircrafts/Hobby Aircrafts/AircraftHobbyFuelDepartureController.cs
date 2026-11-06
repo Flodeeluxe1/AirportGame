@@ -484,7 +484,12 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
             aircraftStatus.SetParked(false);
 
         if (departureController != null)
+        {
+            // The runway route may have been selected before refuelling.
+            // Discard it so departure routing starts from the fuel station.
+            departureController.ResetRouteFromCurrentPosition();
             departureController.enabled = true;
+        }
     }
 
     private void WaitForFuelStation(string reason)
