@@ -1857,10 +1857,21 @@ public class ATCGroundTrafficManager : MonoBehaviour
                 continue;
             }
 
+            // Index the other route once. The routes are pathfinder-generated
+            // cell paths, so each cell occurs at most once. This avoids the
+            // previous route-length x route-length nested cell comparison.
+            Dictionary<Vector2Int, int> otherRouteIndices =
+                new Dictionary<Vector2Int, int>(otherRoute.Count);
+
+            for (int otherIndex = 0;
+                 otherIndex < otherRoute.Count;
+                 otherIndex++)
+            {
+                otherRouteIndices[otherRoute[otherIndex]] = otherIndex;
+            }
+
             // Decide right of way once for this aircraft pair using
             // their nearest upcoming opposing/crossing route conflict.
-            // Per-cell distance comparisons can otherwise create a cycle:
-            // each aircraft wins one shared cell and yields at another.
             bool ownHasPairPriority = HasPairwiseRoutePriority(
                 aircraft,
                 ownRoute,
@@ -1875,80 +1886,65 @@ public class ATCGroundTrafficManager : MonoBehaviour
             {
                 Vector2Int ownCell = ownRoute[ownIndex];
 
-                for (int otherIndex = 0;
-                     otherIndex < otherRoute.Count;
-                     otherIndex++)
+                if (!otherRouteIndices.TryGetValue(
+                        ownCell,
+                        out int otherIndex))
                 {
-                    if (otherRoute[otherIndex] != ownCell)
-                        continue;
-
-                    Vector3 ownDirection =
-                        GetRouteDirection(ownRoute, ownIndex);
-                    Vector3 otherDirection =
-                        GetRouteDirection(otherRoute, otherIndex);
-
-                    if (ownDirection.sqrMagnitude < 0.0001f ||
-                        otherDirection.sqrMagnitude < 0.0001f)
-                    {
-                        continue;
-                    }
-
-                    // Same-direction traffic is handled by local following.
-                    if (Vector3.Dot(ownDirection, otherDirection) > 0.75f)
-                        continue;
-
-                    Vector3 conflictPosition =
-                        gridManager.GridToWorldCenter(ownCell);
-
-                    bool otherHasPassedConflict =
-                        otherIndex < otherStartIndex;
-
-                    bool otherStillOccupiesConflict =
-                        otherHasPassedConflict &&
-                        HorizontalDistance(
-                            other.transform.position,
-                            conflictPosition) <= clearRadius;
-
-                    if (otherHasPassedConflict &&
-                        !otherStillOccupiesConflict)
-                    {
-                        continue;
-                    }
-
-                    float ownDistance = GetRouteDistance(
-                        ownRoute,
-                        ownStartIndex,
-                        ownIndex);
-
-                    float otherDistance = otherHasPassedConflict
-                        ? 0f
-                        : GetRouteDistance(
-                            otherRoute,
-                            otherStartIndex,
-                            otherIndex);
-
-                    // An aircraft still occupying the conflict always
-                    // keeps priority until it has physically cleared it.
-                    // Otherwise use the same pair-wide decision for every
-                    // shared conflict cell to prevent circular waiting.
-                    bool ownHasPriority = !otherStillOccupiesConflict &&
-                                          ownHasPairPriority;
-
-                    // Do not stop at a conflict this aircraft wins. Continue
-                    // checking: another aircraft may have priority at a later
-                    // conflict along the same remaining route.
-                    if (ownHasPriority)
-                        continue;
-
-                    // Keep the nearest conflict that this aircraft must yield
-                    // to, regardless of which other aircraft was enumerated first.
-                    if (ownDistance >= nearestYieldingConflictDistance)
-                        continue;
-
-                    nearestYieldingConflictDistance = ownDistance;
-                    yieldingConflictOwnIndex = ownIndex;
-                    yieldingAircraft = other;
+                    continue;
                 }
+
+                Vector3 ownDirection =
+                    GetRouteDirection(ownRoute, ownIndex);
+                Vector3 otherDirection =
+                    GetRouteDirection(otherRoute, otherIndex);
+
+                if (ownDirection.sqrMagnitude < 0.0001f ||
+                    otherDirection.sqrMagnitude < 0.0001f)
+                {
+                    continue;
+                }
+
+                // Same-direction traffic is handled by local following.
+                if (Vector3.Dot(ownDirection, otherDirection) > 0.75f)
+                    continue;
+
+                Vector3 conflictPosition =
+                    gridManager.GridToWorldCenter(ownCell);
+
+                bool otherHasPassedConflict =
+                    otherIndex < otherStartIndex;
+
+                bool otherStillOccupiesConflict =
+                    otherHasPassedConflict &&
+                    HorizontalDistance(
+                        other.transform.position,
+                        conflictPosition) <= clearRadius;
+
+                if (otherHasPassedConflict &&
+                    !otherStillOccupiesConflict)
+                {
+                    continue;
+                }
+
+                float ownDistance = GetRouteDistance(
+                    ownRoute,
+                    ownStartIndex,
+                    ownIndex);
+
+                // An aircraft still occupying the conflict always
+                // keeps priority until it has physically cleared it.
+                bool ownHasPriority = !otherStillOccupiesConflict &&
+                                      ownHasPairPriority;
+
+                if (ownHasPriority ||
+                    ownDistance >= nearestYieldingConflictDistance)
+                {
+                    continue;
+                }
+
+                nearestYieldingConflictDistance = ownDistance;
+                yieldingConflictOwnIndex = ownIndex;
+                yieldingAircraft = other;
             }
         }
 
@@ -2009,40 +2005,47 @@ public class ATCGroundTrafficManager : MonoBehaviour
         float firstNearestConflictDistance = float.MaxValue;
         float secondNearestConflictDistance = float.MaxValue;
 
+        Dictionary<Vector2Int, int> secondRouteIndices =
+            new Dictionary<Vector2Int, int>(
+                secondRoute.Count - secondStartIndex);
+
+        for (int secondIndex = secondStartIndex;
+             secondIndex < secondRoute.Count;
+             secondIndex++)
+        {
+            secondRouteIndices[secondRoute[secondIndex]] = secondIndex;
+        }
+
         for (int firstIndex = firstStartIndex;
              firstIndex < firstRoute.Count;
              firstIndex++)
         {
+            if (!secondRouteIndices.TryGetValue(
+                    firstRoute[firstIndex],
+                    out int secondIndex))
+            {
+                continue;
+            }
+
             Vector3 firstDirection =
                 GetRouteDirection(firstRoute, firstIndex);
+            Vector3 secondDirection =
+                GetRouteDirection(secondRoute, secondIndex);
 
-            if (firstDirection.sqrMagnitude < 0.0001f)
-                continue;
-
-            for (int secondIndex = secondStartIndex;
-                 secondIndex < secondRoute.Count;
-                 secondIndex++)
+            if (firstDirection.sqrMagnitude < 0.0001f ||
+                secondDirection.sqrMagnitude < 0.0001f ||
+                Vector3.Dot(firstDirection, secondDirection) > 0.75f)
             {
-                if (firstRoute[firstIndex] != secondRoute[secondIndex])
-                    continue;
-
-                Vector3 secondDirection =
-                    GetRouteDirection(secondRoute, secondIndex);
-
-                if (secondDirection.sqrMagnitude < 0.0001f ||
-                    Vector3.Dot(firstDirection, secondDirection) > 0.75f)
-                {
-                    continue;
-                }
-
-                firstNearestConflictDistance = Mathf.Min(
-                    firstNearestConflictDistance,
-                    GetRouteDistance(firstRoute, firstStartIndex, firstIndex));
-
-                secondNearestConflictDistance = Mathf.Min(
-                    secondNearestConflictDistance,
-                    GetRouteDistance(secondRoute, secondStartIndex, secondIndex));
+                continue;
             }
+
+            firstNearestConflictDistance = Mathf.Min(
+                firstNearestConflictDistance,
+                GetRouteDistance(firstRoute, firstStartIndex, firstIndex));
+
+            secondNearestConflictDistance = Mathf.Min(
+                secondNearestConflictDistance,
+                GetRouteDistance(secondRoute, secondStartIndex, secondIndex));
         }
 
         if (firstNearestConflictDistance == float.MaxValue ||
