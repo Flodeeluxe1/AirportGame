@@ -2296,9 +2296,17 @@ public class ATCGroundTrafficManager : MonoBehaviour
                 }
             }
 
+            // If an automatic hold was clamped to the aircraft's current
+            // route index, it is not a useful upstream stopping point.
+            // In that case, allow a valid manual point farther ahead to
+            // become the actual hold target.
+            bool automaticHoldClampedToCurrent =
+                bestHoldingIndex == currentIndex;
+
             bool wouldSelectManual =
                 firstMatchingRouteIndex >= 0 &&
-                firstMatchingRouteIndex < bestHoldingIndex;
+                (firstMatchingRouteIndex < bestHoldingIndex ||
+                 automaticHoldClampedToCurrent);
 
             if (logManualHoldingPointSelection)
             {
@@ -2333,10 +2341,12 @@ public class ATCGroundTrafficManager : MonoBehaviour
                 }
             }
 
-            // Preserve the existing selection logic while diagnostics are
-            // collected: select the first matching route cell before conflict.
+            // Select the first matching route cell before the conflict.
+            // A manual point may replace an automatic hold only when that
+            // automatic hold was clamped to the aircraft's current position.
             if (firstMatchingRouteIndex < 0 ||
-                firstMatchingRouteIndex >= bestHoldingIndex)
+                (firstMatchingRouteIndex >= bestHoldingIndex &&
+                 bestHoldingIndex != currentIndex))
             {
                 continue;
             }
