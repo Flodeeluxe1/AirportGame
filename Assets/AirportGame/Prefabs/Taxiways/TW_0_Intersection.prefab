@@ -126,7 +126,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1470633228889037312}
   m_Layer: 0
-  m_Name: ATCAricraftHoldingPoint (3)
+  m_Name: ATCAircraftHoldingPoint (3)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -157,7 +157,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1816434786872883942}
   m_Layer: 0
-  m_Name: ATCAricraftHoldingPoint (2)
+  m_Name: ATCAircraftHoldingPoint (2)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -188,7 +188,7 @@ GameObject:
   m_Component:
   - component: {fileID: 3695412712743088955}
   m_Layer: 0
-  m_Name: ATCAricraftHoldingPoint (4)
+  m_Name: ATCAircraftHoldingPoint (4)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -219,7 +219,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7281139648890511185}
   m_Layer: 0
-  m_Name: ATCAricraftHoldingPoint (1)
+  m_Name: ATCAircraftHoldingPoint (1)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
