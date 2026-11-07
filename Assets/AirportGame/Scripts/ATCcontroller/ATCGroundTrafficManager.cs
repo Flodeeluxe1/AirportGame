@@ -2196,15 +2196,13 @@ public class ATCGroundTrafficManager : MonoBehaviour
         holdingLabel = "current taxiway cell " + route[currentIndex] +
                        " (no manual holding point for this intersection)";
 
-        // Each prefab root represents one physical taxiway control location.
-        // Select the root nearest to the actual route conflict first, rather
-        // than allowing a marker from a neighbouring intersection to win
-        // simply because its child transform is closer along the route.
-        Vector3 conflictWorldPosition =
-            gridManager.GridToWorldCenter(route[conflictIndex]);
-
-        ControlPoint nearestOwnerPoint = null;
-        float nearestOwnerDistance = float.MaxValue;
+        // Choose the intersection prefab by checking its child markers against
+        // this aircraft's actual remaining route. The prefab root pivot can be
+        // offset from the taxiway, so distance from the root to the conflict
+        // is not a reliable way to identify the correct intersection.
+        ControlPoint selectedOwnerPoint = null;
+        int selectedOwnerRouteIndex = -1;
+        float selectedOwnerMarkerDistance = float.MaxValue;
 
         for (int p = 0; p < controlPoints.Count; p++)
         {
@@ -2212,30 +2210,57 @@ public class ATCGroundTrafficManager : MonoBehaviour
             if (point == null || !point.Key.IsManual)
                 continue;
 
-            float ownerDistance =
-                HorizontalDistance(
-                    point.OwnerRootPosition,
-                    conflictWorldPosition);
+            float matchRadius =
+                Mathf.Max(point.EntryRadius, gridManager.CellSize * 0.75f);
+            float nearestDistance = float.MaxValue;
+            int nearestRouteIndex = -1;
 
-            if (ownerDistance >= nearestOwnerDistance)
+            for (int i = currentIndex; i < conflictIndex; i++)
+            {
+                Vector3 cellPosition =
+                    gridManager.GridToWorldCenter(route[i]);
+                float distance =
+                    HorizontalDistance(point.Position, cellPosition);
+
+                if (distance < nearestDistance)
+                {
+                    nearestDistance = distance;
+                    nearestRouteIndex = i;
+                }
+            }
+
+            if (nearestRouteIndex < 0 || nearestDistance > matchRadius)
                 continue;
 
-            nearestOwnerDistance = ownerDistance;
-            nearestOwnerPoint = point;
+            // Prefer the marker furthest along the route before the conflict.
+            // This identifies the control-point prefab serving this approach,
+            // rather than whichever prefab happens to have the nearest pivot.
+            bool isBetterCandidate =
+                nearestRouteIndex > selectedOwnerRouteIndex ||
+                (nearestRouteIndex == selectedOwnerRouteIndex &&
+                 nearestDistance < selectedOwnerMarkerDistance);
+
+            if (!isBetterCandidate)
+                continue;
+
+            selectedOwnerPoint = point;
+            selectedOwnerRouteIndex = nearestRouteIndex;
+            selectedOwnerMarkerDistance = nearestDistance;
         }
 
-        if (nearestOwnerPoint == null)
+        if (selectedOwnerPoint == null)
             return;
 
-        EntityId selectedOwnerId = nearestOwnerPoint.OwnerRootEntityId;
-        string selectedOwnerLabel = nearestOwnerPoint.OwnerRootLabel;
-        float bestOwnerDistance = nearestOwnerDistance;
+        EntityId selectedOwnerId = selectedOwnerPoint.OwnerRootEntityId;
+        string selectedOwnerLabel = selectedOwnerPoint.OwnerRootLabel;
 
         int bestRouteIndex = -1;
+        float bestMarkerDistance = float.MaxValue;
         ControlPoint bestPoint = null;
 
-        // Only markers belonging to the prefab root nearest the conflict
-        // are eligible to become this conflict's holding point.
+        // Once the approach's intersection prefab has been identified,
+        // consider only its own markers. This prevents a marker belonging to
+        // a neighbouring intersection from being selected.
         for (int p = 0; p < controlPoints.Count; p++)
         {
             ControlPoint point = controlPoints[p];
@@ -2265,14 +2290,18 @@ public class ATCGroundTrafficManager : MonoBehaviour
                 }
             }
 
-            if (nearestRouteIndex < 0 ||
-                nearestDistance > matchRadius ||
-                nearestRouteIndex <= bestRouteIndex)
+            if (nearestRouteIndex < 0 || nearestDistance > matchRadius)
+                continue;
+
+            if (nearestRouteIndex < bestRouteIndex ||
+                (nearestRouteIndex == bestRouteIndex &&
+                 nearestDistance >= bestMarkerDistance))
             {
                 continue;
             }
 
             bestRouteIndex = nearestRouteIndex;
+            bestMarkerDistance = nearestDistance;
             bestPoint = point;
         }
 
@@ -2295,8 +2324,8 @@ public class ATCGroundTrafficManager : MonoBehaviour
                         bestPoint.OwnerRootPosition +
                     " | intersectionRootGridCell=" +
                         gridManager.WorldToGrid(bestPoint.OwnerRootPosition) +
-                    " | intersectionRootDistanceToConflict=" +
-                        bestOwnerDistance.ToString("F2") + "m" +
+                    " | selectedMarkerRouteDistance=" +
+                        bestMarkerDistance.ToString("F2") + "m" +
                     " | marker=" + bestPoint.Label +
                     " | markerWorldPosition=" + bestPoint.Position +
                     " | markerGridCell=" + markerGridCell +
@@ -2324,11 +2353,11 @@ public class ATCGroundTrafficManager : MonoBehaviour
             lastMissingManualHoldWarnings[aircraft] = warningKey;
             Debug.LogWarning(
                 "[ATC WARNING] No manual holding point belonging to the " +
-                "nearest intersection prefab was found before route conflict. " +
+                "approach intersection prefab was found before route conflict. " +
                 "Aircraft: " + aircraftName +
                 " | Selected intersection: " + selectedOwnerLabel +
                 " | Intersection root cell: " +
-                    gridManager.WorldToGrid(nearestOwnerPoint.OwnerRootPosition) +
+                    gridManager.WorldToGrid(selectedOwnerPoint.OwnerRootPosition) +
                 " | Current cell: " + route[currentIndex] +
                 " | Conflict cell: " + route[conflictIndex] +
                 ". Aircraft will hold at its current route cell.",
