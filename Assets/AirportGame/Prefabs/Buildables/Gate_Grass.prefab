@@ -143,7 +143,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GateReadyForTaxiTestSpawner
   aircraftPrefab: {fileID: 2387620211239937619, guid: c1be6962e7b8a7b4492d64878a85de86, type: 3}
   spawnPoint: {fileID: 5243673426922172246}
-  spawnOnPlay: 1
+  spawnOnPlay: 0
   spawnImmediately: 0
   spawnIntervalSeconds: 5
   maximumAircraftToSpawn: 1
