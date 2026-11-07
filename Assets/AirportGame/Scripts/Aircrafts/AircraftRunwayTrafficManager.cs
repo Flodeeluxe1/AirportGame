@@ -88,7 +88,7 @@ public class AircraftRunwayTrafficManager : MonoBehaviour
 
         debugCurrentRunwayReservations = lines.Count == 0
             ? "No runway reservations or registered landing traffic"
-            : string.Join("\\n", lines);
+            : string.Join("\n", lines);
     }
 
     // ---------------------------------------------------------------------
@@ -653,7 +653,14 @@ public class AircraftRunwayTrafficManager : MonoBehaviour
                 entry.Owner.gameObject.activeInHierarchy &&
                 entry.Runway != null)
             {
-                continue;
+                // Keep active arrivals registered. After touchdown, keep
+                // tracking the aircraft only while it physically occupies
+                // the runway. Remove it immediately once the runway is clear.
+                if (entry.IsActive ||
+                    IsAircraftOccupyingRunway(entry.Owner.transform, entry.Runway))
+                {
+                    continue;
+                }
             }
 
             if (invalidIds == null)
