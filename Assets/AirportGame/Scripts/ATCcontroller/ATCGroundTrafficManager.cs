@@ -2238,13 +2238,21 @@ public class ATCGroundTrafficManager : MonoBehaviour
 
             if (logManualHoldingPointSelection)
             {
+                Vector2Int markerGridCell =
+                    gridManager.WorldToGrid(bestPoint.Position);
+
                 Debug.Log(
                     "[ATC MANUAL HOLD SELECT] " + aircraftName +
-                    " | " + bestPoint.Label +
-                    " | routeIndex=" + bestRouteIndex +
-                    " | routeCell=" + route[bestRouteIndex] +
+                    " | marker=" + bestPoint.Label +
+                    " | markerWorldPosition=" + bestPoint.Position +
+                    " | markerGridCell=" + markerGridCell +
+                    " | matchedRouteIndex=" + bestRouteIndex +
+                    " | matchedRouteCell=" + route[bestRouteIndex] +
                     " | conflictIndex=" + conflictIndex +
-                    " | conflictCell=" + route[conflictIndex],
+                    " | conflictCell=" + route[conflictIndex] +
+                    " | aircraftWorldPosition=" + aircraft.transform.position +
+                    " | aircraftGridCell=" +
+                        gridManager.WorldToGrid(aircraft.transform.position),
                     this);
             }
 
