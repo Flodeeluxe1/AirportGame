@@ -23,6 +23,34 @@ public class ATCManualHoldingPoint : MonoBehaviour
     public bool AllowSameDirectionTraffic => allowSameDirectionTraffic;
     public float ControlRadiusCells => controlRadiusCells;
 
+    private const string HoldingPointNamePrefix = "ATCAircraftHoldingPoint";
+
+    /// <summary>
+    /// Adds all child transforms named with the manual holding-point prefix.
+    /// The root object itself is never treated as a holding point.
+    /// </summary>
+    public void GetHoldingPointTransforms(List<Transform> results)
+    {
+        if (results == null)
+            return;
+
+        Transform[] childTransforms =
+            GetComponentsInChildren<Transform>(true);
+
+        foreach (Transform child in childTransforms)
+        {
+            if (child == null || child == transform)
+                continue;
+
+            if (child.name.StartsWith(
+                    HoldingPointNamePrefix,
+                    System.StringComparison.OrdinalIgnoreCase))
+            {
+                results.Add(child);
+            }
+        }
+    }
+
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void ResetRegistry()
     {
@@ -44,13 +72,22 @@ public class ATCManualHoldingPoint : MonoBehaviour
 
     private void OnDrawGizmos()
     {
+        List<Transform> holdingPoints = new List<Transform>();
+        GetHoldingPointTransforms(holdingPoints);
+
         Gizmos.color = allowSameDirectionTraffic
             ? new Color(1f, 0.75f, 0.1f, 1f)
             : Color.red;
 
-        Gizmos.DrawWireSphere(transform.position, 0.6f);
-        Gizmos.DrawLine(
-            transform.position,
-            transform.position + transform.forward * 1.25f);
+        foreach (Transform holdingPoint in holdingPoints)
+        {
+            if (holdingPoint == null)
+                continue;
+
+            Gizmos.DrawWireSphere(holdingPoint.position, 0.6f);
+            Gizmos.DrawLine(
+                holdingPoint.position,
+                holdingPoint.position + holdingPoint.forward * 1.25f);
+        }
     }
 }
