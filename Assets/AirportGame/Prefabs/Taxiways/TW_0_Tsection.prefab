@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 3261792876129347358}
   - component: {fileID: 786092861635299941}
   - component: {fileID: 9100769837881613107}
+  - component: {fileID: -7295153380109000617}
   m_Layer: 0
   m_Name: TW_0_Tsection
   m_TagString: Untagged
@@ -115,6 +116,20 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1, y: 1, z: 1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &-7295153380109000617
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 582632434088753802}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7b2e9a4c1d6f4380a5c7e2b9d4f61380, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ATCManualHoldingPoint
+  allowSameDirectionTraffic: 1
+  controlRadiusCells: 1.5
 --- !u!1 &2149174056818393444
 GameObject:
   m_ObjectHideFlags: 0
