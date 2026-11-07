@@ -199,7 +199,9 @@ public class AircraftCargoPaxLandingController : MonoBehaviour
                 break;
         }
 
-        PublishCurrentSpeed();
+        // The taxi controller owns speed after landing is complete.
+        if (!IsLandingComplete)
+            PublishCurrentSpeed();
 
         if (aircraftStatus != null && IsLandingComplete)
         {
