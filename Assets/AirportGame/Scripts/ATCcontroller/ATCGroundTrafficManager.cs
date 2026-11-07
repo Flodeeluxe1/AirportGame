@@ -1939,8 +1939,31 @@ public class ATCGroundTrafficManager : MonoBehaviour
                 float directionDot =
                     Vector3.Dot(ownDirection, otherDirection);
 
-                // Same-direction traffic is handled by local following.
-                if (directionDot > 0.75f)
+                Vector3 ownIncomingDirection =
+                    GetRouteIncomingDirection(ownRoute, ownIndex);
+                Vector3 otherIncomingDirection =
+                    GetRouteIncomingDirection(otherRoute, otherIndex);
+
+                float incomingDirectionDot =
+                    ownIncomingDirection.sqrMagnitude < 0.0001f ||
+                    otherIncomingDirection.sqrMagnitude < 0.0001f
+                        ? directionDot
+                        : Vector3.Dot(
+                            ownIncomingDirection,
+                            otherIncomingDirection);
+
+                // Treat traffic as same-direction only when both aircraft
+                // approach and leave the shared cell in the same direction.
+                // This detects merging routes that share an outgoing segment
+                // but arrive at the junction from different taxiways.
+                bool sameDirectionMovement =
+                    AreRoutesSameDirectionAtCell(
+                        ownRoute,
+                        ownIndex,
+                        otherRoute,
+                        otherIndex);
+
+                if (sameDirectionMovement)
                 {
                     if (logManualHoldingPointSelection)
                     {
@@ -1948,7 +1971,10 @@ public class ATCGroundTrafficManager : MonoBehaviour
                             " | sharedCell=" + ownCell +
                             " ownIndex=" + ownIndex +
                             " otherIndex=" + otherIndex +
-                            " directionDot=" + directionDot.ToString("F2") +
+                            " incomingDirectionDot=" +
+                                incomingDirectionDot.ToString("F2") +
+                            " outgoingDirectionDot=" +
+                                directionDot.ToString("F2") +
                             " ignored=same direction";
                     }
 
@@ -1976,7 +2002,10 @@ public class ATCGroundTrafficManager : MonoBehaviour
                             " | sharedCell=" + ownCell +
                             " ownIndex=" + ownIndex +
                             " otherIndex=" + otherIndex +
-                            " directionDot=" + directionDot.ToString("F2") +
+                            " incomingDirectionDot=" +
+                                incomingDirectionDot.ToString("F2") +
+                            " outgoingDirectionDot=" +
+                                directionDot.ToString("F2") +
                             " ignored=other passed and cleared";
                     }
 
@@ -2002,7 +2031,10 @@ public class ATCGroundTrafficManager : MonoBehaviour
                         " ownIndex=" + ownIndex +
                         " otherIndex=" + otherIndex +
                         " ownDistance=" + ownDistance.ToString("F2") +
-                        " directionDot=" + directionDot.ToString("F2") +
+                        " incomingDirectionDot=" +
+                            incomingDirectionDot.ToString("F2") +
+                        " outgoingDirectionDot=" +
+                            directionDot.ToString("F2") +
                         " otherPassed=" + otherHasPassedConflict +
                         " otherStillOccupies=" + otherStillOccupiesConflict +
                         " pairPriority=" + ownHasPairPriority +
@@ -2175,7 +2207,11 @@ public class ATCGroundTrafficManager : MonoBehaviour
 
             if (firstDirection.sqrMagnitude < 0.0001f ||
                 secondDirection.sqrMagnitude < 0.0001f ||
-                Vector3.Dot(firstDirection, secondDirection) > 0.75f)
+                AreRoutesSameDirectionAtCell(
+                    firstRoute,
+                    firstIndex,
+                    secondRoute,
+                    secondIndex))
             {
                 continue;
             }
@@ -2534,6 +2570,61 @@ public class ATCGroundTrafficManager : MonoBehaviour
             return Vector3.zero;
 
         return direction.normalized;
+    }
+
+    private Vector3 GetRouteIncomingDirection(
+        IReadOnlyList<Vector2Int> route,
+        int index)
+    {
+        if (route == null || index <= 0 || index >= route.Count)
+            return Vector3.zero;
+
+        Vector3 direction =
+            gridManager.GridToWorldCenter(route[index]) -
+            gridManager.GridToWorldCenter(route[index - 1]);
+
+        direction.y = 0f;
+
+        if (direction.sqrMagnitude < 0.0001f)
+            return Vector3.zero;
+
+        return direction.normalized;
+    }
+
+    private bool AreRoutesSameDirectionAtCell(
+        IReadOnlyList<Vector2Int> firstRoute,
+        int firstIndex,
+        IReadOnlyList<Vector2Int> secondRoute,
+        int secondIndex)
+    {
+        Vector3 firstOutgoing =
+            GetRouteDirection(firstRoute, firstIndex);
+        Vector3 secondOutgoing =
+            GetRouteDirection(secondRoute, secondIndex);
+
+        if (firstOutgoing.sqrMagnitude < 0.0001f ||
+            secondOutgoing.sqrMagnitude < 0.0001f)
+        {
+            return false;
+        }
+
+        if (Vector3.Dot(firstOutgoing, secondOutgoing) <= 0.75f)
+            return false;
+
+        Vector3 firstIncoming =
+            GetRouteIncomingDirection(firstRoute, firstIndex);
+        Vector3 secondIncoming =
+            GetRouteIncomingDirection(secondRoute, secondIndex);
+
+        // At a route's first cell there is no incoming segment to compare.
+        // Fall back to outgoing direction for that endpoint.
+        if (firstIncoming.sqrMagnitude < 0.0001f ||
+            secondIncoming.sqrMagnitude < 0.0001f)
+        {
+            return true;
+        }
+
+        return Vector3.Dot(firstIncoming, secondIncoming) > 0.75f;
     }
 
     private float GetRouteDistance(
