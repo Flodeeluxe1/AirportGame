@@ -10,14 +10,12 @@ public class ATCGroundTrafficManager : MonoBehaviour
         public bool IsManual;
         public Vector2Int Cell;
         public EntityId EntityId;
-        public int MarkerId;
 
         public bool Equals(ControlPointKey other)
         {
             return IsManual == other.IsManual &&
                    Cell == other.Cell &&
-                   EntityId == other.EntityId &&
-                   MarkerId == other.MarkerId;
+                   EntityId == other.EntityId;
         }
 
         public override bool Equals(object obj)
@@ -31,7 +29,6 @@ public class ATCGroundTrafficManager : MonoBehaviour
             {
                 int hash = Cell.GetHashCode();
                 hash = (hash * 397) ^ EntityId.GetHashCode();
-                hash = (hash * 397) ^ MarkerId;
                 hash = (hash * 397) ^ IsManual.GetHashCode();
                 return hash;
             }
@@ -907,8 +904,7 @@ public class ATCGroundTrafficManager : MonoBehaviour
                 {
                     IsManual = true,
                     Cell = cell,
-                    EntityId = holdingPoint.GetEntityId(),
-                    MarkerId = marker.GetInstanceID()
+                    EntityId = marker.GetEntityId()
                 };
 
                 float entryRadius =
