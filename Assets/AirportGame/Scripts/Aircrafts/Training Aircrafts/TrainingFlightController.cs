@@ -609,6 +609,13 @@ public class TrainingFlightController : MonoBehaviour
         transform.position = parkingTurnPosition;
         transform.rotation = parkingTurnTargetRotation;
 
+        // The lesson is over and the aircraft is parked. Release any
+        // runway reservations left by its final departure/touch-and-go.
+        ResolveReferences();
+
+        if (departureController != null)
+            departureController.ResetForTrainingCircuit();
+
         currentState = TrainingState.Completed;
         departureRequested = false;
 
