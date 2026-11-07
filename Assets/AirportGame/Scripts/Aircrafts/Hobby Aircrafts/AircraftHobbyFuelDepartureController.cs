@@ -14,6 +14,7 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
         WaitingForVisit,
         Deciding,
         TaxiingToFuelStation,
+        AligningAtFuelStation,
         AtFuelStation,
         WaitingForFuelStation,
         WaitingForStationAccess,
@@ -123,6 +124,8 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
 
         if (state == FuelDepartureState.TaxiingToFuelStation)
             UpdateFuelStationTaxi();
+        else if (state == FuelDepartureState.AligningAtFuelStation)
+            UpdateFuelStationAlignment();
         else if (state == FuelDepartureState.AtFuelStation)
             UpdateFuelStationStop();
     }
@@ -579,18 +582,46 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
 
     private void ArriveAtFuelStation()
     {
-        Transform stopPoint = selectedStation.AircraftFuelStopPoint;
-        transform.position = new Vector3(
-            stopPoint.position.x,
-            transform.position.y,
-            stopPoint.position.z);
+        // The taxi movement has already brought the aircraft to the stop point.
+        // Do not teleport it or snap its rotation; finish the parking turn smoothly.
+        state = FuelDepartureState.AligningAtFuelStation;
+        debugStatus = $"Aligning with fuel stop at {selectedStation.name}";
+    }
 
-        Vector3 forward = stopPoint.forward;
+    private void UpdateFuelStationAlignment()
+    {
+        if (selectedStation == null || selectedStation.AircraftFuelStopPoint == null)
+        {
+            AbortFuelTaxi("Fuel stop point became unavailable during parking alignment.");
+            return;
+        }
+
+        Vector3 forward = selectedStation.AircraftFuelStopPoint.forward;
         forward.y = 0f;
 
-        if (forward.sqrMagnitude > 0.0001f)
-            transform.rotation = Quaternion.LookRotation(forward.normalized, Vector3.up);
+        if (forward.sqrMagnitude <= 0.0001f)
+        {
+            CompleteFuelStationParking();
+            return;
+        }
 
+        Quaternion targetRotation =
+            Quaternion.LookRotation(forward.normalized, Vector3.up);
+
+        transform.rotation = Quaternion.RotateTowards(
+            transform.rotation,
+            targetRotation,
+            rotationSpeedDegreesPerSecond * Time.deltaTime);
+
+        if (Quaternion.Angle(transform.rotation, targetRotation) <= 0.5f)
+        {
+            transform.rotation = targetRotation;
+            CompleteFuelStationParking();
+        }
+    }
+
+    private void CompleteFuelStationParking()
+    {
         if (aircraftStatus != null)
             aircraftStatus.SetParked(true);
 
