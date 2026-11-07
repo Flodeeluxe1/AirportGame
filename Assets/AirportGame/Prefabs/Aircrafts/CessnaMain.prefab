@@ -4887,6 +4887,7 @@ MonoBehaviour:
   debugBlockingDistance: 0
   debugTrafficDecision: Not tested
   debugATCClearance: Not requested
+  debugCurrentGridCell: {x: 0, y: 0}
   debugForwardRay: Not scanned
   debugLeftRay: Not scanned
   debugRightRay: Not scanned
@@ -4905,7 +4906,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AircraftHobbyFuelDepartureController
   mandatoryRefuellingBelowFuelPercentage: 0.4
   logFuelDecision: 1
-  taxiSpeedKnots: 8
+  taxiSpeedKnots: 12
   rotationSpeedDegreesPerSecond: 35
   arrivalDistance: 0.2
   startSearchRadiusCells: 12

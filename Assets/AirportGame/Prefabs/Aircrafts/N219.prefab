@@ -467,13 +467,14 @@ MonoBehaviour:
   safeFollowingDistance: 7
   rayOriginHeight: 0.5
   rayOriginForwardOffset: 5
-  acceleration: 0.1
-  braking: 0.3
+  acceleration: 0.3
+  braking: 3
   debugCurrentSpeed: 0
   debugBlockingAircraft: None
   debugBlockingDistance: 0
   debugTrafficDecision: Not tested
   debugATCClearance: Not requested
+  debugCurrentGridCell: {x: 0, y: 0}
   debugForwardRay: Not scanned
   debugLeftRay: Not scanned
   debugRightRay: Not scanned
