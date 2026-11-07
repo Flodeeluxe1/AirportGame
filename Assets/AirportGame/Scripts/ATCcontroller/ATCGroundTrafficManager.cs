@@ -10,12 +10,14 @@ public class ATCGroundTrafficManager : MonoBehaviour
         public bool IsManual;
         public Vector2Int Cell;
         public EntityId EntityId;
+        public int MarkerId;
 
         public bool Equals(ControlPointKey other)
         {
             return IsManual == other.IsManual &&
                    Cell == other.Cell &&
-                   EntityId == other.EntityId;
+                   EntityId == other.EntityId &&
+                   MarkerId == other.MarkerId;
         }
 
         public override bool Equals(object obj)
@@ -29,6 +31,7 @@ public class ATCGroundTrafficManager : MonoBehaviour
             {
                 int hash = Cell.GetHashCode();
                 hash = (hash * 397) ^ EntityId.GetHashCode();
+                hash = (hash * 397) ^ MarkerId;
                 hash = (hash * 397) ^ IsManual.GetHashCode();
                 return hash;
             }
@@ -168,22 +171,21 @@ public class ATCGroundTrafficManager : MonoBehaviour
     [SerializeField] private GridManager gridManager;
     [SerializeField] private TaxiwayNetwork taxiwayNetwork;
 
-    [Header("Automatic Junction Detection")]
+    [Header("Taxi Route Following")]
     [Min(1f)]
     [SerializeField] private float approachDistanceCells = 6f;
     [Min(0.5f)]
     [SerializeField] private float centerlineSearchRadiusCells = 3f;
-    [Min(0.25f)]
-    [SerializeField] private float intersectionEntryRadiusCells = 1.5f;
-    [Min(0.5f)]
-    [SerializeField] private float intersectionClearRadiusCells = 2.5f;
-
     [Header("ATC Diagnostics")]
     [SerializeField] private bool logTaxiClearanceChanges;
     [SerializeField] private bool logManualHoldingPointSelection;
 
     private readonly Dictionary<string, string> lastManualHoldingDiagnostics =
         new Dictionary<string, string>();
+
+    private readonly Dictionary<AircraftTaxiTrafficFollowing, string>
+        lastMissingManualHoldWarnings =
+            new Dictionary<AircraftTaxiTrafficFollowing, string>();
 
     [Header("Reservation Cleanup")]
     [Min(0.25f)]
@@ -835,6 +837,7 @@ public class ATCGroundTrafficManager : MonoBehaviour
         ReleaseWaitingRequest(aircraft);
         ReleaseAllSectionReservations(aircraft);
         lastLoggedTaxiDecisions.Remove(aircraft);
+        lastMissingManualHoldWarnings.Remove(aircraft);
         routeClearanceTargets.Remove(aircraft);
         routeHoldTargets.Remove(aircraft);
         aircraft.ClearPlannedTaxiRoute();
@@ -872,110 +875,67 @@ public class ATCGroundTrafficManager : MonoBehaviour
             new HashSet<Vector2Int>(
                 taxiwayNetwork.TaxiwayCenterlineCells);
 
-        int intersectionCount = 0;
-
-        foreach (Vector2Int cell in centerlineCells)
-        {
-            int connections = 0;
-
-            if (centerlineCells.Contains(cell + Vector2Int.up))
-                connections++;
-
-            if (centerlineCells.Contains(cell + Vector2Int.right))
-                connections++;
-
-            if (centerlineCells.Contains(cell + Vector2Int.down))
-                connections++;
-
-            if (centerlineCells.Contains(cell + Vector2Int.left))
-                connections++;
-
-            // A centerline cell with three or four connected neighbours
-            // is an automatically detected T-junction or crossing.
-            if (connections < 3)
-                continue;
-
-            ControlPointKey key = new ControlPointKey
-            {
-                IsManual = false,
-                Cell = cell,
-                EntityId = default
-            };
-
-            ControlPoint point = new ControlPoint
-            {
-                Key = key,
-                Position = gridManager.GridToWorldCenter(cell),
-                Label = "Taxiway intersection " + cell,
-                AllowSameDirectionTraffic = false,
-                EntryRadius =
-                    intersectionEntryRadiusCells * gridManager.CellSize,
-                ClearRadius =
-                    intersectionClearRadiusCells * gridManager.CellSize
-            };
-
-            AddOrUpdateControlPoint(point, validKeys);
-            intersectionCount++;
-        }
+        List<Transform> markerTransforms = new List<Transform>();
 
         Debug.Log(
             "[ATC MANUAL HOLD REGISTRY] Rebuilding manual points. " +
-            "RegisteredPoints count: " +
+            "Registered prefab roots: " +
             ATCManualHoldingPoint.RegisteredPoints.Count);
 
         foreach (ATCManualHoldingPoint holdingPoint
                  in ATCManualHoldingPoint.RegisteredPoints)
         {
-            if (holdingPoint == null)
-            {
-                Debug.LogWarning(
-                    "[ATC MANUAL HOLD REGISTRY] Null entry in RegisteredPoints.");
+            if (holdingPoint == null || !holdingPoint.isActiveAndEnabled)
                 continue;
+
+            markerTransforms.Clear();
+            holdingPoint.GetHoldingPointTransforms(markerTransforms);
+
+            foreach (Transform marker in markerTransforms)
+            {
+                if (marker == null)
+                    continue;
+
+                Vector2Int cell =
+                    gridManager.WorldToGrid(marker.position);
+
+                ControlPointKey key = new ControlPointKey
+                {
+                    IsManual = true,
+                    Cell = cell,
+                    EntityId = holdingPoint.GetEntityId(),
+                    MarkerId = marker.GetInstanceID()
+                };
+
+                float entryRadius =
+                    holdingPoint.ControlRadiusCells * gridManager.CellSize;
+
+                ControlPoint point = new ControlPoint
+                {
+                    Key = key,
+                    Position = marker.position,
+                    Label = holdingPoint.name + "/" + marker.name,
+                    AllowSameDirectionTraffic =
+                        holdingPoint.AllowSameDirectionTraffic,
+                    EntryRadius = entryRadius,
+                    ClearRadius = entryRadius + gridManager.CellSize
+                };
+
+                AddOrUpdateControlPoint(point, validKeys);
+
+                Debug.Log(
+                    "[ATC MANUAL HOLD REGISTERED] " + point.Label +
+                    " | Active: " + marker.gameObject.activeInHierarchy +
+                    " | World position: " + marker.position +
+                    " | Grid cell: " + cell +
+                    " | Control radius: " +
+                    holdingPoint.ControlRadiusCells + " cells");
             }
-
-            // Keep every enabled manual point registered. Whether it is
-            // relevant to an aircraft is decided later by matching it
-            // against that aircraft's remaining planned taxi route.
-            Vector2Int cell =
-                gridManager.WorldToGrid(holdingPoint.transform.position);
-
-            ControlPointKey key = new ControlPointKey
-            {
-                IsManual = true,
-                Cell = cell,
-                EntityId = holdingPoint.GetEntityId()
-            };
-
-            float entryRadius =
-                holdingPoint.ControlRadiusCells * gridManager.CellSize;
-
-            ControlPoint point = new ControlPoint
-            {
-                Key = key,
-                Position = holdingPoint.transform.position,
-                Label = holdingPoint.name,
-                AllowSameDirectionTraffic =
-                    holdingPoint.AllowSameDirectionTraffic,
-                EntryRadius = entryRadius,
-                ClearRadius = entryRadius +
-                              gridManager.CellSize
-            };
-
-            AddOrUpdateControlPoint(point, validKeys);
-
-            Debug.Log(
-                "[ATC MANUAL HOLD REGISTERED] " + holdingPoint.name +
-                " | Active: " + holdingPoint.isActiveAndEnabled +
-                " | World position: " + holdingPoint.transform.position +
-                " | Grid cell: " + cell +
-                " | Control radius: " + holdingPoint.ControlRadiusCells +
-                " cells");
         }
 
         Debug.Log(
             "[ATC MANUAL HOLD REGISTRY] Rebuild complete. " +
-            "Registered manual points processed: " +
-            ATCManualHoldingPoint.RegisteredPoints.Count);
+            "Manual child markers registered: " + controlPoints.Count);
 
         List<ControlPointKey> removedKeys = null;
 
@@ -1019,9 +979,11 @@ public class ATCGroundTrafficManager : MonoBehaviour
             }
         }
 
+        // Taxiway sections remain automatic network-derived reservations.
+        // Only aircraft holding positions are exclusively manual.
         RebuildTaxiwaySections(centerlineCells);
 
-        DetectedIntersectionCount = intersectionCount;
+        DetectedIntersectionCount = 0;
         cachedNetworkVersion = networkVersion;
         cachedManualPointVersion = manualVersion;
     }
@@ -2008,6 +1970,7 @@ public class ATCGroundTrafficManager : MonoBehaviour
 
         FindNextRouteHoldingPoint(
             aircraft.name,
+            aircraft,
             ownRoute,
             ownStartIndex,
             yieldingConflictOwnIndex,
@@ -2165,51 +2128,55 @@ public class ATCGroundTrafficManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Finds the next manually authored holding marker on the planned route.
+    /// No junction or direction-change detection is used.
+    /// </summary>
     private int FindNextRouteBoundary(
         IReadOnlyList<Vector2Int> route,
         int currentIndex)
     {
-        int startIndex = Mathf.Clamp(currentIndex + 1, 0, route.Count - 1);
+        int nextBoundary = route.Count - 1;
 
-        for (int i = startIndex; i < route.Count; i++)
+        for (int p = 0; p < controlPoints.Count; p++)
         {
-            Vector2Int cell = route[i];
+            ControlPoint point = controlPoints[p];
+            if (point == null || !point.Key.IsManual)
+                continue;
 
-            bool isJunction =
-                GetCenterlineConnectionCount(cell) >= 3;
+            float matchRadius =
+                Mathf.Max(point.EntryRadius, gridManager.CellSize * 0.75f);
 
-            bool isRouteTurn = false;
-            if (i > 0 && i < route.Count - 1)
+            for (int i = Mathf.Clamp(currentIndex + 1, 0, route.Count - 1);
+                 i < route.Count;
+                 i++)
             {
-                Vector2Int incoming = cell - route[i - 1];
-                Vector2Int outgoing = route[i + 1] - cell;
-                isRouteTurn = incoming != outgoing;
-            }
+                Vector3 cellPosition =
+                    gridManager.GridToWorldCenter(route[i]);
 
-            if (isJunction || isRouteTurn)
-                return Mathf.Max(currentIndex, i - 10);
-
-            Vector3 cellPosition = gridManager.GridToWorldCenter(cell);
-
-            for (int p = 0; p < controlPoints.Count; p++)
-            {
-                ControlPoint point = controlPoints[p];
-                if (point == null || !point.Key.IsManual)
-                    continue;
-
-                if (HorizontalDistance(point.Position, cellPosition) <=
-                    Mathf.Max(point.EntryRadius, gridManager.CellSize * 0.75f))
+                if (HorizontalDistance(point.Position, cellPosition) >
+                    matchRadius)
                 {
-                    return i;
+                    continue;
                 }
+
+                if (i < nextBoundary)
+                    nextBoundary = i;
+
+                break;
             }
         }
 
-        return route.Count - 1;
+        return nextBoundary;
     }
 
+    /// <summary>
+    /// Finds the manual marker closest to the conflict along the remaining
+    /// route. If none exists, the aircraft is held at its current route cell.
+    /// </summary>
     private void FindNextRouteHoldingPoint(
         string aircraftName,
+        AircraftTaxiTrafficFollowing aircraft,
         IReadOnlyList<Vector2Int> route,
         int currentIndex,
         int conflictIndex,
@@ -2217,193 +2184,89 @@ public class ATCGroundTrafficManager : MonoBehaviour
         out Vector3 holdingPosition,
         out string holdingLabel)
     {
-        holdingIndex = Mathf.Max(currentIndex, conflictIndex - 1);
+        holdingIndex = currentIndex;
         holdingPosition =
-            gridManager.GridToWorldCenter(route[holdingIndex]);
-        holdingLabel = "taxiway cell " + route[holdingIndex];
+            gridManager.GridToWorldCenter(route[currentIndex]);
+        holdingLabel = "current taxiway cell " + route[currentIndex] +
+                       " (no manual holding point before conflict)";
 
-        // Choose the first valid holding point encountered from the
-        // aircraft's current position. Check both automatic and manual
-        // points before deciding, rather than allowing an automatic
-        // junction to hide a closer upstream manual holding point.
-        int bestHoldingIndex = int.MaxValue;
-        Vector3 bestHoldingPosition = holdingPosition;
-        string bestHoldingLabel = holdingLabel;
+        int bestRouteIndex = -1;
+        ControlPoint bestPoint = null;
 
-        // Automatic junction / direction-change holding positions.
-        for (int i = conflictIndex; i > currentIndex && i < route.Count - 1; i--)
-        {
-            Vector2Int cell = route[i];
-
-            Vector2Int incoming = cell - route[i - 1];
-            Vector2Int outgoing = route[i + 1] - cell;
-
-            bool routeChangesDirection = incoming != outgoing;
-            bool isJunction = GetCenterlineConnectionCount(cell) >= 3;
-
-            if (!isJunction && !routeChangesDirection)
-                continue;
-
-            int candidateIndex = Mathf.Max(currentIndex, i - 10);
-            if (candidateIndex >= bestHoldingIndex)
-                continue;
-
-            bestHoldingIndex = candidateIndex;
-            bestHoldingPosition =
-                gridManager.GridToWorldCenter(route[candidateIndex]);
-            bestHoldingLabel = "10 cells before junction " + cell;
-        }
-
-        // Manual holding points are candidates even when an automatic
-        // junction also exists farther along the route.
         for (int p = 0; p < controlPoints.Count; p++)
         {
             ControlPoint point = controlPoints[p];
             if (point == null || !point.Key.IsManual)
                 continue;
 
-            int nearestRouteIndex = -1;
-            float nearestRouteDistance = float.MaxValue;
-            for (int i = 0; i < route.Count; i++)
-            {
-                Vector3 cellPosition = gridManager.GridToWorldCenter(route[i]);
-                float distance = HorizontalDistance(point.Position, cellPosition);
-                if (distance < nearestRouteDistance)
-                {
-                    nearestRouteDistance = distance;
-                    nearestRouteIndex = i;
-                }
-            }
-
             float matchRadius =
                 Mathf.Max(point.EntryRadius, gridManager.CellSize * 0.75f);
-            bool withinRadius = nearestRouteDistance <= matchRadius;
-            bool aheadOfAircraft = nearestRouteIndex >= currentIndex;
-            bool beforeConflict =
-                nearestRouteIndex >= currentIndex &&
-                nearestRouteIndex < conflictIndex;
+            float nearestDistance = float.MaxValue;
+            int nearestRouteIndex = -1;
 
-            int firstMatchingRouteIndex = -1;
             for (int i = currentIndex; i < conflictIndex; i++)
             {
                 Vector3 cellPosition =
                     gridManager.GridToWorldCenter(route[i]);
+                float distance =
+                    HorizontalDistance(point.Position, cellPosition);
 
-                if (HorizontalDistance(point.Position, cellPosition) <= matchRadius)
+                if (distance < nearestDistance)
                 {
-                    firstMatchingRouteIndex = i;
-                    break;
+                    nearestDistance = distance;
+                    nearestRouteIndex = i;
                 }
             }
 
-            // If an automatic hold was clamped to the aircraft's current
-            // route index, it is not a useful upstream stopping point.
-            // In that case, allow a valid manual point farther ahead to
-            // become the actual hold target.
-            bool automaticHoldClampedToCurrent =
-                bestHoldingIndex == currentIndex;
-
-            bool wouldSelectManual =
-                firstMatchingRouteIndex >= 0 &&
-                (firstMatchingRouteIndex < bestHoldingIndex ||
-                 automaticHoldClampedToCurrent);
-
-            if (logManualHoldingPointSelection)
-            {
-                string diagnosticKey = aircraftName + "|" + point.Label;
-                string diagnostic =
-                    "currentIndex=" + currentIndex +
-                    " (" + route[currentIndex] + ")" +
-                    " | conflictIndex=" + conflictIndex +
-                    " (" + route[conflictIndex] + ")" +
-                    " | nearestRouteIndex=" + nearestRouteIndex +
-                    (nearestRouteIndex >= 0
-                        ? " (" + route[nearestRouteIndex] + ")"
-                        : " (none)") +
-                    " | distance=" + nearestRouteDistance.ToString("F2") +
-                    "m | matchRadius=" + matchRadius.ToString("F2") +
-                    "m | withinRadius=" + withinRadius +
-                    " | aheadOfAircraft=" + aheadOfAircraft +
-                    " | beforeConflict=" + beforeConflict +
-                    " | firstMatchingRouteIndex=" + firstMatchingRouteIndex +
-                    " | automaticCandidateIndex=" + bestHoldingIndex +
-                    " | wouldSelectManual=" + wouldSelectManual;
-
-                if (!lastManualHoldingDiagnostics.TryGetValue(
-                        diagnosticKey, out string previousDiagnostic) ||
-                    previousDiagnostic != diagnostic)
-                {
-                    lastManualHoldingDiagnostics[diagnosticKey] = diagnostic;
-                    Debug.Log(
-                        "[ATC MANUAL HOLD SELECT] " + aircraftName +
-                        " | " + point.Label + " | " + diagnostic,
-                        this);
-                }
-            }
-
-            // Select the first matching route cell before the conflict.
-            // A manual point may replace an automatic hold only when that
-            // automatic hold was clamped to the aircraft's current position.
-            if (firstMatchingRouteIndex < 0 ||
-                (firstMatchingRouteIndex >= bestHoldingIndex &&
-                 bestHoldingIndex != currentIndex))
+            if (nearestRouteIndex < 0 ||
+                nearestDistance > matchRadius ||
+                nearestRouteIndex <= bestRouteIndex)
             {
                 continue;
             }
 
-            bestHoldingIndex = firstMatchingRouteIndex;
-            bestHoldingPosition = point.Position;
-            bestHoldingLabel = "manual holding point " + point.Label;
+            bestRouteIndex = nearestRouteIndex;
+            bestPoint = point;
         }
 
-        if (bestHoldingIndex != int.MaxValue)
+        if (bestPoint != null)
         {
-            holdingIndex = bestHoldingIndex;
-            holdingPosition = bestHoldingPosition;
-            holdingLabel = bestHoldingLabel;
-        }
-    }
+            holdingIndex = bestRouteIndex;
+            holdingPosition = bestPoint.Position;
+            holdingLabel = "manual holding point " + bestPoint.Label;
+            lastMissingManualHoldWarnings.Remove(aircraft);
 
-    private bool HasReachedRouteHoldingPoint(
-        IReadOnlyList<Vector2Int> route,
-        int currentIndex,
-        int conflictIndex)
-    {
-        int holdingIndex = Mathf.Max(0, conflictIndex - 1);
-
-        for (int i = conflictIndex - 1; i >= currentIndex; i--)
-        {
-            if (GetCenterlineConnectionCount(route[i]) >= 3)
+            if (logManualHoldingPointSelection)
             {
-                holdingIndex = i;
-                break;
+                Debug.Log(
+                    "[ATC MANUAL HOLD SELECT] " + aircraftName +
+                    " | " + bestPoint.Label +
+                    " | routeIndex=" + bestRouteIndex +
+                    " | routeCell=" + route[bestRouteIndex] +
+                    " | conflictIndex=" + conflictIndex +
+                    " | conflictCell=" + route[conflictIndex],
+                    this);
             }
+
+            return;
         }
 
-        return currentIndex >= holdingIndex;
-    }
+        string warningKey =
+            route[conflictIndex] + " from route index " + currentIndex;
 
-    private int GetCenterlineConnectionCount(Vector2Int cell)
-    {
-        int count = 0;
-
-        if (taxiwayNetwork.IsTaxiwayCenterlineCell(
-                cell + Vector2Int.up))
-            count++;
-
-        if (taxiwayNetwork.IsTaxiwayCenterlineCell(
-                cell + Vector2Int.right))
-            count++;
-
-        if (taxiwayNetwork.IsTaxiwayCenterlineCell(
-                cell + Vector2Int.down))
-            count++;
-
-        if (taxiwayNetwork.IsTaxiwayCenterlineCell(
-                cell + Vector2Int.left))
-            count++;
-
-        return count;
+        if (!lastMissingManualHoldWarnings.TryGetValue(
+                aircraft, out string previousWarning) ||
+            previousWarning != warningKey)
+        {
+            lastMissingManualHoldWarnings[aircraft] = warningKey;
+            Debug.LogWarning(
+                "[ATC WARNING] No manual holding point found before route " +
+                "conflict. Aircraft: " + aircraftName +
+                " | Current cell: " + route[currentIndex] +
+                " | Conflict cell: " + route[conflictIndex] +
+                ". Aircraft will hold at its current route cell.",
+                this);
+        }
     }
 
     private bool TryFindNearestRouteIndex(
