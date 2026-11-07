@@ -24,6 +24,11 @@ public class AircraftRunwayTrafficManager : MonoBehaviour
 
     [SerializeField] private GridManager gridManager;
 
+    [Header("Runway Reservation Debug (Inspector)")]
+    [TextArea(3, 10)]
+    [SerializeField] private string debugCurrentRunwayReservations =
+        "No runway reservations";
+
     private readonly Dictionary<EntityId, LandingTrafficEntry>
         landingTraffic = new();
 
@@ -32,6 +37,59 @@ public class AircraftRunwayTrafficManager : MonoBehaviour
 
     private readonly Dictionary<EntityId, RunwayReservation>
         lineupReservations = new();
+
+    private void Update()
+    {
+        UpdateRunwayReservationDebug();
+    }
+
+    private void UpdateRunwayReservationDebug()
+    {
+        RemoveInvalidLandingTraffic();
+        RemoveInvalidReservations();
+
+        List<string> lines = new List<string>();
+
+        foreach (KeyValuePair<EntityId, RunwayReservation> pair
+                 in lineupReservations)
+        {
+            RunwayReservation reservation = pair.Value;
+            if (reservation.Owner == null || reservation.Runway == null)
+                continue;
+
+            lines.Add(
+                $"LINE-UP: {reservation.Owner.name} | " +
+                $"Runway: {reservation.Runway.name}");
+        }
+
+        foreach (KeyValuePair<EntityId, RunwayReservation> pair
+                 in departureReservations)
+        {
+            RunwayReservation reservation = pair.Value;
+            if (reservation.Owner == null || reservation.Runway == null)
+                continue;
+
+            lines.Add(
+                $"DEPARTURE: {reservation.Owner.name} | " +
+                $"Runway: {reservation.Runway.name}");
+        }
+
+        foreach (KeyValuePair<EntityId, LandingTrafficEntry> pair
+                 in landingTraffic)
+        {
+            LandingTrafficEntry entry = pair.Value;
+            if (entry.Owner == null || entry.Runway == null)
+                continue;
+
+            lines.Add(
+                $"LANDING ({(entry.IsActive ? "ACTIVE" : "OCCUPANCY TRACKING")}): " +
+                $"{entry.Owner.name} | Runway: {entry.Runway.name}");
+        }
+
+        debugCurrentRunwayReservations = lines.Count == 0
+            ? "No runway reservations or registered landing traffic"
+            : string.Join("\\n", lines);
+    }
 
     // ---------------------------------------------------------------------
     // Landing traffic API
