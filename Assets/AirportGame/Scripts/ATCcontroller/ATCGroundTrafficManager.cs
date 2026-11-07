@@ -1898,6 +1898,9 @@ public class ATCGroundTrafficManager : MonoBehaviour
                 otherRoute,
                 otherStartIndex);
 
+            string pairConflictDiagnostics = string.Empty;
+            int sharedRouteCellCount = 0;
+
             for (int ownIndex = ownStartIndex;
                  ownIndex < ownRoute.Count;
                  ownIndex++)
@@ -1911,6 +1914,8 @@ public class ATCGroundTrafficManager : MonoBehaviour
                     continue;
                 }
 
+                sharedRouteCellCount++;
+
                 Vector3 ownDirection =
                     GetRouteDirection(ownRoute, ownIndex);
                 Vector3 otherDirection =
@@ -1919,12 +1924,36 @@ public class ATCGroundTrafficManager : MonoBehaviour
                 if (ownDirection.sqrMagnitude < 0.0001f ||
                     otherDirection.sqrMagnitude < 0.0001f)
                 {
+                    if (logManualHoldingPointSelection)
+                    {
+                        pairConflictDiagnostics +=
+                            " | sharedCell=" + ownCell +
+                            " ownIndex=" + ownIndex +
+                            " otherIndex=" + otherIndex +
+                            " ignored=invalid route direction";
+                    }
+
                     continue;
                 }
 
+                float directionDot =
+                    Vector3.Dot(ownDirection, otherDirection);
+
                 // Same-direction traffic is handled by local following.
-                if (Vector3.Dot(ownDirection, otherDirection) > 0.75f)
+                if (directionDot > 0.75f)
+                {
+                    if (logManualHoldingPointSelection)
+                    {
+                        pairConflictDiagnostics +=
+                            " | sharedCell=" + ownCell +
+                            " ownIndex=" + ownIndex +
+                            " otherIndex=" + otherIndex +
+                            " directionDot=" + directionDot.ToString("F2") +
+                            " ignored=same direction";
+                    }
+
                     continue;
+                }
 
                 Vector3 conflictPosition =
                     gridManager.GridToWorldCenter(ownCell);
@@ -1941,6 +1970,16 @@ public class ATCGroundTrafficManager : MonoBehaviour
                 if (otherHasPassedConflict &&
                     !otherStillOccupiesConflict)
                 {
+                    if (logManualHoldingPointSelection)
+                    {
+                        pairConflictDiagnostics +=
+                            " | sharedCell=" + ownCell +
+                            " ownIndex=" + ownIndex +
+                            " otherIndex=" + otherIndex +
+                            " directionDot=" + directionDot.ToString("F2") +
+                            " ignored=other passed and cleared";
+                    }
+
                     continue;
                 }
 
@@ -1952,6 +1991,25 @@ public class ATCGroundTrafficManager : MonoBehaviour
                 bool ownHasPriority = !otherStillOccupiesConflict &&
                                       ownHasPairPriority;
 
+                bool selectedAsYieldConflict =
+                    !ownHasPriority &&
+                    ownDistance < nearestYieldingConflictDistance;
+
+                if (logManualHoldingPointSelection)
+                {
+                    pairConflictDiagnostics +=
+                        " | sharedCell=" + ownCell +
+                        " ownIndex=" + ownIndex +
+                        " otherIndex=" + otherIndex +
+                        " ownDistance=" + ownDistance.ToString("F2") +
+                        " directionDot=" + directionDot.ToString("F2") +
+                        " otherPassed=" + otherHasPassedConflict +
+                        " otherStillOccupies=" + otherStillOccupiesConflict +
+                        " pairPriority=" + ownHasPairPriority +
+                        " ownHasPriority=" + ownHasPriority +
+                        " selected=" + selectedAsYieldConflict;
+                }
+
                 if (ownHasPriority ||
                     ownDistance >= nearestYieldingConflictDistance)
                 {
@@ -1961,6 +2019,59 @@ public class ATCGroundTrafficManager : MonoBehaviour
                 nearestYieldingConflictDistance = ownDistance;
                 yieldingConflictOwnIndex = ownIndex;
                 yieldingAircraft = other;
+            }
+
+            if (logManualHoldingPointSelection)
+            {
+                string pairKey =
+                    aircraft.GetEntityId() + "|" + other.GetEntityId();
+
+                string pairSignature = sharedRouteCellCount == 0
+                    ? "NO EXACT SHARED ROUTE CELLS"
+                    : pairConflictDiagnostics;
+
+                if (!lastManualHoldingDiagnostics.TryGetValue(
+                        pairKey, out string previousPairSignature) ||
+                    previousPairSignature != pairSignature)
+                {
+                    lastManualHoldingDiagnostics[pairKey] = pairSignature;
+
+                    Debug.Log(
+                        "[ATC ROUTE CONFLICT SCAN] aircraft=" + aircraft.name +
+                        " startIndex=" + ownStartIndex +
+                        " | other=" + other.name +
+                        " otherStartIndex=" + otherStartIndex +
+                        " | pairPriority=" + ownHasPairPriority +
+                        " | sharedRouteCellCount=" + sharedRouteCellCount +
+                        pairSignature,
+                        this);
+                }
+            }
+        }
+
+        if (logManualHoldingPointSelection)
+        {
+            string selectionKey =
+                aircraft.GetEntityId() + "|SELECTED_CONFLICT";
+
+            string selectionSignature = yieldingAircraft == null ||
+                                        yieldingConflictOwnIndex < 0
+                ? "NO YIELDING CONFLICT SELECTED"
+                : "other=" + yieldingAircraft.name +
+                  " ownConflictIndex=" + yieldingConflictOwnIndex +
+                  " ownConflictCell=" + ownRoute[yieldingConflictOwnIndex];
+
+            if (!lastManualHoldingDiagnostics.TryGetValue(
+                    selectionKey, out string previousSelection) ||
+                previousSelection != selectionSignature)
+            {
+                lastManualHoldingDiagnostics[selectionKey] =
+                    selectionSignature;
+
+                Debug.Log(
+                    "[ATC ROUTE CONFLICT SELECTED] aircraft=" + aircraft.name +
+                    " | " + selectionSignature,
+                    this);
             }
         }
 
