@@ -105,6 +105,9 @@ public class AircraftTaxiTrafficFollowing : MonoBehaviour
     [SerializeField] private float debugBlockingDistance;
     [SerializeField] private string debugTrafficDecision = "Not tested";
     [SerializeField] private string debugATCClearance = "Not requested";
+    [SerializeField] private Vector2Int debugCurrentGridCell;
+
+    private GridManager gridManager;
 
     [TextArea(2, 5)]
     [SerializeField] private string debugForwardRay = "Not scanned";
@@ -123,6 +126,75 @@ public class AircraftTaxiTrafficFollowing : MonoBehaviour
     private void Awake()
     {
         aircraftStatus = GetComponent<AircraftStatus>();
+        gridManager = FindFirstObjectByType<GridManager>();
+        UpdateDebugGridCell();
+    }
+
+    private void Update()
+    {
+        UpdateDebugGridCell();
+    }
+
+    private void UpdateDebugGridCell()
+    {
+        if (gridManager == null)
+            gridManager = FindFirstObjectByType<GridManager>();
+
+        if (gridManager != null)
+            debugCurrentGridCell = gridManager.WorldToGrid(transform.position);
+    }
+
+    private void CorrectATCHoldOvershoot(Vector3 holdPosition)
+    {
+        if (gridManager == null)
+            gridManager = FindFirstObjectByType<GridManager>();
+
+        if (gridManager == null || plannedTaxiRoute.Count < 2)
+            return;
+
+        Vector2Int holdCell = gridManager.WorldToGrid(holdPosition);
+        int holdRouteIndex = -1;
+
+        for (int i = 1; i < plannedTaxiRoute.Count; i++)
+        {
+            if (plannedTaxiRoute[i] == holdCell)
+            {
+                holdRouteIndex = i;
+                break;
+            }
+        }
+
+        if (holdRouteIndex < 1)
+            return;
+
+        Vector3 previousCellPosition =
+            gridManager.GridToWorldCenter(plannedTaxiRoute[holdRouteIndex - 1]);
+        Vector3 holdCellPosition =
+            gridManager.GridToWorldCenter(holdCell);
+
+        Vector3 approachDirection = holdCellPosition - previousCellPosition;
+        approachDirection.y = 0f;
+
+        if (approachDirection.sqrMagnitude < 0.0001f)
+            return;
+
+        approachDirection.Normalize();
+
+        Vector3 beyondHoldPoint = transform.position - holdCellPosition;
+        beyondHoldPoint.y = 0f;
+
+        if (Vector3.Dot(beyondHoldPoint, approachDirection) <= 0.01f)
+            return;
+
+        Vector3 correctedPosition = holdCellPosition;
+        correctedPosition.y = transform.position.y;
+        transform.position = correctedPosition;
+        UpdateDebugGridCell();
+
+        Debug.LogWarning(
+            $"{name}: ATC hold point overshoot detected. " +
+            $"Corrected position to holding cell {holdCell}.",
+            this);
     }
 
     public float GetTrafficFollowingSpeed(float cruisingSpeedKnots)
@@ -193,6 +265,8 @@ public class AircraftTaxiTrafficFollowing : MonoBehaviour
                     this,
                     out Vector3 runwayHoldPosition))
             {
+                CorrectATCHoldOvershoot(runwayHoldPosition);
+
                 float distanceToHold = Vector3.Distance(
                     transform.position,
                     runwayHoldPosition);
@@ -314,6 +388,8 @@ public class AircraftTaxiTrafficFollowing : MonoBehaviour
                 this,
                 out Vector3 holdPosition))
         {
+            CorrectATCHoldOvershoot(holdPosition);
+
             float distanceToHold = Vector3.Distance(
                 transform.position,
                 holdPosition);
