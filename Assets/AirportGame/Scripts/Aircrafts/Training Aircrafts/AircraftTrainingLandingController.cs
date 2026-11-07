@@ -231,7 +231,14 @@ public class AircraftTrainingLandingController : MonoBehaviour
                 FindFirstObjectByType<AircraftRunwayTrafficManager>();
         }
 
-        // Keep the rest of your existing Update() code below this point.
+        if (trafficManager != null && selectedRunway != null)
+        {
+            trafficManager.UpdateLandingTraffic(
+                this,
+                selectedRunway,
+                IsLandingTrafficActive
+            );
+        }
     }
 
 
