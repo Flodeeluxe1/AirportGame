@@ -32,7 +32,7 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
     [SerializeField] private float taxiSpeedKnots = 8f;
 
     [Min(1f)]
-    [SerializeField] private float rotationSpeedDegreesPerSecond = 35f;
+    [SerializeField] private float rotationSpeedDegreesPerSecond = 12f;
 
     [Min(0.05f)]
     [SerializeField] private float arrivalDistance = 0.2f;
