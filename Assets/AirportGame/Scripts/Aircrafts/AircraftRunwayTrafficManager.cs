@@ -24,6 +24,10 @@ public class AircraftRunwayTrafficManager : MonoBehaviour
 
     [SerializeField] private GridManager gridManager;
 
+    [Header("Manual Runway Release")]
+    [Tooltip("Select a runway, then use the component context menu to release its departure and line-up reservations.")]
+    [SerializeField] private AircraftRunway runwayToRelease;
+
     [Header("Runway Reservation Debug (Inspector)")]
     [TextArea(3, 10)]
     [SerializeField] private string debugCurrentRunwayReservations =
@@ -505,6 +509,67 @@ public class AircraftRunwayTrafficManager : MonoBehaviour
             $"{(reservation.Runway != null ? reservation.Runway.name : "Unknown")}",
             this
         );
+    }
+
+    /// <summary>
+    /// Manually clears departure and line-up reservations for one runway.
+    /// Landing traffic and physical runway occupancy are deliberately kept:
+    /// releasing a stale reservation must not make an occupied runway usable.
+    /// </summary>
+    public int ForceReleaseRunwayReservations(AircraftRunway runway)
+    {
+        if (runway == null)
+        {
+            Debug.LogWarning(
+                "Cannot release runway reservations: no runway was supplied.",
+                this);
+            return 0;
+        }
+
+        int releasedCount =
+            RemoveReservationsForRunway(departureReservations, runway) +
+            RemoveReservationsForRunway(lineupReservations, runway);
+
+        Debug.Log(
+            "MANUAL RUNWAY RELEASE | Runway: " + runway.name +
+            " | Reservations released: " + releasedCount +
+            " | Landing traffic and physical occupancy checks remain active.",
+            this);
+
+        UpdateRunwayReservationDebug();
+        return releasedCount;
+    }
+
+    private int RemoveReservationsForRunway(
+        Dictionary<EntityId, RunwayReservation> reservations,
+        AircraftRunway runway)
+    {
+        List<EntityId> idsToRemove = null;
+
+        foreach (KeyValuePair<EntityId, RunwayReservation> pair in reservations)
+        {
+            if (pair.Value.Runway != runway)
+                continue;
+
+            if (idsToRemove == null)
+                idsToRemove = new List<EntityId>();
+
+            idsToRemove.Add(pair.Key);
+        }
+
+        if (idsToRemove == null)
+            return 0;
+
+        foreach (EntityId id in idsToRemove)
+            reservations.Remove(id);
+
+        return idsToRemove.Count;
+    }
+
+    [ContextMenu("Runway/Release Reservations For Selected Runway")]
+    private void ReleaseReservationsForSelectedRunway()
+    {
+        ForceReleaseRunwayReservations(runwayToRelease);
     }
 
     // ---------------------------------------------------------------------
