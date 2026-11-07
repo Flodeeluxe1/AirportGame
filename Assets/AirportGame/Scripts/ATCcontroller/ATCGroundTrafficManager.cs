@@ -176,6 +176,10 @@ public class ATCGroundTrafficManager : MonoBehaviour
     [SerializeField] private float approachDistanceCells = 6f;
     [Min(0.5f)]
     [SerializeField] private float centerlineSearchRadiusCells = 3f;
+    [Min(0.25f)]
+    [SerializeField] private float intersectionEntryRadiusCells = 1.5f;
+    [Min(0.5f)]
+    [SerializeField] private float intersectionClearRadiusCells = 2.5f;
     [Header("ATC Diagnostics")]
     [SerializeField] private bool logTaxiClearanceChanges;
     [SerializeField] private bool logManualHoldingPointSelection;
