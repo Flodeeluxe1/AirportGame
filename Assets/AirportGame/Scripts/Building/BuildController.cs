@@ -40,6 +40,7 @@ public class BuildController : MonoBehaviour
     private WallMountedPlacementHandler wallMountedHandler;
     private RoadPlacementHandler roadHandler;
     private TaxiwayPlacementHandler taxiwayHandler;
+    private PipelinePlacementHandler pipelineHandler;
 
     private VisualElement buildWindow;
 
@@ -66,6 +67,7 @@ public class BuildController : MonoBehaviour
         wallMountedHandler = new WallMountedPlacementHandler();
         roadHandler = new RoadPlacementHandler();
         taxiwayHandler = new TaxiwayPlacementHandler();
+        pipelineHandler = new PipelinePlacementHandler();
 
         cellHandler.Initialize(
             this, gridManager, gridOccupancy, edgeOccupancy
@@ -104,6 +106,10 @@ public class BuildController : MonoBehaviour
         );
 
         taxiwayHandler.Initialize(
+            this, gridManager, gridOccupancy, edgeOccupancy
+        );
+
+        pipelineHandler.Initialize(
             this, gridManager, gridOccupancy, edgeOccupancy
         );
     }
@@ -147,6 +153,10 @@ public class BuildController : MonoBehaviour
         if (currentDefinition.category == BuildCategory.Taxiways)
         {
             HandleTaxiwayInput(mouse);
+        }
+        else if (currentDefinition.category == BuildCategory.Pipelines)
+        {
+            HandlePipelineInput(mouse);
         }
         else if (currentDefinition.placementType == PlacementType.Area)
         {
@@ -268,6 +278,9 @@ public class BuildController : MonoBehaviour
 
         if (definition.category == BuildCategory.Taxiways)
             return taxiwayHandler;
+
+        if (definition.category == BuildCategory.Pipelines)
+            return pipelineHandler;
 
         if (definition.placementType == PlacementType.Area)
             return areaHandler;
@@ -392,6 +405,21 @@ public class BuildController : MonoBehaviour
         if (mouse.leftButton.wasReleasedThisFrame)
         {
             taxiwayHandler.EndTaxiway();
+        }
+    }
+
+    private void HandlePipelineInput(Mouse mouse)
+    {
+        if (mouse.leftButton.wasPressedThisFrame &&
+            !IsPointerOverBuildUI())
+        {
+            pipelineHandler.BeginPipeline();
+        }
+
+        // Complete the route even if the cursor is over the build UI on release.
+        if (mouse.leftButton.wasReleasedThisFrame)
+        {
+            pipelineHandler.EndPipeline();
         }
     }
 
