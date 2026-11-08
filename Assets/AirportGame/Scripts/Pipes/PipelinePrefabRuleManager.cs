@@ -240,6 +240,28 @@ public sealed class PipelinePrefabRuleManager : MonoBehaviour
         }
     }
 
+    public void RestorePipes(IEnumerable<Vector2Int> savedCells)
+    {
+        ResolveReferences();
+        pipeCells.Clear();
+
+        if (savedCells != null)
+        {
+            foreach (Vector2Int cell in savedCells)
+            {
+                if (gridManager != null && gridManager.IsInsideGrid(cell))
+                    pipeCells.Add(cell);
+                else
+                    Debug.LogWarning(
+                        $"PipelinePrefabRuleManager: Skipped saved pipe cell " +
+                        $"{cell} because it is outside the current grid.",
+                        this);
+            }
+        }
+
+        RebuildVisuals();
+    }
+
     public void ClearAllPipes()
     {
         pipeCells.Clear();
