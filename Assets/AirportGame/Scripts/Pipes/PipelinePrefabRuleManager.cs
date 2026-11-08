@@ -162,6 +162,47 @@ public sealed class PipelinePrefabRuleManager : MonoBehaviour
         return false;
     }
 
+    public GameObject CreatePreviewVisual(
+        Vector2Int cell,
+        IReadOnlyCollection<Vector2Int> routeCells,
+        Transform previewParent,
+        bool valid)
+    {
+        ResolveReferences();
+
+        if (gridManager == null || previewParent == null)
+            return null;
+
+        int mask = GetConnectionMask(cell, routeCells);
+        GameObject prefab = GetPrefab(mask);
+
+        if (prefab == null)
+            return null;
+
+        Vector3 position = gridManager.GridToWorldCenter(cell);
+
+        Quaternion rotation =
+            Quaternion.Euler(0f, GetRotation(mask), 0f) *
+            prefab.transform.rotation;
+
+        GameObject instance = Instantiate(
+            prefab,
+            position,
+            rotation,
+            previewParent);
+
+        AlignVisualToGround(instance, position);
+
+        PlacementPreview preview =
+            instance.AddComponent<PlacementPreview>();
+
+        preview.Initialize();
+        preview.SetValid(valid);
+
+        instance.name = $"PipelinePreview_{cell.x}_{cell.y}";
+        return instance;
+    }
+
     public void RebuildVisuals()
     {
         ResolveReferences();
@@ -191,31 +232,7 @@ public sealed class PipelinePrefabRuleManager : MonoBehaviour
                 rotation,
                 pipeParent != null ? pipeParent : transform);
 
-            // Prefab pivots are not at the bottom of the visible pipe mesh.
-            // Align the lowest rendered point to the grid surface.
-            Renderer[] renderers =
-                instance.GetComponentsInChildren<Renderer>(true);
-
-            float lowestY = float.PositiveInfinity;
-
-            foreach (Renderer renderer in renderers)
-            {
-                if (renderer == null || !renderer.enabled)
-                    continue;
-
-                lowestY = Mathf.Min(lowestY, renderer.bounds.min.y);
-            }
-
-            if (!float.IsPositiveInfinity(lowestY))
-            {
-                Vector3 alignedPosition = instance.transform.position;
-                alignedPosition.y += groundY - lowestY + heightOffset;
-                instance.transform.position = alignedPosition;
-            }
-            else
-            {
-                instance.transform.position += Vector3.up * heightOffset;
-            }
+            AlignVisualToGround(instance, position);
 
             instance.name = $"Pipeline_{cell.x}_{cell.y}";
             instance.AddComponent<PipelinePiece>().Initialize(cell);
@@ -229,13 +246,18 @@ public sealed class PipelinePrefabRuleManager : MonoBehaviour
         ClearVisuals();
     }
 
-    private int GetConnectionMask(Vector2Int cell)
+    private int GetConnectionMask(
+        Vector2Int cell,
+        IReadOnlyCollection<Vector2Int> additionalCells = null)
     {
         int mask = 0;
 
         for (int i = 0; i < Directions.Length; i++)
         {
-            if (pipeCells.Contains(cell + Directions[i]))
+            Vector2Int neighbour = cell + Directions[i];
+
+            if (pipeCells.Contains(neighbour) ||
+                (additionalCells != null && additionalCells.Contains(neighbour)))
                 mask |= DirectionBits[i];
         }
 
@@ -341,6 +363,36 @@ public sealed class PipelinePrefabRuleManager : MonoBehaviour
         }
 
         return count;
+    }
+
+    private void AlignVisualToGround(GameObject instance, Vector3 gridPosition)
+    {
+        if (instance == null)
+            return;
+
+        Renderer[] renderers =
+            instance.GetComponentsInChildren<Renderer>(true);
+
+        float lowestY = float.PositiveInfinity;
+
+        foreach (Renderer renderer in renderers)
+        {
+            if (renderer == null || !renderer.enabled)
+                continue;
+
+            lowestY = Mathf.Min(lowestY, renderer.bounds.min.y);
+        }
+
+        if (!float.IsPositiveInfinity(lowestY))
+        {
+            Vector3 alignedPosition = instance.transform.position;
+            alignedPosition.y += gridPosition.y - lowestY + heightOffset;
+            instance.transform.position = alignedPosition;
+        }
+        else
+        {
+            instance.transform.position += Vector3.up * heightOffset;
+        }
     }
 
     private void ClearVisuals()
