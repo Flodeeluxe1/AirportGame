@@ -36,6 +36,7 @@ public class FuelTruckController : MonoBehaviour
     private RoadNetwork roadNetwork;
     private GridManager gridManager;
     private IntersectionManager intersectionManager;
+    private TrafficFollowing trafficFollowing;
 
     private readonly List<Vector2Int> route = new List<Vector2Int>();
     private int deliveryPathIndex = -1;
@@ -62,6 +63,14 @@ public class FuelTruckController : MonoBehaviour
 
     private bool waitingForIntersection;
     private bool hasIntersectionReservation;
+    private float currentSpeed;
+
+    public bool IsActiveOnRoad =>
+        routeInitialized &&
+        !approachingStopPoint &&
+        !offloading &&
+        !returningToRoad &&
+        pathIndex < route.Count;
     private Vector2Int requestedIntersection;
     private Vector2Int reservedIntersection;
     private int reservedIntersectionPathIndex = -1;
@@ -71,6 +80,10 @@ public class FuelTruckController : MonoBehaviour
         roadNetwork = FindFirstObjectByType<RoadNetwork>();
         gridManager = FindFirstObjectByType<GridManager>();
         intersectionManager = FindFirstObjectByType<IntersectionManager>();
+
+        trafficFollowing = GetComponent<TrafficFollowing>();
+        if (trafficFollowing == null)
+            trafficFollowing = gameObject.AddComponent<TrafficFollowing>();
 
         if (GetComponent<VehicleSpawnID>() == null)
             gameObject.AddComponent<VehicleSpawnID>();
@@ -127,6 +140,7 @@ public class FuelTruckController : MonoBehaviour
 
         routeInitialized = true;
         pathIndex = 0;
+        currentSpeed = 0f;
         debugPathLength = route.Count + 2;
         debugState = "Driving to delivery station";
 
@@ -214,7 +228,8 @@ public class FuelTruckController : MonoBehaviour
     private void MoveToCurrentWaypoint()
     {
         Vector3 target = GetRoadWorldPosition(route[pathIndex]);
-        MoveTowards(target);
+        float trafficAwareSpeed = GetTrafficFollowingSpeed();
+        MoveTowards(target, trafficAwareSpeed);
 
         if (HasReached(target))
         {
@@ -223,7 +238,63 @@ public class FuelTruckController : MonoBehaviour
         }
     }
 
+    private float GetTrafficFollowingSpeed()
+    {
+        return trafficFollowing.GetFollowingSpeed(
+            movementSpeed,
+            currentSpeed,
+            ShouldBlockTrafficCollider,
+            hasIntersectionReservation,
+            out _);
+    }
+
+    private bool ShouldBlockTrafficCollider(Collider collider)
+    {
+        if (collider == null)
+            return false;
+
+        TrafficTestVehicle normalVehicle =
+            collider.GetComponentInParent<TrafficTestVehicle>();
+
+        if (normalVehicle != null)
+        {
+            TrafficTestVehicle.VehicleState otherState =
+                normalVehicle.CurrentState;
+
+            return otherState != TrafficTestVehicle.VehicleState.Idle &&
+                   otherState != TrafficTestVehicle.VehicleState.Parked &&
+                   otherState != TrafficTestVehicle.VehicleState.Arrived;
+        }
+
+        CargoDeliveryTruck cargoTruck =
+            collider.GetComponentInParent<CargoDeliveryTruck>();
+
+        if (cargoTruck != null)
+        {
+            CargoDeliveryTruck.TruckState otherState =
+                cargoTruck.CurrentState;
+
+            return otherState != CargoDeliveryTruck.TruckState.Idle &&
+                   otherState != CargoDeliveryTruck.TruckState.WaitingForCargoZone &&
+                   otherState != CargoDeliveryTruck.TruckState.Unloading &&
+                   otherState != CargoDeliveryTruck.TruckState.Arrived;
+        }
+
+        FuelTruckController fuelTruck =
+            collider.GetComponentInParent<FuelTruckController>();
+
+        return fuelTruck != null && fuelTruck != this &&
+               fuelTruck.IsActiveOnRoad;
+    }
+
+    public float CurrentSpeed => currentSpeed;
+
     private void MoveTowards(Vector3 target)
+    {
+        MoveTowards(target, movementSpeed);
+    }
+
+    private void MoveTowards(Vector3 target, float speed)
     {
         Vector3 offset = target - transform.position;
         offset.y = 0f;
@@ -243,7 +314,7 @@ public class FuelTruckController : MonoBehaviour
         transform.position = Vector3.MoveTowards(
             transform.position,
             flatTarget,
-            movementSpeed * Time.deltaTime);
+            speed * Time.deltaTime);
     }
 
     private void FaceStopPoint()
