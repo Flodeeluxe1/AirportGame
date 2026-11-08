@@ -31,24 +31,6 @@ public sealed class TrafficFollowing : MonoBehaviour
     private static readonly float[] Angles = { -60f, -30f, 0f, 30f, 60f };
     private static readonly string[] Names = { "Left 60", "Left 30", "Forward", "Right 30", "Right 60" };
 
-    public void Configure(
-        LayerMask layer,
-        float detection,
-        float safeDistance,
-        float originHeight,
-        float originForwardOffset,
-        float accelerationRate,
-        float brakingRate)
-    {
-        trafficLayer = layer;
-        detectionDistance = Mathf.Max(0.1f, detection);
-        safeFollowingDistance = Mathf.Max(0.01f, safeDistance);
-        rayOriginHeight = originHeight;
-        rayOriginForwardOffset = originForwardOffset;
-        acceleration = Mathf.Max(0f, accelerationRate);
-        braking = Mathf.Max(0f, brakingRate);
-    }
-
     public float GetFollowingSpeed(
         float desiredSpeed,
         float currentSpeed,
