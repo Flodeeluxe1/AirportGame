@@ -22,7 +22,13 @@ public sealed class PipelinePlacementHandler : IPlacementHandler
     private bool horizontalFirst;
 
     private readonly List<Vector2Int> routeCells = new();
+    private readonly List<Vector2Int> lastPreviewRoute = new();
+    private readonly List<GameObject> routePreviewObjects = new();
     private readonly HashSet<Vector2Int> newCells = new();
+
+    private GameObject routePreviewParent;
+    private bool hasPreviewState;
+    private bool lastPreviewValid;
 
     public void Initialize(
         BuildController controller,
@@ -48,6 +54,11 @@ public sealed class PipelinePlacementHandler : IPlacementHandler
         this.definition = definition;
         this.previewObject = previewObject;
         this.placementPreview = placementPreview;
+
+        if (routePreviewParent == null)
+        {
+            routePreviewParent = new GameObject("PipelineRoutePreview");
+        }
 
         currentCell = Vector2Int.zero;
         startCell = Vector2Int.zero;
@@ -93,6 +104,13 @@ public sealed class PipelinePlacementHandler : IPlacementHandler
         endCell = currentCell;
         isDragging = false;
         TryPlace();
+
+        ClearRoutePreview();
+
+        if (previewObject != null)
+            previewObject.SetActive(true);
+
+        UpdatePreview();
     }
 
     public void Rotate()
@@ -137,10 +155,28 @@ public sealed class PipelinePlacementHandler : IPlacementHandler
 
     private void UpdatePreview()
     {
-        if (previewObject == null || gridManager == null)
+        if (gridManager == null)
             return;
 
         BuildRoute();
+
+        bool valid = pipelineManager != null && ValidateRoute();
+
+        if (isDragging)
+        {
+            if (previewObject != null)
+                previewObject.SetActive(false);
+
+            UpdateRoutePreview(valid);
+            return;
+        }
+
+        ClearRoutePreview();
+
+        if (previewObject == null)
+            return;
+
+        previewObject.SetActive(true);
 
         Vector3 position = gridManager.GridToWorldCenter(currentCell);
         previewObject.transform.position = position;
@@ -166,9 +202,65 @@ public sealed class PipelinePlacementHandler : IPlacementHandler
             previewObject.transform.position = position;
         }
 
-        bool valid = pipelineManager != null && ValidateRoute();
         if (placementPreview != null)
             placementPreview.SetValid(valid);
+    }
+
+    private void UpdateRoutePreview(bool valid)
+    {
+        if (pipelineManager == null || routePreviewParent == null)
+            return;
+
+        bool unchanged =
+            hasPreviewState &&
+            lastPreviewValid == valid &&
+            lastPreviewRoute.Count == routeCells.Count;
+
+        if (unchanged)
+        {
+            for (int i = 0; i < routeCells.Count; i++)
+            {
+                if (lastPreviewRoute[i] != routeCells[i])
+                {
+                    unchanged = false;
+                    break;
+                }
+            }
+        }
+
+        if (unchanged)
+            return;
+
+        ClearRoutePreview();
+
+        foreach (Vector2Int cell in routeCells)
+        {
+            GameObject previewPiece = pipelineManager.CreatePreviewVisual(
+                cell,
+                routeCells,
+                routePreviewParent.transform,
+                valid);
+
+            if (previewPiece != null)
+                routePreviewObjects.Add(previewPiece);
+        }
+
+        lastPreviewRoute.AddRange(routeCells);
+        lastPreviewValid = valid;
+        hasPreviewState = true;
+    }
+
+    private void ClearRoutePreview()
+    {
+        foreach (GameObject previewPiece in routePreviewObjects)
+        {
+            if (previewPiece != null)
+                Object.Destroy(previewPiece);
+        }
+
+        routePreviewObjects.Clear();
+        lastPreviewRoute.Clear();
+        hasPreviewState = false;
     }
 
     private bool ValidateRoute()
@@ -232,10 +324,20 @@ public sealed class PipelinePlacementHandler : IPlacementHandler
     public void Cancel()
     {
         isDragging = false;
+        ClearRoutePreview();
+
+        if (previewObject != null)
+            previewObject.SetActive(true);
     }
 
     public void Reset()
     {
+        ClearRoutePreview();
+
+        if (routePreviewParent != null)
+            Object.Destroy(routePreviewParent);
+
+        routePreviewParent = null;
         definition = null;
         previewObject = null;
         placementPreview = null;
