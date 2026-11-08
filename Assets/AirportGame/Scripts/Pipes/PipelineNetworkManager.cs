@@ -48,6 +48,14 @@ public sealed class PipelineNetworkManager : MonoBehaviour
             CurrentFuelLitres += accepted;
             return accepted;
         }
+
+        internal void RestoreFuel(float amountLitres)
+        {
+            CurrentFuelLitres = Mathf.Clamp(
+                amountLitres,
+                0f,
+                CapacityLitres);
+        }
     }
 
     private static readonly Vector2Int[] Directions =
@@ -66,6 +74,9 @@ public sealed class PipelineNetworkManager : MonoBehaviour
     private readonly HashSet<FuelStorageTank> initializedTanks = new();
     private int lastTopologyHash;
     private bool hasBuiltTopology;
+
+    private List<PipelineNetworkSaveData> pendingSavedInventories;
+    private bool hasPendingSavedInventories;
 
     public IReadOnlyList<PipelineNetwork> Networks => networks;
     public int NetworkCount => networks.Count;
@@ -136,6 +147,54 @@ public sealed class PipelineNetworkManager : MonoBehaviour
 
         connectorNetworks.TryGetValue(connector, out PipelineNetwork network);
         return network;
+    }
+
+    public List<PipelineNetworkSaveData> GetSaveData()
+    {
+        List<PipelineNetworkSaveData> savedNetworks = new();
+
+        foreach (PipelineNetwork network in networks)
+        {
+            PipelineNetworkSaveData saved = new()
+            {
+                currentFuelLitres = network.CurrentFuelLitres
+            };
+
+            saved.pipeCells.AddRange(network.PipeCells);
+
+            foreach (FuelConnector connector in network.Connectors)
+            {
+                if (connector != null)
+                    saved.connectorCells.Add(connector.GridCell);
+            }
+
+            savedNetworks.Add(saved);
+        }
+
+        return savedNetworks;
+    }
+
+    public void RestoreSavedFuelInventories(
+        List<PipelineNetworkSaveData> savedNetworks)
+    {
+        pendingSavedInventories = savedNetworks != null
+            ? new List<PipelineNetworkSaveData>(savedNetworks)
+            : new List<PipelineNetworkSaveData>();
+
+        hasPendingSavedInventories = true;
+        hasBuiltTopology = false;
+    }
+
+    public void ClearNetworksForWorldReset()
+    {
+        networks.Clear();
+        connectorNetworks.Clear();
+        initializedTanks.Clear();
+        pendingSavedInventories = null;
+        hasPendingSavedInventories = false;
+        hasBuiltTopology = false;
+        lastTopologyHash = 0;
+        TopologyVersion++;
     }
 
     public void RebuildNetworks()
@@ -252,6 +311,9 @@ public sealed class PipelineNetworkManager : MonoBehaviour
 
         ReconcileFuelInventories(previousNetworks);
 
+        if (hasPendingSavedInventories)
+            ApplySavedFuelInventories();
+
         TopologyVersion++;
         lastTopologyHash = CalculateTopologyHash();
         hasBuiltTopology = true;
@@ -264,6 +326,81 @@ public sealed class PipelineNetworkManager : MonoBehaviour
                 $"Total stored fuel: {GetTotalStoredFuel():F1} L",
                 this);
         }
+    }
+
+    private void ApplySavedFuelInventories()
+    {
+        if (pendingSavedInventories == null)
+            pendingSavedInventories = new List<PipelineNetworkSaveData>();
+
+        HashSet<int> usedSavedNetworks = new();
+
+        foreach (PipelineNetwork network in networks)
+        {
+            int matchedIndex = -1;
+
+            for (int i = 0; i < pendingSavedInventories.Count; i++)
+            {
+                if (usedSavedNetworks.Contains(i))
+                    continue;
+
+                PipelineNetworkSaveData saved = pendingSavedInventories[i];
+                if (saved == null)
+                    continue;
+
+                bool overlaps = false;
+
+                foreach (Vector2Int cell in network.PipeCells)
+                {
+                    if (saved.pipeCells != null && saved.pipeCells.Contains(cell))
+                    {
+                        overlaps = true;
+                        break;
+                    }
+                }
+
+                if (!overlaps && saved.connectorCells != null)
+                {
+                    foreach (FuelConnector connector in network.Connectors)
+                    {
+                        if (connector != null &&
+                            saved.connectorCells.Contains(connector.GridCell))
+                        {
+                            overlaps = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (overlaps)
+                {
+                    matchedIndex = i;
+                    break;
+                }
+            }
+
+            if (matchedIndex < 0)
+                continue;
+
+            PipelineNetworkSaveData matched = pendingSavedInventories[matchedIndex];
+            network.RestoreFuel(matched.currentFuelLitres);
+            usedSavedNetworks.Add(matchedIndex);
+
+            foreach (FuelStorageTank tank in GetStorageTanks(network))
+                initializedTanks.Add(tank);
+        }
+
+        int unmatched = pendingSavedInventories.Count - usedSavedNetworks.Count;
+        if (unmatched > 0)
+        {
+            Debug.LogWarning(
+                $"PipelineNetworkManager: {unmatched} saved fuel network(s) " +
+                "could not be matched to the restored pipeline layout.",
+                this);
+        }
+
+        pendingSavedInventories = null;
+        hasPendingSavedInventories = false;
     }
 
     private void ReconcileFuelInventories(List<PipelineNetwork> previousNetworks)
