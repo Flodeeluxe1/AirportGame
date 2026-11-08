@@ -668,10 +668,7 @@ public class TrafficTestVehicle : MonoBehaviour
             return;
         }
 
-        currentSpeed = Mathf.MoveTowards(
-            currentSpeed,
-            0f,
-            braking * Time.deltaTime);
+        currentSpeed = trafficFollowing.BrakeToStop(currentSpeed);
 
         if (!parkingSpace.CanVehicleEnter(gameObject))
             return;
@@ -1289,10 +1286,7 @@ public class TrafficTestVehicle : MonoBehaviour
         }
 
         // Brake while waiting. Do not advance the movement waypoint index.
-        currentSpeed = Mathf.MoveTowards(
-            currentSpeed,
-            0f,
-            braking * Time.deltaTime);
+        currentSpeed = trafficFollowing.BrakeToStop(currentSpeed);
 
         debugTrafficDecision =
             $"Waiting for intersection {requestedIntersection}";
