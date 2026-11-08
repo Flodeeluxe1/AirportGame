@@ -18,6 +18,29 @@ public class FuelDeliveryStation : MonoBehaviour
         new List<FuelTruckController>();
 
     private FuelTruckController occupyingTruck;
+    private FuelConnector fuelConnector;
+
+    public FuelConnector Connector
+    {
+        get
+        {
+            if (fuelConnector == null)
+                fuelConnector = GetComponentInChildren<FuelConnector>(true);
+            return fuelConnector;
+        }
+    }
+
+    public PipelineNetworkManager.PipelineNetwork FuelNetwork
+    {
+        get
+        {
+            PipelineNetworkManager manager =
+                FindFirstObjectByType<PipelineNetworkManager>();
+            return manager != null && Connector != null
+                ? manager.GetNetworkFor(Connector)
+                : null;
+        }
+    }
 
     public Transform FuelTruckStopPoint
     {
