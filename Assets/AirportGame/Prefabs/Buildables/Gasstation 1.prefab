@@ -160,6 +160,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b9b0d6ea1c9c34f42aba7cd8c03fca59, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
+  pipelineNetworkManager: {fileID: 0}
+  fuelConnector: {fileID: 0}
   maximumFuelLitres: 5000
   currentFuelLitres: 5000
   refuellingRadius: 6
@@ -262,27 +264,27 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 1508985287753751724, guid: d03afdd7671e00e4caf16247ab7ad154, type: 3}
       propertyPath: m_LocalScale.x
-      value: 0.027272727
+      value: 0.02
       objectReference: {fileID: 0}
     - target: {fileID: 1508985287753751724, guid: d03afdd7671e00e4caf16247ab7ad154, type: 3}
       propertyPath: m_LocalScale.y
-      value: 0.03333334
+      value: 0.024444448
       objectReference: {fileID: 0}
     - target: {fileID: 1508985287753751724, guid: d03afdd7671e00e4caf16247ab7ad154, type: 3}
       propertyPath: m_LocalScale.z
-      value: 30
+      value: 21.999998
       objectReference: {fileID: 0}
     - target: {fileID: 1508985287753751724, guid: d03afdd7671e00e4caf16247ab7ad154, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 0.4137
+      value: 0.4555
       objectReference: {fileID: 0}
     - target: {fileID: 1508985287753751724, guid: d03afdd7671e00e4caf16247ab7ad154, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 50
+      value: 45.1
       objectReference: {fileID: 0}
     - target: {fileID: 1508985287753751724, guid: d03afdd7671e00e4caf16247ab7ad154, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 0.4094
+      value: 0.438
       objectReference: {fileID: 0}
     - target: {fileID: 1508985287753751724, guid: d03afdd7671e00e4caf16247ab7ad154, type: 3}
       propertyPath: m_LocalRotation.w
