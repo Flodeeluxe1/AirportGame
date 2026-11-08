@@ -39,6 +39,10 @@ public class AirportWorldResetController : MonoBehaviour
     [SerializeField] private RoomPurposeController roomPurposeController;
     [SerializeField] private RoomDetectionController roomDetectionController;
 
+    [Header("Pipelines")]
+    [SerializeField] private PipelinePrefabRuleManager pipelinePrefabRuleManager;
+    [SerializeField] private PipelineNetworkManager pipelineNetworkManager;
+
     [ContextMenu("TEST - Reset Airport Layout")]
     private void TestResetAirportLayout()
     {
@@ -103,6 +107,14 @@ public class AirportWorldResetController : MonoBehaviour
         roadModuleRuleManager.ClearAllRoadModules();
 
         taxiwayNetwork.Clear();
+
+        ResolvePipelineReferences();
+
+        if (pipelinePrefabRuleManager != null)
+            pipelinePrefabRuleManager.ClearAllPipes();
+
+        if (pipelineNetworkManager != null)
+            pipelineNetworkManager.ClearNetworksForWorldReset();
 
         // Clear legacy tile visuals as well as prefab visual registrations.
         if (taxiwayTilemapController != null)
@@ -170,6 +182,8 @@ public class AirportWorldResetController : MonoBehaviour
                 FindFirstObjectByType<TaxiwayPrefabRuleManager>();
         }
 
+        ResolvePipelineReferences();
+
         if (buildController == null ||
             gridOccupancy == null ||
             edgeOccupancy == null ||
@@ -189,6 +203,17 @@ public class AirportWorldResetController : MonoBehaviour
         }
 
         return true;
+    }
+
+    private void ResolvePipelineReferences()
+    {
+        if (pipelinePrefabRuleManager == null)
+            pipelinePrefabRuleManager =
+                FindFirstObjectByType<PipelinePrefabRuleManager>();
+
+        if (pipelineNetworkManager == null)
+            pipelineNetworkManager =
+                FindFirstObjectByType<PipelineNetworkManager>();
     }
 
     private void ResolveRoomPurposeReferences()
@@ -350,16 +375,6 @@ public class AirportWorldResetController : MonoBehaviour
                     cargoTugLot.GetPurchasedTrailerSlotsForSave();
             }
 
-            AircraftFuelStation fuelStation =
-                building.GetComponent<AircraftFuelStation>();
-
-            if (fuelStation != null)
-            {
-                savedBuilding.hasSavedFuelStock = true;
-                savedBuilding.fuelStationStockLitres =
-                    fuelStation.CurrentFuelLitres;
-            }
-
             HobbyAircraftParkingSpot parkingSpot =
                 building.GetComponent<HobbyAircraftParkingSpot>();
 
@@ -410,6 +425,18 @@ public class AirportWorldResetController : MonoBehaviour
 
         data.roadCells = roadNetwork.GetSaveData();
         data.taxiwayCells = taxiwayNetwork.GetSaveData();
+
+        ResolvePipelineReferences();
+
+        if (pipelinePrefabRuleManager != null)
+            data.pipelineCells =
+                new List<Vector2Int>(pipelinePrefabRuleManager.PipeCells);
+
+        if (pipelineNetworkManager != null)
+        {
+            pipelineNetworkManager.RebuildNetworks();
+            data.pipelineNetworks = pipelineNetworkManager.GetSaveData();
+        }
 
         data.EnsureCollections();
 
@@ -629,15 +656,6 @@ public class AirportWorldResetController : MonoBehaviour
                     saved.purchasedCargoTrailerSlots);
             }
 
-            AircraftFuelStation fuelStation =
-                placedObject.GetComponent<AircraftFuelStation>();
-
-            if (fuelStation != null && saved.hasSavedFuelStock)
-            {
-                fuelStation.RestoreFuelStock(
-                    saved.fuelStationStockLitres);
-            }
-
             // Rebuild the runway's logical ground-movement registration on load.
             if (placedObject.GetComponent<AircraftRunway>() != null)
             {
@@ -768,6 +786,29 @@ public class AirportWorldResetController : MonoBehaviour
         // Resolve relationships after every saved object is instantiated.
         FoundationBoundaryOwnership.ResolveSavedOwnership(
             restoredOwnershipComponents);
+
+        // Restore pipeline cells only after all building connectors exist.
+        ResolvePipelineReferences();
+
+        if (pipelinePrefabRuleManager != null)
+            pipelinePrefabRuleManager.RestorePipes(data.pipelineCells);
+        else if (data.pipelineCells.Count > 0)
+        {
+            Debug.LogError(
+                "AirportWorldResetController: The save contains pipeline " +
+                "cells, but PipelinePrefabRuleManager is missing.");
+            return false;
+        }
+
+        if (pipelineNetworkManager != null)
+            pipelineNetworkManager.RestoreSavedFuelInventories(data.pipelineNetworks);
+        else if (data.pipelineNetworks.Count > 0)
+        {
+            Debug.LogError(
+                "AirportWorldResetController: The save contains shared fuel " +
+                "inventories, but PipelineNetworkManager is missing.");
+            return false;
+        }
 
         // 2. Restore roads and their logical connections.
         foreach (RoadCellSaveData savedRoad in data.roadCells)
@@ -924,6 +965,8 @@ public class AirportWorldResetController : MonoBehaviour
             $"road cells: {restoredRoadCells}, " +
             $"taxiway cells: {restoredTaxiwayCells}, " +
             $"centerline cells: {restoredCenterlineCells}, " +
+            $"pipeline cells: {data.pipelineCells.Count}, " +
+            $"saved fuel networks: {data.pipelineNetworks.Count}, " +
             $"taxiway placement areas: {data.taxiwayAreas.Count}, " +
             $"room assignments saved: {data.roomPurposeAssignments.Count}, " +
             $"scheduled flights saved: {data.flightSchedule.Count}. " +
