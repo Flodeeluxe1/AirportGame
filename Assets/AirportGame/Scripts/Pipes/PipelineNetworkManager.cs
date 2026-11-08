@@ -42,6 +42,8 @@ public sealed class PipelineNetworkManager : MonoBehaviour
 
     private readonly List<PipelineNetwork> networks = new();
     private readonly Dictionary<FuelConnector, PipelineNetwork> connectorNetworks = new();
+    private int lastTopologyHash;
+    private bool hasBuiltTopology;
 
     public IReadOnlyList<PipelineNetwork> Networks => networks;
     public int NetworkCount => networks.Count;
@@ -50,6 +52,54 @@ public sealed class PipelineNetworkManager : MonoBehaviour
     {
         ResolveReferences();
         RebuildNetworks();
+    }
+
+    private void Update()
+    {
+        ResolveReferences();
+
+        if (pipelineRuleManager == null)
+            return;
+
+        int currentHash = CalculateTopologyHash();
+
+        if (!hasBuiltTopology || currentHash != lastTopologyHash)
+            RebuildNetworks();
+    }
+
+    private int CalculateTopologyHash()
+    {
+        unchecked
+        {
+            int sum = 17;
+            int xor = 0;
+
+            if (pipelineRuleManager != null)
+            {
+                foreach (Vector2Int cell in pipelineRuleManager.PipeCells)
+                {
+                    int value = cell.GetHashCode();
+                    sum += value;
+                    xor ^= value;
+                }
+            }
+
+            FuelConnector[] connectors =
+                FindObjectsByType<FuelConnector>(FindObjectsSortMode.None);
+
+            foreach (FuelConnector connector in connectors)
+            {
+                if (connector == null)
+                    continue;
+
+                int value = connector.GetInstanceID() * 397 ^
+                            connector.GridCell.GetHashCode();
+                sum += value;
+                xor ^= value;
+            }
+
+            return sum * 397 ^ xor;
+        }
     }
 
     private void ResolveReferences()
@@ -157,6 +207,9 @@ public sealed class PipelineNetworkManager : MonoBehaviour
             foreach (FuelConnector connector in network.Connectors)
                 connectorNetworks[connector] = network;
         }
+
+        lastTopologyHash = CalculateTopologyHash();
+        hasBuiltTopology = true;
 
         if (logNetworkRebuilds)
         {
