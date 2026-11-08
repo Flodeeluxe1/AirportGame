@@ -72,24 +72,13 @@ public class TrafficTestVehicle : MonoBehaviour
     public string debugState = "Idle";
     public float debugCurrentSpeed;
 
-    [Tooltip("Most recent collider hit by any traffic sensor ray.")]
-    public string debugLastRayHitCollider = "None";
-
-    public string debugLastRayDirection = "None";
-    public float debugLastRayDistance;
-
     [Tooltip("Closest vehicle currently blocking this car.")]
     public string debugBlockingCollider = "None";
 
     public string debugBlockingVehicleState = "None";
     public float debugBlockingDistance;
 
-    [Tooltip("Results from the five traffic sensor rays.")]
-    [TextArea(3, 8)]
-    public string debugRaycastSummary = "Not tested";
-
     public string debugTrafficDecision = "Not tested";
-    public float debugLastSensorUpdateTime;
 
     private Vector2Int startCell;
     private Vector2Int exitCell;
@@ -1414,12 +1403,6 @@ public class TrafficTestVehicle : MonoBehaviour
         float result = trafficFollowing.GetFollowingSpeed(
             speed, currentSpeed, ShouldBlockTrafficCollider, skipRaycasts,
             out RaycastHit hit);
-
-        debugLastRayHitCollider = trafficFollowing.LastRayHitCollider;
-        debugLastRayDirection = trafficFollowing.LastRayDirection;
-        debugLastRayDistance = trafficFollowing.LastRayDistance;
-        debugRaycastSummary = trafficFollowing.RaycastSummary;
-        debugLastSensorUpdateTime = Time.time;
 
         if (hit.collider != null)
         {
