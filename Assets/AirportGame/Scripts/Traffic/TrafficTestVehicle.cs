@@ -852,89 +852,326 @@ public class TrafficTestVehicle : MonoBehaviour
         }
     }
 
-    private float GetTrafficFollowingSpeed()
+    private bool RotateTowardsDirection(Vector3 direction)
     {
-        bool skipRaycasts =
-            hasIntersectionReservation &&
-            intersectionManager != null &&
-            intersectionManager.HasReservation(reservedIntersection, this);
+        direction.y = 0f;
 
-        float result = trafficFollowing.GetFollowingSpeed(
-            speed,
-            currentSpeed,
-            ShouldBlockTrafficCollider,
-            skipRaycasts,
-            out RaycastHit hit);
+        if (direction.sqrMagnitude < 0.001f)
+            return true;
 
-        debugLastRayHitCollider = trafficFollowing.LastRayHitCollider;
-        debugLastRayDirection = trafficFollowing.LastRayDirection;
-        debugLastRayDistance = trafficFollowing.LastRayDistance;
-        debugRaycastSummary = trafficFollowing.RaycastSummary;
-        debugLastSensorUpdateTime = Time.time;
+        Quaternion targetRotation =
+            Quaternion.LookRotation(
+                direction.normalized,
+                Vector3.up);
 
-        if (hit.collider != null)
-        {
-            debugBlockingCollider = hit.collider.name;
-            debugBlockingDistance = hit.distance;
+        transform.rotation = Quaternion.RotateTowards(
+            transform.rotation,
+            targetRotation,
+            rotationSpeed * 100f * Time.deltaTime);
 
-            TrafficTestVehicle blockingVehicle =
-                hit.collider.GetComponentInParent<TrafficTestVehicle>();
-            CargoDeliveryTruck blockingTruck =
-                hit.collider.GetComponentInParent<CargoDeliveryTruck>();
-
-            debugBlockingVehicleState = blockingVehicle != null
-                ? blockingVehicle.CurrentState.ToString()
-                : blockingTruck != null ? blockingTruck.CurrentState.ToString() : "Other";
-
-            debugTrafficDecision = $"Braking for {debugBlockingCollider}";
-        }
-        else
-        {
-            debugBlockingCollider = "None";
-            debugBlockingVehicleState = "None";
-            debugBlockingDistance = 0f;
-            debugTrafficDecision = skipRaycasts
-                ? "Continuing through reserved intersection"
-                : "No blocking vehicle detected";
-        }
-
-        currentSpeed = result;
-        return currentSpeed;
+        return Quaternion.Angle(
+            transform.rotation,
+            targetRotation) < 2f;
     }
 
-    private bool ShouldBlockTrafficCollider(Collider collider)
+    private void FinishLeavingParking()
     {
-        if (collider == null)
-            return false;
-
-        TrafficTestVehicle normalVehicle =
-            collider.GetComponentInParent<TrafficTestVehicle>();
-
-        if (normalVehicle == this)
-            return false;
-
-        if (normalVehicle != null)
+        if (parkingSpace != null)
         {
-            if (ShouldIgnoreIntersectionWaitingVehicle(normalVehicle))
-                return false;
-
-            return ShouldDetectVehicle(normalVehicle);
+            parkingSpace.ReleaseVehicle(gameObject);
         }
 
-        CargoDeliveryTruck cargoTruck =
-            collider.GetComponentInParent<CargoDeliveryTruck>();
+        parkingExitStartCell =
+            gridManager.WorldToGrid(parkingAlignmentPosition);
 
-        if (cargoTruck != null)
+        Debug.Log(
+            $"TRAFFIC LEFT PARKING | " +
+            $"A* Start Cell: {parkingExitStartCell} | " +
+            $"Exit: {exitCell}");
+
+        if (intersectionManager != null)
+            intersectionManager.CancelRequest(this);
+
+        hasIntersectionReservation = false;
+        waitingForIntersection = false;
+        reservedIntersectionPathIndex = -1;
+        requestedIntersectionPathIndex = -1;
+
+        path = roadNetwork.FindPath(
+            parkingExitStartCell,
+            exitCell);
+
+        if (path == null || path.Count == 0)
         {
-            CargoDeliveryTruck.TruckState truckState = cargoTruck.CurrentState;
-            return truckState != CargoDeliveryTruck.TruckState.Idle &&
-                   truckState != CargoDeliveryTruck.TruckState.WaitingForCargoZone &&
-                   truckState != CargoDeliveryTruck.TruckState.Unloading &&
-                   truckState != CargoDeliveryTruck.TruckState.Arrived;
+            Debug.Log(
+                $"TRAFFIC NO PATH TO EXIT | " +
+                $"From: {parkingExitStartCell} | " +
+                $"Exit: {exitCell}");
+
+            smoothedMovementWaypoints.Clear();
+            currentSmoothedWaypointIndex = 0;
+
+            state = VehicleState.Idle;
+            return;
         }
 
-        return false;
+        LogPath("EXIT PATH");
+
+        if (path.Count == 1)
+        {
+            Debug.Log(
+                $"TRAFFIC ARRIVED AT EXIT | Cell: {exitCell}");
+
+            state = VehicleState.Arrived;
+            Destroy(gameObject);
+            return;
+        }
+
+        // Build a fresh smoothed path for the departure route.
+        InitializeSmoothedMovementPath();
+
+        state = VehicleState.DrivingToExit;
     }
+
+    // ---------------------------------------------------------
+    // ROAD PATH SMOOTHING
+    // ---------------------------------------------------------
+
+    private void InitializeSmoothedMovementPath()
+    {
+        smoothedMovementWaypoints =
+            BuildSmoothedMovementWaypoints(path);
+
+        // Waypoint zero is the route's starting point.
+        // The vehicle proceeds toward waypoint one.
+        currentSmoothedWaypointIndex =
+            smoothedMovementWaypoints.Count > 1 ? 1 : 0;
+    }
+
+    private List<Vector3> BuildSmoothedMovementWaypoints(
+        List<Vector2Int> cells)
+    {
+        List<Vector3> originalWaypoints =
+            new List<Vector3>();
+
+        List<Vector3> smoothedWaypoints =
+            new List<Vector3>();
+
+        if (cells == null || cells.Count == 0)
+            return smoothedWaypoints;
+
+        foreach (Vector2Int cell in cells)
+        {
+            originalWaypoints.Add(
+                GetRoadWorldPosition(cell));
+        }
+
+        if (originalWaypoints.Count <= 2)
+            return originalWaypoints;
+
+        int waypointCount = originalWaypoints.Count;
+
+        float[] turnRadii = new float[waypointCount];
+
+        float requestedRadius =
+            turningRadiusInCells * gridManager.CellSize;
+
+        // Identify each corner and calculate its curve radius.
+        for (int i = 1; i < waypointCount - 1; i++)
+        {
+            Vector3 incoming =
+                originalWaypoints[i] -
+                originalWaypoints[i - 1];
+
+            Vector3 outgoing =
+                originalWaypoints[i + 1] -
+                originalWaypoints[i];
+
+            incoming.y = 0f;
+            outgoing.y = 0f;
+
+            if (incoming.sqrMagnitude < 0.001f ||
+                outgoing.sqrMagnitude < 0.001f)
+            {
+                continue;
+            }
+
+            incoming.Normalize();
+            outgoing.Normalize();
+
+            float turnAngle =
+                Vector3.Angle(incoming, outgoing);
+
+            // Ignore straight segments and near-reversals.
+            if (turnAngle < 1f || turnAngle > 179f)
+                continue;
+
+            float incomingLength = Vector3.Distance(
+                originalWaypoints[i - 1],
+                originalWaypoints[i]);
+
+            float outgoingLength = Vector3.Distance(
+                originalWaypoints[i],
+                originalWaypoints[i + 1]);
+
+            // Limit the radius so adjacent turns do not overlap.
+            turnRadii[i] = Mathf.Min(
+                requestedRadius,
+                incomingLength * 0.5f,
+                outgoingLength * 0.5f);
+        }
+
+        smoothedWaypoints.Add(originalWaypoints[0]);
+
+        const float bezierCircleFactor = 0.55228475f;
+
+        int resolution = Mathf.Max(1, turnCurveResolution);
+
+        // Process corners in route order.
+        for (int i = 1; i < waypointCount - 1; i++)
+        {
+            Vector3 corner = originalWaypoints[i];
+            float radius = turnRadii[i];
+
+            if (radius <= 0.001f)
+            {
+                AddWaypointIfDifferent(
+                    smoothedWaypoints,
+                    corner);
+
+                continue;
+            }
+
+            Vector3 incoming =
+                (corner - originalWaypoints[i - 1]).normalized;
+
+            Vector3 outgoing =
+                (originalWaypoints[i + 1] - corner).normalized;
+
+            incoming.y = 0f;
+            outgoing.y = 0f;
+
+            incoming.Normalize();
+            outgoing.Normalize();
+
+            // The curve starts before the original corner.
+            Vector3 entry =
+                corner - incoming * radius;
+
+            // It finishes beyond the original corner.
+            Vector3 exit =
+                corner + outgoing * radius;
+
+            AddWaypointIfDifferent(
+                smoothedWaypoints,
+                entry);
+
+            Vector3 control1 =
+                entry +
+                incoming * radius * bezierCircleFactor;
+
+            Vector3 control2 =
+                exit -
+                outgoing * radius * bezierCircleFactor;
+
+            // Sample the cubic Bezier into movement waypoints.
+            for (int step = 1; step <= resolution; step++)
+            {
+                float t = step / (float)resolution;
+
+                Vector3 point = EvaluateCubicBezier(
+                    entry,
+                    control1,
+                    control2,
+                    exit,
+                    t);
+
+                AddWaypointIfDifferent(
+                    smoothedWaypoints,
+                    point);
+            }
+        }
+
+        // Retain the original route's final destination.
+        AddWaypointIfDifferent(
+            smoothedWaypoints,
+            originalWaypoints[waypointCount - 1]);
+
+        return smoothedWaypoints;
+    }
+
+    private Vector3 EvaluateCubicBezier(
+        Vector3 p0,
+        Vector3 p1,
+        Vector3 p2,
+        Vector3 p3,
+        float t)
+    {
+        float u = 1f - t;
+
+        return
+            u * u * u * p0 +
+            3f * u * u * t * p1 +
+            3f * u * t * t * p2 +
+            t * t * t * p3;
+    }
+
+    private void AddWaypointIfDifferent(
+        List<Vector3> waypoints,
+        Vector3 position)
+    {
+        if (waypoints.Count == 0 ||
+            Vector3.Distance(
+                waypoints[waypoints.Count - 1],
+                position) > 0.001f)
+        {
+            waypoints.Add(position);
+        }
+    }
+
+    // ---------------------------------------------------------
+    // ROAD PATH FOLLOWING
+    // ---------------------------------------------------------
+
+    private void MoveAlongPath()
+    {
+        if (path == null || path.Count == 0)
+        {
+            HandleRoadPathFinished();
+            return;
+        }
+
+        // Do not let road traffic enter an intersection until it owns the
+        // reservation. Parking maneuvers are intentionally unaffected.
+        if (HandleIntersectionControl())
+            return;
+
+        if (smoothedMovementWaypoints == null ||
+            smoothedMovementWaypoints.Count == 0)
+        {
+            InitializeSmoothedMovementPath();
+        }
+
+        if (currentSmoothedWaypointIndex >=
+            smoothedMovementWaypoints.Count)
+        {
+            HandleRoadPathFinished();
+            return;
+        }
+
+        Vector3 targetPosition =
+            smoothedMovementWaypoints[
+                currentSmoothedWaypointIndex];
+
+        float movementSpeed = GetTrafficFollowingSpeed();
+
+        MoveTowards(targetPosition, movementSpeed);
+
+        if (ReachedPosition(targetPosition))
+        {
+            transform.position = targetPosition;
+            currentSmoothedWaypointIndex++;
+        }
     }
 
     /// <summary>
@@ -1169,58 +1406,75 @@ public class TrafficTestVehicle : MonoBehaviour
 
     private float GetTrafficFollowingSpeed()
     {
-        float targetSpeed = speed;
+        bool skipRaycasts =
+            hasIntersectionReservation &&
+            intersectionManager != null &&
+            intersectionManager.HasReservation(reservedIntersection, this);
 
-        if (TryGetVehicleAhead(out RaycastHit hit))
+        float result = trafficFollowing.GetFollowingSpeed(
+            speed, currentSpeed, ShouldBlockTrafficCollider, skipRaycasts,
+            out RaycastHit hit);
+
+        debugLastRayHitCollider = trafficFollowing.LastRayHitCollider;
+        debugLastRayDirection = trafficFollowing.LastRayDirection;
+        debugLastRayDistance = trafficFollowing.LastRayDistance;
+        debugRaycastSummary = trafficFollowing.RaycastSummary;
+        debugLastSensorUpdateTime = Time.time;
+
+        if (hit.collider != null)
         {
-            float safeDistance =
-                Mathf.Max(0.01f, safeFollowingDistance);
-
-            float detectionDistance =
-                Mathf.Max(
-                    trafficDetectionDistance,
-                    safeDistance + 0.01f);
-
-            float normalizedDistance =
-                Mathf.InverseLerp(
-                    safeDistance,
-                    detectionDistance,
-                    hit.distance);
-
-            targetSpeed = Mathf.Lerp(
-                0f,
-                speed,
-                normalizedDistance);
-
-            debugTrafficDecision =
-                $"Braking for {debugBlockingCollider}";
+            debugBlockingCollider = hit.collider.name;
+            debugBlockingDistance = hit.distance;
+            TrafficTestVehicle blockingVehicle = hit.collider.GetComponentInParent<TrafficTestVehicle>();
+            CargoDeliveryTruck blockingTruck = hit.collider.GetComponentInParent<CargoDeliveryTruck>();
+            debugBlockingVehicleState = blockingVehicle != null
+                ? blockingVehicle.CurrentState.ToString()
+                : blockingTruck != null ? blockingTruck.CurrentState.ToString() : "Other";
+            debugTrafficDecision = $"Braking for {debugBlockingCollider}";
         }
         else
         {
-            debugTrafficDecision =
-                "No blocking vehicle detected";
+            debugBlockingCollider = "None";
+            debugBlockingVehicleState = "None";
+            debugBlockingDistance = 0f;
+            debugTrafficDecision = skipRaycasts
+                ? "Continuing through reserved intersection"
+                : "No blocking vehicle detected";
         }
 
-        float rate =
-            targetSpeed < currentSpeed
-                ? braking
-                : acceleration;
-
-        currentSpeed = Mathf.MoveTowards(
-            currentSpeed,
-            targetSpeed,
-            rate * Time.deltaTime);
-
+        currentSpeed = result;
         return currentSpeed;
     }
 
+    private bool ShouldBlockTrafficCollider(Collider collider)
+    {
+        if (collider == null)
+            return false;
 
+        TrafficTestVehicle normalVehicle = collider.GetComponentInParent<TrafficTestVehicle>();
+        if (normalVehicle == this)
+            return false;
 
+        if (normalVehicle != null)
+        {
+            if (ShouldIgnoreIntersectionWaitingVehicle(normalVehicle))
+                return false;
+            return ShouldDetectVehicle(normalVehicle);
+        }
 
+        CargoDeliveryTruck cargoTruck = collider.GetComponentInParent<CargoDeliveryTruck>();
+        if (cargoTruck != null)
+        {
+            CargoDeliveryTruck.TruckState truckState = cargoTruck.CurrentState;
+            return truckState != CargoDeliveryTruck.TruckState.Idle &&
+                   truckState != CargoDeliveryTruck.TruckState.WaitingForCargoZone &&
+                   truckState != CargoDeliveryTruck.TruckState.Unloading &&
+                   truckState != CargoDeliveryTruck.TruckState.Arrived;
+        }
+        return false;
+    }
 
-
-
-    private bool ShouldDetectVehicle(TrafficTestVehicle vehicle)
+private bool ShouldDetectVehicle(TrafficTestVehicle vehicle)
     {
         if (vehicle == null || vehicle == this)
             return false;
@@ -1376,8 +1630,5 @@ public class TrafficTestVehicle : MonoBehaviour
     // ---------------------------------------------------------
     // TRAFFIC SENSOR GIZMOS
     // ---------------------------------------------------------
-
-
-
 
 }
