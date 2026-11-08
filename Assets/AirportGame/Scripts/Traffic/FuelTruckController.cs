@@ -52,7 +52,7 @@ public class FuelTruckController : MonoBehaviour
     private Vector3 stopWorldPosition;
     private Vector3 stationRoadWorldPosition;
 
-    private AircraftFuelStation targetAircraftStation;
+    private PipelineNetworkManager.PipelineNetwork targetFuelNetwork;
     private FuelTruckSpawner ownerSpawner;
     private float deliveryLitres;
     private float deliveryLitresOffloaded;
@@ -80,7 +80,7 @@ public class FuelTruckController : MonoBehaviour
         List<Vector2Int> outbound,
         List<Vector2Int> returning,
         FuelDeliveryStation selectedStation,
-        AircraftFuelStation aircraftStation,
+        PipelineNetworkManager.PipelineNetwork fuelNetwork,
         float amountLitres,
         float pricePerLitre,
         FuelTruckSpawner spawner)
@@ -89,7 +89,7 @@ public class FuelTruckController : MonoBehaviour
             return;
 
         deliveryStation = selectedStation;
-        targetAircraftStation = aircraftStation;
+        targetFuelNetwork = fuelNetwork;
         ownerSpawner = spawner;
         deliveryLitres = amountLitres;
         fuelPricePerLitre = Mathf.Max(0.01f, pricePerLitre);
@@ -106,7 +106,7 @@ public class FuelTruckController : MonoBehaviour
 
         if (roadNetwork == null || gridManager == null ||
             deliveryStation == null || stopPoint == null ||
-            targetAircraftStation == null || deliveryLitres <= 0f ||
+            targetFuelNetwork == null || deliveryLitres <= 0f ||
             outbound == null || outbound.Count == 0 ||
             returning == null || returning.Count == 0)
         {
@@ -371,10 +371,10 @@ public class FuelTruckController : MonoBehaviour
         if (economyManager == null)
             economyManager = FindFirstObjectByType<AirportEconomyManager>();
 
-        if (economyManager == null || targetAircraftStation == null)
+        if (economyManager == null || targetFuelNetwork == null)
         {
             Debug.LogError(
-                "FuelTruckController: AirportEconomyManager or target fuel station is missing.",
+                "FuelTruckController: AirportEconomyManager or target pipeline network is missing.",
                 this);
             FinishFuelOffloading(0f);
             return;
@@ -382,7 +382,7 @@ public class FuelTruckController : MonoBehaviour
 
         float affordableLitres = Mathf.Min(
             deliveryLitres,
-            targetAircraftStation.RemainingFuelCapacity,
+            targetFuelNetwork.RemainingCapacityLitres,
             Mathf.Floor(economyManager.Balance / fuelPricePerLitre));
 
         if (affordableLitres <= 0f)
@@ -408,7 +408,7 @@ public class FuelTruckController : MonoBehaviour
 
     private void UpdateFuelOffloading()
     {
-        if (targetAircraftStation == null)
+        if (targetFuelNetwork == null)
         {
             FinishFuelOffloading(deliveryLitresOffloaded);
             return;
@@ -424,20 +424,20 @@ public class FuelTruckController : MonoBehaviour
         if (amountThisFrame > 0f)
         {
             acceptedThisFrame =
-                targetAircraftStation.ReceiveFuelDelivery(amountThisFrame);
+                targetFuelNetwork.AddFuel(amountThisFrame);
             deliveryLitresOffloaded += acceptedThisFrame;
         }
 
         bool requestedAmountDelivered =
             deliveryLitresOffloaded >= deliveryLitres - 0.05f;
 
-        bool airportTankFull =
-            targetAircraftStation.RemainingFuelCapacity <= 0.05f;
+        bool networkFull =
+            targetFuelNetwork.RemainingCapacityLitres <= 0.05f;
 
         bool transferCannotContinue =
             amountThisFrame > 0f && acceptedThisFrame <= 0.0001f;
 
-        if (requestedAmountDelivered || airportTankFull || transferCannotContinue)
+        if (requestedAmountDelivered || networkFull || transferCannotContinue)
             FinishFuelOffloading(deliveryLitresOffloaded);
         else
             debugState = $"Offloading fuel: {deliveryLitresOffloaded:F0}/{deliveryLitres:F0} L";
@@ -448,8 +448,7 @@ public class FuelTruckController : MonoBehaviour
         offloading = false;
         delivered = true;
 
-        if (targetAircraftStation != null)
-            targetAircraftStation.CompleteFuelDelivery();
+
 
         RefundUndeliveredFuel(deliveredLitres);
         returningToRoad = true;
@@ -458,8 +457,7 @@ public class FuelTruckController : MonoBehaviour
         if (deliveredLitres > 0f)
         {
             Debug.Log(
-                $"FUEL TANKER DELIVERY COMPLETE | Aircraft fuel station: " +
-                $"{(targetAircraftStation != null ? targetAircraftStation.name : "Missing")} | " +
+                $"FUEL TANKER DELIVERY COMPLETE | Pipeline network reserve replenished | " +
                 $"Delivery station: {deliveryStation.name} | " +
                 $"Accepted: {deliveredLitres:F0} L | " +
                 $"Fuel cost: ${(deliveredLitres * fuelPricePerLitre):N0}",
@@ -499,9 +497,6 @@ public class FuelTruckController : MonoBehaviour
 
         if (!delivered)
         {
-            if (targetAircraftStation != null)
-                targetAircraftStation.CompleteFuelDelivery();
-
             RefundUndeliveredFuel(deliveryLitresOffloaded);
         }
 
@@ -509,7 +504,7 @@ public class FuelTruckController : MonoBehaviour
             deliveryStation.ReleaseTruck(this);
 
         if (ownerSpawner != null)
-            ownerSpawner.NotifyTruckFinished(targetAircraftStation);
+            ownerSpawner.NotifyTruckFinished(targetFuelNetwork);
     }
 
     private void OnDisable()
