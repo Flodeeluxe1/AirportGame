@@ -8,6 +8,7 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
+  - component: {fileID: 7854219630147852361}
   - component: {fileID: 3533070330056160779}
   - component: {fileID: 351306800561466905}
   - component: {fileID: 8091217518192324378}
@@ -132,15 +133,6 @@ MonoBehaviour:
   rotationSpeed: 10
   heightOffset: 0.2
   parkingDuration: 5
-  trafficLayer:
-    serializedVersion: 2
-    m_Bits: 128
-  trafficDetectionDistance: 3
-  safeFollowingDistance: 0.5
-  rayOriginHeight: 0.15
-  rayOriginForwardOffset: 0.3
-  acceleration: 4
-  braking: 12
   debugState: Idle
   debugCurrentSpeed: 0
   debugLastRayHitCollider: None
@@ -171,3 +163,26 @@ MonoBehaviour:
   debugFailsafeLog: Monitoring movement.
   debugCollidersDisabled: 0
   debugStationaryTime: 0
+
+--- !u!114 &7854219630147852361
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4960917508695158463}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d4a1c9e8b7f64a2d9c3e5f1a8b6d0c42, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TrafficFollowing
+  trafficLayer:
+    serializedVersion: 2
+    m_Bits: 128
+  detectionDistance: 3
+  safeFollowingDistance: 0.5
+  rayOriginHeight: 0.15
+  rayOriginForwardOffset: 0.3
+  acceleration: 4
+  braking: 12
+  debugRaycastSummary: Not tested
