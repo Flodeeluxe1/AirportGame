@@ -74,7 +74,11 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: -3910990755373119420, guid: c35e270925f0e3d49bd7d2feb46c8f47, type: 3}
       insertIndex: -1
       addedObject: {fileID: 6926698790420271639}
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 8771091787928289351, guid: c35e270925f0e3d49bd7d2feb46c8f47, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: -612340000000000001}
+
   m_SourcePrefab: {fileID: -4161369568681901532, guid: c35e270925f0e3d49bd7d2feb46c8f47, type: 3}
 --- !u!4 &4437796485049212012 stripped
 Transform:
@@ -155,3 +159,23 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 1508985287753751724, guid: d03afdd7671e00e4caf16247ab7ad154, type: 3}
   m_PrefabInstance: {fileID: 8417348400910601915}
   m_PrefabAsset: {fileID: 0}
+
+--- !u!1 &-612340000000000002 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 8771091787928289351, guid: c35e270925f0e3d49bd7d2feb46c8f47, type: 3}
+  m_PrefabInstance: {fileID: 8372023229118927912}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &-612340000000000001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: -612340000000000002}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e77091641bc61c74ea5aea97f1031e44, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::FuelStorageTank
+  capacityLitres: 20000
+  initialFuelLitres: 0
