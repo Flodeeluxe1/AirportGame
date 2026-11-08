@@ -24,6 +24,10 @@ public sealed class TrafficFollowing : MonoBehaviour
     public float LastRayDistance { get; private set; }
     public string RaycastSummary { get; private set; } = "Not tested";
 
+    [Header("Debug - Raycast Information")]
+    [SerializeField, TextArea(5, 12)]
+    private string debugRaycastSummary = "Not tested";
+
     private static readonly float[] Angles = { -60f, -30f, 0f, 30f, 60f };
     private static readonly string[] Names = { "Left 60", "Left 30", "Forward", "Right 30", "Right 60" };
 
@@ -61,6 +65,7 @@ public sealed class TrafficFollowing : MonoBehaviour
         if (skipRaycasts)
         {
             RaycastSummary = "Traffic raycasts skipped: intersection reservation held.";
+            debugRaycastSummary = RaycastSummary;
             return Mathf.MoveTowards(currentSpeed, desiredSpeed, acceleration * Time.deltaTime);
         }
 
@@ -97,6 +102,8 @@ public sealed class TrafficFollowing : MonoBehaviour
                 found = true;
             }
         }
+
+        debugRaycastSummary = string.IsNullOrEmpty(RaycastSummary) ? "No raycast results." : RaycastSummary;
 
         float targetSpeed = desiredSpeed;
         if (found)
