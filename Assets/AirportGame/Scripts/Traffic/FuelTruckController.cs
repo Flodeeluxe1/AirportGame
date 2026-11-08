@@ -240,12 +240,14 @@ public class FuelTruckController : MonoBehaviour
 
     private float GetTrafficFollowingSpeed()
     {
-        return trafficFollowing.GetFollowingSpeed(
+        currentSpeed = trafficFollowing.GetFollowingSpeed(
             movementSpeed,
             currentSpeed,
             ShouldBlockTrafficCollider,
             hasIntersectionReservation,
             out _);
+
+        return currentSpeed;
     }
 
     private bool ShouldBlockTrafficCollider(Collider collider)
