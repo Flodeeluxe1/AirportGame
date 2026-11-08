@@ -5,7 +5,7 @@ using UnityEngine;
 
 public static class AirportSaveFileStore
 {
-    public const int CurrentSchemaVersion = 1;
+    public const int CurrentSchemaVersion = AirportSaveData.CurrentSchemaVersion;
     public const int MaximumSaveSlots = 10;
 
     private static string SaveDirectory =>
@@ -365,11 +365,18 @@ public static class AirportSaveFileStore
                 return false;
             }
 
-            if (data.schemaVersion < CurrentSchemaVersion)
+            if (data.schemaVersion == 1)
+            {
+                // Version 2 adds pipeline cells and shared pipeline reserves.
+                // Existing version 1 saves contain neither, so their
+                // initialized empty collections are the correct migration.
+                data.schemaVersion = 2;
+            }
+            else if (data.schemaVersion != CurrentSchemaVersion)
             {
                 error =
-                    $"Save schema version {data.schemaVersion} requires " +
-                    "a migration before it can be loaded.";
+                    $"Save schema version {data.schemaVersion} has no " +
+                    "supported migration path.";
 
                 data = null;
                 return false;
