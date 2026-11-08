@@ -58,15 +58,7 @@ public class TrafficTestVehicle : MonoBehaviour
     [Tooltip("Distance tolerance for reaching a parking waypoint.")]
     [SerializeField] private float parkingWaypointTolerance = 0.03f;
 
-    [Header("Traffic Following")]
-    [SerializeField] private TrafficFollowing trafficFollowing;
-    [SerializeField] private LayerMask trafficLayer;
-    [SerializeField] private float trafficDetectionDistance = 3f;
-    [SerializeField] private float safeFollowingDistance = 0.7f;
-    [SerializeField] private float rayOriginHeight = 0.15f;
-    [SerializeField] private float rayOriginForwardOffset = 0.3f;
-    [SerializeField] private float acceleration = 4f;
-    [SerializeField] private float braking = 8f;
+    private TrafficFollowing trafficFollowing;
 
     [Header("Debug - Runtime Information")]
     public string debugState = "Idle";
@@ -156,15 +148,6 @@ public class TrafficTestVehicle : MonoBehaviour
         trafficFollowing = GetComponent<TrafficFollowing>();
         if (trafficFollowing == null)
             trafficFollowing = gameObject.AddComponent<TrafficFollowing>();
-
-        trafficFollowing.Configure(
-            trafficLayer,
-            trafficDetectionDistance,
-            safeFollowingDistance,
-            rayOriginHeight,
-            rayOriginForwardOffset,
-            acceleration,
-            braking);
 
         RefreshDebugInformation();
     }
