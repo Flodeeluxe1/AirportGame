@@ -164,7 +164,11 @@ public sealed class PipelinePrefabRuleManager : MonoBehaviour
 
     public void RebuildVisuals()
     {
+        ResolveReferences();
         ClearVisuals();
+
+        if (gridManager == null)
+            return;
 
         foreach (Vector2Int cell in pipeCells)
         {
@@ -175,7 +179,7 @@ public sealed class PipelinePrefabRuleManager : MonoBehaviour
                 continue;
 
             Vector3 position = gridManager.GridToWorldCenter(cell);
-            position.y += heightOffset;
+            float groundY = position.y;
 
             Quaternion rotation =
                 Quaternion.Euler(0f, GetRotation(mask), 0f) *
@@ -186,6 +190,32 @@ public sealed class PipelinePrefabRuleManager : MonoBehaviour
                 position,
                 rotation,
                 pipeParent != null ? pipeParent : transform);
+
+            // Prefab pivots are not at the bottom of the visible pipe mesh.
+            // Align the lowest rendered point to the grid surface.
+            Renderer[] renderers =
+                instance.GetComponentsInChildren<Renderer>(true);
+
+            float lowestY = float.PositiveInfinity;
+
+            foreach (Renderer renderer in renderers)
+            {
+                if (renderer == null || !renderer.enabled)
+                    continue;
+
+                lowestY = Mathf.Min(lowestY, renderer.bounds.min.y);
+            }
+
+            if (!float.IsPositiveInfinity(lowestY))
+            {
+                Vector3 alignedPosition = instance.transform.position;
+                alignedPosition.y += groundY - lowestY + heightOffset;
+                instance.transform.position = alignedPosition;
+            }
+            else
+            {
+                instance.transform.position += Vector3.up * heightOffset;
+            }
 
             instance.name = $"Pipeline_{cell.x}_{cell.y}";
             instance.AddComponent<PipelinePiece>().Initialize(cell);
