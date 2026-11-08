@@ -154,7 +154,6 @@ public class CargoDeliveryTruck : MonoBehaviour
     [SerializeField] private string debugRaycastSummary = "Not tested";
 
     [SerializeField] private string debugTrafficDecision = "Not tested";
-    [SerializeField] private float debugLastSensorUpdateTime;
     [SerializeField] private string debugDestructionReason = "Not destroyed";
 
     private TruckState state = TruckState.Idle;
