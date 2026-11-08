@@ -26,6 +26,9 @@ public class BuildingSelectionController : MonoBehaviour
     [SerializeField] private TaxiwayNetwork taxiwayNetwork;
     [SerializeField] private TaxiwayPrefabRuleManager taxiwayPrefabRuleManager;
 
+    [Header("Pipeline Selection")]
+    [SerializeField] private PipelinePrefabRuleManager pipelinePrefabRuleManager;
+
     [Header("Selection Highlight")]
     [SerializeField]
     private Color highlightColor = new Color(0.1f, 0.85f, 1f, 0.45f);
@@ -51,6 +54,9 @@ public class BuildingSelectionController : MonoBehaviour
         new HashSet<Vector2Int>();
 
     private readonly HashSet<Vector2Int> selectedTaxiwayCells =
+        new HashSet<Vector2Int>();
+
+    private readonly HashSet<Vector2Int> selectedPipelineCells =
         new HashSet<Vector2Int>();
 
     private readonly List<GameObject> highlights =
@@ -121,6 +127,9 @@ public class BuildingSelectionController : MonoBehaviour
             taxiwayPrefabRuleManager =
                 FindFirstObjectByType<TaxiwayPrefabRuleManager>();
         }
+
+        if (pipelinePrefabRuleManager == null)
+            pipelinePrefabRuleManager = FindFirstObjectByType<PipelinePrefabRuleManager>();
 
         CreateHighlightMaterial();
         CreateSelectionBoxMaterial();
@@ -307,6 +316,13 @@ public class BuildingSelectionController : MonoBehaviour
                 SelectSingleTaxiway(gridPosition);
                 return;
             }
+
+            if (pipelinePrefabRuleManager != null &&
+                pipelinePrefabRuleManager.IsPipe(gridPosition))
+            {
+                SelectSinglePipeline(gridPosition);
+                return;
+            }
         }
 
         ClearSelection();
@@ -371,7 +387,24 @@ public class BuildingSelectionController : MonoBehaviour
             }
         }
 
+        selectedPipelineCells.Clear();
+
+        if (pipelinePrefabRuleManager != null)
+        {
+            for (int x = origin.x; x < origin.x + width; x++)
+            {
+                for (int z = origin.y; z < origin.y + depth; z++)
+                {
+                    Vector2Int cell = new Vector2Int(x, z);
+
+                    if (pipelinePrefabRuleManager.IsPipe(cell))
+                        selectedPipelineCells.Add(cell);
+                }
+            }
+        }
+
         SetSelection(newSelection, newRoadSelection, newTaxiwaySelection);
+        RefreshHighlights();
     }
 
     private bool IsSelectable(PlacedBuilding building)
@@ -557,6 +590,15 @@ public class BuildingSelectionController : MonoBehaviour
 
 
 
+    private void SelectSinglePipeline(Vector2Int cell)
+    {
+        ClearSelection();
+        selectedPipelineCells.Add(cell);
+        RefreshHighlights();
+        Debug.Log($"Selected pipeline cell: {cell}");
+    }
+
+
     private void SetSelection(
         List<GameObject> newSelection,
         HashSet<Vector2Int> newRoadSelection,
@@ -658,6 +700,9 @@ public class BuildingSelectionController : MonoBehaviour
             CreateCellHighlight(cell);
 
         foreach (Vector2Int cell in selectedTaxiwayCells)
+            CreateCellHighlight(cell);
+
+        foreach (Vector2Int cell in selectedPipelineCells)
             CreateCellHighlight(cell);
     }
 
@@ -825,6 +870,7 @@ public class BuildingSelectionController : MonoBehaviour
         selectedObjects.Clear();
         selectedRoadCells.Clear();
         selectedTaxiwayCells.Clear();
+        selectedPipelineCells.Clear();
         ClearHighlights();
     }
 
@@ -858,9 +904,13 @@ public class BuildingSelectionController : MonoBehaviour
         List<Vector2Int> taxiwaysToDelete =
             new List<Vector2Int>(selectedTaxiwayCells);
 
+        List<Vector2Int> pipelinesToDelete =
+            new List<Vector2Int>(selectedPipelineCells);
+
         if (buildingsToDelete.Count == 0 &&
             roadsToDelete.Count == 0 &&
-            taxiwaysToDelete.Count == 0)
+            taxiwaysToDelete.Count == 0 &&
+            pipelinesToDelete.Count == 0)
         {
             ClearSelection();
             deleteSelectionMode = false;
@@ -869,8 +919,9 @@ public class BuildingSelectionController : MonoBehaviour
 
         Debug.Log(
             $"Deleting {buildingsToDelete.Count} building(s), " +
-            $"{roadsToDelete.Count} road cell(s), and " +
-            $"{taxiwaysToDelete.Count} taxiway cell(s)."
+            $"{roadsToDelete.Count} road cell(s), " +
+            $"{taxiwaysToDelete.Count} taxiway cell(s), and " +
+            $"{pipelinesToDelete.Count} pipeline cell(s)."
         );
 
         foreach (GameObject building in buildingsToDelete)
@@ -901,6 +952,12 @@ public class BuildingSelectionController : MonoBehaviour
                     "Taxiway deletion was cancelled because the visual " +
                     "modules could not be removed safely.");
             }
+        }
+
+        if (pipelinePrefabRuleManager != null)
+        {
+            foreach (Vector2Int cell in pipelinesToDelete)
+                pipelinePrefabRuleManager.RemovePipe(cell);
         }
 
 
