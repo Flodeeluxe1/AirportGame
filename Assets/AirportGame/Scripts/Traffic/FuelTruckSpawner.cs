@@ -27,8 +27,10 @@ public class FuelTruckSpawner : MonoBehaviour
     [Header("Diagnostics")]
     [SerializeField] private bool logDispatches = true;
 
-    private readonly HashSet<AircraftFuelStation> activeAircraftStations =
-        new HashSet<AircraftFuelStation>();
+    private readonly HashSet<PipelineNetworkManager.PipelineNetwork> activeNetworks =
+        new HashSet<PipelineNetworkManager.PipelineNetwork>();
+
+    private PipelineNetworkManager pipelineNetworkManager;
 
     private float scanTimer;
 
@@ -47,6 +49,8 @@ public class FuelTruckSpawner : MonoBehaviour
 
         if (roadNetwork == null)
             roadNetwork = FindFirstObjectByType<RoadNetwork>();
+
+        pipelineNetworkManager = FindFirstObjectByType<PipelineNetworkManager>();
     }
 
     private void Start()
@@ -76,34 +80,35 @@ public class FuelTruckSpawner : MonoBehaviour
 
     private void DispatchPendingDeliveries()
     {
-        AircraftFuelStation[] aircraftStations =
-            FindObjectsByType<AircraftFuelStation>(FindObjectsSortMode.None);
+        if (pipelineNetworkManager == null)
+            pipelineNetworkManager = FindFirstObjectByType<PipelineNetworkManager>();
 
-        foreach (AircraftFuelStation aircraftStation in aircraftStations)
+        if (pipelineNetworkManager == null)
+            return;
+
+        foreach (PipelineNetworkManager.PipelineNetwork network in pipelineNetworkManager.Networks)
         {
-            if (aircraftStation == null ||
-                !aircraftStation.NeedsFuelDelivery ||
-                activeAircraftStations.Contains(aircraftStation) ||
-                aircraftStation.RemainingFuelCapacity <= 0f)
+            if (network == null || network.CapacityLitres <= 0f ||
+                network.RemainingCapacityLitres <= 0f ||
+                network.CurrentFuelLitres > network.CapacityLitres * 0.25f ||
+                activeNetworks.Contains(network))
                 continue;
 
-            StationRoute selectedRoute = SelectDeliveryStation();
+            StationRoute selectedRoute = SelectDeliveryStation(network);
             if (selectedRoute == null)
                 continue;
 
-            if (!aircraftStation.TryBeginFuelDelivery())
+            float amount = Mathf.Min(tankerCapacityLitres, network.RemainingCapacityLitres);
+            if (amount <= 0f)
                 continue;
 
             Vector3 spawnPosition =
-                roadNetwork.GetRoadCenterWorldPosition(
-                    selectedRoute.Outbound[0], gridManager);
+                roadNetwork.GetRoadCenterWorldPosition(selectedRoute.Outbound[0], gridManager);
             spawnPosition.y += spawnHeightOffset;
 
             GameObject truckObject = Instantiate(
                 fuelTruckPrefab, spawnPosition, spawnPoint.rotation);
-
-            FuelTruckController truck =
-                truckObject.GetComponent<FuelTruckController>();
+            FuelTruckController truck = truckObject.GetComponent<FuelTruckController>();
 
             if (truck == null)
             {
@@ -111,21 +116,17 @@ public class FuelTruckSpawner : MonoBehaviour
                     "FuelTruckSpawner: FuelTruckController must be on the tanker prefab root.",
                     truckObject);
                 Destroy(truckObject);
-                aircraftStation.CompleteFuelDelivery();
                 continue;
             }
 
-            float amount =
-                Mathf.Min(tankerCapacityLitres, aircraftStation.RemainingFuelCapacity);
-
             selectedRoute.Station.RegisterTruck(truck);
-            activeAircraftStations.Add(aircraftStation);
+            activeNetworks.Add(network);
 
             truck.InitializeDelivery(
                 selectedRoute.Outbound,
                 selectedRoute.Returning,
                 selectedRoute.Station,
-                aircraftStation,
+                network,
                 amount,
                 fuelPricePerLitre,
                 this);
@@ -133,7 +134,8 @@ public class FuelTruckSpawner : MonoBehaviour
             if (logDispatches)
             {
                 Debug.Log(
-                    $"FUEL TANKER DISPATCHED | Aircraft fuel station: {aircraftStation.name} | " +
+                    $"FUEL TANKER DISPATCHED | Pipeline reserve: " +
+                    $"{network.CurrentFuelLitres:F0}/{network.CapacityLitres:F0} L | " +
                     $"Delivery station: {selectedRoute.Station.name} | " +
                     $"Queued there: {selectedRoute.Station.QueuedVehicleCount}",
                     truckObject);
@@ -141,7 +143,8 @@ public class FuelTruckSpawner : MonoBehaviour
         }
     }
 
-    private StationRoute SelectDeliveryStation()
+    private StationRoute SelectDeliveryStation(
+        PipelineNetworkManager.PipelineNetwork targetNetwork)
     {
         Vector2Int startCell = roadNetwork.GetRoadAnchor(
             gridManager.WorldToGrid(spawnPoint.position));
@@ -158,7 +161,8 @@ public class FuelTruckSpawner : MonoBehaviour
 
         foreach (FuelDeliveryStation station in stations)
         {
-            if (station == null || station.FuelTruckStopPoint == null)
+            if (station == null || station.FuelTruckStopPoint == null ||
+                station.FuelNetwork != targetNetwork)
                 continue;
 
             if (!TryBuildStationRoute(station, startCell, exitCell, out StationRoute route))
@@ -284,9 +288,10 @@ public class FuelTruckSpawner : MonoBehaviour
         return true;
     }
 
-    public void NotifyTruckFinished(AircraftFuelStation station)
+    public void NotifyTruckFinished(
+        PipelineNetworkManager.PipelineNetwork network)
     {
-        if (station != null)
-            activeAircraftStations.Remove(station);
+        if (network != null)
+            activeNetworks.Remove(network);
     }
 }
