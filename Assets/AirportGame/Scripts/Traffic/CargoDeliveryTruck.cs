@@ -99,24 +99,6 @@ public class CargoDeliveryTruck : MonoBehaviour
     private Vector3 vanStopOutwardDirection;
     private int returningFromCargoZoneStep;
 
-    [Header("Traffic Following")]
-    [SerializeField] private LayerMask trafficLayer;
-
-    [Min(0.1f)]
-    [SerializeField] private float trafficDetectionDistance = 3f;
-
-    [Min(0.01f)]
-    [SerializeField] private float safeFollowingDistance = 0.7f;
-
-    [SerializeField] private float rayOriginHeight = 0.15f;
-    [SerializeField] private float rayOriginForwardOffset = 0.3f;
-
-    [Min(0.1f)]
-    [SerializeField] private float acceleration = 4f;
-
-    [Min(0.1f)]
-    [SerializeField] private float braking = 8f;
-
     [Header("Cargo Unloading")]
     [SerializeField] private GameObject cargoBoxPrefab;
 
@@ -140,23 +122,15 @@ public class CargoDeliveryTruck : MonoBehaviour
     [SerializeField] private float debugCurrentSpeed;
     [SerializeField] private int debugBoxesUnloaded;
 
-    [Tooltip("Most recent collider hit by a traffic sensor.")]
-    [SerializeField] private string debugLastRayHitCollider = "None";
-
-    [SerializeField] private string debugLastRayDirection = "None";
-    [SerializeField] private float debugLastRayDistance;
     [SerializeField] private string debugBlockingCollider = "None";
     [SerializeField] private string debugBlockingVehicleState = "None";
     [SerializeField] private float debugBlockingDistance;
-
-    [Tooltip("Results from the five traffic sensor rays.")]
-    [TextArea(3, 8)]
-    [SerializeField] private string debugRaycastSummary = "Not tested";
 
     [SerializeField] private string debugTrafficDecision = "Not tested";
     [SerializeField] private string debugDestructionReason = "Not destroyed";
 
     private TruckState state = TruckState.Idle;
+    private TrafficFollowing trafficFollowing;
     public TruckState CurrentState => state;
 
     public static bool HasActiveIncomingCollection(CargoZone zone)
@@ -381,6 +355,10 @@ public class CargoDeliveryTruck : MonoBehaviour
     private void Awake()
     {
         roadModuleSize = Mathf.Max(1, roadModuleSize);
+
+        trafficFollowing = GetComponent<TrafficFollowing>();
+        if (trafficFollowing == null)
+            trafficFollowing = gameObject.AddComponent<TrafficFollowing>();
 
         if (roadNetwork == null)
             roadNetwork = FindFirstObjectByType<RoadNetwork>();
@@ -1484,203 +1462,46 @@ public class CargoDeliveryTruck : MonoBehaviour
 
     private float GetTrafficFollowingSpeed()
     {
-        float targetSpeed = movementSpeed;
+        float result = trafficFollowing.GetFollowingSpeed(
+            movementSpeed,
+            currentSpeed,
+            ShouldBlockTrafficCollider,
+            false,
+            out RaycastHit hit);
 
-        if (TryGetVehicleAhead(out RaycastHit hit))
+        if (hit.collider != null)
         {
-            float safeDistance =
-                Mathf.Max(0.01f, safeFollowingDistance);
+            debugBlockingCollider = hit.collider.name;
+            debugBlockingDistance = hit.distance;
 
-            float detectionDistance =
-                Mathf.Max(
-                    trafficDetectionDistance,
-                    safeDistance + 0.01f);
-
-            float normalizedDistance =
-                Mathf.InverseLerp(
-                    safeDistance,
-                    detectionDistance,
-                    hit.distance);
-
-            targetSpeed = Mathf.Lerp(
-                0f,
-                movementSpeed,
-                normalizedDistance);
+            Component blocker = GetVehicleComponent(hit.collider);
+            debugBlockingVehicleState = blocker != null
+                ? GetVehicleStateLabel(blocker)
+                : "Unknown";
 
             debugTrafficDecision =
                 $"Braking for {debugBlockingCollider}";
         }
         else
         {
+            debugBlockingCollider = "None";
+            debugBlockingVehicleState = "None";
+            debugBlockingDistance = 0f;
             debugTrafficDecision = "No blocking vehicle detected";
         }
 
-        float rate = targetSpeed < currentSpeed
-            ? braking
-            : acceleration;
-
-        currentSpeed = Mathf.MoveTowards(
-            currentSpeed,
-            targetSpeed,
-            rate * Time.deltaTime);
-
+        currentSpeed = result;
         return currentSpeed;
     }
 
-
-    private bool TryGetVehicleAhead(out RaycastHit hit)
+    private bool ShouldBlockTrafficCollider(Collider collider)
     {
-        debugLastRayHitCollider = "None";
-        debugLastRayDirection = "None";
-        debugLastRayDistance = 0f;
+        if (collider == null)
+            return false;
 
-        debugBlockingCollider = "None";
-        debugBlockingVehicleState = "None";
-        debugBlockingDistance = 0f;
-
-        debugRaycastSummary = "";
-        debugTrafficDecision = "Checking traffic";
-        debugLastSensorUpdateTime = Time.time;
-
-        Vector3 origin =
-            transform.position +
-            Vector3.up * rayOriginHeight +
-            transform.forward * rayOriginForwardOffset;
-
-        Vector3 forward = transform.forward;
-
-        Vector3 left60 = Quaternion.Euler(0f, -60f, 0f) * forward;
-        Vector3 left30 = Quaternion.Euler(0f, -30f, 0f) * forward;
-        Vector3 right30 = Quaternion.Euler(0f, 30f, 0f) * forward;
-        Vector3 right60 = Quaternion.Euler(0f, 60f, 0f) * forward;
-
-        bool foundVehicle = false;
-        float closestDistance = float.MaxValue;
-        RaycastHit closestHit = default;
-
-        CheckTrafficRay(origin, left60, "Left 60",
-            ref foundVehicle, ref closestDistance, ref closestHit);
-
-        CheckTrafficRay(origin, left30, "Left 30",
-            ref foundVehicle, ref closestDistance, ref closestHit);
-
-        CheckTrafficRay(origin, forward, "Forward",
-            ref foundVehicle, ref closestDistance, ref closestHit);
-
-        CheckTrafficRay(origin, right30, "Right 30",
-            ref foundVehicle, ref closestDistance, ref closestHit);
-
-        CheckTrafficRay(origin, right60, "Right 60",
-            ref foundVehicle, ref closestDistance, ref closestHit);
-
-        hit = closestHit;
-
-        if (foundVehicle)
-        {
-            debugBlockingCollider = closestHit.collider.name;
-            debugBlockingDistance = closestHit.distance;
-
-            Component blocker = GetVehicleComponent(closestHit.collider);
-
-            if (blocker != null)
-                debugBlockingVehicleState = GetVehicleStateLabel(blocker);
-
-            debugTrafficDecision =
-                $"Blocking vehicle at {closestHit.distance:F2}m";
-        }
-        else
-        {
-            debugTrafficDecision = "No blocking vehicle detected";
-        }
-
-        return foundVehicle;
+        Component vehicle = GetVehicleComponent(collider);
+        return vehicle != null && ShouldDetectVehicle(vehicle);
     }
-
-
-
-    private void CheckTrafficRay(
-        Vector3 origin,
-        Vector3 direction,
-        string rayName,
-        ref bool foundVehicle,
-        ref float closestDistance,
-        ref RaycastHit closestHit)
-    {
-        if (!Physics.Raycast(
-                origin,
-                direction,
-                out RaycastHit rayHit,
-                trafficDetectionDistance,
-                trafficLayer,
-                QueryTriggerInteraction.Ignore))
-        {
-            debugRaycastSummary += $"{rayName}: no hit\n";
-            return;
-        }
-
-        debugLastRayHitCollider = rayHit.collider.name;
-        debugLastRayDirection = rayName;
-        debugLastRayDistance = rayHit.distance;
-
-        debugRaycastSummary +=
-            $"{rayName}: {rayHit.collider.name} " +
-            $"({rayHit.distance:F2}m)";
-
-        Component detectedVehicle = GetVehicleComponent(rayHit.collider);
-
-        if (detectedVehicle == null)
-        {
-            debugRaycastSummary +=
-                " — no recognized vehicle component\n";
-            return;
-        }
-
-        if (detectedVehicle.gameObject == gameObject)
-        {
-            debugRaycastSummary += " — self, ignored\n";
-            return;
-        }
-
-        // Apply the existing traffic rules to normal vehicles.
-        if (detectedVehicle is TrafficTestVehicle normalVehicle)
-        {
-            if (!ShouldDetectVehicle(normalVehicle))
-            {
-                debugRaycastSummary +=
-                    $" — ignored by traffic rules " +
-                    $"({normalVehicle.CurrentState})\n";
-                return;
-            }
-        }
-        // Cargo trucks use their own state machine.
-        else if (detectedVehicle is CargoDeliveryTruck cargoTruck)
-        {
-            if (!ShouldDetectVehicle(cargoTruck))
-            {
-                debugRaycastSummary +=
-                    $" — ignored cargo truck " +
-                    $"({cargoTruck.CurrentState})\n";
-                return;
-            }
-        }
-        else
-        {
-            debugRaycastSummary += " — unsupported vehicle type\n";
-            return;
-        }
-
-        debugRaycastSummary +=
-            $" — blocking vehicle ({GetVehicleStateLabel(detectedVehicle)})\n";
-
-        if (rayHit.distance < closestDistance)
-        {
-            closestDistance = rayHit.distance;
-            closestHit = rayHit;
-            foundVehicle = true;
-        }
-    }
-
-
 
     private Component GetVehicleComponent(Collider hitCollider)
     {
@@ -2043,10 +1864,7 @@ public class CargoDeliveryTruck : MonoBehaviour
         }
 
         // Hold position while waiting for permission.
-        currentSpeed = Mathf.MoveTowards(
-            currentSpeed,
-            0f,
-            braking * Time.deltaTime);
+        currentSpeed = trafficFollowing.BrakeToStop(currentSpeed);
 
         debugTrafficDecision =
             $"Waiting for intersection {requestedIntersection}";
@@ -2328,83 +2146,4 @@ public class CargoDeliveryTruck : MonoBehaviour
             this);
     }
 
-    // ---------------------------------------------------------
-    // TRAFFIC SENSOR GIZMOS
-    // ---------------------------------------------------------
-
-    private void OnDrawGizmos()
-    {
-        Vector3 origin =
-            transform.position +
-            Vector3.up * rayOriginHeight +
-            transform.forward * rayOriginForwardOffset;
-
-        Vector3 forward = transform.forward;
-
-        Vector3 left60 =
-            Quaternion.Euler(0f, -60f, 0f) * forward;
-
-        Vector3 left30 =
-            Quaternion.Euler(0f, -30f, 0f) * forward;
-
-        Vector3 right30 =
-            Quaternion.Euler(0f, 30f, 0f) * forward;
-
-        Vector3 right60 =
-            Quaternion.Euler(0f, 60f, 0f) * forward;
-
-        DrawTrafficRayGizmo(origin, left60, new Color(1f, 0.5f, 0f));
-        DrawTrafficRayGizmo(origin, left30, Color.yellow);
-        DrawTrafficRayGizmo(origin, forward, Color.green);
-        DrawTrafficRayGizmo(origin, right30, Color.cyan);
-        DrawTrafficRayGizmo(origin, right60, new Color(0.5f, 0.3f, 1f));
-    }
-
-    private void DrawTrafficRayGizmo(
-        Vector3 origin,
-        Vector3 direction,
-        Color color)
-    {
-        if (!Application.isPlaying)
-        {
-            Gizmos.color = color;
-            Gizmos.DrawLine(
-                origin,
-                origin + direction.normalized * trafficDetectionDistance);
-            return;
-        }
-
-        float rayLength = trafficDetectionDistance;
-
-        if (Physics.Raycast(
-                origin,
-                direction,
-                out RaycastHit hit,
-                trafficDetectionDistance,
-                trafficLayer,
-                QueryTriggerInteraction.Ignore))
-        {
-            Component vehicle = GetVehicleComponent(hit.collider);
-
-            if (vehicle != null && ShouldDetectVehicle(vehicle))
-            {
-                Gizmos.color = Color.red;
-                Gizmos.DrawLine(origin, hit.point);
-                Gizmos.DrawWireSphere(hit.point, 0.12f);
-                return;
-            }
-
-            rayLength = hit.distance;
-        }
-
-        Gizmos.color = color;
-
-        Gizmos.DrawLine(
-            origin,
-            origin + direction.normalized * rayLength);
-
-        Gizmos.DrawWireSphere(
-            origin + direction.normalized * rayLength,
-            0.06f);
-    }
 }
