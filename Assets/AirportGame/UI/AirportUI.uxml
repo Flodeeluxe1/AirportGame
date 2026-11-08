@@ -18,6 +18,7 @@
         <ui:Button name="category-commercial" text="Commercial" class="category-button"/>
         <ui:Button name="category-taxiways" text="Taxiways" class="category-button"/>
         <ui:Button name="category-tarmac" text="Tarmac" class="category-button"/>
+        <ui:Button name="category-pipelines" text="Pipelines" class="category-button"/>
       </ui:VisualElement>
 
       <ui:ScrollView
