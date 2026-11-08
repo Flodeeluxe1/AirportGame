@@ -6,7 +6,7 @@ using UnityEngine;
 [Serializable]
 public class AirportSaveData
 {
-    public const int CurrentSchemaVersion = 1;
+    public const int CurrentSchemaVersion = 2;
 
     public int schemaVersion = CurrentSchemaVersion;
     public string saveName = "";
@@ -28,6 +28,12 @@ public class AirportSaveData
 
     public List<TaxiwayAreaSaveData> taxiwayAreas =
     new List<TaxiwayAreaSaveData>();
+
+    public List<Vector2Int> pipelineCells =
+        new List<Vector2Int>();
+
+    public List<PipelineNetworkSaveData> pipelineNetworks =
+        new List<PipelineNetworkSaveData>();
 
     public List<FlightScheduleSaveData> flightSchedule =
         new List<FlightScheduleSaveData>();
@@ -54,6 +60,12 @@ public class AirportSaveData
 
         if (taxiwayAreas == null)
             taxiwayAreas = new List<TaxiwayAreaSaveData>();
+
+        if (pipelineCells == null)
+            pipelineCells = new List<Vector2Int>();
+
+        if (pipelineNetworks == null)
+            pipelineNetworks = new List<PipelineNetworkSaveData>();
 
         if (flightSchedule == null)
             flightSchedule = new List<FlightScheduleSaveData>();
@@ -161,4 +173,13 @@ public class TaxiwayAreaSaveData
     public int originZ;
     public int width;
     public int depth;
+}
+
+
+[Serializable]
+public class PipelineNetworkSaveData
+{
+    public List<Vector2Int> pipeCells = new List<Vector2Int>();
+    public List<Vector2Int> connectorCells = new List<Vector2Int>();
+    public float currentFuelLitres;
 }
