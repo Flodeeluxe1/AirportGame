@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BuildableDefinition
   id: airport.fuelstorage.s
   displayName: Fuel Tank Small
-  prefab: {fileID: 979052739885274223, guid: dab70c055c14e4f45856781baf46a889, type: 3}
+  prefab: {fileID: 9157142478616489591, guid: 4c73c243656c0ee48ba9a8226219d9c2, type: 3}
   placementType: 0
   requiredSurface: 0
   width: 6
