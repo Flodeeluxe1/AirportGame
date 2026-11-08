@@ -3,8 +3,8 @@ using UnityEngine;
 
 /// <summary>
 /// Groups pipeline cells and building connectors into connected networks.
-/// This class only resolves connectivity; fuel storage and transfer are
-/// handled separately.
+/// A connector joins every adjacent pipe cell, and unconnected connectors
+/// are retained as individual networks for standalone fuel storage.
 /// </summary>
 [DisallowMultipleComponent]
 public sealed class PipelineNetworkManager : MonoBehaviour
@@ -47,6 +47,7 @@ public sealed class PipelineNetworkManager : MonoBehaviour
 
     public IReadOnlyList<PipelineNetwork> Networks => networks;
     public int NetworkCount => networks.Count;
+    public int TopologyVersion { get; private set; }
 
     private void Start()
     {
@@ -132,45 +133,55 @@ public sealed class PipelineNetworkManager : MonoBehaviour
             return;
         }
 
-        HashSet<Vector2Int> remaining =
+        HashSet<Vector2Int> remainingPipes =
             new HashSet<Vector2Int>(pipelineRuleManager.PipeCells);
 
-        FuelConnector[] connectors =
+        FuelConnector[] allConnectors =
             FindObjectsByType<FuelConnector>(FindObjectsSortMode.None);
 
-        Dictionary<Vector2Int, List<FuelConnector>> connectorsByAdjacentCell =
+        Dictionary<Vector2Int, List<FuelConnector>> connectorsByPipeCell =
             new Dictionary<Vector2Int, List<FuelConnector>>();
 
-        foreach (FuelConnector connector in connectors)
+        Dictionary<FuelConnector, List<Vector2Int>> adjacentPipesByConnector =
+            new Dictionary<FuelConnector, List<Vector2Int>>();
+
+        foreach (FuelConnector connector in allConnectors)
         {
             if (connector == null)
                 continue;
 
-            Vector2Int connectorCell = connector.GridCell;
+            List<Vector2Int> adjacentPipes = new List<Vector2Int>();
 
             foreach (Vector2Int direction in Directions)
             {
-                Vector2Int adjacentPipeCell = connectorCell + direction;
+                Vector2Int adjacentCell = connector.GridCell + direction;
 
-                if (!pipelineRuleManager.IsPipe(adjacentPipeCell))
+                if (!pipelineRuleManager.IsPipe(adjacentCell))
                     continue;
 
-                if (!connectorsByAdjacentCell.TryGetValue(
-                        adjacentPipeCell, out List<FuelConnector> list))
+                adjacentPipes.Add(adjacentCell);
+
+                if (!connectorsByPipeCell.TryGetValue(
+                        adjacentCell, out List<FuelConnector> list))
                 {
                     list = new List<FuelConnector>();
-                    connectorsByAdjacentCell.Add(adjacentPipeCell, list);
+                    connectorsByPipeCell.Add(adjacentCell, list);
                 }
 
-                if (!list.Contains(connector))
-                    list.Add(connector);
+                list.Add(connector);
             }
+
+            adjacentPipesByConnector.Add(connector, adjacentPipes);
         }
 
-        while (remaining.Count > 0)
+        HashSet<FuelConnector> assignedConnectors = new HashSet<FuelConnector>();
+
+        // Flood-fill pipe cells. A connector is a bridge: all pipe cells
+        // adjacent to the same connector belong to the same network.
+        while (remainingPipes.Count > 0)
         {
             Vector2Int seed = default;
-            foreach (Vector2Int cell in remaining)
+            foreach (Vector2Int cell in remainingPipes)
             {
                 seed = cell;
                 break;
@@ -179,35 +190,63 @@ public sealed class PipelineNetworkManager : MonoBehaviour
             PipelineNetwork network = new PipelineNetwork();
             Queue<Vector2Int> queue = new Queue<Vector2Int>();
             queue.Enqueue(seed);
-            remaining.Remove(seed);
+            remainingPipes.Remove(seed);
 
             while (queue.Count > 0)
             {
                 Vector2Int cell = queue.Dequeue();
                 network.AddPipe(cell);
 
-                for (int i = 0; i < Directions.Length; i++)
+                foreach (Vector2Int direction in Directions)
                 {
-                    Vector2Int neighbour = cell + Directions[i];
+                    Vector2Int neighbour = cell + direction;
 
-                    if (remaining.Remove(neighbour))
+                    if (remainingPipes.Remove(neighbour))
                         queue.Enqueue(neighbour);
                 }
 
-                if (connectorsByAdjacentCell.TryGetValue(
-                        cell, out List<FuelConnector> connectedHere))
+                if (!connectorsByPipeCell.TryGetValue(
+                        cell, out List<FuelConnector> adjacentConnectors))
+                    continue;
+
+                foreach (FuelConnector connector in adjacentConnectors)
                 {
-                    foreach (FuelConnector connector in connectedHere)
-                        network.AddConnector(connector);
+                    if (connector == null)
+                        continue;
+
+                    network.AddConnector(connector);
+
+                    if (!assignedConnectors.Add(connector))
+                        continue;
+
+                    if (!adjacentPipesByConnector.TryGetValue(
+                            connector, out List<Vector2Int> connectorPipes))
+                        continue;
+
+                    // This connector can join otherwise separate pipe groups.
+                    foreach (Vector2Int connectorPipe in connectorPipes)
+                    {
+                        if (remainingPipes.Remove(connectorPipe))
+                            queue.Enqueue(connectorPipe);
+                    }
                 }
             }
 
-            networks.Add(network);
-
-            foreach (FuelConnector connector in network.Connectors)
-                connectorNetworks[connector] = network;
+            AddNetwork(network);
         }
 
+        // Keep disconnected building connectors as standalone networks.
+        foreach (FuelConnector connector in allConnectors)
+        {
+            if (connector == null || !assignedConnectors.Add(connector))
+                continue;
+
+            PipelineNetwork network = new PipelineNetwork();
+            network.AddConnector(connector);
+            AddNetwork(network);
+        }
+
+        TopologyVersion++;
         lastTopologyHash = CalculateTopologyHash();
         hasBuiltTopology = true;
 
@@ -218,5 +257,13 @@ public sealed class PipelineNetworkManager : MonoBehaviour
                 $"Connected building connectors: {connectorNetworks.Count}",
                 this);
         }
+    }
+
+    private void AddNetwork(PipelineNetwork network)
+    {
+        networks.Add(network);
+
+        foreach (FuelConnector connector in network.Connectors)
+            connectorNetworks[connector] = network;
     }
 }
