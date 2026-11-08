@@ -145,6 +145,27 @@ public sealed class PipelinePlacementHandler : IPlacementHandler
         Vector3 position = gridManager.GridToWorldCenter(currentCell);
         previewObject.transform.position = position;
 
+        // Align the visible preview mesh with the grid surface instead of
+        // assuming the prefab pivot is at the bottom of the model.
+        Renderer[] renderers =
+            previewObject.GetComponentsInChildren<Renderer>(true);
+
+        float lowestY = float.PositiveInfinity;
+
+        foreach (Renderer renderer in renderers)
+        {
+            if (renderer == null || !renderer.enabled)
+                continue;
+
+            lowestY = Mathf.Min(lowestY, renderer.bounds.min.y);
+        }
+
+        if (!float.IsPositiveInfinity(lowestY))
+        {
+            position.y += position.y - lowestY + 0.02f;
+            previewObject.transform.position = position;
+        }
+
         bool valid = pipelineManager != null && ValidateRoute();
         if (placementPreview != null)
             placementPreview.SetValid(valid);
