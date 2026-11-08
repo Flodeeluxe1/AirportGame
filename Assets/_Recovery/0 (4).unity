@@ -249,6 +249,7 @@ MonoBehaviour:
   roadModuleRuleManager: {fileID: 0}
   taxiwayNetwork: {fileID: 0}
   taxiwayPrefabRuleManager: {fileID: 0}
+  pipelinePrefabRuleManager: {fileID: 0}
   highlightColor: {r: 0.1, g: 0.85, b: 1, a: 0.45}
   wallHighlightColor: {r: 0.1, g: 0.85, b: 1, a: 1}
   wallHighlightStrength: 0.75
@@ -2523,6 +2524,8 @@ MonoBehaviour:
   flightManagementUIController: {fileID: 0}
   roomPurposeController: {fileID: 1399790236}
   roomDetectionController: {fileID: 0}
+  pipelinePrefabRuleManager: {fileID: 0}
+  pipelineNetworkManager: {fileID: 0}
 --- !u!4 &1332688659
 Transform:
   m_ObjectHideFlags: 0
