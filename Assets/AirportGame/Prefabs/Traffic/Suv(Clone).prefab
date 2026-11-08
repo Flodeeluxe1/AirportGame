@@ -277,15 +277,10 @@ MonoBehaviour:
   parkingWaypointTolerance: 0.03
   debugState: Idle
   debugCurrentSpeed: 0
-  debugLastRayHitCollider: None
-  debugLastRayDirection: None
-  debugLastRayDistance: 0
   debugBlockingCollider: None
   debugBlockingVehicleState: None
   debugBlockingDistance: 0
-  debugRaycastSummary: Not tested
   debugTrafficDecision: Not tested
-  debugLastSensorUpdateTime: 0
   waitingForIntersection: 0
   requestedIntersection: {x: 0, y: 0}
 --- !u!114 &1669014086914449271
