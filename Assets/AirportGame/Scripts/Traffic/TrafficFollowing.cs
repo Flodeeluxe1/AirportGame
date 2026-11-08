@@ -31,6 +31,11 @@ public sealed class TrafficFollowing : MonoBehaviour
     private static readonly float[] Angles = { -60f, -30f, 0f, 30f, 60f };
     private static readonly string[] Names = { "Left 60", "Left 30", "Forward", "Right 30", "Right 60" };
 
+    public float BrakeToStop(float currentSpeed)
+    {
+        return Mathf.MoveTowards(currentSpeed, 0f, braking * Time.deltaTime);
+    }
+
     public float GetFollowingSpeed(
         float desiredSpeed,
         float currentSpeed,
