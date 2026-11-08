@@ -7,7 +7,11 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class AircraftFuelStation : MonoBehaviour
 {
-    [Header("Fuel Storage")]
+    [Header("Pipeline Network")]
+    [SerializeField] private PipelineNetworkManager pipelineNetworkManager;
+    [SerializeField] private FuelConnector fuelConnector;
+
+    [Header("Legacy Fuel Storage (unused when connected)") ]
     [Min(1f)]
     [SerializeField] private float maximumFuelLitres = 5000f;
 
@@ -154,31 +158,47 @@ public class AircraftFuelStation : MonoBehaviour
         }
     }
 
-    public float MaximumFuelLitres => maximumFuelLitres;
-    public float CurrentFuelLitres => currentFuelLitres;
-    public float RemainingFuelCapacity =>
-        Mathf.Max(0f, maximumFuelLitres - currentFuelLitres);
+    private PipelineNetworkManager.PipelineNetwork FuelNetwork
+    {
+        get
+        {
+            ResolvePipelineReferences();
+            return pipelineNetworkManager != null && fuelConnector != null
+                ? pipelineNetworkManager.GetNetworkFor(fuelConnector)
+                : null;
+        }
+    }
+
+    public float MaximumFuelLitres => FuelNetwork?.CapacityLitres ?? 0f;
+    public float CurrentFuelLitres => FuelNetwork?.CurrentFuelLitres ?? 0f;
+    public float RemainingFuelCapacity => FuelNetwork?.RemainingCapacityLitres ?? 0f;
 
     public bool NeedsFuelDelivery => deliveryRequested && !deliveryInProgress;
     public bool IsFuelDeliveryInProgress => deliveryInProgress;
     public string DebugStatus => debugStatus;
+
+    private void ResolvePipelineReferences()
+    {
+        if (pipelineNetworkManager == null)
+            pipelineNetworkManager = FindFirstObjectByType<PipelineNetworkManager>();
+
+        if (fuelConnector == null)
+            fuelConnector = GetComponentInChildren<FuelConnector>(true);
+    }
 
     private void Awake()
     {
         maximumFuelLitres = Mathf.Max(1f, maximumFuelLitres);
         sellingPricePerLitre = Mathf.Max(0f, sellingPricePerLitre);
         economyManager = FindFirstObjectByType<AirportEconomyManager>();
-        currentFuelLitres = Mathf.Clamp(
-            currentFuelLitres,
-            0f,
-            maximumFuelLitres);
+        ResolvePipelineReferences();
     }
 
     private void Update()
     {
         UpdateDeliveryRequest();
 
-        if (currentFuelLitres <= 0f)
+        if (CurrentFuelLitres <= 0f)
         {
             CompleteFuelSaleSession();
             currentlyServicedAircraft = null;
@@ -222,11 +242,11 @@ public class AircraftFuelStation : MonoBehaviour
         float proposedAmount = Mathf.Min(
             amountToTransfer,
             Mathf.Min(
-                currentFuelLitres,
+                CurrentFuelLitres,
                 aircraft.MaximumFuelLitres - aircraft.CurrentFuelLitres));
         float transferred = aircraft.AddFuel(proposedAmount);
         fuelTransferredThisSession += transferred;
-        currentFuelLitres = Mathf.Max(0f, currentFuelLitres - transferred);
+        FuelNetwork?.ConsumeFuel(transferred);
 
         debugStatus =
             $"Refuelling {aircraft.name}: " +
@@ -310,9 +330,9 @@ public class AircraftFuelStation : MonoBehaviour
     private void UpdateDeliveryRequest()
     {
         float requestLevel =
-            maximumFuelLitres * deliveryRequestThreshold;
+            MaximumFuelLitres * deliveryRequestThreshold;
 
-        deliveryRequested = currentFuelLitres <= requestLevel;
+        deliveryRequested = CurrentFuelLitres <= requestLevel;
     }
 
     /// <summary>
@@ -338,13 +358,8 @@ public class AircraftFuelStation : MonoBehaviour
         if (!deliveryInProgress || amountLitres <= 0f)
             return 0f;
 
-        float accepted = Mathf.Min(
-            amountLitres,
-            RemainingFuelCapacity);
-
-        currentFuelLitres += accepted;
-
-        return accepted;
+        PipelineNetworkManager.PipelineNetwork network = FuelNetwork;
+        return network != null ? network.AddFuel(amountLitres) : 0f;
     }
 
     /// <summary>
@@ -354,7 +369,7 @@ public class AircraftFuelStation : MonoBehaviour
     {
         deliveryInProgress = false;
         deliveryRequested =
-            currentFuelLitres <= maximumFuelLitres * deliveryRequestThreshold;
+            CurrentFuelLitres <= MaximumFuelLitres * deliveryRequestThreshold;
 
         debugStatus = deliveryRequested
             ? "Fuel delivery completed; more fuel is required"
@@ -366,14 +381,12 @@ public class AircraftFuelStation : MonoBehaviour
     /// </summary>
     public void RestoreFuelStock(float savedFuelLitres)
     {
-        currentFuelLitres = Mathf.Clamp(
-            savedFuelLitres,
-            0f,
-            maximumFuelLitres);
+        // Shared pipeline fuel is restored by PipelineNetworkManager.
+        // This legacy method remains for compatibility with older save data.
 
         deliveryInProgress = false;
         deliveryRequested =
-            currentFuelLitres <= maximumFuelLitres * deliveryRequestThreshold;
+            CurrentFuelLitres <= MaximumFuelLitres * deliveryRequestThreshold;
 
         UpdateDeliveryRequest();
     }
