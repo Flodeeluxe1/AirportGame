@@ -2601,6 +2601,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1428745610}
   - component: {fileID: 1428745611}
+  - component: {fileID: 1428745612}
   m_Layer: 0
   m_Name: PipelineManager
   m_TagString: Untagged
@@ -2651,6 +2652,20 @@ MonoBehaviour:
   fourWayRotationOffset: 90
   endRotationOffset: 90
   logPlacement: 0
+--- !u!114 &1428745612
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1428745609}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e402540e3d2fc2a4dbe2f422ac654728, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PipelineNetworkManager
+  pipelineRuleManager: {fileID: 0}
+  logNetworkRebuilds: 0
 --- !u!1 &1478484321
 GameObject:
   m_ObjectHideFlags: 0
