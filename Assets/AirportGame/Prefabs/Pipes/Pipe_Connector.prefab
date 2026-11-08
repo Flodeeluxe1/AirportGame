@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 1508985287753751724}
   - component: {fileID: 7598020129524504122}
   - component: {fileID: 6016906070962885073}
+  - component: {fileID: 7899267425924942879}
   m_Layer: 0
   m_Name: Pipe_Connector
   m_TagString: Untagged
@@ -90,3 +91,16 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &7899267425924942879
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3004454580096595742}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 03a65cc0557bdda4c973d8d766585da2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FuelConnector
+  gridManager: {fileID: 0}

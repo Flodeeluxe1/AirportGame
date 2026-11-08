@@ -2600,6 +2600,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1428745610}
+  - component: {fileID: 1428745611}
   m_Layer: 0
   m_Name: PipelineManager
   m_TagString: Untagged
@@ -2622,6 +2623,34 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1428745611
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1428745609}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0d98464154ccf2e458bed7b963bd6af6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PipelinePrefabRuleManager
+  gridManager: {fileID: 728659359}
+  gridOccupancy: {fileID: 751787734}
+  gridSurface: {fileID: 0}
+  pipeParent: {fileID: 1428745610}
+  heightOffset: 0.02
+  straightPrefab: {fileID: 741557819913248695, guid: 76c17a92a1716ff48a6aed5d209a4da5, type: 3}
+  cornerPrefab: {fileID: 582122418340276033, guid: 493b76bba74397640aa8c23773242bc3, type: 3}
+  threeWayPrefab: {fileID: 8502462875329680599, guid: 7be43ae7476e1834998df58247cdfea7, type: 3}
+  fourWayPrefab: {fileID: 68184509684627147, guid: 3b3fa22228454e044a309fb558fa40f4, type: 3}
+  endPrefab: {fileID: 2334624879931208177, guid: c965bebedccdc53488df3a30c787986c, type: 3}
+  straightRotationOffset: 90
+  cornerRotationOffset: 90
+  threeWayRotationOffset: 90
+  fourWayRotationOffset: 90
+  endRotationOffset: 90
+  logPlacement: 0
 --- !u!1 &1478484321
 GameObject:
   m_ObjectHideFlags: 0
