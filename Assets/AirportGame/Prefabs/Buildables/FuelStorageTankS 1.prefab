@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1001 &8372023229118927912
+--- !u!1001 &481209045644783152
 PrefabInstance:
   m_ObjectHideFlags: 0
   serializedVersion: 2
@@ -22,15 +22,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -3910990755373119420, guid: c35e270925f0e3d49bd7d2feb46c8f47, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 64.95
+      value: 47.827404
       objectReference: {fileID: 0}
     - target: {fileID: -3910990755373119420, guid: c35e270925f0e3d49bd7d2feb46c8f47, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0.000000833732
+      value: -0.00000009327323
       objectReference: {fileID: 0}
     - target: {fileID: -3910990755373119420, guid: c35e270925f0e3d49bd7d2feb46c8f47, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 67.77755
+      value: 24.550173
       objectReference: {fileID: 0}
     - target: {fileID: -3910990755373119420, guid: c35e270925f0e3d49bd7d2feb46c8f47, type: 3}
       propertyPath: m_LocalRotation.w
@@ -60,86 +60,78 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: -3910990755373119420, guid: c35e270925f0e3d49bd7d2feb46c8f47, type: 3}
-      propertyPath: m_ConstrainProportionsScale
-      value: 1
-      objectReference: {fileID: 0}
     - target: {fileID: 8771091787928289351, guid: c35e270925f0e3d49bd7d2feb46c8f47, type: 3}
       propertyPath: m_Name
-      value: FuelStorageTankS
+      value: FuelStorageTankS 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects:
     - targetCorrespondingSourceObject: {fileID: -3910990755373119420, guid: c35e270925f0e3d49bd7d2feb46c8f47, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 6926698790420271639}
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 8771091787928289351, guid: c35e270925f0e3d49bd7d2feb46c8f47, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: -612340000000000001}
-
+      addedObject: {fileID: 6373452860049174879}
+    m_AddedComponents: []
   m_SourcePrefab: {fileID: -4161369568681901532, guid: c35e270925f0e3d49bd7d2feb46c8f47, type: 3}
---- !u!4 &4437796485049212012 stripped
+--- !u!4 &5698398999312770676 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -3910990755373119420, guid: c35e270925f0e3d49bd7d2feb46c8f47, type: 3}
-  m_PrefabInstance: {fileID: 8372023229118927912}
+  m_PrefabInstance: {fileID: 481209045644783152}
   m_PrefabAsset: {fileID: 0}
---- !u!1001 &8417348400910601915
+--- !u!1001 &5513518119176891891
 PrefabInstance:
   m_ObjectHideFlags: 0
   serializedVersion: 2
   m_Modification:
     serializedVersion: 3
-    m_TransformParent: {fileID: 4437796485049212012}
+    m_TransformParent: {fileID: 5698398999312770676}
     m_Modifications:
     - target: {fileID: 1508985287753751724, guid: d03afdd7671e00e4caf16247ab7ad154, type: 3}
       propertyPath: m_LocalScale.x
-      value: 1.16
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 1508985287753751724, guid: d03afdd7671e00e4caf16247ab7ad154, type: 3}
       propertyPath: m_LocalScale.y
-      value: 1.16
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 1508985287753751724, guid: d03afdd7671e00e4caf16247ab7ad154, type: 3}
       propertyPath: m_LocalScale.z
-      value: 1.16
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 1508985287753751724, guid: d03afdd7671e00e4caf16247ab7ad154, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -1.39
+      value: 6.5620546
       objectReference: {fileID: 0}
     - target: {fileID: 1508985287753751724, guid: d03afdd7671e00e4caf16247ab7ad154, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 1.37
+      value: 1.1633337
       objectReference: {fileID: 0}
     - target: {fileID: 1508985287753751724, guid: d03afdd7671e00e4caf16247ab7ad154, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 9.16
+      value: -0.19724527
       objectReference: {fileID: 0}
     - target: {fileID: 1508985287753751724, guid: d03afdd7671e00e4caf16247ab7ad154, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 0.50008726
+      value: 0.7071067
       objectReference: {fileID: 0}
     - target: {fileID: 1508985287753751724, guid: d03afdd7671e00e4caf16247ab7ad154, type: 3}
       propertyPath: m_LocalRotation.x
-      value: -0.49991274
+      value: -0.7071068
       objectReference: {fileID: 0}
     - target: {fileID: 1508985287753751724, guid: d03afdd7671e00e4caf16247ab7ad154, type: 3}
       propertyPath: m_LocalRotation.y
-      value: 0.50008726
+      value: -0
       objectReference: {fileID: 0}
     - target: {fileID: 1508985287753751724, guid: d03afdd7671e00e4caf16247ab7ad154, type: 3}
       propertyPath: m_LocalRotation.z
-      value: 0.49991274
+      value: -0
       objectReference: {fileID: 0}
     - target: {fileID: 1508985287753751724, guid: d03afdd7671e00e4caf16247ab7ad154, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
-      value: -89.98
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 1508985287753751724, guid: d03afdd7671e00e4caf16247ab7ad154, type: 3}
       propertyPath: m_LocalEulerAnglesHint.y
-      value: 90
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 1508985287753751724, guid: d03afdd7671e00e4caf16247ab7ad154, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
@@ -154,28 +146,8 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: d03afdd7671e00e4caf16247ab7ad154, type: 3}
---- !u!4 &6926698790420271639 stripped
+--- !u!4 &6373452860049174879 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 1508985287753751724, guid: d03afdd7671e00e4caf16247ab7ad154, type: 3}
-  m_PrefabInstance: {fileID: 8417348400910601915}
+  m_PrefabInstance: {fileID: 5513518119176891891}
   m_PrefabAsset: {fileID: 0}
-
---- !u!1 &-612340000000000002 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 8771091787928289351, guid: c35e270925f0e3d49bd7d2feb46c8f47, type: 3}
-  m_PrefabInstance: {fileID: 8372023229118927912}
-  m_PrefabAsset: {fileID: 0}
---- !u!114 &-612340000000000001
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: -612340000000000002}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e77091641bc61c74ea5aea97f1031e44, type: 3}
-  m_Name:
-  m_EditorClassIdentifier: Assembly-CSharp::FuelStorageTank
-  capacityLitres: 20000
-  initialFuelLitres: 0
