@@ -92,7 +92,7 @@ public sealed class PipelineNetworkManager : MonoBehaviour
                 if (connector == null)
                     continue;
 
-                int value = connector.GetInstanceID() * 397 ^
+                int value = connector.GetHashCode() * 397 ^
                             connector.GridCell.GetHashCode();
                 sum += value;
                 xor ^= value;
