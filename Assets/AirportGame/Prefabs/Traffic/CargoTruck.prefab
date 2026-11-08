@@ -468,6 +468,7 @@ GameObject:
   - component: {fileID: 2398520516101683270}
   - component: {fileID: 5973243325742863285}
   - component: {fileID: 6219903941184170259}
+  - component: {fileID: 7439018274650192836}
   m_Layer: 7
   m_Name: CargoTruck
   m_TagString: Untagged
@@ -552,15 +553,6 @@ MonoBehaviour:
   turnCurveResolution: 8
   vanStopEntryClearance: 0.75
   vanStopWaypointTolerance: 0.03
-  trafficLayer:
-    serializedVersion: 2
-    m_Bits: 128
-  trafficDetectionDistance: 5
-  safeFollowingDistance: 3
-  rayOriginHeight: 0.15
-  rayOriginForwardOffset: 0.3
-  acceleration: 4
-  braking: 8
   cargoBoxPrefab: {fileID: 2704268867500195016, guid: eac10ae4add626d4fb7013f86e41d626, type: 3}
   unloadingDuration: 20
   cargoBoxSpacing: 0.6
@@ -572,15 +564,10 @@ MonoBehaviour:
   debugPathLength: 0
   debugCurrentSpeed: 0
   debugBoxesUnloaded: 0
-  debugLastRayHitCollider: None
-  debugLastRayDirection: None
-  debugLastRayDistance: 0
   debugBlockingCollider: None
   debugBlockingVehicleState: None
   debugBlockingDistance: 0
-  debugRaycastSummary: Not tested
   debugTrafficDecision: Not tested
-  debugLastSensorUpdateTime: 0
   debugDestructionReason: Not destroyed
 --- !u!1 &8759557518540487684
 GameObject:
@@ -708,3 +695,25 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &7439018274650192836
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7704799895376171895}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d4a1c9e8b7f64a2d9c3e5f1a8b6d0c42, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TrafficFollowing
+  trafficLayer:
+    serializedVersion: 2
+    m_Bits: 128
+  detectionDistance: 5
+  safeFollowingDistance: 3
+  rayOriginHeight: 0.15
+  rayOriginForwardOffset: 0.3
+  acceleration: 4
+  braking: 8
+  debugRaycastSummary: Not tested
