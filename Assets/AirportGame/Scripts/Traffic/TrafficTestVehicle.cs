@@ -59,6 +59,7 @@ public class TrafficTestVehicle : MonoBehaviour
     [SerializeField] private float parkingWaypointTolerance = 0.03f;
 
     [Header("Traffic Following")]
+    [SerializeField] private TrafficFollowing trafficFollowing;
     [SerializeField] private LayerMask trafficLayer;
     [SerializeField] private float trafficDetectionDistance = 3f;
     [SerializeField] private float safeFollowingDistance = 0.7f;
@@ -162,6 +163,20 @@ public class TrafficTestVehicle : MonoBehaviour
         }
 
         currentSpeed = speed;
+
+        trafficFollowing = GetComponent<TrafficFollowing>();
+        if (trafficFollowing == null)
+            trafficFollowing = gameObject.AddComponent<TrafficFollowing>();
+
+        trafficFollowing.Configure(
+            trafficLayer,
+            trafficDetectionDistance,
+            safeFollowingDistance,
+            rayOriginHeight,
+            rayOriginForwardOffset,
+            acceleration,
+            braking);
+
         RefreshDebugInformation();
     }
 
@@ -837,326 +852,89 @@ public class TrafficTestVehicle : MonoBehaviour
         }
     }
 
-    private bool RotateTowardsDirection(Vector3 direction)
+    private float GetTrafficFollowingSpeed()
     {
-        direction.y = 0f;
+        bool skipRaycasts =
+            hasIntersectionReservation &&
+            intersectionManager != null &&
+            intersectionManager.HasReservation(reservedIntersection, this);
 
-        if (direction.sqrMagnitude < 0.001f)
-            return true;
+        float result = trafficFollowing.GetFollowingSpeed(
+            speed,
+            currentSpeed,
+            ShouldBlockTrafficCollider,
+            skipRaycasts,
+            out RaycastHit hit);
 
-        Quaternion targetRotation =
-            Quaternion.LookRotation(
-                direction.normalized,
-                Vector3.up);
+        debugLastRayHitCollider = trafficFollowing.LastRayHitCollider;
+        debugLastRayDirection = trafficFollowing.LastRayDirection;
+        debugLastRayDistance = trafficFollowing.LastRayDistance;
+        debugRaycastSummary = trafficFollowing.RaycastSummary;
+        debugLastSensorUpdateTime = Time.time;
 
-        transform.rotation = Quaternion.RotateTowards(
-            transform.rotation,
-            targetRotation,
-            rotationSpeed * 100f * Time.deltaTime);
+        if (hit.collider != null)
+        {
+            debugBlockingCollider = hit.collider.name;
+            debugBlockingDistance = hit.distance;
 
-        return Quaternion.Angle(
-            transform.rotation,
-            targetRotation) < 2f;
+            TrafficTestVehicle blockingVehicle =
+                hit.collider.GetComponentInParent<TrafficTestVehicle>();
+            CargoDeliveryTruck blockingTruck =
+                hit.collider.GetComponentInParent<CargoDeliveryTruck>();
+
+            debugBlockingVehicleState = blockingVehicle != null
+                ? blockingVehicle.CurrentState.ToString()
+                : blockingTruck != null ? blockingTruck.CurrentState.ToString() : "Other";
+
+            debugTrafficDecision = $"Braking for {debugBlockingCollider}";
+        }
+        else
+        {
+            debugBlockingCollider = "None";
+            debugBlockingVehicleState = "None";
+            debugBlockingDistance = 0f;
+            debugTrafficDecision = skipRaycasts
+                ? "Continuing through reserved intersection"
+                : "No blocking vehicle detected";
+        }
+
+        currentSpeed = result;
+        return currentSpeed;
     }
 
-    private void FinishLeavingParking()
+    private bool ShouldBlockTrafficCollider(Collider collider)
     {
-        if (parkingSpace != null)
+        if (collider == null)
+            return false;
+
+        TrafficTestVehicle normalVehicle =
+            collider.GetComponentInParent<TrafficTestVehicle>();
+
+        if (normalVehicle == this)
+            return false;
+
+        if (normalVehicle != null)
         {
-            parkingSpace.ReleaseVehicle(gameObject);
+            if (ShouldIgnoreIntersectionWaitingVehicle(normalVehicle))
+                return false;
+
+            return ShouldDetectVehicle(normalVehicle);
         }
 
-        parkingExitStartCell =
-            gridManager.WorldToGrid(parkingAlignmentPosition);
+        CargoDeliveryTruck cargoTruck =
+            collider.GetComponentInParent<CargoDeliveryTruck>();
 
-        Debug.Log(
-            $"TRAFFIC LEFT PARKING | " +
-            $"A* Start Cell: {parkingExitStartCell} | " +
-            $"Exit: {exitCell}");
-
-        if (intersectionManager != null)
-            intersectionManager.CancelRequest(this);
-
-        hasIntersectionReservation = false;
-        waitingForIntersection = false;
-        reservedIntersectionPathIndex = -1;
-        requestedIntersectionPathIndex = -1;
-
-        path = roadNetwork.FindPath(
-            parkingExitStartCell,
-            exitCell);
-
-        if (path == null || path.Count == 0)
+        if (cargoTruck != null)
         {
-            Debug.Log(
-                $"TRAFFIC NO PATH TO EXIT | " +
-                $"From: {parkingExitStartCell} | " +
-                $"Exit: {exitCell}");
-
-            smoothedMovementWaypoints.Clear();
-            currentSmoothedWaypointIndex = 0;
-
-            state = VehicleState.Idle;
-            return;
+            CargoDeliveryTruck.TruckState truckState = cargoTruck.CurrentState;
+            return truckState != CargoDeliveryTruck.TruckState.Idle &&
+                   truckState != CargoDeliveryTruck.TruckState.WaitingForCargoZone &&
+                   truckState != CargoDeliveryTruck.TruckState.Unloading &&
+                   truckState != CargoDeliveryTruck.TruckState.Arrived;
         }
 
-        LogPath("EXIT PATH");
-
-        if (path.Count == 1)
-        {
-            Debug.Log(
-                $"TRAFFIC ARRIVED AT EXIT | Cell: {exitCell}");
-
-            state = VehicleState.Arrived;
-            Destroy(gameObject);
-            return;
-        }
-
-        // Build a fresh smoothed path for the departure route.
-        InitializeSmoothedMovementPath();
-
-        state = VehicleState.DrivingToExit;
+        return false;
     }
-
-    // ---------------------------------------------------------
-    // ROAD PATH SMOOTHING
-    // ---------------------------------------------------------
-
-    private void InitializeSmoothedMovementPath()
-    {
-        smoothedMovementWaypoints =
-            BuildSmoothedMovementWaypoints(path);
-
-        // Waypoint zero is the route's starting point.
-        // The vehicle proceeds toward waypoint one.
-        currentSmoothedWaypointIndex =
-            smoothedMovementWaypoints.Count > 1 ? 1 : 0;
-    }
-
-    private List<Vector3> BuildSmoothedMovementWaypoints(
-        List<Vector2Int> cells)
-    {
-        List<Vector3> originalWaypoints =
-            new List<Vector3>();
-
-        List<Vector3> smoothedWaypoints =
-            new List<Vector3>();
-
-        if (cells == null || cells.Count == 0)
-            return smoothedWaypoints;
-
-        foreach (Vector2Int cell in cells)
-        {
-            originalWaypoints.Add(
-                GetRoadWorldPosition(cell));
-        }
-
-        if (originalWaypoints.Count <= 2)
-            return originalWaypoints;
-
-        int waypointCount = originalWaypoints.Count;
-
-        float[] turnRadii = new float[waypointCount];
-
-        float requestedRadius =
-            turningRadiusInCells * gridManager.CellSize;
-
-        // Identify each corner and calculate its curve radius.
-        for (int i = 1; i < waypointCount - 1; i++)
-        {
-            Vector3 incoming =
-                originalWaypoints[i] -
-                originalWaypoints[i - 1];
-
-            Vector3 outgoing =
-                originalWaypoints[i + 1] -
-                originalWaypoints[i];
-
-            incoming.y = 0f;
-            outgoing.y = 0f;
-
-            if (incoming.sqrMagnitude < 0.001f ||
-                outgoing.sqrMagnitude < 0.001f)
-            {
-                continue;
-            }
-
-            incoming.Normalize();
-            outgoing.Normalize();
-
-            float turnAngle =
-                Vector3.Angle(incoming, outgoing);
-
-            // Ignore straight segments and near-reversals.
-            if (turnAngle < 1f || turnAngle > 179f)
-                continue;
-
-            float incomingLength = Vector3.Distance(
-                originalWaypoints[i - 1],
-                originalWaypoints[i]);
-
-            float outgoingLength = Vector3.Distance(
-                originalWaypoints[i],
-                originalWaypoints[i + 1]);
-
-            // Limit the radius so adjacent turns do not overlap.
-            turnRadii[i] = Mathf.Min(
-                requestedRadius,
-                incomingLength * 0.5f,
-                outgoingLength * 0.5f);
-        }
-
-        smoothedWaypoints.Add(originalWaypoints[0]);
-
-        const float bezierCircleFactor = 0.55228475f;
-
-        int resolution = Mathf.Max(1, turnCurveResolution);
-
-        // Process corners in route order.
-        for (int i = 1; i < waypointCount - 1; i++)
-        {
-            Vector3 corner = originalWaypoints[i];
-            float radius = turnRadii[i];
-
-            if (radius <= 0.001f)
-            {
-                AddWaypointIfDifferent(
-                    smoothedWaypoints,
-                    corner);
-
-                continue;
-            }
-
-            Vector3 incoming =
-                (corner - originalWaypoints[i - 1]).normalized;
-
-            Vector3 outgoing =
-                (originalWaypoints[i + 1] - corner).normalized;
-
-            incoming.y = 0f;
-            outgoing.y = 0f;
-
-            incoming.Normalize();
-            outgoing.Normalize();
-
-            // The curve starts before the original corner.
-            Vector3 entry =
-                corner - incoming * radius;
-
-            // It finishes beyond the original corner.
-            Vector3 exit =
-                corner + outgoing * radius;
-
-            AddWaypointIfDifferent(
-                smoothedWaypoints,
-                entry);
-
-            Vector3 control1 =
-                entry +
-                incoming * radius * bezierCircleFactor;
-
-            Vector3 control2 =
-                exit -
-                outgoing * radius * bezierCircleFactor;
-
-            // Sample the cubic Bezier into movement waypoints.
-            for (int step = 1; step <= resolution; step++)
-            {
-                float t = step / (float)resolution;
-
-                Vector3 point = EvaluateCubicBezier(
-                    entry,
-                    control1,
-                    control2,
-                    exit,
-                    t);
-
-                AddWaypointIfDifferent(
-                    smoothedWaypoints,
-                    point);
-            }
-        }
-
-        // Retain the original route's final destination.
-        AddWaypointIfDifferent(
-            smoothedWaypoints,
-            originalWaypoints[waypointCount - 1]);
-
-        return smoothedWaypoints;
-    }
-
-    private Vector3 EvaluateCubicBezier(
-        Vector3 p0,
-        Vector3 p1,
-        Vector3 p2,
-        Vector3 p3,
-        float t)
-    {
-        float u = 1f - t;
-
-        return
-            u * u * u * p0 +
-            3f * u * u * t * p1 +
-            3f * u * t * t * p2 +
-            t * t * t * p3;
-    }
-
-    private void AddWaypointIfDifferent(
-        List<Vector3> waypoints,
-        Vector3 position)
-    {
-        if (waypoints.Count == 0 ||
-            Vector3.Distance(
-                waypoints[waypoints.Count - 1],
-                position) > 0.001f)
-        {
-            waypoints.Add(position);
-        }
-    }
-
-    // ---------------------------------------------------------
-    // ROAD PATH FOLLOWING
-    // ---------------------------------------------------------
-
-    private void MoveAlongPath()
-    {
-        if (path == null || path.Count == 0)
-        {
-            HandleRoadPathFinished();
-            return;
-        }
-
-        // Do not let road traffic enter an intersection until it owns the
-        // reservation. Parking maneuvers are intentionally unaffected.
-        if (HandleIntersectionControl())
-            return;
-
-        if (smoothedMovementWaypoints == null ||
-            smoothedMovementWaypoints.Count == 0)
-        {
-            InitializeSmoothedMovementPath();
-        }
-
-        if (currentSmoothedWaypointIndex >=
-            smoothedMovementWaypoints.Count)
-        {
-            HandleRoadPathFinished();
-            return;
-        }
-
-        Vector3 targetPosition =
-            smoothedMovementWaypoints[
-                currentSmoothedWaypointIndex];
-
-        float movementSpeed = GetTrafficFollowingSpeed();
-
-        MoveTowards(targetPosition, movementSpeed);
-
-        if (ReachedPosition(targetPosition))
-        {
-            transform.position = targetPosition;
-            currentSmoothedWaypointIndex++;
-        }
     }
 
     /// <summary>
@@ -1436,204 +1214,10 @@ public class TrafficTestVehicle : MonoBehaviour
         return currentSpeed;
     }
 
-    private bool TryGetVehicleAhead(out RaycastHit hit)
-    {
-        debugLastRayHitCollider = "None";
-        debugLastRayDirection = "None";
-        debugLastRayDistance = 0f;
-
-        debugBlockingCollider = "None";
-        debugBlockingVehicleState = "None";
-        debugBlockingDistance = 0f;
-
-        debugRaycastSummary = "";
-        debugTrafficDecision = "Checking traffic";
-        debugLastSensorUpdateTime = Time.time;
-
-        // Ignore traffic-following raycasts while holding a valid
-        // intersection reservation. Intersection control still runs normally.
-        if (hasIntersectionReservation &&
-            intersectionManager != null &&
-            intersectionManager.HasReservation(reservedIntersection, this))
-        {
-            hit = default;
-
-            debugRaycastSummary =
-                "Traffic raycasts skipped: holding intersection reservation.";
-
-            debugTrafficDecision =
-                "Continuing through reserved intersection";
-
-            return false;
-        }
-
-        Vector3 origin =
-            transform.position +
-            Vector3.up * rayOriginHeight +
-            transform.forward * rayOriginForwardOffset;
-
-        Vector3 forward = transform.forward;
-
-        Vector3 left60 =
-            Quaternion.Euler(0f, -60f, 0f) * forward;
-
-        Vector3 left30 =
-            Quaternion.Euler(0f, -30f, 0f) * forward;
-
-        Vector3 right30 =
-            Quaternion.Euler(0f, 30f, 0f) * forward;
-
-        Vector3 right60 =
-            Quaternion.Euler(0f, 60f, 0f) * forward;
-
-        bool foundVehicle = false;
-        float closestDistance = float.MaxValue;
-        RaycastHit closestHit = new RaycastHit();
-
-        CheckTrafficRay(
-            origin, left60, "Left 60",
-            ref foundVehicle, ref closestDistance, ref closestHit);
-
-        CheckTrafficRay(
-            origin, left30, "Left 30",
-            ref foundVehicle, ref closestDistance, ref closestHit);
-
-        CheckTrafficRay(
-            origin, forward, "Forward",
-            ref foundVehicle, ref closestDistance, ref closestHit);
-
-        CheckTrafficRay(
-            origin, right30, "Right 30",
-            ref foundVehicle, ref closestDistance, ref closestHit);
-
-        CheckTrafficRay(
-            origin, right60, "Right 60",
-            ref foundVehicle, ref closestDistance, ref closestHit);
-
-        hit = closestHit;
-
-        if (foundVehicle)
-        {
-            debugBlockingCollider = closestHit.collider.name;
-
-            TrafficTestVehicle blockingVehicle =
-                closestHit.collider
-                    .GetComponentInParent<TrafficTestVehicle>();
-
-            if (blockingVehicle != null)
-            {
-                debugBlockingVehicleState =
-                    blockingVehicle.state.ToString();
-            }
-
-            debugBlockingDistance = closestHit.distance;
-
-            debugTrafficDecision =
-                $"Blocking vehicle at {closestHit.distance:F2}m";
-        }
-        else
-        {
-            debugTrafficDecision =
-                "No blocking vehicle detected";
-        }
-
-        return foundVehicle;
-    }
 
 
-    private void CheckTrafficRay(
-        Vector3 origin,
-        Vector3 direction,
-        string rayName,
-        ref bool foundVehicle,
-        ref float closestDistance,
-        ref RaycastHit closestHit)
-    {
-        if (!Physics.Raycast(
-                origin,
-                direction,
-                out RaycastHit rayHit,
-                trafficDetectionDistance,
-                trafficLayer,
-                QueryTriggerInteraction.Ignore))
-        {
-            debugRaycastSummary += $"{rayName}: no hit\n";
-            return;
-        }
 
-        debugLastRayHitCollider = rayHit.collider.name;
-        debugLastRayDirection = rayName;
-        debugLastRayDistance = rayHit.distance;
 
-        debugRaycastSummary +=
-            $"{rayName}: {rayHit.collider.name} " +
-            $"({rayHit.distance:F2}m)";
-
-        TrafficTestVehicle normalVehicle =
-            rayHit.collider.GetComponentInParent<TrafficTestVehicle>();
-
-        CargoDeliveryTruck cargoTruck =
-            rayHit.collider.GetComponentInParent<CargoDeliveryTruck>();
-
-        if (normalVehicle == this)
-        {
-            debugRaycastSummary += " — self, ignored\n";
-            return;
-        }
-
-        // Normal traffic vehicle.
-        if (normalVehicle != null)
-        {
-            if (ShouldIgnoreIntersectionWaitingVehicle(normalVehicle))
-            {
-                debugRaycastSummary +=
-                    " — intersection reservation holder, ignored\n";
-                return;
-            }
-
-            if (!ShouldDetectVehicle(normalVehicle))
-            {
-                debugRaycastSummary +=
-                    $" — ignored by traffic rules ({normalVehicle.CurrentState})\n";
-                return;
-            }
-
-            debugRaycastSummary +=
-                $" — blocking normal vehicle ({normalVehicle.CurrentState})\n";
-        }
-        // Cargo delivery truck.
-        else if (cargoTruck != null)
-        {
-            CargoDeliveryTruck.TruckState truckState =
-                cargoTruck.CurrentState;
-
-            if (truckState == CargoDeliveryTruck.TruckState.Idle ||
-                truckState == CargoDeliveryTruck.TruckState.WaitingForCargoZone ||
-                truckState == CargoDeliveryTruck.TruckState.Unloading ||
-                truckState == CargoDeliveryTruck.TruckState.Arrived)
-            {
-                debugRaycastSummary +=
-                    $" — ignored cargo truck ({truckState})\n";
-                return;
-            }
-
-            debugRaycastSummary +=
-                $" — blocking cargo truck ({truckState})\n";
-        }
-        else
-        {
-            debugRaycastSummary +=
-                " — hit has no recognized vehicle component\n";
-            return;
-        }
-
-        if (rayHit.distance < closestDistance)
-        {
-            closestDistance = rayHit.distance;
-            closestHit = rayHit;
-            foundVehicle = true;
-        }
-    }
 
 
     private bool ShouldDetectVehicle(TrafficTestVehicle vehicle)
@@ -1793,83 +1377,7 @@ public class TrafficTestVehicle : MonoBehaviour
     // TRAFFIC SENSOR GIZMOS
     // ---------------------------------------------------------
 
-    private void OnDrawGizmos()
-    {
-        Vector3 origin =
-            transform.position +
-            Vector3.up * rayOriginHeight +
-            transform.forward * rayOriginForwardOffset;
 
-        Vector3 forward = transform.forward;
 
-        Vector3 left60 =
-            Quaternion.Euler(0f, -60f, 0f) * forward;
 
-        Vector3 left30 =
-            Quaternion.Euler(0f, -30f, 0f) * forward;
-
-        Vector3 right30 =
-            Quaternion.Euler(0f, 30f, 0f) * forward;
-
-        Vector3 right60 =
-            Quaternion.Euler(0f, 60f, 0f) * forward;
-
-        DrawTrafficRayGizmo(
-            origin, left60, new Color(1f, 0.5f, 0f));
-
-        DrawTrafficRayGizmo(
-            origin, left30, Color.yellow);
-
-        DrawTrafficRayGizmo(
-            origin, forward, Color.green);
-
-        DrawTrafficRayGizmo(
-            origin, right30, Color.cyan);
-
-        DrawTrafficRayGizmo(
-            origin, right60, new Color(0.5f, 0.3f, 1f));
-    }
-
-    private void DrawTrafficRayGizmo(
-        Vector3 origin,
-        Vector3 direction,
-        Color color)
-    {
-        float rayLength = trafficDetectionDistance;
-
-        if (Physics.Raycast(
-                origin,
-                direction,
-                out RaycastHit hit,
-                trafficDetectionDistance,
-                trafficLayer,
-                QueryTriggerInteraction.Ignore))
-        {
-            TrafficTestVehicle vehicle =
-                hit.collider
-                    .GetComponentInParent<TrafficTestVehicle>();
-
-            if (vehicle != null &&
-                vehicle != this &&
-                ShouldDetectVehicle(vehicle))
-            {
-                Gizmos.color = Color.red;
-                Gizmos.DrawLine(origin, hit.point);
-                Gizmos.DrawWireSphere(hit.point, 0.12f);
-                return;
-            }
-
-            rayLength = hit.distance;
-        }
-
-        Gizmos.color = color;
-
-        Gizmos.DrawLine(
-            origin,
-            origin + direction.normalized * rayLength);
-
-        Gizmos.DrawWireSphere(
-            origin + direction.normalized * rayLength,
-            0.06f);
-    }
 }
