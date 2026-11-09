@@ -2416,6 +2416,37 @@ MonoBehaviour:
   totalBaseFareValue: 0
   totalAirportFeeRevenue: 0
   totalTicketSales: 0
+--- !u!1 &1281064221
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1281064222}
+  m_Layer: 0
+  m_Name: WasteCollectionManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1281064222
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1281064221}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 7.02673, y: 0, z: 14.56932}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1332688657
 GameObject:
   m_ObjectHideFlags: 0
@@ -4571,16 +4602,22 @@ SceneRoots:
   - {fileID: 88094026}
   - {fileID: 1399790237}
   - {fileID: 449210933}
+  - {fileID: 2136825552}
   - {fileID: 1048131945}
   - {fileID: 1832806717}
   - {fileID: 2112575486}
   - {fileID: 1428745610}
+  - {fileID: 1281064222}
+  - {fileID: 118956866}
+  - {fileID: 732156762}
+  - {fileID: 133712791}
   - {fileID: 1478484322}
+  - {fileID: 1332688659}
+  - {fileID: 525498719}
   - {fileID: 1705385918}
   - {fileID: 1902104645}
   - {fileID: 1819549279093804819}
   - {fileID: 732953586}
-  - {fileID: 732156762}
   - {fileID: 2134991058}
   - {fileID: 1009875349}
   - {fileID: 756627278}
@@ -4590,15 +4627,10 @@ SceneRoots:
   - {fileID: 2059796010}
   - {fileID: 35849037}
   - {fileID: 1964681761}
-  - {fileID: 598322431}
-  - {fileID: 2136825552}
-  - {fileID: 133712791}
-  - {fileID: 118956866}
   - {fileID: 335832196}
   - {fileID: 818626683}
   - {fileID: 1712716985}
-  - {fileID: 1332688659}
-  - {fileID: 525498719}
+  - {fileID: 598322431}
   - {fileID: 7188063114622879089}
   - {fileID: 5563758338144555459}
   - {fileID: 2206400020603114989}
