@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7746180808667813702}
   - component: {fileID: 253150564575490532}
+  - component: {fileID: -643947288131750254}
   m_Layer: 7
   m_Name: GarbageTruckMain
   m_TagString: Untagged
@@ -54,6 +55,31 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 3.6, y: 1.6, z: 1.32}
   m_Center: {x: 0, y: 0.8, z: 0}
+--- !u!114 &-643947288131750254
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5132349342966066208}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e4a7c2d91f6b4380a5d3e9c7f1b62480, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GarbageCollectorController
+  movementSpeed: 4.5
+  rotationSpeed: 10
+  heightOffset: 0.2
+  waypointTolerance: 0.08
+  maximumWasteCapacity: 600
+  collectionRatePerSecond: 5
+  intersectionLookAheadModules: 1
+  intersectionClearModules: 2
+  state: 0
+  currentWasteLoad: 0
+  debugState: Waiting for route
+  debugPathIndex: 0
+  debugPathLength: 0
 --- !u!1001 &5802615123071589599
 PrefabInstance:
   m_ObjectHideFlags: 0
