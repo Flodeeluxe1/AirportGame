@@ -58,6 +58,35 @@ public class FuelTruckLotSpawner : MonoBehaviour
 
         spawnedFuelTruck.name = fuelTruckPrefab.name;
 
+        AirportFuelTruckController truckController =
+            spawnedFuelTruck.GetComponent<AirportFuelTruckController>();
+
+        if (truckController == null)
+        {
+            Debug.LogError(
+                "FuelTruckLotSpawner: Airport fuel truck prefab must have " +
+                "an AirportFuelTruckController component on its root.",
+                spawnedFuelTruck);
+            Destroy(spawnedFuelTruck);
+            spawnedFuelTruck = null;
+            return;
+        }
+
+        if (parkingPosition != null)
+        {
+            truckController.SetHomeSpawnPoint(
+                parkingPosition,
+                Vector3.zero,
+                spawnHeight);
+        }
+        else
+        {
+            truckController.SetHomeSpawnPoint(
+                transform,
+                Vector3.zero,
+                spawnHeight);
+        }
+
         if (showDebugMessages)
         {
             Debug.Log(
