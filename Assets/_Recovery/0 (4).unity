@@ -382,15 +382,15 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 5446191539009557036, guid: 2938d26be6839de408e167e9db03fb2b, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 32.4949
+      value: 70.17
       objectReference: {fileID: 0}
     - target: {fileID: 5446191539009557036, guid: 2938d26be6839de408e167e9db03fb2b, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0.7223365
+      value: 0.72
       objectReference: {fileID: 0}
     - target: {fileID: 5446191539009557036, guid: 2938d26be6839de408e167e9db03fb2b, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 57.34011
+      value: 36.92
       objectReference: {fileID: 0}
     - target: {fileID: 5446191539009557036, guid: 2938d26be6839de408e167e9db03fb2b, type: 3}
       propertyPath: m_LocalRotation.w
@@ -2863,6 +2863,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FuelManagementUIController
   uiDocument: {fileID: 762824360}
   pipelineNetworkManager: {fileID: 1428745612}
+  fuelTruckSpawner: {fileID: 0}
   refreshInterval: 1
 --- !u!1 &1502454834
 GameObject:
