@@ -32,6 +32,30 @@ public class FuelTruckSpawner : MonoBehaviour
     private readonly HashSet<PipelineNetworkManager.PipelineNetwork> activeNetworks =
         new HashSet<PipelineNetworkManager.PipelineNetwork>();
 
+    private readonly HashSet<FuelTruckController> activeTankers =
+        new HashSet<FuelTruckController>();
+
+    public int ActiveTankerCount
+    {
+        get
+        {
+            int count = 0;
+            foreach (FuelTruckController truck in activeTankers)
+            {
+                if (truck != null)
+                    count++;
+            }
+            return count;
+        }
+    }
+
+    public IReadOnlyCollection<FuelTruckController> ActiveTankers => activeTankers;
+
+    public bool HasActiveDelivery(PipelineNetworkManager.PipelineNetwork network)
+    {
+        return network != null && activeNetworks.Contains(network);
+    }
+
     private readonly Dictionary<PipelineNetworkManager.PipelineNetwork, float>
         networkRetryTimes =
             new Dictionary<PipelineNetworkManager.PipelineNetwork, float>();
@@ -126,6 +150,7 @@ public class FuelTruckSpawner : MonoBehaviour
 
         selectedRoute.Station.RegisterTruck(truck);
         activeNetworks.Add(network);
+        activeTankers.Add(truck);
 
         truck.InitializeDelivery(
             selectedRoute.Outbound,
@@ -310,8 +335,12 @@ public class FuelTruckSpawner : MonoBehaviour
 
     public void NotifyTruckFinished(
         PipelineNetworkManager.PipelineNetwork network,
+        FuelTruckController truck,
         bool successful)
     {
+        if (truck != null)
+            activeTankers.Remove(truck);
+
         if (network == null)
             return;
 
