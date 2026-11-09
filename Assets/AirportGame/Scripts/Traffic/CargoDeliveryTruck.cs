@@ -1520,6 +1520,12 @@ public class CargoDeliveryTruck : MonoBehaviour
         if (cargoTruck != null)
             return cargoTruck;
 
+        GarbageCollectorController garbageCollector =
+            hitCollider.GetComponentInParent<GarbageCollectorController>();
+
+        if (garbageCollector != null)
+            return garbageCollector;
+
         return null;
     }
 
@@ -1596,24 +1602,15 @@ public class CargoDeliveryTruck : MonoBehaviour
         {
             TruckState otherState = otherTruck.state;
 
-            // Ignore a cargo truck waiting for the same intersection
-            // when this cargo truck already owns the reservation.
             if (ShouldIgnoreIntersectionWaitingVehicle(otherTruck))
-            {
                 return false;
-            }
 
-            // A parked or unloading cargo truck must not block traffic.
             if (otherState == TruckState.Idle ||
                 otherState == TruckState.WaitingForCargoZone ||
                 otherState == TruckState.Unloading ||
                 otherState == TruckState.Arrived)
-            {
                 return false;
-            }
 
-            // When this truck is leaving its cargo zone, do not let
-            // vehicles entering or leaving other cargo zones block it.
             if (thisTruckIsLeavingCargoZone)
             {
                 if (IsCargoTruckParking(otherState))
@@ -1621,21 +1618,21 @@ public class CargoDeliveryTruck : MonoBehaviour
 
                 if (otherState == TruckState.DrivingToCargoZone ||
                     otherState == TruckState.DrivingToExit)
-                {
                     return false;
-                }
             }
 
-            // Road traffic must still detect another cargo truck
-            // actively pulling out of its cargo zone.
             if (thisTruckIsOnRoad &&
                 otherState == TruckState.ReturningToRoad)
-            {
                 return true;
-            }
 
             return true;
         }
+
+        GarbageCollectorController garbageCollector =
+            vehicle as GarbageCollectorController;
+
+        if (garbageCollector != null)
+            return garbageCollector.IsActiveOnRoad;
 
         return false;
     }
@@ -1682,6 +1679,12 @@ public class CargoDeliveryTruck : MonoBehaviour
 
         if (cargoTruck != null)
             return cargoTruck.state.ToString();
+
+        GarbageCollectorController garbageCollector =
+            vehicle as GarbageCollectorController;
+
+        if (garbageCollector != null)
+            return garbageCollector.CurrentState.ToString();
 
         return "Unknown";
     }
