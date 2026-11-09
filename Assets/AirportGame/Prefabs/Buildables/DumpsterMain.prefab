@@ -9,6 +9,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1454249126787275932}
+  - component: {fileID: 900000000000000001}
   m_Layer: 0
   m_Name: DumpsterMain
   m_TagString: Untagged
@@ -110,3 +111,17 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 2774220344278030320, guid: a439fcc9b5477b948af574e7fa3c7ed9, type: 3}
   m_PrefabInstance: {fileID: 7701629089829908653}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &900000000000000001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8400636239632999982}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a7d1c9e54b624f3e8a0d6c2f91b73540, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::WasteDumpster
+  maximumCapacity: 100
+  currentWaste: 0
