@@ -258,8 +258,7 @@ public class GarbageCollectorSpawner : MonoBehaviour
                 roadNetwork.GetRoadCenterWorldPosition(candidate, gridManager);
 
             float distance = Vector3.Distance(roadPosition, stopPoint.position);
-            if (distance > disposal.MaximumRoadApproachDistance ||
-                distance >= bestDistance)
+            if (distance > disposal.MaximumRoadApproachDistance)
                 continue;
 
             List<Vector2Int> outbound = roadNetwork.FindPath(startCell, candidate);
