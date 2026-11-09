@@ -6,6 +6,7 @@ using UnityEngine;
 /// It reserves each WasteDisposal while a collector is assigned to it.
 /// </summary>
 [DisallowMultipleComponent]
+[RequireComponent(typeof(WasteCollectionManager))]
 public class GarbageCollectorSpawner : MonoBehaviour
 {
     [Header("References")]
@@ -15,11 +16,7 @@ public class GarbageCollectorSpawner : MonoBehaviour
     [SerializeField] private GridManager gridManager;
     [SerializeField] private RoadNetwork roadNetwork;
 
-    [Header("Dispatch")]
-    [Range(0f, 100f)]
-    [SerializeField] private float dispatchThresholdPercent = 75f;
-    [Min(0.1f)]
-    [SerializeField] private float scanInterval = 2f;
+    [Header("Spawner")]
     [Min(1)]
     [SerializeField] private int maximumActiveCollectors = 3;
     [SerializeField] private float spawnHeightOffset = 0.2f;
@@ -33,7 +30,7 @@ public class GarbageCollectorSpawner : MonoBehaviour
     private readonly HashSet<GarbageCollectorController> activeCollectors =
         new HashSet<GarbageCollectorController>();
 
-    private float scanTimer;
+    public int MaximumActiveCollectors => Mathf.Max(1, maximumActiveCollectors);
 
     public int ActiveCollectorCount
     {
@@ -80,22 +77,7 @@ public class GarbageCollectorSpawner : MonoBehaviour
         }
     }
 
-    private void Update()
-    {
-        scanTimer += Time.deltaTime;
-        if (scanTimer < scanInterval)
-            return;
-
-        scanTimer = 0f;
-
-        while (ActiveCollectorCount < Mathf.Max(1, maximumActiveCollectors))
-        {
-            if (!TrySpawnCollector())
-                break;
-        }
-    }
-
-    private bool TrySpawnCollector()
+    public bool TryDispatchCollector(float thresholdPercent)
     {
         Vector2Int startCell =
             roadNetwork.GetRoadAnchor(gridManager.WorldToGrid(spawnPoint.position));
@@ -103,6 +85,7 @@ public class GarbageCollectorSpawner : MonoBehaviour
         if (!TryReserveNextDisposal(
                 startCell,
                 true,
+                thresholdPercent,
                 out WasteDisposal disposal,
                 out Vector2Int disposalRoadCell,
                 out List<Vector2Int> outboundRoute))
@@ -167,6 +150,7 @@ public class GarbageCollectorSpawner : MonoBehaviour
     public bool TryReserveNextDisposal(
         Vector2Int startCell,
         bool requireDispatchThreshold,
+        float thresholdPercent,
         out WasteDisposal selectedDisposal,
         out Vector2Int selectedRoadCell,
         out List<Vector2Int> selectedRoute)
@@ -197,7 +181,7 @@ public class GarbageCollectorSpawner : MonoBehaviour
             if (requireDispatchThreshold)
             {
                 if (capacity <= 0f ||
-                    waste / capacity * 100f < dispatchThresholdPercent)
+                    waste / capacity * 100f < thresholdPercent)
                     continue;
             }
 
@@ -303,7 +287,8 @@ public class GarbageCollectorSpawner : MonoBehaviour
             if (returnRoute == null || returnRoute.Count == 0)
                 continue;
 
-            if (outbound.Count > bestLength)
+            if (outbound.Count > bestLength ||
+                (outbound.Count == bestLength && distance >= bestDistance))
                 continue;
 
             bestDistance = distance;
