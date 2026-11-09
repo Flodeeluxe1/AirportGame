@@ -124,7 +124,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4769151545992894520}
   m_Layer: 0
-  m_Name: GarbageTruckHoldingPoint
+  m_Name: GarbageCollectorStopPoint
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
