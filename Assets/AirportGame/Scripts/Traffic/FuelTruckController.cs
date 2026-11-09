@@ -304,6 +304,22 @@ public class FuelTruckController : MonoBehaviour
 
     public float CurrentSpeed => currentSpeed;
 
+    public PipelineNetworkManager.PipelineNetwork TargetNetwork =>
+        targetFuelNetwork;
+
+    public string DeliveryStationName =>
+        deliveryStation != null ? deliveryStation.name : "Unassigned";
+
+    public string CurrentDeliveryStatus => debugState;
+
+    public bool HasActiveDelivery =>
+        !deliveryClosed && targetFuelNetwork != null;
+
+    public float IncomingFuelLitres =>
+        !deliveryClosed && !delivered
+            ? Mathf.Max(0f, deliveryLitres - deliveryLitresOffloaded)
+            : 0f;
+
     private void MoveTowards(Vector3 target)
     {
         MoveTowards(target, movementSpeed);
@@ -624,6 +640,7 @@ public class FuelTruckController : MonoBehaviour
         if (ownerSpawner != null)
             ownerSpawner.NotifyTruckFinished(
                 targetFuelNetwork,
+                this,
                 deliverySucceeded);
     }
 
