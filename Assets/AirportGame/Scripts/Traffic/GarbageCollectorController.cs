@@ -330,6 +330,7 @@ public class GarbageCollectorController : MonoBehaviour
             ownerSpawner.TryReserveNextDisposal(
                 currentRoadCell,
                 false,
+                0f,
                 out WasteDisposal nextDisposal,
                 out Vector2Int nextRoadCell,
                 out List<Vector2Int> nextRoute))
