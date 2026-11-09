@@ -76,7 +76,11 @@ public class AirportFuelTruckController : MonoBehaviour
     private RefuellingJob activeJob;
     private bool resumeAircraftAfterTruckRefill;
     private Transform currentRefillStopPoint;
+    private FuelConnector refillFuelConnector;
+    private PipelineNetworkManager pipelineNetworkManager;
     private bool warnedMissingRefillStopPoint;
+    private bool warnedMissingRefillNetwork;
+    private bool warnedEmptyRefillNetwork;
 
     public float TruckFuelCapacityLitres => truckFuelCapacityLitres;
     public float CurrentTruckFuelLitres => currentTruckFuelLitres;
@@ -537,20 +541,102 @@ public class AirportFuelTruckController : MonoBehaviour
 
     private void UpdateTruckRefilling()
     {
+        if (currentTruckFuelLitres >= truckFuelCapacityLitres)
+        {
+            FinishTruckRefilling();
+            return;
+        }
+
+        if (currentRefillStopPoint == null)
+        {
+            state = TruckState.WaitingForRefillPoint;
+            TryStartRefillStationJourney();
+            return;
+        }
+
+        if (pipelineNetworkManager == null)
+            pipelineNetworkManager =
+                FindFirstObjectByType<PipelineNetworkManager>();
+
+        if (refillFuelConnector == null)
+        {
+            refillFuelConnector =
+                currentRefillStopPoint.root.GetComponentInChildren<FuelConnector>(true);
+        }
+
+        if (pipelineNetworkManager == null || refillFuelConnector == null)
+        {
+            if (!warnedMissingRefillNetwork)
+            {
+                Debug.LogWarning(
+                    $"{name}: Cannot refill because the airport fuel station's " +
+                    "pipeline manager or FuelConnector is missing.",
+                    this);
+                warnedMissingRefillNetwork = true;
+            }
+
+            currentJobStatus = "Waiting: airport fuel network unavailable";
+            return;
+        }
+
+        PipelineNetworkManager.PipelineNetwork network =
+            pipelineNetworkManager.GetNetworkFor(refillFuelConnector);
+
+        if (network == null)
+        {
+            if (!warnedMissingRefillNetwork)
+            {
+                Debug.LogWarning(
+                    $"{name}: The airport fuel station connector is not assigned " +
+                    "to a pipeline network yet.",
+                    this);
+                warnedMissingRefillNetwork = true;
+            }
+
+            currentJobStatus = "Waiting: airport fuel network unavailable";
+            return;
+        }
+
+        warnedMissingRefillNetwork = false;
+
         float deltaGameSeconds = GetDeltaGameSeconds();
         if (deltaGameSeconds <= 0f)
             return;
 
-        currentTruckFuelLitres = Mathf.Min(
-            truckFuelCapacityLitres,
-            currentTruckFuelLitres +
+        float requestedAmount = Mathf.Min(
+            truckFuelCapacityLitres - currentTruckFuelLitres,
             truckRefillRateLitresPerMinute * deltaGameSeconds / 60f);
 
-        if (currentTruckFuelLitres < truckFuelCapacityLitres)
-            return;
+        float consumedAmount = network.ConsumeFuel(requestedAmount);
 
+        if (consumedAmount <= 0f)
+        {
+            if (!warnedEmptyRefillNetwork)
+            {
+                Debug.LogWarning(
+                    $"{name}: Airport fuel network is empty. The truck is waiting " +
+                    "until fuel becomes available.",
+                    this);
+                warnedEmptyRefillNetwork = true;
+            }
+
+            currentJobStatus = "Waiting: airport fuel network empty";
+            return;
+        }
+
+        warnedEmptyRefillNetwork = false;
+        currentTruckFuelLitres = Mathf.Min(
+            truckFuelCapacityLitres,
+            currentTruckFuelLitres + consumedAmount);
+
+        if (currentTruckFuelLitres >= truckFuelCapacityLitres)
+            FinishTruckRefilling();
+    }
+
+    private void FinishTruckRefilling()
+    {
         currentTruckFuelLitres = truckFuelCapacityLitres;
-        LogStatus("Truck tank refilled");
+        LogStatus("Truck tank refilled from airport pipeline network");
 
         if (resumeAircraftAfterTruckRefill &&
             activeJob != null &&
