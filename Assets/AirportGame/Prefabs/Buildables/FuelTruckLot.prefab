@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 8705083538214715870}
   - component: {fileID: 9021463197489738932}
   - component: {fileID: 8483458470795370128}
-  - component: {fileID: 4806592354521606577}
+  - component: {fileID: -100759408535375017}
   m_Layer: 0
   m_Name: FuelTruckLot
   m_TagString: Untagged
@@ -29,10 +29,11 @@ Transform:
   m_GameObject: {fileID: 6521951930670635967}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 38.019028, y: 0.00000051769615, z: 11.041647}
+  m_LocalPosition: {x: 38.019028, y: -0.04, z: 11.041647}
   m_LocalScale: {x: 1.52, y: 0.01, z: 1.2}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 5522260753774615039}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &8705083538214715870
@@ -113,7 +114,7 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 2.5, y: 0.01999998, z: 4.989998}
   m_Center: {x: 0, y: 0.00999999, z: 0}
---- !u!114 &4806592354521606577
+--- !u!114 &-100759408535375017
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -122,20 +123,41 @@ MonoBehaviour:
   m_GameObject: {fileID: 6521951930670635967}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 08704e26bb7cb5943a9421a45b587d46, type: 3}
+  m_Script: {fileID: 11500000, guid: 7b2d9e4c1a6f4385b0c7d2e9f1a6b843, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CargoTugLotSpawner
-  cargoTugPrefab: {fileID: 1970913010140861768, guid: 0fdce0589bc6e98448bedca492c16cb6, type: 3}
-  cargoTrailerPrefab: {fileID: 6005868715613805659, guid: bb40a8a8ec9f6e145a8c02c13d91bab2, type: 3}
-  tugParking: {fileID: 0}
-  trailerParkingPositions:
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  tugSpawnOffset: {x: 0, y: 0, z: 0}
-  spawnHeight: -0.05
-  trailerSpawnHeight: 0.7
-  trailerPrice: 1000
-  homeArrivalTolerance: 0.25
-  showDebugMessages: 1
+  m_EditorClassIdentifier: Assembly-CSharp::FuelTruckLotSpawner
+  fuelTruckPrefab: {fileID: 638855529111044832, guid: b74f9066af889484fa0108c0253e08f9, type: 3}
+  parkingPosition: {fileID: 0}
+  spawnHeight: 0
+  showDebugMessages: 0
+--- !u!1 &6559819609688533920
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5522260753774615039}
+  m_Layer: 0
+  m_Name: FuelTruckParking
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5522260753774615039
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6559819609688533920}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: -0.000017567687, y: 0.01994823, z: -0.000030994415}
+  m_LocalScale: {x: 0.6578948, y: 100, z: 0.8333333}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 6934376304079159930}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
