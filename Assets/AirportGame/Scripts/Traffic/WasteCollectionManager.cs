@@ -2,12 +2,16 @@ using UnityEngine;
 
 /// <summary>
 /// Tracks airport waste levels and requests collectors when a disposal
-/// reaches the configured fill percentage. Add alongside
-/// GarbageCollectorSpawner on the shared RoadTrafficSpawner object.
+/// reaches the configured fill percentage. Place this component on the
+/// scene object named WasteCollectionManager and reference the spawner on
+/// the separate RoadTrafficSpawner object.
 /// </summary>
 [DisallowMultipleComponent]
 public class WasteCollectionManager : MonoBehaviour
 {
+    [Header("References")]
+    [SerializeField] private GarbageCollectorSpawner garbageCollectorSpawner;
+
     [Header("Automatic Collection")]
     [Range(0f, 100f)]
     [SerializeField] private float dispatchThresholdPercent = 75f;
@@ -19,7 +23,6 @@ public class WasteCollectionManager : MonoBehaviour
     [SerializeField] private float totalCurrentWaste;
     [SerializeField] private float totalWasteCapacity;
 
-    private GarbageCollectorSpawner garbageCollectorSpawner;
     private float scanTimer;
 
     public int TrackedDisposalCount => trackedDisposalCount;
@@ -30,12 +33,13 @@ public class WasteCollectionManager : MonoBehaviour
 
     private void Awake()
     {
-        garbageCollectorSpawner = GetComponent<GarbageCollectorSpawner>();
+        if (garbageCollectorSpawner == null)
+            garbageCollectorSpawner = FindFirstObjectByType<GarbageCollectorSpawner>();
 
         if (garbageCollectorSpawner == null)
         {
             Debug.LogError(
-                "WasteCollectionManager requires GarbageCollectorSpawner on the same GameObject.",
+                "WasteCollectionManager: Assign the GarbageCollectorSpawner from the RoadTrafficSpawner GameObject.",
                 this);
             enabled = false;
         }
