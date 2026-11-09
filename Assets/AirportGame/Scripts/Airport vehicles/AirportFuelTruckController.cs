@@ -26,6 +26,8 @@ public class AirportFuelTruckController : MonoBehaviour
         public AircraftFuelTank FuelTank;
         public AircraftGate Gate;
         public Transform StopPoint;
+        public float FuelLitresDelivered;
+        public bool PaymentProcessed;
     }
 
     private static readonly List<AirportFuelTruckController> activeTrucks =
@@ -421,6 +423,7 @@ public class AirportFuelTruckController : MonoBehaviour
             currentTruckFuelLitres);
 
         float accepted = activeJob.FuelTank.AddFuel(amountAvailable);
+        activeJob.FuelLitresDelivered += accepted;
         currentTruckFuelLitres =
             Mathf.Max(0f, currentTruckFuelLitres - accepted);
 
@@ -438,6 +441,7 @@ public class AirportFuelTruckController : MonoBehaviour
     {
         if (activeJob != null && activeJob.Aircraft != null)
         {
+            ChargeAircraftForCompletedFuel(activeJob);
             activeJob.Aircraft.CompleteExternalFueling();
             globallyRequestedAircraft.Remove(activeJob.Aircraft);
 
@@ -457,6 +461,62 @@ public class AirportFuelTruckController : MonoBehaviour
         // After the last job, the truck always visits its refill station
         // before deciding whether to take a newly arrived job or go home.
         BeginRefillStationJourney(false);
+    }
+
+    private void ChargeAircraftForCompletedFuel(RefuellingJob job)
+    {
+        if (job == null || job.PaymentProcessed)
+            return;
+
+        job.PaymentProcessed = true;
+
+        if (job.FuelLitresDelivered <= 0f)
+            return;
+
+        AircraftFuelStation fuelStation =
+            FindFirstObjectByType<AircraftFuelStation>();
+
+        if (fuelStation == null)
+        {
+            Debug.LogWarning(
+                $"{name}: Could not charge {job.Aircraft?.name ?? "aircraft"} " +
+                "for fuel because no AircraftFuelStation was found to read its price.",
+                this);
+            return;
+        }
+
+        AirportEconomyManager economyManager =
+            FindFirstObjectByType<AirportEconomyManager>();
+
+        if (economyManager == null)
+        {
+            Debug.LogWarning(
+                $"{name}: Could not record the aircraft fuel payment because " +
+                "AirportEconomyManager was not found.",
+                this);
+            return;
+        }
+
+        float pricePerLitre = fuelStation.SellingPricePerLitre;
+        int totalCost = Mathf.CeilToInt(
+            job.FuelLitresDelivered * pricePerLitre);
+
+        if (totalCost <= 0)
+            return;
+
+        bool paymentRecorded = economyManager.AddRevenue(
+            totalCost,
+            $"CargoPax aircraft fuel sale ({job.Aircraft?.name ?? "aircraft"})");
+
+        if (paymentRecorded)
+        {
+            Debug.Log(
+                $"AIRPORT INCOME | Aircraft fuel: " +
+                $"{job.FuelLitresDelivered:N1} L x ${pricePerLitre:N2}/L " +
+                $"= +${totalCost:N0} | Aircraft: " +
+                $"{job.Aircraft?.name ?? "aircraft"}",
+                this);
+        }
     }
 
     private void BeginRefillStationJourney(bool resumeCurrentAircraft)
