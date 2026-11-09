@@ -295,6 +295,12 @@ public class FuelTruckController : MonoBehaviour
                    otherState != CargoDeliveryTruck.TruckState.Arrived;
         }
 
+        GarbageCollectorController garbageCollector =
+            collider.GetComponentInParent<GarbageCollectorController>();
+
+        if (garbageCollector != null)
+            return garbageCollector.IsActiveOnRoad;
+
         FuelTruckController fuelTruck =
             collider.GetComponentInParent<FuelTruckController>();
 
