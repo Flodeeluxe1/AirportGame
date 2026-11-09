@@ -295,10 +295,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2a7d4e9c1b6f4380a5d2e7c9f1b63480, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CleaningLotSpawner
-  cleaningVehiclePrefab: {fileID: 0}
+  cleaningVehiclePrefab: {fileID: 7704799895376171895, guid: 4f5aa983601bc3c4ba41b9d8cf7e9c62, type: 3}
   cleaningVehicleParkingPoint: {fileID: 0}
   spawnHeightOffset: 0
-  logSpawn: 1
+  logSpawn: 0
 --- !u!4 &8777928507184413422 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 8275853014694940425, guid: d1841403ccfbc894f8d6a3fb2de7cdfc, type: 3}
