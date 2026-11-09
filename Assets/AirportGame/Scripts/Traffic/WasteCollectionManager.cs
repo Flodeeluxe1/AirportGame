@@ -6,7 +6,6 @@ using UnityEngine;
 /// GarbageCollectorSpawner on the shared RoadTrafficSpawner object.
 /// </summary>
 [DisallowMultipleComponent]
-[RequireComponent(typeof(GarbageCollectorSpawner))]
 public class WasteCollectionManager : MonoBehaviour
 {
     [Header("Automatic Collection")]
@@ -52,6 +51,7 @@ public class WasteCollectionManager : MonoBehaviour
         RefreshWasteTotals();
 
         while (garbageCollectorSpawner != null &&
+               garbageCollectorSpawner.isActiveAndEnabled &&
                garbageCollectorSpawner.ActiveCollectorCount <
                garbageCollectorSpawner.MaximumActiveCollectors)
         {
