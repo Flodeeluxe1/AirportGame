@@ -88,6 +88,8 @@ public sealed class PipelineNetworkManager : MonoBehaviour
 
     public IReadOnlyList<PipelineNetwork> Networks => networks;
     public int NetworkCount => networks.Count;
+    public float AutomaticRefillThresholdPercent =>
+        automaticRefillThresholdPercent;
     public int TopologyVersion { get; private set; }
 
     private void Start()
