@@ -766,14 +766,8 @@ public class AircraftTurnaroundController : MonoBehaviour
 
     private void RequestExternalFuelServiceIfAvailable()
     {
-        AirportFuelTruckController truck =
-            AirportFuelTruckController.Instance;
-
-        if (truck != null &&
-            !truck.RequestRefuelling(this))
-        {
+        if (!AirportFuelTruckController.RequestRefuelling(this))
             CancelExternalFueling();
-        }
     }
 
     private void AdvanceTask(TaskType taskType, float deltaGameSeconds)
