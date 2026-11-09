@@ -92,7 +92,6 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1.7, y: 1.8, z: 3.87}
   m_Center: {x: 0, y: 0.9, z: -0.39}
-
 --- !u!114 &7712682086545469396
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -140,8 +139,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AirportFuelTruckController
   groundVehicleMovement: {fileID: 0}
-  truckFuelCapacityLitres: 800
-  currentTruckFuelLitres: 800
+  truckFuelCapacityLitres: 3000
+  currentTruckFuelLitres: 3000
   aircraftRefuellingRateLitresPerMinute: 100
   truckRefillRateLitresPerMinute: 300
   refillStopPointName: FuelTruckRefillStopPoint

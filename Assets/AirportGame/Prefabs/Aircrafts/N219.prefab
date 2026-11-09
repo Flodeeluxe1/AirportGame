@@ -185,8 +185,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4c0d8e2a7f6b4e9d9a1c3f5b7d2e8a60, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AircraftFuelTank
-  maximumFuelLitres: 4000
-  currentFuelLitres: 200
+  maximumFuelLitres: 3000
+  currentFuelLitres: 1200
   consumptionLitresPerHour: 40
 --- !u!114 &-5687118414093639624
 MonoBehaviour:
