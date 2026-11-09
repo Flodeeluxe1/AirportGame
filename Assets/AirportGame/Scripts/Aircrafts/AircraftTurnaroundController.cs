@@ -867,7 +867,9 @@ public class AircraftTurnaroundController : MonoBehaviour
             this
         );
 
-        if (task.DurationSeconds <= 0f)
+        // Fueling has no simulated duration; it remains in progress until
+        // an airport fuel truck completes the real fuel transfer.
+        if (taskType != TaskType.Fueling && task.DurationSeconds <= 0f)
             CompleteTask(taskType);
     }
 
