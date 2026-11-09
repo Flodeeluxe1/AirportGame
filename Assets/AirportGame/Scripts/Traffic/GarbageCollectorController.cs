@@ -193,6 +193,7 @@ public class GarbageCollectorController : MonoBehaviour
         {
             if (state == CollectorState.DrivingToDisposal)
             {
+                ReleaseIntersectionReservation();
                 state = CollectorState.ApproachingDisposal;
                 debugState = "Approaching GarbageCollectorStopPoint";
             }
@@ -230,6 +231,7 @@ public class GarbageCollectorController : MonoBehaviour
             {
                 if (state == CollectorState.DrivingToDisposal)
                 {
+                    ReleaseIntersectionReservation();
                     state = CollectorState.ApproachingDisposal;
                     debugState = "Approaching GarbageCollectorStopPoint";
                 }
