@@ -40,7 +40,7 @@ public class AircraftCleaningVehicleController : MonoBehaviour
     private AircraftTurnaroundController assignedAircraft;
     private Transform aircraftStopPoint;
 
-    public bool IsBusy => state != CleaningState.Idle;
+    public bool IsBusy => state != CleaningState.Idle || !IsParkedAtHome();
     public string CurrentStatus => currentStatus;
     public static int ActiveVehicleCount => activeVehicles.Count;
 
@@ -87,7 +87,8 @@ public class AircraftCleaningVehicleController : MonoBehaviour
         {
             if (vehicle == null || vehicle.IsBusy ||
                 vehicle.groundVehicleMovement == null ||
-                vehicle.homeParkingPoint == null)
+                vehicle.homeParkingPoint == null ||
+                !vehicle.IsParkedAtHome())
             {
                 continue;
             }
@@ -107,7 +108,9 @@ public class AircraftCleaningVehicleController : MonoBehaviour
 
     private bool BeginCleaningJob(AircraftTurnaroundController aircraft)
     {
-        if (state != CleaningState.Idle || aircraft == null)
+        // A vehicle can only accept another aircraft after it has returned
+        // to its assigned lot parking position and facing direction.
+        if (state != CleaningState.Idle || aircraft == null || !IsParkedAtHome())
             return false;
 
         AircraftFlightIdentity identity =
@@ -344,6 +347,20 @@ public class AircraftCleaningVehicleController : MonoBehaviour
             currentStatus = "Idle - return route failed";
             ClearAssignment();
         }
+    }
+
+    private bool IsParkedAtHome()
+    {
+        if (homeParkingPoint == null)
+            return false;
+
+        const float positionTolerance = 0.5f;
+        const float facingTolerance = 5f;
+
+        return Vector3.Distance(transform.position, homeParkingPoint.position) <=
+                   positionTolerance &&
+               Vector3.Angle(transform.forward, homeParkingPoint.forward) <=
+                   facingTolerance;
     }
 
     private void ClearAssignment()
