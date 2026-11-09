@@ -44,7 +44,6 @@ public class FuelTruckSpawner : MonoBehaviour
         if (roadNetwork == null)
             roadNetwork = FindFirstObjectByType<RoadNetwork>();
 
-        pipelineNetworkManager = FindFirstObjectByType<PipelineNetworkManager>();
     }
 
     private void Start()
@@ -59,7 +58,6 @@ public class FuelTruckSpawner : MonoBehaviour
             return;
         }
 
-        scanTimer = 0f;
     }
 
     public bool TryDispatchDelivery(
