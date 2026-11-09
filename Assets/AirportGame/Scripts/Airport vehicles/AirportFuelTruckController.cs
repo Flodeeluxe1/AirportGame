@@ -74,6 +74,7 @@ public class AirportFuelTruckController : MonoBehaviour
     private RefuellingJob activeJob;
     private bool resumeAircraftAfterTruckRefill;
     private Transform currentRefillStopPoint;
+    private bool warnedMissingRefillStopPoint;
 
     public float TruckFuelCapacityLitres => truckFuelCapacityLitres;
     public float CurrentTruckFuelLitres => currentTruckFuelLitres;
@@ -296,6 +297,10 @@ public class AirportFuelTruckController : MonoBehaviour
             if (activeJob.FuelTank.IsFull)
             {
                 CompleteActiveAircraftJob();
+
+                if (state != TruckState.Idle)
+                    return;
+
                 continue;
             }
 
@@ -438,11 +443,25 @@ public class AirportFuelTruckController : MonoBehaviour
                 GameObject.Find(refillStopPointName);
 
             if (stopPointObject != null)
+            {
                 currentRefillStopPoint = stopPointObject.transform;
+                warnedMissingRefillStopPoint = false;
+            }
         }
 
         if (currentRefillStopPoint == null)
+        {
+            if (!warnedMissingRefillStopPoint)
+            {
+                Debug.LogWarning(
+                    $"{name}: Waiting for a scene transform named " +
+                    $"'{refillStopPointName}' for the airport fuel station.",
+                    this);
+                warnedMissingRefillStopPoint = true;
+            }
+
             return;
+        }
 
         bool routeStarted = groundVehicleMovement.MoveTo(
             currentRefillStopPoint.position,
