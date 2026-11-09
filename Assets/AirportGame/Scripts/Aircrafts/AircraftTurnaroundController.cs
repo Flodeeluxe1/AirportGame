@@ -948,9 +948,22 @@ public class AircraftTurnaroundController : MonoBehaviour
         switch (taskType)
         {
             case TaskType.Deboarding:
-                StartTask(TaskType.Cleaning);
-                EnableExternalCleaning();
-                RequestExternalCleaningServiceIfAvailable();
+                PassengerFlightRevenue passengerRevenue =
+                    GetComponent<PassengerFlightRevenue>();
+
+                if (passengerRevenue == null ||
+                    passengerRevenue.BookedPassengers <= 0)
+                {
+                    // No passengers were carried, so no cleaning vehicle is needed.
+                    CompleteTask(TaskType.Cleaning);
+                }
+                else
+                {
+                    StartTask(TaskType.Cleaning);
+                    EnableExternalCleaning();
+                    RequestExternalCleaningServiceIfAvailable();
+                }
+
                 StartTask(TaskType.Fueling);
                 RequestExternalFuelServiceIfAvailable();
                 break;
