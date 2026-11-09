@@ -37,10 +37,11 @@ public class AircraftCleaningVehicleController : MonoBehaviour
     [SerializeField] private float phaseElapsedGameSeconds;
 
     private CleaningState state = CleaningState.Idle;
+    private bool parkedAtHome;
     private AircraftTurnaroundController assignedAircraft;
     private Transform aircraftStopPoint;
 
-    public bool IsBusy => state != CleaningState.Idle || !IsParkedAtHome();
+    public bool IsBusy => state != CleaningState.Idle || !parkedAtHome;
     public string CurrentStatus => currentStatus;
     public static int ActiveVehicleCount => activeVehicles.Count;
 
@@ -67,6 +68,7 @@ public class AircraftCleaningVehicleController : MonoBehaviour
     public void SetHomeParkingPoint(Transform parkingPoint)
     {
         homeParkingPoint = parkingPoint;
+        parkedAtHome = homeParkingPoint != null && state == CleaningState.Idle;
 
         if (groundVehicleMovement == null)
             groundVehicleMovement = GetComponent<AirportGroundVehicleMovement>();
@@ -110,7 +112,7 @@ public class AircraftCleaningVehicleController : MonoBehaviour
     {
         // A vehicle can only accept another aircraft after it has returned
         // to its assigned lot parking position and facing direction.
-        if (state != CleaningState.Idle || aircraft == null || !IsParkedAtHome())
+        if (state != CleaningState.Idle || aircraft == null || !parkedAtHome)
             return false;
 
         AircraftFlightIdentity identity =
@@ -155,6 +157,7 @@ public class AircraftCleaningVehicleController : MonoBehaviour
         int passengerCount =
             passengerRevenue != null ? passengerRevenue.BookedPassengers : 0;
 
+        parkedAtHome = false;
         assignedAircraft = aircraft;
         aircraftStopPoint = stopPoint;
         passengersToClean = Mathf.Max(0, passengerCount);
@@ -334,6 +337,7 @@ public class AircraftCleaningVehicleController : MonoBehaviour
                 homeParkingPoint.rotation);
 
             state = CleaningState.Idle;
+            parkedAtHome = true;
             currentStatus = "Idle";
             phaseElapsedGameSeconds = 0f;
             passengersToClean = 0;
@@ -347,20 +351,6 @@ public class AircraftCleaningVehicleController : MonoBehaviour
             currentStatus = "Idle - return route failed";
             ClearAssignment();
         }
-    }
-
-    private bool IsParkedAtHome()
-    {
-        if (homeParkingPoint == null)
-            return false;
-
-        const float positionTolerance = 0.5f;
-        const float facingTolerance = 5f;
-
-        return Vector3.Distance(transform.position, homeParkingPoint.position) <=
-                   positionTolerance &&
-               Vector3.Angle(transform.forward, homeParkingPoint.forward) <=
-                   facingTolerance;
     }
 
     private void ClearAssignment()
