@@ -20,8 +20,6 @@ public class FuelTruckSpawner : MonoBehaviour
     [SerializeField] private float fuelPricePerLitre = 1f;
 
     [Header("Spawner")]
-    [Min(0.1f)]
-    [SerializeField] private float scanInterval = 2f;
     [SerializeField] private float spawnHeightOffset = 0.2f;
 
     [Header("Diagnostics")]
@@ -29,10 +27,6 @@ public class FuelTruckSpawner : MonoBehaviour
 
     private readonly HashSet<PipelineNetworkManager.PipelineNetwork> activeNetworks =
         new HashSet<PipelineNetworkManager.PipelineNetwork>();
-
-    private PipelineNetworkManager pipelineNetworkManager;
-
-    private float scanTimer;
 
     private class StationRoute
     {
@@ -68,79 +62,62 @@ public class FuelTruckSpawner : MonoBehaviour
         scanTimer = 0f;
     }
 
-    private void Update()
+    public bool TryDispatchDelivery(
+        PipelineNetworkManager.PipelineNetwork network)
     {
-        scanTimer -= Time.deltaTime;
-        if (scanTimer > 0f)
-            return;
+        if (network == null || network.CapacityLitres <= 0f ||
+            network.RemainingCapacityLitres <= 0f ||
+            activeNetworks.Contains(network))
+            return false;
 
-        scanTimer = Mathf.Max(0.1f, scanInterval);
-        DispatchPendingDeliveries();
-    }
+        StationRoute selectedRoute = SelectDeliveryStation(network);
+        if (selectedRoute == null)
+            return false;
 
-    private void DispatchPendingDeliveries()
-    {
-        if (pipelineNetworkManager == null)
-            pipelineNetworkManager = FindFirstObjectByType<PipelineNetworkManager>();
+        float amount = Mathf.Min(tankerCapacityLitres, network.RemainingCapacityLitres);
+        if (amount <= 0f)
+            return false;
 
-        if (pipelineNetworkManager == null)
-            return;
+        Vector3 spawnPosition =
+            roadNetwork.GetRoadCenterWorldPosition(selectedRoute.Outbound[0], gridManager);
+        spawnPosition.y += spawnHeightOffset;
 
-        foreach (PipelineNetworkManager.PipelineNetwork network in pipelineNetworkManager.Networks)
+        GameObject truckObject = Instantiate(
+            fuelTruckPrefab, spawnPosition, spawnPoint.rotation);
+        FuelTruckController truck = truckObject.GetComponent<FuelTruckController>();
+
+        if (truck == null)
         {
-            if (network == null || network.CapacityLitres <= 0f ||
-                network.RemainingCapacityLitres <= 0f ||
-                network.CurrentFuelLitres > network.CapacityLitres * 0.25f ||
-                activeNetworks.Contains(network))
-                continue;
-
-            StationRoute selectedRoute = SelectDeliveryStation(network);
-            if (selectedRoute == null)
-                continue;
-
-            float amount = Mathf.Min(tankerCapacityLitres, network.RemainingCapacityLitres);
-            if (amount <= 0f)
-                continue;
-
-            Vector3 spawnPosition =
-                roadNetwork.GetRoadCenterWorldPosition(selectedRoute.Outbound[0], gridManager);
-            spawnPosition.y += spawnHeightOffset;
-
-            GameObject truckObject = Instantiate(
-                fuelTruckPrefab, spawnPosition, spawnPoint.rotation);
-            FuelTruckController truck = truckObject.GetComponent<FuelTruckController>();
-
-            if (truck == null)
-            {
-                Debug.LogError(
-                    "FuelTruckSpawner: FuelTruckController must be on the tanker prefab root.",
-                    truckObject);
-                Destroy(truckObject);
-                continue;
-            }
-
-            selectedRoute.Station.RegisterTruck(truck);
-            activeNetworks.Add(network);
-
-            truck.InitializeDelivery(
-                selectedRoute.Outbound,
-                selectedRoute.Returning,
-                selectedRoute.Station,
-                network,
-                amount,
-                fuelPricePerLitre,
-                this);
-
-            if (logDispatches)
-            {
-                Debug.Log(
-                    $"FUEL TANKER DISPATCHED | Pipeline reserve: " +
-                    $"{network.CurrentFuelLitres:F0}/{network.CapacityLitres:F0} L | " +
-                    $"Delivery station: {selectedRoute.Station.name} | " +
-                    $"Queued there: {selectedRoute.Station.QueuedVehicleCount}",
-                    truckObject);
-            }
+            Debug.LogError(
+                "FuelTruckSpawner: FuelTruckController must be on the tanker prefab root.",
+                truckObject);
+            Destroy(truckObject);
+            return false;
         }
+
+        selectedRoute.Station.RegisterTruck(truck);
+        activeNetworks.Add(network);
+
+        truck.InitializeDelivery(
+            selectedRoute.Outbound,
+            selectedRoute.Returning,
+            selectedRoute.Station,
+            network,
+            amount,
+            fuelPricePerLitre,
+            this);
+
+        if (logDispatches)
+        {
+            Debug.Log(
+                $"FUEL TANKER DISPATCHED | Pipeline reserve: " +
+                $"{network.CurrentFuelLitres:F0}/{network.CapacityLitres:F0} L | " +
+                $"Delivery station: {selectedRoute.Station.name} | " +
+                $"Queued there: {selectedRoute.Station.QueuedVehicleCount}",
+                truckObject);
+        }
+
+        return true;
     }
 
     private StationRoute SelectDeliveryStation(
