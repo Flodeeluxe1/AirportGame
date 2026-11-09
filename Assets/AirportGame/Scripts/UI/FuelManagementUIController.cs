@@ -1,19 +1,18 @@
 using System.Collections.Generic;
-using System.Text;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UIElements;
 
 /// <summary>
-/// Read-only overview of the airport's connected pipeline fuel reserves.
-/// Attach this component to the same scene object as FlightManagementUIController
-/// and assign the same UIDocument.
+/// Read-only overview of pipeline reserves, incoming fuel deliveries,
+/// and aircraft refuelling activity.
 /// </summary>
 public class FuelManagementUIController : MonoBehaviour
 {
     [Header("References")]
     [SerializeField] private UIDocument uiDocument;
     [SerializeField] private PipelineNetworkManager pipelineNetworkManager;
+    [SerializeField] private FuelTruckSpawner fuelTruckSpawner;
 
     [Header("Display")]
     [Min(0.1f)]
@@ -22,10 +21,17 @@ public class FuelManagementUIController : MonoBehaviour
     private VisualElement root;
     private VisualElement window;
     private VisualElement networkRows;
+    private VisualElement tankerRows;
     private Label totalFuelLabel;
     private Label totalCapacityLabel;
     private Label totalPercentageLabel;
     private Label networkCountLabel;
+    private Label activeTankerLabel;
+    private Label incomingFuelLabel;
+    private Label awaitingDeliveryLabel;
+    private Label aircraftRequiringFuelLabel;
+    private Label aircraftBeingRefuelledLabel;
+    private Label waitingForTruckLabel;
     private Button openButton;
     private bool windowOpen;
     private float nextRefreshTime;
@@ -47,9 +53,7 @@ public class FuelManagementUIController : MonoBehaviour
         if (uiDocument == null)
             uiDocument = FindFirstObjectByType<UIDocument>();
 
-        if (pipelineNetworkManager == null)
-            pipelineNetworkManager =
-                FindFirstObjectByType<PipelineNetworkManager>();
+        ResolveDataSources();
 
         if (uiDocument == null)
         {
@@ -100,6 +104,17 @@ public class FuelManagementUIController : MonoBehaviour
             root.Remove(window);
     }
 
+    private void ResolveDataSources()
+    {
+        if (pipelineNetworkManager == null)
+            pipelineNetworkManager =
+                FindFirstObjectByType<PipelineNetworkManager>();
+
+        if (fuelTruckSpawner == null)
+            fuelTruckSpawner =
+                FindFirstObjectByType<FuelTruckSpawner>();
+    }
+
     private void CreateOpenButton()
     {
         openButton = new Button(OpenWindow)
@@ -135,10 +150,10 @@ public class FuelManagementUIController : MonoBehaviour
         window.name = "fuel-management-window";
 
         window.style.position = Position.Absolute;
-        window.style.left = new Length(18, LengthUnit.Percent);
-        window.style.right = new Length(18, LengthUnit.Percent);
-        window.style.top = 65;
-        window.style.bottom = 70;
+        window.style.left = new Length(14, LengthUnit.Percent);
+        window.style.right = new Length(14, LengthUnit.Percent);
+        window.style.top = 48;
+        window.style.bottom = 68;
         window.style.flexDirection = FlexDirection.Column;
         window.style.paddingLeft = 14;
         window.style.paddingRight = 14;
@@ -150,11 +165,12 @@ public class FuelManagementUIController : MonoBehaviour
         window.style.borderBottomLeftRadius = 8;
         window.style.borderBottomRightRadius = 8;
 
-        // Add directly to the UIDocument root, not inside another window.
         root.Add(window);
 
         CreateHeader();
-        CreateSummary();
+        CreateNetworkSummary();
+        CreateDeliverySection();
+        CreateAircraftSection();
         CreateNetworkSection();
     }
 
@@ -164,7 +180,7 @@ public class FuelManagementUIController : MonoBehaviour
         header.style.flexDirection = FlexDirection.Row;
         header.style.alignItems = Align.Center;
         header.style.justifyContent = Justify.SpaceBetween;
-        header.style.marginBottom = 12;
+        header.style.marginBottom = 10;
 
         Label title = new Label("FUEL MANAGEMENT");
         title.style.fontSize = 21;
@@ -182,12 +198,9 @@ public class FuelManagementUIController : MonoBehaviour
         window.Add(header);
     }
 
-    private void CreateSummary()
+    private void CreateNetworkSummary()
     {
-        VisualElement summary = new VisualElement();
-        summary.style.flexDirection = FlexDirection.Row;
-        summary.style.flexShrink = 0;
-        summary.style.marginBottom = 14;
+        VisualElement summary = CreateCardRow();
 
         totalFuelLabel = CreateSummaryCard(
             summary, "TOTAL FUEL STORED", "0 L");
@@ -195,56 +208,47 @@ public class FuelManagementUIController : MonoBehaviour
             summary, "TOTAL CAPACITY", "0 L");
         totalPercentageLabel = CreateSummaryCard(
             summary, "OVERALL RESERVE", "0%");
-        
-        window.Add(summary);
 
-        networkCountLabel = new Label("PIPELINE NETWORKS");
-        networkCountLabel.style.fontSize = 14;
-        networkCountLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
-        networkCountLabel.style.color =
-            (Color)new Color32(215, 222, 231, 255);
-        networkCountLabel.style.marginBottom = 6;
-        window.Add(networkCountLabel);
+        window.Add(summary);
     }
 
-    private Label CreateSummaryCard(
-        VisualElement parent,
-        string heading,
-        string initialValue)
+    private void CreateDeliverySection()
     {
-        VisualElement card = new VisualElement();
-        card.style.flexGrow = 1;
-        card.style.marginRight = 8;
-        card.style.paddingLeft = 12;
-        card.style.paddingRight = 12;
-        card.style.paddingTop = 10;
-        card.style.paddingBottom = 10;
-        card.style.backgroundColor = PanelColor;
-        card.style.borderTopLeftRadius = 6;
-        card.style.borderTopRightRadius = 6;
-        card.style.borderBottomLeftRadius = 6;
-        card.style.borderBottomRightRadius = 6;
+        AddSectionTitle("FUEL DELIVERIES");
 
-        Label headingLabel = new Label(heading);
-        headingLabel.style.fontSize = 10;
-        headingLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
-        headingLabel.style.color = MutedTextColor;
+        VisualElement summary = CreateCardRow();
+        activeTankerLabel = CreateSummaryCard(
+            summary, "ACTIVE TANKERS", "0");
+        incomingFuelLabel = CreateSummaryCard(
+            summary, "FUEL CURRENTLY INCOMING", "0 L");
+        awaitingDeliveryLabel = CreateSummaryCard(
+            summary, "NETWORKS AWAITING DELIVERY", "0");
+        window.Add(summary);
 
-        Label valueLabel = new Label(initialValue);
-        valueLabel.style.fontSize = 22;
-        valueLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
-        valueLabel.style.color = Color.white;
-        valueLabel.style.marginTop = 4;
+        tankerRows = new VisualElement();
+        tankerRows.style.flexDirection = FlexDirection.Column;
+        tankerRows.style.marginTop = 5;
+        window.Add(tankerRows);
+    }
 
-        card.Add(headingLabel);
-        card.Add(valueLabel);
-        parent.Add(card);
+    private void CreateAircraftSection()
+    {
+        AddSectionTitle("AIRCRAFT REFUELLING");
 
-        return valueLabel;
+        VisualElement summary = CreateCardRow();
+        aircraftRequiringFuelLabel = CreateSummaryCard(
+            summary, "AIRCRAFT REQUIRING FUEL", "0");
+        aircraftBeingRefuelledLabel = CreateSummaryCard(
+            summary, "AIRCRAFT BEING REFUELLED", "0");
+        waitingForTruckLabel = CreateSummaryCard(
+            summary, "WAITING FOR FUEL TRUCK", "0");
+        window.Add(summary);
     }
 
     private void CreateNetworkSection()
     {
+        AddSectionTitle("PIPELINE NETWORKS");
+
         ScrollView scroll = new ScrollView(ScrollViewMode.Vertical);
         scroll.name = "fuel-management-network-scroll";
         scroll.style.flexGrow = 1;
@@ -255,6 +259,64 @@ public class FuelManagementUIController : MonoBehaviour
         networkRows.style.flexDirection = FlexDirection.Column;
 
         window.Add(scroll);
+    }
+
+    private VisualElement CreateCardRow()
+    {
+        VisualElement row = new VisualElement();
+        row.style.flexDirection = FlexDirection.Row;
+        row.style.flexShrink = 0;
+        row.style.marginBottom = 6;
+        return row;
+    }
+
+    private void AddSectionTitle(string title)
+    {
+        Label label = new Label(title);
+        label.style.fontSize = 13;
+        label.style.unityFontStyleAndWeight = FontStyle.Bold;
+        label.style.color = (Color)new Color32(215, 222, 231, 255);
+        label.style.marginTop = 7;
+        label.style.marginBottom = 5;
+        window.Add(label);
+    }
+
+    private Label CreateSummaryCard(
+        VisualElement parent,
+        string heading,
+        string initialValue)
+    {
+        VisualElement card = new VisualElement();
+        card.style.flexGrow = 1;
+        card.style.minWidth = 0;
+        card.style.marginRight = 7;
+        card.style.paddingLeft = 10;
+        card.style.paddingRight = 10;
+        card.style.paddingTop = 7;
+        card.style.paddingBottom = 7;
+        card.style.backgroundColor = PanelColor;
+        card.style.borderTopLeftRadius = 6;
+        card.style.borderTopRightRadius = 6;
+        card.style.borderBottomLeftRadius = 6;
+        card.style.borderBottomRightRadius = 6;
+
+        Label headingLabel = new Label(heading);
+        headingLabel.style.fontSize = 9;
+        headingLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+        headingLabel.style.color = MutedTextColor;
+        headingLabel.style.whiteSpace = WhiteSpace.Normal;
+
+        Label valueLabel = new Label(initialValue);
+        valueLabel.style.fontSize = 19;
+        valueLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+        valueLabel.style.color = Color.white;
+        valueLabel.style.marginTop = 3;
+
+        card.Add(headingLabel);
+        card.Add(valueLabel);
+        parent.Add(card);
+
+        return valueLabel;
     }
 
     private void OpenWindow()
@@ -273,17 +335,20 @@ public class FuelManagementUIController : MonoBehaviour
 
     private void RefreshWindow()
     {
-        if (pipelineNetworkManager == null)
-            pipelineNetworkManager =
-                FindFirstObjectByType<PipelineNetworkManager>();
+        ResolveDataSources();
+        RefreshNetworkSummary();
+        RefreshDeliverySummary();
+        RefreshAircraftSummary();
+        RefreshNetworkRows();
+    }
 
+    private void RefreshNetworkSummary()
+    {
         if (pipelineNetworkManager == null)
         {
             totalFuelLabel.text = "Unavailable";
             totalCapacityLabel.text = "Unavailable";
             totalPercentageLabel.text = "—";
-            networkCountLabel.text = "PIPELINE NETWORKS  |  Manager not found";
-            networkRows.Clear();
             return;
         }
 
@@ -302,35 +367,134 @@ public class FuelManagementUIController : MonoBehaviour
             totalCapacity += network.CapacityLitres;
         }
 
-        float totalPercentage = totalCapacity > 0f
+        float percentage = totalCapacity > 0f
             ? totalFuel / totalCapacity * 100f
             : 0f;
 
         totalFuelLabel.text = FormatLitres(totalFuel);
         totalCapacityLabel.text = FormatLitres(totalCapacity);
-        totalPercentageLabel.text = $"{totalPercentage:0.#}%";
-        networkCountLabel.text =
-            $"PIPELINE NETWORKS  |  {networks.Count} connected network(s)";
+        totalPercentageLabel.text = $"{percentage:0.#}%";
+    }
 
+    private void RefreshDeliverySummary()
+    {
+        int activeTankers = 0;
+        float incomingFuel = 0f;
+
+        if (fuelTruckSpawner != null)
+        {
+            activeTankers = fuelTruckSpawner.ActiveTankerCount;
+
+            foreach (FuelTruckController truck in fuelTruckSpawner.ActiveTankers)
+            {
+                if (truck != null)
+                    incomingFuel += truck.IncomingFuelLitres;
+            }
+        }
+
+        int networksAwaitingDelivery = 0;
+
+        if (pipelineNetworkManager != null)
+        {
+            foreach (PipelineNetworkManager.PipelineNetwork network
+                     in pipelineNetworkManager.Networks)
+            {
+                if (network == null || network.CapacityLitres <= 0f)
+                    continue;
+
+                float percentage =
+                    network.CurrentFuelLitres / network.CapacityLitres * 100f;
+
+                bool deliveryActive =
+                    fuelTruckSpawner != null &&
+                    fuelTruckSpawner.HasActiveDelivery(network);
+
+                if (percentage <=
+                        pipelineNetworkManager.AutomaticRefillThresholdPercent &&
+                    !deliveryActive)
+                    networksAwaitingDelivery++;
+            }
+        }
+
+        activeTankerLabel.text = activeTankers.ToString();
+        incomingFuelLabel.text = FormatLitres(incomingFuel);
+        awaitingDeliveryLabel.text = networksAwaitingDelivery.ToString();
+
+        tankerRows.Clear();
+
+        if (fuelTruckSpawner == null ||
+            fuelTruckSpawner.ActiveTankers.Count == 0)
+        {
+            AddEmptyMessage(tankerRows, "No active fuel deliveries.");
+            return;
+        }
+
+        foreach (FuelTruckController truck in fuelTruckSpawner.ActiveTankers)
+        {
+            if (truck == null)
+                continue;
+
+            VisualElement row = CreateDetailRow(
+                truck.name,
+                $"{truck.CurrentDeliveryStatus}  |  " +
+                $"Station: {truck.DeliveryStationName}  |  " +
+                $"Incoming: {FormatLitres(truck.IncomingFuelLitres)}");
+            tankerRows.Add(row);
+        }
+    }
+
+    private void RefreshAircraftSummary()
+    {
+        AircraftTurnaroundController[] aircraft =
+            FindObjectsByType<AircraftTurnaroundController>(
+                FindObjectsSortMode.None);
+
+        int requiringFuel = 0;
+
+        foreach (AircraftTurnaroundController turnaround in aircraft)
+        {
+            if (turnaround != null &&
+                turnaround.FuelingStatus ==
+                    AircraftTurnaroundTaskStatus.InProgress)
+                requiringFuel++;
+        }
+
+        int beingRefuelled =
+            AirportFuelTruckController.CurrentlyRefuellingAircraftCount;
+
+        int waitingForTruck = Mathf.Max(0, requiringFuel - beingRefuelled);
+
+        aircraftRequiringFuelLabel.text = requiringFuel.ToString();
+        aircraftBeingRefuelledLabel.text = beingRefuelled.ToString();
+        waitingForTruckLabel.text = waitingForTruck.ToString();
+    }
+
+    private void RefreshNetworkRows()
+    {
         networkRows.Clear();
+
+        if (pipelineNetworkManager == null)
+        {
+            AddEmptyMessage(networkRows, "Pipeline network manager not found.");
+            return;
+        }
+
+        IReadOnlyList<PipelineNetworkManager.PipelineNetwork> networks =
+            pipelineNetworkManager.Networks;
 
         if (networks.Count == 0)
         {
-            Label emptyLabel = new Label(
+            AddEmptyMessage(
+                networkRows,
                 "No connected pipeline networks are currently available.");
-            emptyLabel.style.color = MutedTextColor;
-            emptyLabel.style.paddingTop = 12;
-            networkRows.Add(emptyLabel);
             return;
         }
 
         for (int i = 0; i < networks.Count; i++)
         {
             PipelineNetworkManager.PipelineNetwork network = networks[i];
-            if (network == null)
-                continue;
-
-            networkRows.Add(CreateNetworkRow(network, i));
+            if (network != null)
+                networkRows.Add(CreateNetworkRow(network, i));
         }
     }
 
@@ -345,11 +509,11 @@ public class FuelManagementUIController : MonoBehaviour
 
         VisualElement row = new VisualElement();
         row.style.flexDirection = FlexDirection.Column;
-        row.style.paddingLeft = 12;
-        row.style.paddingRight = 12;
-        row.style.paddingTop = 10;
-        row.style.paddingBottom = 10;
-        row.style.marginBottom = 6;
+        row.style.paddingLeft = 11;
+        row.style.paddingRight = 11;
+        row.style.paddingTop = 8;
+        row.style.paddingBottom = 8;
+        row.style.marginBottom = 5;
         row.style.backgroundColor = PanelColor;
         row.style.borderTopLeftRadius = 6;
         row.style.borderTopRightRadius = 6;
@@ -363,13 +527,13 @@ public class FuelManagementUIController : MonoBehaviour
 
         Label nameLabel = new Label(
             $"NETWORK {index + 1}  •  {GetNetworkDescription(network)}");
-        nameLabel.style.fontSize = 13;
+        nameLabel.style.fontSize = 12;
         nameLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
         nameLabel.style.color = Color.white;
         nameLabel.style.whiteSpace = WhiteSpace.Normal;
 
         Label percentageLabel = new Label($"{percentage * 100f:0.#}%");
-        percentageLabel.style.fontSize = 13;
+        percentageLabel.style.fontSize = 12;
         percentageLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
         percentageLabel.style.color = GetReserveColor(percentage);
 
@@ -381,14 +545,14 @@ public class FuelManagementUIController : MonoBehaviour
             $"{FormatLitres(network.CurrentFuelLitres)} stored  /  " +
             $"{FormatLitres(network.CapacityLitres)} capacity  •  " +
             $"{FormatLitres(network.RemainingCapacityLitres)} available");
-        amountLabel.style.fontSize = 11;
+        amountLabel.style.fontSize = 10;
         amountLabel.style.color = MutedTextColor;
-        amountLabel.style.marginTop = 4;
-        amountLabel.style.marginBottom = 7;
+        amountLabel.style.marginTop = 3;
+        amountLabel.style.marginBottom = 6;
         row.Add(amountLabel);
 
         VisualElement barBackground = new VisualElement();
-        barBackground.style.height = 10;
+        barBackground.style.height = 9;
         barBackground.style.backgroundColor = BarBackgroundColor;
         barBackground.style.borderTopLeftRadius = 5;
         barBackground.style.borderTopRightRadius = 5;
@@ -396,7 +560,7 @@ public class FuelManagementUIController : MonoBehaviour
         barBackground.style.borderBottomRightRadius = 5;
 
         VisualElement barFill = new VisualElement();
-        barFill.style.height = 10;
+        barFill.style.height = 9;
         barFill.style.width = new Length(percentage * 100f, LengthUnit.Percent);
         barFill.style.backgroundColor = GetReserveColor(percentage);
         barFill.style.borderTopLeftRadius = 5;
@@ -410,11 +574,46 @@ public class FuelManagementUIController : MonoBehaviour
         return row;
     }
 
+    private VisualElement CreateDetailRow(string title, string detail)
+    {
+        VisualElement row = new VisualElement();
+        row.style.flexDirection = FlexDirection.Column;
+        row.style.paddingLeft = 10;
+        row.style.paddingRight = 10;
+        row.style.paddingTop = 5;
+        row.style.paddingBottom = 5;
+        row.style.marginBottom = 3;
+        row.style.backgroundColor = PanelColor;
+
+        Label titleLabel = new Label(title);
+        titleLabel.style.fontSize = 11;
+        titleLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+        titleLabel.style.color = Color.white;
+
+        Label detailLabel = new Label(detail);
+        detailLabel.style.fontSize = 10;
+        detailLabel.style.color = MutedTextColor;
+        detailLabel.style.whiteSpace = WhiteSpace.Normal;
+
+        row.Add(titleLabel);
+        row.Add(detailLabel);
+        return row;
+    }
+
+    private void AddEmptyMessage(VisualElement parent, string message)
+    {
+        Label label = new Label(message);
+        label.style.fontSize = 10;
+        label.style.color = MutedTextColor;
+        label.style.paddingTop = 5;
+        label.style.paddingBottom = 5;
+        parent.Add(label);
+    }
+
     private string GetNetworkDescription(
         PipelineNetworkManager.PipelineNetwork network)
     {
         HashSet<string> names = new HashSet<string>();
-        StringBuilder description = new StringBuilder();
 
         foreach (FuelConnector connector in network.Connectors)
         {
@@ -422,19 +621,14 @@ public class FuelManagementUIController : MonoBehaviour
                 continue;
 
             string buildingName = connector.BuildingRoot.name;
-            if (string.IsNullOrWhiteSpace(buildingName) ||
-                !names.Add(buildingName))
-                continue;
-
-            if (description.Length > 0)
-                description.Append(", ");
-
-            description.Append(buildingName);
+            if (!string.IsNullOrWhiteSpace(buildingName))
+                names.Add(buildingName);
         }
 
-        return description.Length > 0
-            ? description.ToString()
-            : "No connected buildings";
+        if (names.Count == 0)
+            return "No connected buildings";
+
+        return string.Join(", ", names);
     }
 
     private string FormatLitres(float litres)
