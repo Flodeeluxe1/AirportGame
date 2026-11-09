@@ -22,11 +22,19 @@ public class FuelTruckSpawner : MonoBehaviour
     [Header("Spawner")]
     [SerializeField] private float spawnHeightOffset = 0.2f;
 
+    [Header("Delivery Recovery")]
+    [Min(0f)]
+    [SerializeField] private float retryCooldownAfterFailureSeconds = 30f;
+
     [Header("Diagnostics")]
     [SerializeField] private bool logDispatches = true;
 
     private readonly HashSet<PipelineNetworkManager.PipelineNetwork> activeNetworks =
         new HashSet<PipelineNetworkManager.PipelineNetwork>();
+
+    private readonly Dictionary<PipelineNetworkManager.PipelineNetwork, float>
+        networkRetryTimes =
+            new Dictionary<PipelineNetworkManager.PipelineNetwork, float>();
 
     private class StationRoute
     {
@@ -61,16 +69,38 @@ public class FuelTruckSpawner : MonoBehaviour
     }
 
     public bool TryDispatchDelivery(
-        PipelineNetworkManager.PipelineNetwork network)
+        PipelineNetworkManager.PipelineNetwork network,
+        PipelineNetworkManager networkManager,
+        float refillThresholdPercent)
     {
-        if (network == null || network.CapacityLitres <= 0f ||
+        if (network == null || networkManager == null ||
+            !networkManager.IsNetworkCurrent(network) ||
+            network.CapacityLitres <= 0f ||
             network.RemainingCapacityLitres <= 0f ||
             activeNetworks.Contains(network))
             return false;
 
+        if (networkRetryTimes.TryGetValue(network, out float retryTime))
+        {
+            if (Time.time < retryTime)
+                return false;
+
+            networkRetryTimes.Remove(network);
+        }
+
+        float currentFuelPercentage =
+            network.CurrentFuelLitres / network.CapacityLitres * 100f;
+
+        // Another source may have replenished this network since the last check.
+        if (currentFuelPercentage > refillThresholdPercent)
+            return false;
+
         StationRoute selectedRoute = SelectDeliveryStation(network);
         if (selectedRoute == null)
+        {
+            RegisterFailedDispatch(network);
             return false;
+        }
 
         float amount = Mathf.Min(tankerCapacityLitres, network.RemainingCapacityLitres);
         if (amount <= 0f)
@@ -90,6 +120,7 @@ public class FuelTruckSpawner : MonoBehaviour
                 "FuelTruckSpawner: FuelTruckController must be on the tanker prefab root.",
                 truckObject);
             Destroy(truckObject);
+            RegisterFailedDispatch(network);
             return false;
         }
 
@@ -103,7 +134,10 @@ public class FuelTruckSpawner : MonoBehaviour
             network,
             amount,
             fuelPricePerLitre,
-            this);
+            this,
+            networkManager,
+            refillThresholdPercent,
+            networkManager.TopologyVersion);
 
         if (logDispatches)
         {
@@ -263,10 +297,29 @@ public class FuelTruckSpawner : MonoBehaviour
         return true;
     }
 
-    public void NotifyTruckFinished(
+    private void RegisterFailedDispatch(
         PipelineNetworkManager.PipelineNetwork network)
     {
-        if (network != null)
-            activeNetworks.Remove(network);
+        if (network == null)
+            return;
+
+        activeNetworks.Remove(network);
+        networkRetryTimes[network] =
+            Time.time + Mathf.Max(0f, retryCooldownAfterFailureSeconds);
+    }
+
+    public void NotifyTruckFinished(
+        PipelineNetworkManager.PipelineNetwork network,
+        bool successful)
+    {
+        if (network == null)
+            return;
+
+        activeNetworks.Remove(network);
+
+        if (successful)
+            networkRetryTimes.Remove(network);
+        else
+            RegisterFailedDispatch(network);
     }
 }
