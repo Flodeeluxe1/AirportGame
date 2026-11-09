@@ -104,7 +104,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4c0d8e2a7f6b4e9d9a1c3f5b7d2e8a60, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AircraftFuelTank
-  maximumFuelLitres: 200
+  maximumFuelLitres: 4000
   currentFuelLitres: 200
   consumptionLitresPerHour: 40
 --- !u!114 &7339072742877791106
@@ -239,6 +239,7 @@ MonoBehaviour:
   setReadyToDepartAutomatically: 1
   readyToDepart: 0
   turnaroundStarted: 0
+  externalFuelingControlled: 0
 --- !u!114 &-2652892901643927754
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -373,6 +374,7 @@ MonoBehaviour:
   debugBlockingDistance: 0
   debugTrafficDecision: Not tested
   debugATCClearance: Not requested
+  debugCurrentGridCell: {x: 0, y: 0}
   debugForwardRay: Not scanned
   debugLeftRay: Not scanned
   debugRightRay: Not scanned

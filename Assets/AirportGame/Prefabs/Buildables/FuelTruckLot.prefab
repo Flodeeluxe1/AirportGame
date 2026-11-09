@@ -140,7 +140,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5522260753774615039}
   m_Layer: 0
-  m_Name: FuelTruckParking
+  m_Name: FuelTruckVehicleStopPoint
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
