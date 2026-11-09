@@ -51,26 +51,13 @@ public class GarbageCollectorSpawner : MonoBehaviour
 
     private void Start()
     {
+        // Match FuelTruckSpawner: validate configured references here, but do
+        // not require road cells to exist yet. Roads may be built during play.
         if (garbageCollectorPrefab == null || spawnPoint == null ||
             exitPoint == null || gridManager == null || roadNetwork == null)
         {
             Debug.LogError(
                 "GarbageCollectorSpawner: Assign the collector prefab, shared road spawn point, exit point, GridManager and RoadNetwork.",
-                this);
-            enabled = false;
-            return;
-        }
-
-        Vector2Int startCell =
-            roadNetwork.GetRoadAnchor(gridManager.WorldToGrid(spawnPoint.position));
-
-        Vector2Int exitCell =
-            roadNetwork.GetRoadAnchor(gridManager.WorldToGrid(exitPoint.position));
-
-        if (!roadNetwork.IsRoad(startCell) || !roadNetwork.IsRoad(exitCell))
-        {
-            Debug.LogError(
-                "GarbageCollectorSpawner: The shared spawn point and exit point must both be on the road network.",
                 this);
             enabled = false;
         }
@@ -83,8 +70,17 @@ public class GarbageCollectorSpawner : MonoBehaviour
             gridManager == null || roadNetwork == null)
             return false;
 
+        // Validate road membership at dispatch time, like FuelTruckSpawner
+        // does in SelectDeliveryStation. This allows the road network to be
+        // created dynamically after the scene has started.
         Vector2Int startCell =
             roadNetwork.GetRoadAnchor(gridManager.WorldToGrid(spawnPoint.position));
+
+        Vector2Int exitCell =
+            roadNetwork.GetRoadAnchor(gridManager.WorldToGrid(exitPoint.position));
+
+        if (!roadNetwork.IsRoad(startCell) || !roadNetwork.IsRoad(exitCell))
+            return false;
 
         if (!TryReserveNextDisposal(
                 startCell,
@@ -237,6 +233,9 @@ public class GarbageCollectorSpawner : MonoBehaviour
         Vector2Int exitCell =
             roadNetwork.GetRoadAnchor(gridManager.WorldToGrid(exitPoint.position));
 
+        if (!roadNetwork.IsRoad(startCell) || !roadNetwork.IsRoad(exitCell))
+            return false;
+
         List<Vector2Int> roadPositions = roadNetwork.GetRoadPositions();
         float bestDistance = float.MaxValue;
         int bestLength = int.MaxValue;
@@ -311,6 +310,12 @@ public class GarbageCollectorSpawner : MonoBehaviour
     {
         Vector2Int exitCell =
             roadNetwork.GetRoadAnchor(gridManager.WorldToGrid(exitPoint.position));
+
+        if (!roadNetwork.IsRoad(startCell) || !roadNetwork.IsRoad(exitCell))
+        {
+            exitRoute = null;
+            return false;
+        }
 
         exitRoute = roadNetwork.FindPath(startCell, exitCell);
         return exitRoute != null && exitRoute.Count > 0;
