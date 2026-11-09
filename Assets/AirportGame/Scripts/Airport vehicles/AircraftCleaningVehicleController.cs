@@ -230,7 +230,9 @@ public class AircraftCleaningVehicleController : MonoBehaviour
             Debug.LogWarning(
                 $"{name}: Cleaning route failed. {groundVehicleMovement.MovementStatus}",
                 this);
-            assignedAircraft?.CancelExternalCleaning();
+            AircraftTurnaroundController failedAircraft = assignedAircraft;
+            assignedAircraft = null;
+            failedAircraft?.CancelExternalCleaning();
             BeginReturnHome();
             return;
         }
