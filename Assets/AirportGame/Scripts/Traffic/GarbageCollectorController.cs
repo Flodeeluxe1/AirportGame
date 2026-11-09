@@ -53,6 +53,7 @@ public class GarbageCollectorController : MonoBehaviour
     private GridManager gridManager;
     private IntersectionManager intersectionManager;
     private TrafficFollowing trafficFollowing;
+    private WasteCollectionManager wasteCollectionManager;
 
     private readonly List<Vector2Int> route = new List<Vector2Int>();
     private int pathIndex;
@@ -89,6 +90,7 @@ public class GarbageCollectorController : MonoBehaviour
 
     private void Awake()
     {
+        wasteCollectionManager = FindFirstObjectByType<WasteCollectionManager>();
         roadNetwork = FindFirstObjectByType<RoadNetwork>();
         gridManager = FindFirstObjectByType<GridManager>();
         intersectionManager = FindFirstObjectByType<IntersectionManager>();
@@ -112,6 +114,9 @@ public class GarbageCollectorController : MonoBehaviour
             return false;
 
         ownerSpawner = spawner;
+
+        if (wasteCollectionManager == null)
+            wasteCollectionManager = FindFirstObjectByType<WasteCollectionManager>();
 
         if (roadNetwork == null)
             roadNetwork = FindFirstObjectByType<RoadNetwork>();
@@ -199,7 +204,7 @@ public class GarbageCollectorController : MonoBehaviour
             }
             else
             {
-                FinishAndDespawn();
+                CompleteTripAndDespawn();
             }
             return;
         }
@@ -237,7 +242,7 @@ public class GarbageCollectorController : MonoBehaviour
                 }
                 else
                 {
-                    FinishAndDespawn();
+                    CompleteTripAndDespawn();
                 }
             }
         }
@@ -532,6 +537,27 @@ public class GarbageCollectorController : MonoBehaviour
             roadNetwork.GetRoadCenterWorldPosition(cell, gridManager);
         position.y += heightOffset;
         return position;
+    }
+
+    private void CompleteTripAndDespawn()
+    {
+        if (state == CollectorState.Exited)
+            return;
+
+        if (currentWasteLoad > 0.001f)
+        {
+            if (wasteCollectionManager == null)
+                wasteCollectionManager = FindFirstObjectByType<WasteCollectionManager>();
+
+            if (wasteCollectionManager != null)
+                wasteCollectionManager.ChargeCompletedCollectionTrip(currentWasteLoad);
+            else
+                Debug.LogError(
+                    "GarbageCollectorController: WasteCollectionManager was not found; completed trip could not be charged.",
+                    this);
+        }
+
+        FinishAndDespawn();
     }
 
     private void FinishAndDespawn()
