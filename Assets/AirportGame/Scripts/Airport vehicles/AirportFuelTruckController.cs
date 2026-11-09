@@ -84,6 +84,43 @@ public class AirportFuelTruckController : MonoBehaviour
     private bool warnedMissingRefillNetwork;
     private bool warnedEmptyRefillNetwork;
 
+    public static int ActiveTruckCount => activeTrucks.Count;
+
+    public static int CurrentlyRefuellingAircraftCount
+    {
+        get
+        {
+            int count = 0;
+            foreach (AirportFuelTruckController truck in activeTrucks)
+            {
+                if (truck != null &&
+                    truck.state == TruckState.RefuellingAircraft &&
+                    truck.activeJob != null &&
+                    truck.activeJob.Aircraft != null)
+                    count++;
+            }
+            return count;
+        }
+    }
+
+    public static bool IsAircraftBeingRefuelled(
+        AircraftTurnaroundController aircraft)
+    {
+        if (aircraft == null)
+            return false;
+
+        foreach (AirportFuelTruckController truck in activeTrucks)
+        {
+            if (truck != null &&
+                truck.state == TruckState.RefuellingAircraft &&
+                truck.activeJob != null &&
+                truck.activeJob.Aircraft == aircraft)
+                return true;
+        }
+
+        return false;
+    }
+
     public float TruckFuelCapacityLitres => truckFuelCapacityLitres;
     public float CurrentTruckFuelLitres => currentTruckFuelLitres;
     public int QueuedJobCount => requestQueue.Count;
