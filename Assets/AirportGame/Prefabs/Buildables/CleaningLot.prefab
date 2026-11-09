@@ -253,6 +253,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 750338003082028901, guid: d1841403ccfbc894f8d6a3fb2de7cdfc, type: 3}
       insertIndex: -1
       addedObject: {fileID: 7596013783121342311}
+    - targetCorrespondingSourceObject: {fileID: 750338003082028901, guid: d1841403ccfbc894f8d6a3fb2de7cdfc, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5359029637632568030}
   m_SourcePrefab: {fileID: -4161369568681901532, guid: d1841403ccfbc894f8d6a3fb2de7cdfc, type: 3}
 --- !u!1 &99491990832583298 stripped
 GameObject:
@@ -280,6 +283,22 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 2.5, y: 0.01999998, z: 4.989998}
   m_Center: {x: 0, y: 0.00999999, z: 0}
+--- !u!114 &5359029637632568030
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 99491990832583298}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2a7d4e9c1b6f4380a5d2e7c9f1b63480, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CleaningLotSpawner
+  cleaningVehiclePrefab: {fileID: 0}
+  cleaningVehicleParkingPoint: {fileID: 0}
+  spawnHeightOffset: 0
+  logSpawn: 1
 --- !u!4 &8777928507184413422 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 8275853014694940425, guid: d1841403ccfbc894f8d6a3fb2de7cdfc, type: 3}

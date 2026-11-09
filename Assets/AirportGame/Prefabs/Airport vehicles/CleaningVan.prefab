@@ -466,6 +466,8 @@ GameObject:
   m_Component:
   - component: {fileID: 3692427183042440984}
   - component: {fileID: 2398520516101683270}
+  - component: {fileID: -2820576279769628374}
+  - component: {fileID: -1546818289250796087}
   m_Layer: 7
   m_Name: CleaningVan
   m_TagString: Untagged
@@ -510,6 +512,60 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1, y: 1, z: 1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &-2820576279769628374
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7704799895376171895}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fc69eae5cf9a4ae4688f7ea0e4f5b528, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AirportGroundVehicleMovement
+  gridManager: {fileID: 0}
+  gridOccupancy: {fileID: 0}
+  gridSurface: {fileID: 0}
+  roadNetwork: {fileID: 0}
+  taxiwayNetwork: {fileID: 0}
+  tarmacMovementCost: 1
+  taxiwayMovementCost: 5
+  grassMovementCost: 10
+  foundationClearance: 1
+  movementSpeed: 3
+  rotationSpeed: 5
+  waypointArrivalDistance: 0.08
+  groundHeightOffset: 0.05
+  turningRadiusInCells: 2
+  turnCurveResolution: 10
+  parkingTurnDistanceInCells: 2
+  parkingCurveResolution: 16
+  parkFacingWorldNegativeZ: 1
+  isMoving: 0
+  movementStatus: Idle
+  routeCellCount: 0
+  currentWaypointIndex: 0
+--- !u!114 &-1546818289250796087
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7704799895376171895}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8f3c1a6d9b2e4c7f8a5d0e1b6c9f2347, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AircraftCleaningVehicleController
+  groundVehicleMovement: {fileID: 0}
+  gameTimeManager: {fileID: 0}
+  homeParkingPoint: {fileID: 0}
+  homeArrivalTolerance: 0.3
+  currentStatus: Idle
+  assignedAircraftName: 
+  passengersToClean: 0
+  phaseElapsedGameSeconds: 0
 --- !u!1 &8759557518540487684
 GameObject:
   m_ObjectHideFlags: 0
