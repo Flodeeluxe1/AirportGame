@@ -2628,6 +2628,7 @@ GameObject:
   - component: {fileID: 1478484329}
   - component: {fileID: 1478484328}
   - component: {fileID: 1478484330}
+  - component: {fileID: 1478484331}
   m_Layer: 0
   m_Name: AirportUI
   m_TagString: Untagged
@@ -2848,6 +2849,21 @@ MonoBehaviour:
   secondaryTextColor: {r: 0.72, g: 0.76, b: 0.82, a: 1}
   buyButtonColor: {r: 0.18, g: 0.48, b: 0.28, a: 1}
   disabledButtonColor: {r: 0.25, g: 0.28, b: 0.33, a: 1}
+--- !u!114 &1478484331
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1478484321}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9a6f3b8e2d1c4f07a5b8e6d3c2f109ab, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FuelManagementUIController
+  uiDocument: {fileID: 762824360}
+  pipelineNetworkManager: {fileID: 1428745612}
+  refreshInterval: 1
 --- !u!1 &1502454834
 GameObject:
   m_ObjectHideFlags: 0
