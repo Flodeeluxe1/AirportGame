@@ -15,6 +15,10 @@ public class WasteDisposal : MonoBehaviour
 
     [Header("Stop Point")]
     [SerializeField] private Transform garbageCollectorStopPoint;
+    [Min(0.1f)]
+    [SerializeField] private float maximumRoadApproachDistance = 8f;
+
+    public float MaximumRoadApproachDistance => Mathf.Max(0.1f, maximumRoadApproachDistance);
 
     private readonly List<WasteDumpster> dumpsters = new List<WasteDumpster>();
 
