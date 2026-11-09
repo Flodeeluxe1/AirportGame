@@ -90,7 +90,7 @@ public class AircraftCleaningVehicleController : MonoBehaviour
             if (vehicle == null || vehicle.IsBusy ||
                 vehicle.groundVehicleMovement == null ||
                 vehicle.homeParkingPoint == null ||
-                !vehicle.IsParkedAtHome())
+                !vehicle.parkedAtHome)
             {
                 continue;
             }
