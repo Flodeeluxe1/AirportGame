@@ -27,7 +27,7 @@ public class PassengerFlightRevenue : MonoBehaviour
     private void Awake()
     {
         // Generate the passenger load once when this aircraft instance is created.
-        bookedPassengers = Random.Range(1, SeatCapacity + 1);
+        bookedPassengers = Random.Range(0, SeatCapacity + 1);
     }
 
     /// <summary>
