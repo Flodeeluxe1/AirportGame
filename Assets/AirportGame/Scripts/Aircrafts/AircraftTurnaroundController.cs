@@ -194,6 +194,52 @@ public class AircraftTurnaroundController : MonoBehaviour
         }
     }
 
+    [Serializable]
+    private sealed class FuelingProgress : ITaskProgress
+    {
+        [SerializeField, Min(0f)]
+        private float actualFuelLitres;
+
+        [SerializeField, Min(0f)]
+        private float maximumFuelLitres;
+
+        [SerializeField]
+        private AircraftTurnaroundTaskStatus status =
+            AircraftTurnaroundTaskStatus.NotStarted;
+
+        public float DurationMinutes => 0f;
+        public float DurationSeconds => 0f;
+        public AircraftTurnaroundTaskStatus Status => status;
+
+        public void UpdateFuel(AircraftFuelTank tank)
+        {
+            if (tank == null)
+                return;
+
+            actualFuelLitres = tank.CurrentFuelLitres;
+            maximumFuelLitres = tank.MaximumFuelLitres;
+        }
+
+        public void ResetTask()
+        {
+            status = AircraftTurnaroundTaskStatus.NotStarted;
+        }
+
+        public void StartTask()
+        {
+            if (status == AircraftTurnaroundTaskStatus.NotStarted)
+                status = AircraftTurnaroundTaskStatus.InProgress;
+        }
+
+        public bool Advance(float deltaGameSeconds) => false;
+
+        public void MarkCompleted()
+        {
+            status = AircraftTurnaroundTaskStatus.Completed;
+            actualFuelLitres = maximumFuelLitres;
+        }
+    }
+
     private enum TaskType
     {
         Deboarding,
@@ -226,7 +272,7 @@ public class AircraftTurnaroundController : MonoBehaviour
     private TaskProgress cleaning = new TaskProgress(10f);
 
     [SerializeField]
-    private TaskProgress fueling = new TaskProgress(15f);
+    private FuelingProgress fueling = new FuelingProgress();
 
     [Header("Baggage Loading")]
     [SerializeField]
@@ -342,8 +388,12 @@ public class AircraftTurnaroundController : MonoBehaviour
         loadingManifest.IsInitialized &&
         loadingManifest.HasIncomingBaggageRemaining;
 
+    private AircraftFuelTank aircraftFuelTank;
+
     private void Awake()
     {
+        aircraftFuelTank = GetComponent<AircraftFuelTank>();
+
         if (gameTimeManager == null)
             gameTimeManager = FindFirstObjectByType<GameTimeManager>();
 
@@ -353,6 +403,11 @@ public class AircraftTurnaroundController : MonoBehaviour
 
     private void Update()
     {
+        if (aircraftFuelTank == null)
+            aircraftFuelTank = GetComponent<AircraftFuelTank>();
+
+        fueling.UpdateFuel(aircraftFuelTank);
+
         if (!turnaroundStarted)
             return;
 
