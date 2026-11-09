@@ -28,7 +28,11 @@ public class AirportFuelTruckController : MonoBehaviour
         public Transform StopPoint;
     }
 
-    public static AirportFuelTruckController Instance { get; private set; }
+    private static readonly List<AirportFuelTruckController> activeTrucks =
+        new List<AirportFuelTruckController>();
+
+    private static readonly HashSet<AircraftTurnaroundController> globallyRequestedAircraft =
+        new HashSet<AircraftTurnaroundController>();
 
     [Header("Movement")]
     [SerializeField] private AirportGroundVehicleMovement groundVehicleMovement;
@@ -67,8 +71,6 @@ public class AirportFuelTruckController : MonoBehaviour
     private readonly Queue<RefuellingJob> requestQueue =
         new Queue<RefuellingJob>();
 
-    private readonly HashSet<AircraftTurnaroundController> requestedAircraft =
-        new HashSet<AircraftTurnaroundController>();
 
     private TruckState state = TruckState.Idle;
     private RefuellingJob activeJob;
@@ -83,16 +85,9 @@ public class AirportFuelTruckController : MonoBehaviour
 
     private void Awake()
     {
-        if (Instance != null && Instance != this)
-        {
-            Debug.LogError(
-                $"{name}: Another AirportFuelTruckController already exists.",
-                this);
-            enabled = false;
-            return;
-        }
+        if (!activeTrucks.Contains(this))
+            activeTrucks.Add(this);
 
-        Instance = this;
 
         if (groundVehicleMovement == null)
             groundVehicleMovement = GetComponent<AirportGroundVehicleMovement>();
@@ -156,7 +151,40 @@ public class AirportFuelTruckController : MonoBehaviour
     /// Called by AircraftTurnaroundController after passenger deboarding
     /// has completed and its normal fueling task has started.
     /// </summary>
-    public bool RequestRefuelling(AircraftTurnaroundController aircraft)
+    public static bool RequestRefuelling(AircraftTurnaroundController aircraft)
+    {
+        if (aircraft == null)
+            return false;
+
+        if (globallyRequestedAircraft.Contains(aircraft))
+            return true;
+
+        AirportFuelTruckController selectedTruck = null;
+        int lowestWorkload = int.MaxValue;
+
+        for (int i = activeTrucks.Count - 1; i >= 0; i--)
+        {
+            AirportFuelTruckController truck = activeTrucks[i];
+            if (truck == null || !truck.isActiveAndEnabled)
+            {
+                activeTrucks.RemoveAt(i);
+                continue;
+            }
+
+            int workload = truck.requestQueue.Count +
+                (truck.activeJob != null || truck.state != TruckState.Idle ? 1 : 0);
+
+            if (workload < lowestWorkload)
+            {
+                lowestWorkload = workload;
+                selectedTruck = truck;
+            }
+        }
+
+        return selectedTruck != null && selectedTruck.QueueRefuelling(aircraft);
+    }
+
+    private bool QueueRefuelling(AircraftTurnaroundController aircraft)
     {
         if (aircraft == null ||
             aircraft.DeboardingStatus != AircraftTurnaroundTaskStatus.Completed ||
@@ -165,7 +193,7 @@ public class AirportFuelTruckController : MonoBehaviour
             return false;
         }
 
-        if (requestedAircraft.Contains(aircraft))
+        if (globallyRequestedAircraft.Contains(aircraft))
             return true;
 
         AircraftFuelTank fuelTank =
@@ -228,7 +256,7 @@ public class AirportFuelTruckController : MonoBehaviour
             StopPoint = stopPoint
         };
 
-        requestedAircraft.Add(aircraft);
+        globallyRequestedAircraft.Add(aircraft);
         requestQueue.Enqueue(job);
         queuedJobCount = requestQueue.Count;
 
@@ -285,7 +313,7 @@ public class AirportFuelTruckController : MonoBehaviour
             {
                 if (next != null && next.Aircraft != null)
                 {
-                    requestedAircraft.Remove(next.Aircraft);
+                    globallyRequestedAircraft.Remove(next.Aircraft);
                     next.Aircraft.CancelExternalFueling();
                 }
 
@@ -407,7 +435,7 @@ public class AirportFuelTruckController : MonoBehaviour
         if (activeJob != null && activeJob.Aircraft != null)
         {
             activeJob.Aircraft.CompleteExternalFueling();
-            requestedAircraft.Remove(activeJob.Aircraft);
+            globallyRequestedAircraft.Remove(activeJob.Aircraft);
 
             LogStatus(
                 $"Completed aircraft refuelling for {activeJob.Aircraft.name}");
@@ -628,7 +656,7 @@ public class AirportFuelTruckController : MonoBehaviour
         if (activeJob != null && activeJob.Aircraft != null)
         {
             activeJob.Aircraft.CancelExternalFueling();
-            requestedAircraft.Remove(activeJob.Aircraft);
+            globallyRequestedAircraft.Remove(activeJob.Aircraft);
         }
 
         Debug.LogWarning(
@@ -645,7 +673,7 @@ public class AirportFuelTruckController : MonoBehaviour
         if (activeJob != null && activeJob.Aircraft != null)
         {
             activeJob.Aircraft.CancelExternalFueling();
-            requestedAircraft.Remove(activeJob.Aircraft);
+            globallyRequestedAircraft.Remove(activeJob.Aircraft);
         }
 
         activeJob = null;
@@ -694,7 +722,21 @@ public class AirportFuelTruckController : MonoBehaviour
 
     private void OnDestroy()
     {
-        if (Instance == this)
-            Instance = null;
+        activeTrucks.Remove(this);
+
+        foreach (RefuellingJob job in requestQueue)
+        {
+            if (job != null && job.Aircraft != null)
+            {
+                globallyRequestedAircraft.Remove(job.Aircraft);
+                job.Aircraft.CancelExternalFueling();
+            }
+        }
+
+        if (activeJob != null && activeJob.Aircraft != null)
+        {
+            globallyRequestedAircraft.Remove(activeJob.Aircraft);
+            activeJob.Aircraft.CancelExternalFueling();
+        }
     }
 }
