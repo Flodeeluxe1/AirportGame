@@ -952,7 +952,7 @@ public class AircraftTurnaroundController : MonoBehaviour
                     GetComponent<PassengerFlightRevenue>();
 
                 if (passengerRevenue == null ||
-                    passengerRevenue.BookedPassengers <= 0)
+                    passengerRevenue.IncomingPassengers <= 0)
                 {
                     // No passengers were carried, so no cleaning vehicle is needed.
                     CompleteTask(TaskType.Cleaning);
