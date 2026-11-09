@@ -65,6 +65,39 @@ public class WasteCollectionManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Adds generated waste to available dumpster capacity across all active
+    /// airport waste disposals. Returns the amount successfully stored.
+    /// </summary>
+    public float AddWasteToAirport(float amount)
+    {
+        if (amount <= 0f)
+            return 0f;
+
+        WasteDisposal[] disposals =
+            FindObjectsByType<WasteDisposal>(FindObjectsSortMode.None);
+
+        float remaining = amount;
+        float acceptedTotal = 0f;
+
+        foreach (WasteDisposal disposal in disposals)
+        {
+            if (disposal == null || !disposal.gameObject.activeInHierarchy ||
+                disposal.RemainingWasteCapacity <= 0.001f)
+                continue;
+
+            float accepted = disposal.AddWaste(remaining);
+            acceptedTotal += accepted;
+            remaining -= accepted;
+
+            if (remaining <= 0.001f)
+                break;
+        }
+
+        RefreshWasteTotals();
+        return acceptedTotal;
+    }
+
     private void RefreshWasteTotals()
     {
         trackedDisposalCount = 0;
