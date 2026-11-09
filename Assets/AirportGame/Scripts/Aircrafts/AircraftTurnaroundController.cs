@@ -905,12 +905,12 @@ public class AircraftTurnaroundController : MonoBehaviour
             return;
         }
 
-        if (economyManager.TrySpend(
+        if (economyManager.AddRevenue(
                 fee,
                 $"Aircraft cleaning ({capacity} seats)"))
         {
             Debug.Log(
-                $"{name}: Cleaning fee of {fee} charged for an aircraft " +
+                $"{name}: Cleaning revenue of {fee} received for an aircraft " +
                 $"with {capacity} passenger seats.",
                 this);
         }
@@ -918,7 +918,7 @@ public class AircraftTurnaroundController : MonoBehaviour
         {
             Debug.LogWarning(
                 $"{name}: Cleaning was completed, but the fee of {fee} " +
-                "could not be charged because airport funds are insufficient.",
+                "could not be added to airport revenue.",
                 this);
         }
     }
