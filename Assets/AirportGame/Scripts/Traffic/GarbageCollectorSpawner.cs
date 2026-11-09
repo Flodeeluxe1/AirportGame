@@ -79,6 +79,11 @@ public class GarbageCollectorSpawner : MonoBehaviour
 
     public bool TryDispatchCollector(float thresholdPercent)
     {
+        if (!isActiveAndEnabled || garbageCollectorPrefab == null ||
+            spawnPoint == null || exitPoint == null ||
+            gridManager == null || roadNetwork == null)
+            return false;
+
         Vector2Int startCell =
             roadNetwork.GetRoadAnchor(gridManager.WorldToGrid(spawnPoint.position));
 
@@ -158,6 +163,7 @@ public class GarbageCollectorSpawner : MonoBehaviour
         selectedDisposal = null;
         selectedRoadCell = Vector2Int.zero;
         selectedRoute = null;
+        reservedDisposals.RemoveWhere(disposal => disposal == null);
 
         WasteDisposal[] disposals =
             FindObjectsByType<WasteDisposal>(FindObjectsSortMode.None);
