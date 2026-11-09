@@ -1431,7 +1431,10 @@ public class TrafficTestVehicle : MonoBehaviour
                    truckState != CargoDeliveryTruck.TruckState.Unloading &&
                    truckState != CargoDeliveryTruck.TruckState.Arrived;
         }
-        return false;
+
+        GarbageCollectorController garbageCollector =
+            collider.GetComponentInParent<GarbageCollectorController>();
+        return garbageCollector != null && garbageCollector.IsActiveOnRoad;
     }
 
 private bool ShouldDetectVehicle(TrafficTestVehicle vehicle)
