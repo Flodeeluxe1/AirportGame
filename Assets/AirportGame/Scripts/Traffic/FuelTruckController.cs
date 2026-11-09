@@ -43,6 +43,7 @@ public class FuelTruckController : MonoBehaviour
     private int pathIndex;
     private bool routeInitialized;
     private bool delivered;
+    private bool deliverySucceeded;
     private bool offloading;
     private bool deliveryClosed;
     private bool approachingStopPoint;
@@ -54,6 +55,9 @@ public class FuelTruckController : MonoBehaviour
     private Vector3 stationRoadWorldPosition;
 
     private PipelineNetworkManager.PipelineNetwork targetFuelNetwork;
+    private PipelineNetworkManager networkManager;
+    private int targetTopologyVersion;
+    private float dispatchThresholdPercent;
     private FuelTruckSpawner ownerSpawner;
     private float deliveryLitres;
     private float deliveryLitresOffloaded;
@@ -96,13 +100,19 @@ public class FuelTruckController : MonoBehaviour
         PipelineNetworkManager.PipelineNetwork fuelNetwork,
         float amountLitres,
         float pricePerLitre,
-        FuelTruckSpawner spawner)
+        FuelTruckSpawner spawner,
+        PipelineNetworkManager manager,
+        float refillThreshold,
+        int topologyVersion)
     {
         if (routeInitialized)
             return;
 
         deliveryStation = selectedStation;
         targetFuelNetwork = fuelNetwork;
+        networkManager = manager;
+        dispatchThresholdPercent = refillThreshold;
+        targetTopologyVersion = topologyVersion;
         ownerSpawner = spawner;
         deliveryLitres = amountLitres;
         fuelPricePerLitre = Mathf.Max(0.01f, pricePerLitre);
@@ -119,7 +129,10 @@ public class FuelTruckController : MonoBehaviour
 
         if (roadNetwork == null || gridManager == null ||
             deliveryStation == null || stopPoint == null ||
-            targetFuelNetwork == null || deliveryLitres <= 0f ||
+            targetFuelNetwork == null ||
+            networkManager == null ||
+            !IsTargetNetworkCurrent() ||
+            deliveryLitres <= 0f ||
             outbound == null || outbound.Count == 0 ||
             returning == null || returning.Count == 0)
         {
@@ -436,10 +449,38 @@ public class FuelTruckController : MonoBehaviour
         return true;
     }
 
+    private bool IsTargetNetworkCurrent()
+    {
+        return networkManager != null &&
+               networkManager.TopologyVersion == targetTopologyVersion &&
+               networkManager.IsNetworkCurrent(targetFuelNetwork);
+    }
+
     private void BeginFuelOffloading()
     {
         if (delivered || offloading)
             return;
+
+        if (!IsTargetNetworkCurrent())
+        {
+            debugState = "Delivery cancelled: pipeline topology changed";
+            FinishFuelOffloading(0f);
+            return;
+        }
+
+        float currentFuelPercentage =
+            targetFuelNetwork.CapacityLitres > 0f
+                ? targetFuelNetwork.CurrentFuelLitres /
+                  targetFuelNetwork.CapacityLitres * 100f
+                : 100f;
+
+        // Do not offload if the network recovered while this tanker was travelling.
+        if (currentFuelPercentage > dispatchThresholdPercent)
+        {
+            debugState = "Delivery cancelled: network no longer needs fuel";
+            FinishFuelOffloading(0f);
+            return;
+        }
 
         if (economyManager == null)
             economyManager = FindFirstObjectByType<AirportEconomyManager>();
@@ -481,8 +522,11 @@ public class FuelTruckController : MonoBehaviour
 
     private void UpdateFuelOffloading()
     {
-        if (targetFuelNetwork == null)
+        if (!IsTargetNetworkCurrent())
         {
+            // Any fuel already transferred is reconciled by the network manager
+            // during its rebuild, so charge only for that accepted amount.
+            debugState = "Delivery stopped: pipeline topology changed";
             FinishFuelOffloading(deliveryLitresOffloaded);
             return;
         }
@@ -520,12 +564,13 @@ public class FuelTruckController : MonoBehaviour
     {
         offloading = false;
         delivered = true;
-
-
+        deliverySucceeded = deliveredLitres > 0.05f;
 
         RefundUndeliveredFuel(deliveredLitres);
         returningToRoad = true;
-        debugState = $"Delivered {deliveredLitres:F0} L";
+        debugState = deliverySucceeded
+            ? $"Delivered {deliveredLitres:F0} L"
+            : "Delivery cancelled without transferring fuel";
 
         if (deliveredLitres > 0f)
         {
@@ -577,7 +622,9 @@ public class FuelTruckController : MonoBehaviour
             deliveryStation.ReleaseTruck(this);
 
         if (ownerSpawner != null)
-            ownerSpawner.NotifyTruckFinished(targetFuelNetwork);
+            ownerSpawner.NotifyTruckFinished(
+                targetFuelNetwork,
+                deliverySucceeded);
     }
 
     private void OnDisable()
