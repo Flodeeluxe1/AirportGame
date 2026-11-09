@@ -1,12 +1,16 @@
-
 using UnityEngine;
 
 public class PassengerFlightRevenue : MonoBehaviour
 {
     [Header("Passenger Capacity")]
-    [Tooltip("Number of seats available on this aircraft.")]
+    [Tooltip("Maximum number of seats available on this aircraft.")]
     [SerializeField, Min(1)]
     private int seatCapacity = 19;
+
+    [Header("Booked Passengers")]
+    [Tooltip("Actual passenger count generated when this aircraft is created.")]
+    [SerializeField, Min(0)]
+    private int bookedPassengers;
 
     [Header("Runtime")]
     [SerializeField]
@@ -14,10 +18,17 @@ public class PassengerFlightRevenue : MonoBehaviour
 
     public int SeatCapacity => Mathf.Max(1, seatCapacity);
 
-    public int BookedPassengers => SeatCapacity;
+    public int BookedPassengers =>
+        Mathf.Clamp(bookedPassengers, 0, SeatCapacity);
 
     public bool DepartureRevenueRecorded =>
         departureRevenueRecorded;
+
+    private void Awake()
+    {
+        // Generate the passenger load once when this aircraft instance is created.
+        bookedPassengers = Random.Range(1, SeatCapacity + 1);
+    }
 
     /// <summary>
     /// Called by the takeoff controller when the aircraft
