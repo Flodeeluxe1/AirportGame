@@ -6,7 +6,6 @@ using UnityEngine;
 /// It reserves each WasteDisposal while a collector is assigned to it.
 /// </summary>
 [DisallowMultipleComponent]
-[RequireComponent(typeof(WasteCollectionManager))]
 public class GarbageCollectorSpawner : MonoBehaviour
 {
     [Header("References")]
