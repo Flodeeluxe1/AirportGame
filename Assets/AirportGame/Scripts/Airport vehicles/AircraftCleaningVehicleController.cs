@@ -18,6 +18,7 @@ public class AircraftCleaningVehicleController : MonoBehaviour
     private const float PreparationSeconds = 120f;
     private const float SecondsPerPassenger = 6f;
     private const float LeavingSeconds = 120f;
+    private const float WastePerPassenger = 0.5f;
 
     private static readonly List<AircraftCleaningVehicleController> activeVehicles =
         new List<AircraftCleaningVehicleController>();
@@ -25,6 +26,7 @@ public class AircraftCleaningVehicleController : MonoBehaviour
     [Header("References")]
     [SerializeField] private AirportGroundVehicleMovement groundVehicleMovement;
     [SerializeField] private GameTimeManager gameTimeManager;
+    [SerializeField] private WasteCollectionManager wasteCollectionManager;
 
     [Header("Home Parking")]
     [SerializeField] private Transform homeParkingPoint;
@@ -34,6 +36,7 @@ public class AircraftCleaningVehicleController : MonoBehaviour
     [SerializeField] private string currentStatus = "Idle";
     [SerializeField] private string assignedAircraftName;
     [SerializeField] private int passengersToClean;
+    [SerializeField] private float pendingWasteUnits;
     [SerializeField] private float phaseElapsedGameSeconds;
 
     private CleaningState state = CleaningState.Idle;
@@ -41,7 +44,8 @@ public class AircraftCleaningVehicleController : MonoBehaviour
     private AircraftTurnaroundController assignedAircraft;
     private Transform aircraftStopPoint;
 
-    public bool IsBusy => state != CleaningState.Idle || !parkedAtHome;
+    public bool IsBusy => state != CleaningState.Idle || !parkedAtHome ||
+                          pendingWasteUnits > 0.001f;
     public string CurrentStatus => currentStatus;
     public static int ActiveVehicleCount => activeVehicles.Count;
 
@@ -52,6 +56,9 @@ public class AircraftCleaningVehicleController : MonoBehaviour
 
         if (gameTimeManager == null)
             gameTimeManager = FindFirstObjectByType<GameTimeManager>();
+
+        if (wasteCollectionManager == null)
+            wasteCollectionManager = FindFirstObjectByType<WasteCollectionManager>();
 
         if (!activeVehicles.Contains(this))
             activeVehicles.Add(this);
@@ -68,7 +75,9 @@ public class AircraftCleaningVehicleController : MonoBehaviour
     public void SetHomeParkingPoint(Transform parkingPoint)
     {
         homeParkingPoint = parkingPoint;
-        parkedAtHome = homeParkingPoint != null && state == CleaningState.Idle;
+        parkedAtHome = homeParkingPoint != null &&
+                       state == CleaningState.Idle &&
+                       pendingWasteUnits <= 0.001f;
 
         if (groundVehicleMovement == null)
             groundVehicleMovement = GetComponent<AirportGroundVehicleMovement>();
@@ -110,9 +119,8 @@ public class AircraftCleaningVehicleController : MonoBehaviour
 
     private bool BeginCleaningJob(AircraftTurnaroundController aircraft)
     {
-        // A vehicle can only accept another aircraft after it has returned
-        // to its assigned lot parking position and facing direction.
-        if (state != CleaningState.Idle || aircraft == null || !parkedAtHome)
+        if (state != CleaningState.Idle || aircraft == null ||
+            !parkedAtHome || pendingWasteUnits > 0.001f)
             return false;
 
         AircraftFlightIdentity identity =
@@ -172,6 +180,7 @@ public class AircraftCleaningVehicleController : MonoBehaviour
         if (!routeStarted)
         {
             ClearAssignment();
+            parkedAtHome = true;
             Debug.LogWarning(
                 $"{name}: Could not start route to aircraft {aircraft.name}. " +
                 groundVehicleMovement.MovementStatus,
@@ -192,7 +201,12 @@ public class AircraftCleaningVehicleController : MonoBehaviour
     private void Update()
     {
         if (state == CleaningState.Idle)
+        {
+            if (!parkedAtHome && pendingWasteUnits > 0.001f)
+                TryDepositPendingWaste();
+
             return;
+        }
 
         if (assignedAircraft == null && state != CleaningState.DrivingHome)
         {
@@ -287,6 +301,9 @@ public class AircraftCleaningVehicleController : MonoBehaviour
         if (phaseElapsedGameSeconds < LeavingSeconds)
             return;
 
+        // Generate waste only after the cleaning process has completed.
+        pendingWasteUnits += passengersToClean * WastePerPassenger;
+
         if (assignedAircraft != null)
             assignedAircraft.CompleteExternalCleaning();
 
@@ -300,6 +317,7 @@ public class AircraftCleaningVehicleController : MonoBehaviour
         if (homeParkingPoint == null || groundVehicleMovement == null)
         {
             state = CleaningState.Idle;
+            parkedAtHome = false;
             currentStatus = "Idle - home parking unavailable";
             ClearAssignment();
             return;
@@ -312,6 +330,7 @@ public class AircraftCleaningVehicleController : MonoBehaviour
         if (!routeStarted)
         {
             state = CleaningState.Idle;
+            parkedAtHome = false;
             currentStatus = "Idle - return route failed";
             ClearAssignment();
             Debug.LogWarning(
@@ -337,19 +356,63 @@ public class AircraftCleaningVehicleController : MonoBehaviour
                 homeParkingPoint.rotation);
 
             state = CleaningState.Idle;
-            parkedAtHome = true;
-            currentStatus = "Idle";
             phaseElapsedGameSeconds = 0f;
-            passengersToClean = 0;
             aircraftStopPoint = null;
+            ClearAssignment();
+            TryDepositPendingWaste();
             return;
         }
 
         if (groundVehicleMovement.MovementStatus.StartsWith("Failed:"))
         {
             state = CleaningState.Idle;
+            parkedAtHome = false;
             currentStatus = "Idle - return route failed";
             ClearAssignment();
+        }
+    }
+
+    private void TryDepositPendingWaste()
+    {
+        if (pendingWasteUnits <= 0.001f)
+        {
+            pendingWasteUnits = 0f;
+            parkedAtHome = true;
+            currentStatus = "Idle";
+            return;
+        }
+
+        if (wasteCollectionManager == null)
+            wasteCollectionManager = FindFirstObjectByType<WasteCollectionManager>();
+
+        if (wasteCollectionManager == null)
+        {
+            parkedAtHome = false;
+            currentStatus = "At lot - waste manager unavailable";
+            return;
+        }
+
+        float accepted = wasteCollectionManager.AddWasteToAirport(pendingWasteUnits);
+        pendingWasteUnits = Mathf.Max(0f, pendingWasteUnits - accepted);
+
+        if (pendingWasteUnits <= 0.001f)
+        {
+            pendingWasteUnits = 0f;
+            parkedAtHome = true;
+            currentStatus = "Idle";
+            Debug.Log(
+                $"{name}: Deposited cleaning waste. Total added: " +
+                $"{accepted:F1} units.",
+                this);
+        }
+        else
+        {
+            parkedAtHome = false;
+            currentStatus = $"At lot - waiting for waste capacity ({pendingWasteUnits:F1} remaining)";
+            Debug.LogWarning(
+                $"{name}: Only {accepted:F1} waste units could be stored. " +
+                $"{pendingWasteUnits:F1} units remain on the vehicle until disposal capacity is available.",
+                this);
         }
     }
 
