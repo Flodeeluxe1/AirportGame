@@ -356,6 +356,12 @@ public class AircraftTurnaroundController : MonoBehaviour
     [SerializeField, HideInInspector]
     private float fuelTruckRequestRetryTimer;
 
+    [SerializeField, HideInInspector]
+    private bool externalCleaningControlled;
+
+    [SerializeField, HideInInspector]
+    private float cleaningVehicleRequestRetryTimer;
+
     public bool TurnaroundStarted => turnaroundStarted;
     public bool ReadyToDepart => readyToDepart;
     public bool IsTurnaroundComplete => AllTasksCompleted();
@@ -419,6 +425,14 @@ public class AircraftTurnaroundController : MonoBehaviour
                 RequestExternalFuelServiceIfAvailable();
         }
 
+        if (cleaning.Status == AircraftTurnaroundTaskStatus.InProgress &&
+            externalCleaningControlled)
+        {
+            cleaningVehicleRequestRetryTimer -= Time.unscaledDeltaTime;
+            if (cleaningVehicleRequestRetryTimer <= 0f)
+                RequestExternalCleaningServiceIfAvailable();
+        }
+
         float speedMultiplier =
             gameTimeManager != null
                 ? Mathf.Max(0f, gameTimeManager.CurrentSpeedMultiplier)
@@ -437,8 +451,11 @@ public class AircraftTurnaroundController : MonoBehaviour
                 baggageUnloading.Status ==
                     AircraftTurnaroundTaskStatus.InProgress;
 
+            // Cleaning is completed by the dispatched cleaning vehicle,
+            // not by the generic turnaround timer.
             bool tickCleaning =
-                cleaning.Status == AircraftTurnaroundTaskStatus.InProgress;
+                cleaning.Status == AircraftTurnaroundTaskStatus.InProgress &&
+                !externalCleaningControlled;
 
             // Aircraft fueling is completed only by an airport fuel truck.
             // It is never advanced by the turnaround timer.
@@ -798,6 +815,47 @@ public class AircraftTurnaroundController : MonoBehaviour
     }
 
     /// <summary>
+    /// Keeps cleaning under vehicle control until a cleaning vehicle
+    /// completes its preparation, passenger cleaning and exit phases.
+    /// </summary>
+    public void EnableExternalCleaning()
+    {
+        if (cleaning.Status == AircraftTurnaroundTaskStatus.InProgress)
+        {
+            externalCleaningControlled = true;
+            cleaningVehicleRequestRetryTimer = 0f;
+        }
+    }
+
+    public void CompleteExternalCleaning()
+    {
+        if (cleaning.Status != AircraftTurnaroundTaskStatus.InProgress)
+            return;
+
+        externalCleaningControlled = false;
+        cleaningVehicleRequestRetryTimer = 0f;
+        CompleteTask(TaskType.Cleaning);
+    }
+
+    public void CancelExternalCleaning()
+    {
+        // Do not fall back to simulated cleaning if no vehicle is available.
+        externalCleaningControlled =
+            cleaning.Status == AircraftTurnaroundTaskStatus.InProgress;
+        cleaningVehicleRequestRetryTimer = 5f;
+    }
+
+    private void RequestExternalCleaningServiceIfAvailable()
+    {
+        if (cleaning.Status != AircraftTurnaroundTaskStatus.InProgress)
+            return;
+
+        externalCleaningControlled = true;
+        cleaningVehicleRequestRetryTimer = 5f;
+        AircraftCleaningVehicleController.RequestCleaning(this);
+    }
+
+    /// <summary>
     /// Pauses the normal timed fueling task while the airport fuel truck
     /// performs the actual fuel transfer.
     /// </summary>
@@ -891,6 +949,8 @@ public class AircraftTurnaroundController : MonoBehaviour
         {
             case TaskType.Deboarding:
                 StartTask(TaskType.Cleaning);
+                EnableExternalCleaning();
+                RequestExternalCleaningServiceIfAvailable();
                 StartTask(TaskType.Fueling);
                 RequestExternalFuelServiceIfAvailable();
                 break;
@@ -984,6 +1044,8 @@ public class AircraftTurnaroundController : MonoBehaviour
         turnaroundStarted = false;
         externalFuelingControlled = false;
         fuelTruckRequestRetryTimer = 0f;
+        externalCleaningControlled = false;
+        cleaningVehicleRequestRetryTimer = 0f;
 
         deboarding.ResetTask();
         baggageUnloading.ResetTask();
