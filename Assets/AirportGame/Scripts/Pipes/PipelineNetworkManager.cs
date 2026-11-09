@@ -65,6 +65,13 @@ public sealed class PipelineNetworkManager : MonoBehaviour
 
     [Header("References")]
     [SerializeField] private PipelinePrefabRuleManager pipelineRuleManager;
+    [SerializeField] private FuelTruckSpawner fuelTruckSpawner;
+
+    [Header("Automatic Fuel Refill")]
+    [Range(0f, 100f)]
+    [SerializeField] private float automaticRefillThresholdPercent = 25f;
+    [Min(0.1f)]
+    [SerializeField] private float automaticRefillCheckInterval = 2f;
 
     [Header("Diagnostics")]
     [SerializeField] private bool logNetworkRebuilds;
@@ -74,6 +81,7 @@ public sealed class PipelineNetworkManager : MonoBehaviour
     private readonly HashSet<FuelStorageTank> initializedTanks = new();
     private int lastTopologyHash;
     private bool hasBuiltTopology;
+    private float automaticRefillCheckTimer;
 
     private List<PipelineNetworkSaveData> pendingSavedInventories;
     private bool hasPendingSavedInventories;
@@ -91,12 +99,39 @@ public sealed class PipelineNetworkManager : MonoBehaviour
     private void Update()
     {
         ResolveReferences();
-        if (pipelineRuleManager == null)
+
+        if (pipelineRuleManager != null)
+        {
+            int currentHash = CalculateTopologyHash();
+            if (!hasBuiltTopology || currentHash != lastTopologyHash)
+                RebuildNetworks();
+        }
+
+        automaticRefillCheckTimer -= Time.deltaTime;
+        if (automaticRefillCheckTimer <= 0f)
+        {
+            automaticRefillCheckTimer =
+                Mathf.Max(0.1f, automaticRefillCheckInterval);
+            CheckAutomaticRefillRequests();
+        }
+    }
+
+    private void CheckAutomaticRefillRequests()
+    {
+        if (fuelTruckSpawner == null)
             return;
 
-        int currentHash = CalculateTopologyHash();
-        if (!hasBuiltTopology || currentHash != lastTopologyHash)
-            RebuildNetworks();
+        foreach (PipelineNetwork network in networks)
+        {
+            if (network == null || network.CapacityLitres <= 0f)
+                continue;
+
+            float fuelPercentage =
+                network.CurrentFuelLitres / network.CapacityLitres * 100f;
+
+            if (fuelPercentage <= automaticRefillThresholdPercent)
+                fuelTruckSpawner.TryDispatchDelivery(network);
+        }
     }
 
     private int CalculateTopologyHash()
@@ -138,6 +173,9 @@ public sealed class PipelineNetworkManager : MonoBehaviour
     {
         if (pipelineRuleManager == null)
             pipelineRuleManager = FindFirstObjectByType<PipelinePrefabRuleManager>();
+
+        if (fuelTruckSpawner == null)
+            fuelTruckSpawner = FindFirstObjectByType<FuelTruckSpawner>();
     }
 
     public PipelineNetwork GetNetworkFor(FuelConnector connector)
