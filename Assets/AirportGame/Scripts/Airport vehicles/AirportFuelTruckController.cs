@@ -495,9 +495,12 @@ public class AirportFuelTruckController : MonoBehaviour
             return;
         }
 
+        // Permit the refill station's own occupied/foundation cells so
+        // the truck can reach its designated parking stop point.
         bool routeStarted = groundVehicleMovement.MoveTo(
             currentRefillStopPoint.position,
-            currentRefillStopPoint);
+            currentRefillStopPoint,
+            currentRefillStopPoint.root.gameObject);
 
         if (!routeStarted)
         {
