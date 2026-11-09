@@ -59,6 +59,12 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 2c37ba640e5b9c443b5b029e87d6ff72, type: 3}
       insertIndex: -1
       addedObject: {fileID: 6212682086545469396}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 2c37ba640e5b9c443b5b029e87d6ff72, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7712682086545469396}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 2c37ba640e5b9c443b5b029e87d6ff72, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7722682086545469396}
   m_SourcePrefab: {fileID: 100100000, guid: 2c37ba640e5b9c443b5b029e87d6ff72, type: 3}
 --- !u!1 &638855529111044832 stripped
 GameObject:
@@ -86,3 +92,63 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1.7, y: 1.8, z: 3.87}
   m_Center: {x: 0, y: 0.9, z: -0.39}
+
+--- !u!114 &7712682086545469396
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 638855529111044832}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fc69eae5cf9a4ae4688f7ea0e4f5b528, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AirportGroundVehicleMovement
+  gridManager: {fileID: 0}
+  gridOccupancy: {fileID: 0}
+  gridSurface: {fileID: 0}
+  roadNetwork: {fileID: 0}
+  taxiwayNetwork: {fileID: 0}
+  tarmacMovementCost: 1
+  taxiwayMovementCost: 5
+  grassMovementCost: 10
+  foundationClearance: 1
+  movementSpeed: 3
+  rotationSpeed: 5
+  waypointArrivalDistance: 0.08
+  groundHeightOffset: 0.05
+  turningRadiusInCells: 2
+  turnCurveResolution: 10
+  parkingTurnDistanceInCells: 2
+  parkingCurveResolution: 16
+  parkFacingWorldNegativeZ: 0
+  isMoving: 0
+  movementStatus: Idle
+  routeCellCount: 0
+  currentWaypointIndex: 0
+--- !u!114 &7722682086545469396
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 638855529111044832}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d9a5c7e31b4f4e3a8c2d6f7091b5e4a7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AirportFuelTruckController
+  groundVehicleMovement: {fileID: 0}
+  truckFuelCapacityLitres: 800
+  currentTruckFuelLitres: 800
+  aircraftRefuellingRateLitresPerMinute: 100
+  truckRefillRateLitresPerMinute: 300
+  refillStopPointName: FuelTruckRefillStopPoint
+  homeSpawnPoint: {fileID: 0}
+  homeSpawnOffset: {x: 0, y: 0, z: 0}
+  homeSpawnHeight: 0.23
+  gameTimeManager: {fileID: 0}
+  showDebugMessages: 1
+  currentJobStatus: Idle
+  queuedJobCount: 0
