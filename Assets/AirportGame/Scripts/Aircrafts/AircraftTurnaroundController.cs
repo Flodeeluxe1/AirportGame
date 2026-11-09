@@ -307,6 +307,9 @@ public class AircraftTurnaroundController : MonoBehaviour
     [SerializeField, HideInInspector]
     private bool externalFuelingControlled;
 
+    [SerializeField, HideInInspector]
+    private float fuelTruckRequestRetryTimer;
+
     public bool TurnaroundStarted => turnaroundStarted;
     public bool ReadyToDepart => readyToDepart;
     public bool IsTurnaroundComplete => AllTasksCompleted();
@@ -353,6 +356,14 @@ public class AircraftTurnaroundController : MonoBehaviour
         if (!turnaroundStarted)
             return;
 
+        if (fueling.Status == AircraftTurnaroundTaskStatus.InProgress &&
+            externalFuelingControlled)
+        {
+            fuelTruckRequestRetryTimer -= Time.unscaledDeltaTime;
+            if (fuelTruckRequestRetryTimer <= 0f)
+                RequestExternalFuelServiceIfAvailable();
+        }
+
         float speedMultiplier =
             gameTimeManager != null
                 ? Mathf.Max(0f, gameTimeManager.CurrentSpeedMultiplier)
@@ -374,9 +385,9 @@ public class AircraftTurnaroundController : MonoBehaviour
             bool tickCleaning =
                 cleaning.Status == AircraftTurnaroundTaskStatus.InProgress;
 
-            bool tickFueling =
-                !externalFuelingControlled &&
-                fueling.Status == AircraftTurnaroundTaskStatus.InProgress;
+            // Aircraft fueling is completed only by an airport fuel truck.
+            // It is never advanced by the turnaround timer.
+            bool tickFueling = false;
 
             bool tickBaggageLoading =
                 !outgoingBaggageTransferControlled &&
@@ -394,9 +405,6 @@ public class AircraftTurnaroundController : MonoBehaviour
 
             if (tickCleaning)
                 AdvanceTask(TaskType.Cleaning, deltaGameSeconds);
-
-            if (tickFueling)
-                AdvanceTask(TaskType.Fueling, deltaGameSeconds);
 
             if (tickBaggageLoading)
                 AdvanceTask(TaskType.BaggageLoading, deltaGameSeconds);
@@ -741,7 +749,10 @@ public class AircraftTurnaroundController : MonoBehaviour
     public void EnableExternalFueling()
     {
         if (fueling.Status == AircraftTurnaroundTaskStatus.InProgress)
+        {
             externalFuelingControlled = true;
+            fuelTruckRequestRetryTimer = 5f;
+        }
     }
 
     /// <summary>
@@ -753,6 +764,7 @@ public class AircraftTurnaroundController : MonoBehaviour
             return;
 
         externalFuelingControlled = false;
+        fuelTruckRequestRetryTimer = 0f;
         CompleteTask(TaskType.Fueling);
     }
 
@@ -761,13 +773,20 @@ public class AircraftTurnaroundController : MonoBehaviour
     /// </summary>
     public void CancelExternalFueling()
     {
-        externalFuelingControlled = false;
+        // A failed or unavailable truck must never restore simulated fueling.
+        externalFuelingControlled =
+            fueling.Status == AircraftTurnaroundTaskStatus.InProgress;
+        fuelTruckRequestRetryTimer = 5f;
     }
 
     private void RequestExternalFuelServiceIfAvailable()
     {
-        if (!AirportFuelTruckController.RequestRefuelling(this))
-            CancelExternalFueling();
+        if (fueling.Status != AircraftTurnaroundTaskStatus.InProgress)
+            return;
+
+        externalFuelingControlled = true;
+        fuelTruckRequestRetryTimer = 5f;
+        AirportFuelTruckController.RequestRefuelling(this);
     }
 
     private void AdvanceTask(TaskType taskType, float deltaGameSeconds)
@@ -907,6 +926,7 @@ public class AircraftTurnaroundController : MonoBehaviour
     {
         turnaroundStarted = false;
         externalFuelingControlled = false;
+        fuelTruckRequestRetryTimer = 0f;
 
         deboarding.ResetTask();
         baggageUnloading.ResetTask();
