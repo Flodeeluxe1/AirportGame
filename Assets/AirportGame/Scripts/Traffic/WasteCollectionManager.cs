@@ -18,6 +18,9 @@ public class WasteCollectionManager : MonoBehaviour
     [Min(0.1f)]
     [SerializeField] private float scanInterval = 2f;
 
+    [Header("Diagnostics")]
+    [SerializeField] private bool logCollectionChecks = true;
+
     [Header("Runtime")]
     [SerializeField] private int trackedDisposalCount;
     [SerializeField] private float totalCurrentWaste;
@@ -54,9 +57,37 @@ public class WasteCollectionManager : MonoBehaviour
         scanTimer = 0f;
         RefreshWasteTotals();
 
-        while (garbageCollectorSpawner != null &&
-               garbageCollectorSpawner.isActiveAndEnabled &&
-               garbageCollectorSpawner.ActiveCollectorCount <
+        if (logCollectionChecks)
+        {
+            float totalPercent = totalWasteCapacity > 0f
+                ? totalCurrentWaste / totalWasteCapacity * 100f
+                : 0f;
+
+            Debug.Log(
+                $"WASTE COLLECTION CHECK | Airport total: {totalCurrentWaste:F1}/{totalWasteCapacity:F1} " +
+                $"({totalPercent:F1}%) | Per-disposal dispatch threshold: {dispatchThresholdPercent:F1}% | " +
+                $"Disposals: {trackedDisposalCount} | Active collectors: " +
+                $"{(garbageCollectorSpawner != null ? garbageCollectorSpawner.ActiveCollectorCount : 0)}/" +
+                $"{(garbageCollectorSpawner != null ? garbageCollectorSpawner.MaximumActiveCollectors : 0)}",
+                this);
+        }
+
+        if (garbageCollectorSpawner == null || !garbageCollectorSpawner.isActiveAndEnabled)
+        {
+            if (logCollectionChecks)
+                Debug.LogWarning("WASTE COLLECTION CHECK BLOCKED | GarbageCollectorSpawner is missing or disabled.", this);
+            return;
+        }
+
+        if (garbageCollectorSpawner.ActiveCollectorCount >=
+            garbageCollectorSpawner.MaximumActiveCollectors)
+        {
+            if (logCollectionChecks)
+                Debug.Log("WASTE COLLECTION CHECK BLOCKED | Maximum active collector count reached.", this);
+            return;
+        }
+
+        while (garbageCollectorSpawner.ActiveCollectorCount <
                garbageCollectorSpawner.MaximumActiveCollectors)
         {
             if (!garbageCollectorSpawner.TryDispatchCollector(
