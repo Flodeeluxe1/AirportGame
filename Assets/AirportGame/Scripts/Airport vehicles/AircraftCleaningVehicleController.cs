@@ -155,7 +155,7 @@ public class AircraftCleaningVehicleController : MonoBehaviour
             aircraft.GetComponent<PassengerFlightRevenue>();
 
         int passengerCount =
-            passengerRevenue != null ? passengerRevenue.BookedPassengers : 0;
+            passengerRevenue != null ? passengerRevenue.IncomingPassengers : 0;
 
         parkedAtHome = false;
         assignedAircraft = aircraft;
