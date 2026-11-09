@@ -12,6 +12,12 @@ public class WasteCollectionManager : MonoBehaviour
     [Header("References")]
     [SerializeField] private GarbageCollectorSpawner garbageCollectorSpawner;
 
+    [Header("Disposal Costs")]
+    [Min(0f)]
+    [SerializeField] private float fixedCollectionFeePerTrip = 25f;
+    [Min(0f)]
+    [SerializeField] private float disposalFeePerUnit = 0.2f;
+
     [Header("Automatic Collection")]
     [Range(0f, 100f)]
     [SerializeField] private float dispatchThresholdPercent = 75f;
@@ -27,6 +33,7 @@ public class WasteCollectionManager : MonoBehaviour
     [SerializeField] private float totalWasteCapacity;
 
     private float scanTimer;
+    private AirportEconomyManager economyManager;
 
     public int TrackedDisposalCount => trackedDisposalCount;
     public float TotalCurrentWaste => totalCurrentWaste;
@@ -36,6 +43,8 @@ public class WasteCollectionManager : MonoBehaviour
 
     private void Awake()
     {
+        economyManager = FindFirstObjectByType<AirportEconomyManager>();
+
         if (garbageCollectorSpawner == null)
             garbageCollectorSpawner = FindFirstObjectByType<GarbageCollectorSpawner>();
 
@@ -127,6 +136,53 @@ public class WasteCollectionManager : MonoBehaviour
 
         RefreshWasteTotals();
         return acceptedTotal;
+    }
+
+    /// <summary>
+    /// Charges the airport once for a completed garbage collector trip.
+    /// The charge combines a fixed trip fee and a fee per collected waste unit.
+    /// Currency is rounded up to the next whole unit because the economy balance
+    /// stores whole currency units.
+    /// </summary>
+    public bool ChargeCompletedCollectionTrip(float collectedUnits)
+    {
+        if (collectedUnits <= 0.001f)
+            return false;
+
+        if (economyManager == null)
+            economyManager = FindFirstObjectByType<AirportEconomyManager>();
+
+        if (economyManager == null)
+        {
+            Debug.LogError(
+                "WasteCollectionManager: Cannot charge waste collection because AirportEconomyManager was not found.",
+                this);
+            return false;
+        }
+
+        float calculatedCost =
+            fixedCollectionFeePerTrip + collectedUnits * disposalFeePerUnit;
+        int charge = Mathf.CeilToInt(calculatedCost);
+
+        if (charge <= 0)
+            return true;
+
+        string reason = $"Waste collection ({collectedUnits:F1} units)";
+
+        if (!economyManager.TrySpend(charge, reason))
+        {
+            Debug.LogWarning(
+                $"WASTE COLLECTION CHARGE FAILED | {reason} | Cost: ${charge:N0}.",
+                this);
+            return false;
+        }
+
+        Debug.Log(
+            $"WASTE COLLECTION CHARGED | {reason} | Fixed fee: ${fixedCollectionFeePerTrip:F2} | " +
+            $"Variable fee: ${(collectedUnits * disposalFeePerUnit):F2} | Total charged: ${charge:N0}.",
+            this);
+
+        return true;
     }
 
     private void RefreshWasteTotals()
