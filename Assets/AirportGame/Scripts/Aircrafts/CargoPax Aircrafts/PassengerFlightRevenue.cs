@@ -7,8 +7,13 @@ public class PassengerFlightRevenue : MonoBehaviour
     [SerializeField, Min(1)]
     private int seatCapacity = 19;
 
-    [Header("Booked Passengers")]
-    [Tooltip("Actual passenger count generated when this aircraft is created.")]
+    [Header("Incoming Passengers")]
+    [Tooltip("Passengers arriving on this flight. Used for deboarding and cleaning.")]
+    [SerializeField, Min(0)]
+    private int incomingPassengers;
+
+    [Header("Outgoing Booked Passengers")]
+    [Tooltip("Passengers booked to depart on this flight. Used for departure revenue.")]
     [SerializeField, Min(0)]
     private int bookedPassengers;
 
@@ -18,6 +23,9 @@ public class PassengerFlightRevenue : MonoBehaviour
 
     public int SeatCapacity => Mathf.Max(1, seatCapacity);
 
+    public int IncomingPassengers =>
+        Mathf.Clamp(incomingPassengers, 0, SeatCapacity);
+
     public int BookedPassengers =>
         Mathf.Clamp(bookedPassengers, 0, SeatCapacity);
 
@@ -26,7 +34,9 @@ public class PassengerFlightRevenue : MonoBehaviour
 
     private void Awake()
     {
-        // Generate the passenger load once when this aircraft instance is created.
+        // Generate arriving and departing passenger counts independently
+        // when this flight's aircraft instance is created.
+        incomingPassengers = Random.Range(0, SeatCapacity + 1);
         bookedPassengers = Random.Range(0, SeatCapacity + 1);
     }
 
