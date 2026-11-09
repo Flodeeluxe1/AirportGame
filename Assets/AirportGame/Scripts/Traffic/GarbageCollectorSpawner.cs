@@ -22,6 +22,7 @@ public class GarbageCollectorSpawner : MonoBehaviour
 
     [Header("Diagnostics")]
     [SerializeField] private bool logDispatches = true;
+    [SerializeField] private bool logDispatchDiagnostics = true;
 
     private readonly HashSet<WasteDisposal> reservedDisposals =
         new HashSet<WasteDisposal>();
@@ -51,8 +52,6 @@ public class GarbageCollectorSpawner : MonoBehaviour
 
     private void Start()
     {
-        // Match FuelTruckSpawner: validate configured references here, but do
-        // not require road cells to exist yet. Roads may be built during play.
         if (garbageCollectorPrefab == null || spawnPoint == null ||
             exitPoint == null || gridManager == null || roadNetwork == null)
         {
@@ -68,19 +67,33 @@ public class GarbageCollectorSpawner : MonoBehaviour
         if (!isActiveAndEnabled || garbageCollectorPrefab == null ||
             spawnPoint == null || exitPoint == null ||
             gridManager == null || roadNetwork == null)
+        {
+            LogDispatchFailure("Missing reference or spawner is disabled. Check prefab, spawn/exit points, GridManager and RoadNetwork.");
             return false;
+        }
 
-        // Validate road membership at dispatch time, like FuelTruckSpawner
-        // does in SelectDeliveryStation. This allows the road network to be
-        // created dynamically after the scene has started.
+        if (ActiveCollectorCount >= MaximumActiveCollectors)
+        {
+            LogDispatchFailure($"Active collector limit reached ({ActiveCollectorCount}/{MaximumActiveCollectors}).");
+            return false;
+        }
+
         Vector2Int startCell =
             roadNetwork.GetRoadAnchor(gridManager.WorldToGrid(spawnPoint.position));
-
         Vector2Int exitCell =
             roadNetwork.GetRoadAnchor(gridManager.WorldToGrid(exitPoint.position));
 
-        if (!roadNetwork.IsRoad(startCell) || !roadNetwork.IsRoad(exitCell))
+        if (!roadNetwork.IsRoad(startCell))
+        {
+            LogDispatchFailure($"Spawn point is not on a registered road cell. Cell: {startCell}.");
             return false;
+        }
+
+        if (!roadNetwork.IsRoad(exitCell))
+        {
+            LogDispatchFailure($"Exit point is not on a registered road cell. Cell: {exitCell}.");
+            return false;
+        }
 
         if (!TryReserveNextDisposal(
                 startCell,
@@ -90,6 +103,7 @@ public class GarbageCollectorSpawner : MonoBehaviour
                 out Vector2Int disposalRoadCell,
                 out List<Vector2Int> outboundRoute))
         {
+            LogDispatchFailure("No disposal passed the waste, reservation and route checks. See per-disposal diagnostics above.");
             return false;
         }
 
@@ -124,6 +138,7 @@ public class GarbageCollectorSpawner : MonoBehaviour
                 disposalRoadCell,
                 outboundRoute))
         {
+            LogDispatchFailure($"Collector prefab instantiated, but Initialize() rejected the assignment for '{disposal.name}'.");
             activeCollectors.Remove(collector);
             ReleaseDisposal(disposal);
             Destroy(collectorObject);
@@ -142,11 +157,12 @@ public class GarbageCollectorSpawner : MonoBehaviour
         return true;
     }
 
-    /// <summary>
-    /// Reserves the closest reachable disposal and builds a road route to it.
-    /// The initial dispatch can require the configured waste threshold;
-    /// collectors already on a route may visit any disposal containing waste.
-    /// </summary>
+    private void LogDispatchFailure(string reason)
+    {
+        if (logDispatchDiagnostics)
+            Debug.LogWarning($"GARBAGE COLLECTOR NOT DISPATCHED | {reason}", this);
+    }
+
     public bool TryReserveNextDisposal(
         Vector2Int startCell,
         bool requireDispatchThreshold,
@@ -165,33 +181,65 @@ public class GarbageCollectorSpawner : MonoBehaviour
 
         int bestRouteLength = int.MaxValue;
         float bestDistance = float.MaxValue;
+        int inactiveCount = 0;
+        int reservedCount = 0;
+        int emptyCount = 0;
+        int missingStopCount = 0;
+        int belowThresholdCount = 0;
+        int routeFailureCount = 0;
 
         foreach (WasteDisposal disposal in disposals)
         {
-            if (disposal == null ||
-                reservedDisposals.Contains(disposal) ||
-                !disposal.HasWaste ||
-                disposal.GarbageCollectorStopPoint == null)
+            if (disposal == null || !disposal.gameObject.activeInHierarchy)
             {
+                inactiveCount++;
+                continue;
+            }
+
+            if (reservedDisposals.Contains(disposal))
+            {
+                reservedCount++;
+                LogDisposalSkip(disposal, "already reserved by another collector");
+                continue;
+            }
+
+            if (!disposal.HasWaste)
+            {
+                emptyCount++;
+                LogDisposalSkip(disposal, "contains no waste");
+                continue;
+            }
+
+            if (disposal.GarbageCollectorStopPoint == null)
+            {
+                missingStopCount++;
+                LogDisposalSkip(disposal, "GarbageCollectorStopPoint was not found/assigned");
                 continue;
             }
 
             float capacity = disposal.MaximumWasteCapacity;
             float waste = disposal.CurrentWaste;
+            float fillPercent = capacity > 0f ? waste / capacity * 100f : 0f;
 
-            if (requireDispatchThreshold)
+            if (requireDispatchThreshold &&
+                (capacity <= 0f || fillPercent < thresholdPercent))
             {
-                if (capacity <= 0f ||
-                    waste / capacity * 100f < thresholdPercent)
-                    continue;
+                belowThresholdCount++;
+                LogDisposalSkip(
+                    disposal,
+                    $"below dispatch threshold ({waste:F1}/{capacity:F1} = {fillPercent:F1}%, needs {thresholdPercent:F1}%)");
+                continue;
             }
 
             if (!TryBuildDisposalRoute(
                     disposal,
                     startCell,
                     out Vector2Int roadCell,
-                    out List<Vector2Int> route))
+                    out List<Vector2Int> route,
+                    out string routeFailure))
             {
+                routeFailureCount++;
+                LogDisposalSkip(disposal, routeFailure);
                 continue;
             }
 
@@ -210,35 +258,82 @@ public class GarbageCollectorSpawner : MonoBehaviour
             selectedRoute = route;
         }
 
+        if (selectedDisposal == null && logDispatchDiagnostics)
+        {
+            Debug.LogWarning(
+                $"GARBAGE DISPATCH SEARCH SUMMARY | Found disposals: {disposals.Length} | " +
+                $"Inactive: {inactiveCount} | Reserved: {reservedCount} | Empty: {emptyCount} | " +
+                $"Missing stop point: {missingStopCount} | Below threshold: {belowThresholdCount} | " +
+                $"Route rejected: {routeFailureCount}.",
+                this);
+            return false;
+        }
+
         if (selectedDisposal == null)
             return false;
 
         reservedDisposals.Add(selectedDisposal);
+        if (logDispatchDiagnostics)
+        {
+            Debug.Log(
+                $"GARBAGE DISPOSAL SELECTED | {selectedDisposal.name} | " +
+                $"Waste: {selectedDisposal.CurrentWaste:F1}/{selectedDisposal.MaximumWasteCapacity:F1} | " +
+                $"Road approach cell: {selectedRoadCell} | Route cells: {selectedRoute.Count}",
+                selectedDisposal);
+        }
+
         return true;
+    }
+
+    private void LogDisposalSkip(WasteDisposal disposal, string reason)
+    {
+        if (logDispatchDiagnostics)
+            Debug.Log($"GARBAGE DISPOSAL SKIPPED | {disposal.name} | {reason}", disposal);
     }
 
     private bool TryBuildDisposalRoute(
         WasteDisposal disposal,
         Vector2Int startCell,
         out Vector2Int bestRoadCell,
-        out List<Vector2Int> bestRoute)
+        out List<Vector2Int> bestRoute,
+        out string failureReason)
     {
         bestRoadCell = Vector2Int.zero;
         bestRoute = null;
+        failureReason = "No suitable road approach found.";
 
         Transform stopPoint = disposal.GarbageCollectorStopPoint;
         if (stopPoint == null)
+        {
+            failureReason = "GarbageCollectorStopPoint is missing.";
             return false;
+        }
 
         Vector2Int exitCell =
             roadNetwork.GetRoadAnchor(gridManager.WorldToGrid(exitPoint.position));
 
-        if (!roadNetwork.IsRoad(startCell) || !roadNetwork.IsRoad(exitCell))
+        if (!roadNetwork.IsRoad(startCell))
+        {
+            failureReason = $"Spawn cell {startCell} is not a road.";
             return false;
+        }
+
+        if (!roadNetwork.IsRoad(exitCell))
+        {
+            failureReason = $"Exit cell {exitCell} is not a road.";
+            return false;
+        }
 
         List<Vector2Int> roadPositions = roadNetwork.GetRoadPositions();
         float bestDistance = float.MaxValue;
         int bestLength = int.MaxValue;
+
+        int withinDistanceCount = 0;
+        int outboundRouteCount = 0;
+        int alignedApproachCount = 0;
+        int validReturnRouteCount = 0;
+        int directionRejectedCount = 0;
+        int zeroDirectionCount = 0;
 
         foreach (Vector2Int candidate in roadPositions)
         {
@@ -248,10 +343,12 @@ public class GarbageCollectorSpawner : MonoBehaviour
             float distance = Vector3.Distance(roadPosition, stopPoint.position);
             if (distance > disposal.MaximumRoadApproachDistance)
                 continue;
+            withinDistanceCount++;
 
             List<Vector2Int> outbound = roadNetwork.FindPath(startCell, candidate);
             if (outbound == null || outbound.Count == 0)
                 continue;
+            outboundRouteCount++;
 
             Vector3 stopForward = stopPoint.forward;
             stopForward.y = 0f;
@@ -260,13 +357,19 @@ public class GarbageCollectorSpawner : MonoBehaviour
 
             if (stopForward.sqrMagnitude < 0.0001f ||
                 approachDirection.sqrMagnitude < 0.0001f)
+            {
+                zeroDirectionCount++;
                 continue;
+            }
 
             stopForward.Normalize();
             approachDirection.Normalize();
 
             if (Vector3.Dot(approachDirection, stopForward) < 0.95f)
+            {
+                directionRejectedCount++;
                 continue;
+            }
 
             if (outbound.Count >= 2)
             {
@@ -277,19 +380,28 @@ public class GarbageCollectorSpawner : MonoBehaviour
                 travelDirection.y = 0f;
 
                 if (travelDirection.sqrMagnitude < 0.0001f)
+                {
+                    zeroDirectionCount++;
                     continue;
+                }
 
                 travelDirection.Normalize();
 
                 if (Mathf.Abs(Vector3.Dot(travelDirection, stopForward)) > 0.15f)
+                {
+                    directionRejectedCount++;
                     continue;
+                }
             }
+
+            alignedApproachCount++;
 
             List<Vector2Int> returnRoute =
                 roadNetwork.FindPath(candidate, exitCell);
 
             if (returnRoute == null || returnRoute.Count == 0)
                 continue;
+            validReturnRouteCount++;
 
             if (outbound.Count > bestLength ||
                 (outbound.Count == bestLength && distance >= bestDistance))
@@ -301,7 +413,25 @@ public class GarbageCollectorSpawner : MonoBehaviour
             bestRoute = outbound;
         }
 
-        return bestRoute != null;
+        if (bestRoute != null)
+            return true;
+
+        if (withinDistanceCount == 0)
+            failureReason = $"No road cell within {disposal.MaximumRoadApproachDistance:F1}m of the stop point.";
+        else if (outboundRouteCount == 0)
+            failureReason = $"Road cells are nearby ({withinDistanceCount}), but none has a route from spawn cell {startCell}.";
+        else if (alignedApproachCount == 0)
+            failureReason = $"Nearby/reachable road cells fail stop-point alignment. Direction rejects: {directionRejectedCount}; zero direction: {zeroDirectionCount}. Check stop point position/forward.";
+        else if (validReturnRouteCount == 0)
+            failureReason = $"Approach alignment passed ({alignedApproachCount}), but no return route to exit cell {exitCell} exists.";
+        else
+            failureReason = "A candidate route passed checks but no route was selected.";
+
+        failureReason +=
+            $" Candidate counts: nearby={withinDistanceCount}, outbound={outboundRouteCount}, " +
+            $"aligned={alignedApproachCount}, return={validReturnRouteCount}.";
+
+        return false;
     }
 
     public bool TryGetExitRoute(
