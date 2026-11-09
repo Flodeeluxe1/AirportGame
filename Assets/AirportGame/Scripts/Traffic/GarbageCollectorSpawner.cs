@@ -330,10 +330,7 @@ public class GarbageCollectorSpawner : MonoBehaviour
 
         int withinDistanceCount = 0;
         int outboundRouteCount = 0;
-        int alignedApproachCount = 0;
         int validReturnRouteCount = 0;
-        int directionRejectedCount = 0;
-        int zeroDirectionCount = 0;
 
         foreach (Vector2Int candidate in roadPositions)
         {
@@ -345,56 +342,14 @@ public class GarbageCollectorSpawner : MonoBehaviour
                 continue;
             withinDistanceCount++;
 
+            // Select a reachable road cell near the stop point. Do not require
+            // the road's final travel direction to align with the parking point:
+            // the collector drives to the stop point and faces its forward axis
+            // once it arrives.
             List<Vector2Int> outbound = roadNetwork.FindPath(startCell, candidate);
             if (outbound == null || outbound.Count == 0)
                 continue;
             outboundRouteCount++;
-
-            Vector3 stopForward = stopPoint.forward;
-            stopForward.y = 0f;
-            Vector3 approachDirection = stopPoint.position - roadPosition;
-            approachDirection.y = 0f;
-
-            if (stopForward.sqrMagnitude < 0.0001f ||
-                approachDirection.sqrMagnitude < 0.0001f)
-            {
-                zeroDirectionCount++;
-                continue;
-            }
-
-            stopForward.Normalize();
-            approachDirection.Normalize();
-
-            if (Vector3.Dot(approachDirection, stopForward) < 0.95f)
-            {
-                directionRejectedCount++;
-                continue;
-            }
-
-            if (outbound.Count >= 2)
-            {
-                Vector3 previousPosition =
-                    roadNetwork.GetRoadCenterWorldPosition(
-                        outbound[outbound.Count - 2], gridManager);
-                Vector3 travelDirection = roadPosition - previousPosition;
-                travelDirection.y = 0f;
-
-                if (travelDirection.sqrMagnitude < 0.0001f)
-                {
-                    zeroDirectionCount++;
-                    continue;
-                }
-
-                travelDirection.Normalize();
-
-                if (Mathf.Abs(Vector3.Dot(travelDirection, stopForward)) > 0.15f)
-                {
-                    directionRejectedCount++;
-                    continue;
-                }
-            }
-
-            alignedApproachCount++;
 
             List<Vector2Int> returnRoute =
                 roadNetwork.FindPath(candidate, exitCell);
@@ -420,16 +375,14 @@ public class GarbageCollectorSpawner : MonoBehaviour
             failureReason = $"No road cell within {disposal.MaximumRoadApproachDistance:F1}m of the stop point.";
         else if (outboundRouteCount == 0)
             failureReason = $"Road cells are nearby ({withinDistanceCount}), but none has a route from spawn cell {startCell}.";
-        else if (alignedApproachCount == 0)
-            failureReason = $"Nearby/reachable road cells fail stop-point alignment. Direction rejects: {directionRejectedCount}; zero direction: {zeroDirectionCount}. Check stop point position/forward.";
         else if (validReturnRouteCount == 0)
-            failureReason = $"Approach alignment passed ({alignedApproachCount}), but no return route to exit cell {exitCell} exists.";
+            failureReason = $"Reachable approach cells ({outboundRouteCount}) exist, but none has a return route to exit cell {exitCell}.";
         else
             failureReason = "A candidate route passed checks but no route was selected.";
 
         failureReason +=
             $" Candidate counts: nearby={withinDistanceCount}, outbound={outboundRouteCount}, " +
-            $"aligned={alignedApproachCount}, return={validReturnRouteCount}.";
+            $"return={validReturnRouteCount}.";
 
         return false;
     }
