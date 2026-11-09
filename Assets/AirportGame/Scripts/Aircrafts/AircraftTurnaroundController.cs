@@ -304,6 +304,9 @@ public class AircraftTurnaroundController : MonoBehaviour
     [SerializeField]
     private bool turnaroundStarted;
 
+    [SerializeField, HideInInspector]
+    private bool externalFuelingControlled;
+
     public bool TurnaroundStarted => turnaroundStarted;
     public bool ReadyToDepart => readyToDepart;
     public bool IsTurnaroundComplete => AllTasksCompleted();
@@ -372,6 +375,7 @@ public class AircraftTurnaroundController : MonoBehaviour
                 cleaning.Status == AircraftTurnaroundTaskStatus.InProgress;
 
             bool tickFueling =
+                !externalFuelingControlled &&
                 fueling.Status == AircraftTurnaroundTaskStatus.InProgress;
 
             bool tickBaggageLoading =
@@ -482,6 +486,7 @@ public class AircraftTurnaroundController : MonoBehaviour
         {
             // Fueling still applies to cargo-only aircraft.
             StartTask(TaskType.Fueling);
+            RequestExternalFuelServiceIfAvailable();
         }
         else
         {
@@ -729,6 +734,48 @@ public class AircraftTurnaroundController : MonoBehaviour
         return true;
     }
 
+    /// <summary>
+    /// Pauses the normal timed fueling task while the airport fuel truck
+    /// performs the actual fuel transfer.
+    /// </summary>
+    public void EnableExternalFueling()
+    {
+        if (fueling.Status == AircraftTurnaroundTaskStatus.InProgress)
+            externalFuelingControlled = true;
+    }
+
+    /// <summary>
+    /// Completes the aircraft fueling task after the truck fills its tank.
+    /// </summary>
+    public void CompleteExternalFueling()
+    {
+        if (fueling.Status != AircraftTurnaroundTaskStatus.InProgress)
+            return;
+
+        externalFuelingControlled = false;
+        CompleteTask(TaskType.Fueling);
+    }
+
+    /// <summary>
+    /// Restores the normal timed fueling fallback if a truck assignment fails.
+    /// </summary>
+    public void CancelExternalFueling()
+    {
+        externalFuelingControlled = false;
+    }
+
+    private void RequestExternalFuelServiceIfAvailable()
+    {
+        AirportFuelTruckController truck =
+            AirportFuelTruckController.Instance;
+
+        if (truck != null &&
+            !truck.RequestRefuelling(this))
+        {
+            CancelExternalFueling();
+        }
+    }
+
     private void AdvanceTask(TaskType taskType, float deltaGameSeconds)
     {
         ITaskProgress task = GetTask(taskType);
@@ -775,6 +822,7 @@ public class AircraftTurnaroundController : MonoBehaviour
             case TaskType.Deboarding:
                 StartTask(TaskType.Cleaning);
                 StartTask(TaskType.Fueling);
+                RequestExternalFuelServiceIfAvailable();
                 break;
 
             case TaskType.BaggageUnloading:
@@ -864,6 +912,7 @@ public class AircraftTurnaroundController : MonoBehaviour
     private void DebugResetTurnaround()
     {
         turnaroundStarted = false;
+        externalFuelingControlled = false;
 
         deboarding.ResetTask();
         baggageUnloading.ResetTask();
