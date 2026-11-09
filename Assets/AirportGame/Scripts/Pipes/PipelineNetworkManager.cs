@@ -130,7 +130,10 @@ public sealed class PipelineNetworkManager : MonoBehaviour
                 network.CurrentFuelLitres / network.CapacityLitres * 100f;
 
             if (fuelPercentage <= automaticRefillThresholdPercent)
-                fuelTruckSpawner.TryDispatchDelivery(network);
+                fuelTruckSpawner.TryDispatchDelivery(
+                    network,
+                    this,
+                    automaticRefillThresholdPercent);
         }
     }
 
@@ -185,6 +188,11 @@ public sealed class PipelineNetworkManager : MonoBehaviour
 
         connectorNetworks.TryGetValue(connector, out PipelineNetwork network);
         return network;
+    }
+
+    public bool IsNetworkCurrent(PipelineNetwork network)
+    {
+        return network != null && networks.Contains(network);
     }
 
     public List<PipelineNetworkSaveData> GetSaveData()
