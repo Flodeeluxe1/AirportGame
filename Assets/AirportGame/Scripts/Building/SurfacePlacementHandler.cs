@@ -330,7 +330,10 @@ public class SurfacePlacementHandler : IPlacementHandler
             Vector3 worldCorner =
                 previewObject.transform.TransformPoint(localCorner);
 
-            worldCorner.y = surfaceY;
+            // ClosestPoint returns the original point when it is outside a
+            // collider in any axis. Move the test point into the collider's
+            // vertical range so its X/Z footprint can be tested correctly.
+            worldCorner.y = currentSupportCollider.bounds.center.y;
 
             Vector3 closest =
                 currentSupportCollider.ClosestPoint(worldCorner);
