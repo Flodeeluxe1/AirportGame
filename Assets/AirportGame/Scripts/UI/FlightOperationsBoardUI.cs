@@ -117,7 +117,7 @@ public class FlightOperationsBoardUI : MonoBehaviour
         if (identity == null || !identity.IsInitialized)
             return;
 
-        UpdateActiveAircraft();
+        UpdateAircraftEntry(identity);
         RenderBoard();
     }
 
@@ -334,55 +334,50 @@ public class FlightOperationsBoardUI : MonoBehaviour
 
     private void UpdateActiveAircraft()
     {
-        long now = GetCurrentAbsoluteSeconds();
-
         foreach (AircraftFlightIdentity identity in
                  AircraftFlightIdentity.ActiveAircraft)
         {
-            if (identity == null || !identity.IsInitialized)
-                continue;
-
-            if (!entriesByOperationId.TryGetValue(
-                    identity.OperationId, out FlightEntry entry))
-            {
-                continue;
-            }
-
-            AircraftStatus aircraftStatus =
-                identity.GetComponent<AircraftStatus>();
-
-            AircraftCargoPaxTakeoffController takeoff =
-                identity.GetComponent<AircraftCargoPaxTakeoffController>();
-
-            if (aircraftStatus != null &&
-                aircraftStatus.HasCompletedLanding &&
-                entry.ActualArrivalSeconds < 0)
-            {
-                entry.ActualArrivalSeconds = now;
-            }
-
-            if (takeoff != null && takeoff.IsTakingOff)
-            {
-                entry.Status = "Taking off";
-            }
-            else if (aircraftStatus == null ||
-                     !aircraftStatus.HasCompletedLanding)
-            {
-                entry.Status = "Approaching";
-            }
-            else if (aircraftStatus.IsTaxiing)
-            {
-                entry.Status = "Taxiing";
-            }
-            else if (aircraftStatus.IsParked)
-            {
-                entry.Status = "Turnaround";
-            }
-            else
-            {
-                entry.Status = "Landed";
-            }
+            UpdateAircraftEntry(identity);
         }
+    }
+
+    private void UpdateAircraftEntry(AircraftFlightIdentity identity)
+    {
+        if (identity == null || !identity.IsInitialized)
+            return;
+
+        if (!entriesByOperationId.TryGetValue(
+                identity.OperationId, out FlightEntry entry))
+        {
+            return;
+        }
+
+        long now = GetCurrentAbsoluteSeconds();
+
+        AircraftStatus aircraftStatus =
+            identity.GetComponent<AircraftStatus>();
+
+        AircraftCargoPaxTakeoffController takeoff =
+            identity.GetComponent<AircraftCargoPaxTakeoffController>();
+
+        if (aircraftStatus != null &&
+            aircraftStatus.HasCompletedLanding &&
+            entry.ActualArrivalSeconds < 0)
+        {
+            entry.ActualArrivalSeconds = now;
+        }
+
+        if (takeoff != null && takeoff.IsTakingOff)
+            entry.Status = "Taking off";
+        else if (aircraftStatus == null ||
+                 !aircraftStatus.HasCompletedLanding)
+            entry.Status = "Approaching";
+        else if (aircraftStatus.IsTaxiing)
+            entry.Status = "Taxiing";
+        else if (aircraftStatus.IsParked)
+            entry.Status = "Turnaround";
+        else
+            entry.Status = "Landed";
     }
 
     /// <summary>
