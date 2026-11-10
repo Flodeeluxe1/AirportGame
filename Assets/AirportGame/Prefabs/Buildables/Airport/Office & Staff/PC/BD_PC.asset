@@ -24,6 +24,8 @@ MonoBehaviour:
   isWallMounted: 0
   mountHeight: 2
   canRotate: 1
+  canBePlacedOnSurface: 1
+  canSupportSurfaceObjects: 0
   buildCost: 400
   blocksPathfinding: 0
   menuCategory: Office & Staff
