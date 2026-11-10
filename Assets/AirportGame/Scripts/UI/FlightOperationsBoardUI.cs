@@ -98,6 +98,29 @@ public class FlightOperationsBoardUI : MonoBehaviour
             gameTimeManager = FindFirstObjectByType<GameTimeManager>();
     }
 
+    private void OnEnable()
+    {
+        AircraftFlightIdentity.AircraftRegistered += HandleAircraftChanged;
+        AircraftFlightIdentity.AircraftUnregistered += HandleAircraftChanged;
+        AircraftFlightIdentity.AircraftChanged += HandleAircraftChanged;
+    }
+
+    private void OnDisable()
+    {
+        AircraftFlightIdentity.AircraftRegistered -= HandleAircraftChanged;
+        AircraftFlightIdentity.AircraftUnregistered -= HandleAircraftChanged;
+        AircraftFlightIdentity.AircraftChanged -= HandleAircraftChanged;
+    }
+
+    private void HandleAircraftChanged(AircraftFlightIdentity identity)
+    {
+        if (identity == null || !identity.IsInitialized)
+            return;
+
+        UpdateActiveAircraft();
+        RenderBoard();
+    }
+
     private void Start()
     {
         if (boardText == null)
@@ -121,6 +144,7 @@ public class FlightOperationsBoardUI : MonoBehaviour
 
         ReloadScheduleIfChanged();
         RebuildEntriesForCurrentDay();
+        UpdateActiveAircraft();
         RenderBoard();
     }
 
@@ -135,8 +159,6 @@ public class FlightOperationsBoardUI : MonoBehaviour
 
         if (entriesDayIndex != currentDayIndex)
             RebuildEntriesForCurrentDay();
-
-        UpdateActiveAircraft();
 
         refreshTimer += Time.unscaledDeltaTime;
 
@@ -312,13 +334,10 @@ public class FlightOperationsBoardUI : MonoBehaviour
 
     private void UpdateActiveAircraft()
     {
-        AircraftFlightIdentity[] aircraft =
-            FindObjectsByType<AircraftFlightIdentity>(
-                FindObjectsSortMode.None);
-
         long now = GetCurrentAbsoluteSeconds();
 
-        foreach (AircraftFlightIdentity identity in aircraft)
+        foreach (AircraftFlightIdentity identity in
+                 AircraftFlightIdentity.ActiveAircraft)
         {
             if (identity == null || !identity.IsInitialized)
                 continue;
