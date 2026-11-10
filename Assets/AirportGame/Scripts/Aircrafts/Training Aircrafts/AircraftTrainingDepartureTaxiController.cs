@@ -74,6 +74,9 @@ public class AircraftTrainingDepartureTaxiController : MonoBehaviour
     [SerializeField] private float debugSidewindComponentKnots;
     [SerializeField] private float debugTaxiRouteLength;
 
+    private AircraftTaxiTrafficFollowing trafficFollowing;
+    private IReadOnlyList<Vector2Int> lastPublishedTaxiRoute;
+
     private readonly List<Vector2Int> taxiRoute = new();
     private readonly List<Vector2Int> runwayJoinRoute = new();
     private readonly List<Vector3> movementWaypoints = new();
@@ -211,6 +214,9 @@ public class AircraftTrainingDepartureTaxiController : MonoBehaviour
 
         if (aircraftCollider == null)
             aircraftCollider = GetComponentInChildren<BoxCollider>(true);
+
+        if (trafficFollowing == null)
+            trafficFollowing = GetComponent<AircraftTaxiTrafficFollowing>();
     }
 
     public bool PrepareForTouchAndGo(
@@ -285,7 +291,9 @@ public class AircraftTrainingDepartureTaxiController : MonoBehaviour
         hasHoldingCell = false;
         holdingCell = default;
 
+        lastPublishedTaxiRoute = null;
         taxiRoute.Clear();
+        lastPublishedTaxiRoute = null;
         runwayJoinRoute.Clear();
         movementWaypoints.Clear();
 
@@ -335,7 +343,9 @@ public class AircraftTrainingDepartureTaxiController : MonoBehaviour
         holdingCell = default;
         hasHoldingCell = false;
 
+        lastPublishedTaxiRoute = null;
         taxiRoute.Clear();
+        lastPublishedTaxiRoute = null;
         runwayJoinRoute.Clear();
         movementWaypoints.Clear();
 
@@ -544,9 +554,11 @@ public class AircraftTrainingDepartureTaxiController : MonoBehaviour
         debugSidewindComponentKnots = bestSidewind;
         debugTaxiRouteLength = bestRouteLength;
 
+        lastPublishedTaxiRoute = null;
         taxiRoute.Clear();
         taxiRoute.AddRange(bestHoldingRoute);
 
+        lastPublishedTaxiRoute = null;
         runwayJoinRoute.Clear();
         runwayJoinRoute.AddRange(bestJoinRoute);
 
@@ -1077,6 +1089,18 @@ public class AircraftTrainingDepartureTaxiController : MonoBehaviour
         return length;
     }
 
+    private void PublishPlannedTaxiRoute(IReadOnlyList<Vector2Int> plannedRoute)
+    {
+        if (trafficFollowing == null || plannedRoute == null ||
+            ReferenceEquals(lastPublishedTaxiRoute, plannedRoute))
+        {
+            return;
+        }
+
+        trafficFollowing.SetPlannedTaxiRoute(plannedRoute);
+        lastPublishedTaxiRoute = plannedRoute;
+    }
+
     private void UpdateTaxiMovement()
     {
         if (movementWaypoints.Count == 0 ||
@@ -1088,17 +1112,14 @@ public class AircraftTrainingDepartureTaxiController : MonoBehaviour
 
         float speedKnots = taxiSpeedKnots;
 
-        AircraftTaxiTrafficFollowing following =
-            GetComponent<AircraftTaxiTrafficFollowing>();
-
-        if (following != null)
+        if (trafficFollowing != null)
         {
-            following.SetPlannedTaxiRoute(
+            PublishPlannedTaxiRoute(
                 currentState == DepartureState.TaxiingToRunwayEntry
                     ? runwayJoinRoute
                     : taxiRoute);
             speedKnots =
-                following.GetTrafficFollowingSpeed(taxiSpeedKnots);
+                trafficFollowing.GetTrafficFollowingSpeed(taxiSpeedKnots);
         }
         else
         {
