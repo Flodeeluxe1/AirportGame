@@ -115,13 +115,6 @@ public class HobbyAircraftParkingSpot : MonoBehaviour
         reservedAircraft = aircraft;
         ParkingStatusChanged?.Invoke();
 
-        Debug.Log(
-            $"Parking spot reserved | Spot: {name} | " +
-            $"Aircraft: {aircraft.name} | " +
-            $"Flight school: {reservedForFlightSchool}",
-            this
-        );
-
         return true;
     }
 
@@ -132,12 +125,6 @@ public class HobbyAircraftParkingSpot : MonoBehaviour
 
         reservedAircraft = null;
         ParkingStatusChanged?.Invoke();
-
-        Debug.Log(
-            $"Parking spot released | Spot: {name} | " +
-            $"Aircraft: {aircraft.name}",
-            this
-        );
 
         return true;
     }
