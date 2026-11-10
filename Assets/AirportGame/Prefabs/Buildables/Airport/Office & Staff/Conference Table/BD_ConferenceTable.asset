@@ -18,7 +18,7 @@ MonoBehaviour:
   placementType: 0
   requiredSurface: 1
   width: 1
-  depth: 1
+  depth: 3
   edgeLength: 1
   requiresExistingWall: 0
   isWallMounted: 0
