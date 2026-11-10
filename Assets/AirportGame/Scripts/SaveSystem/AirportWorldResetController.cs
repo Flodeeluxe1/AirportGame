@@ -1058,6 +1058,9 @@ public class AirportWorldResetController : MonoBehaviour
         AirportSaveData data,
         bool requireWorldTransforms)
     {
+        Dictionary<string, PlacedBuildingSaveData> savedByInstanceId =
+            new Dictionary<string, PlacedBuildingSaveData>();
+
         foreach (PlacedBuildingSaveData saved in data.placedBuildings)
         {
             BuildableDefinition definition =
@@ -1085,6 +1088,63 @@ public class AirportWorldResetController : MonoBehaviour
                 Debug.LogError(
                     $"Saved object '{saved.definitionId}' has no saved " +
                     "world transform. The airport has not been changed.");
+
+                return false;
+            }
+
+            if (!string.IsNullOrWhiteSpace(saved.instanceId))
+            {
+                if (savedByInstanceId.ContainsKey(saved.instanceId))
+                {
+                    Debug.LogError(
+                        $"Save contains duplicate placed-object instance ID " +
+                        $"'{saved.instanceId}'.");
+
+                    return false;
+                }
+
+                savedByInstanceId.Add(saved.instanceId, saved);
+            }
+
+            if (saved.isSurfacePlaced &&
+                (string.IsNullOrWhiteSpace(saved.instanceId) ||
+                 string.IsNullOrWhiteSpace(saved.supportingSurfaceInstanceId) ||
+                 saved.instanceId == saved.supportingSurfaceInstanceId))
+            {
+                Debug.LogError(
+                    $"Surface-placed object '{saved.definitionId}' has an " +
+                    "invalid supporting-surface relationship.");
+
+                return false;
+            }
+        }
+
+        foreach (PlacedBuildingSaveData saved in data.placedBuildings)
+        {
+            if (!saved.isSurfacePlaced)
+                continue;
+
+            if (!savedByInstanceId.TryGetValue(
+                    saved.supportingSurfaceInstanceId,
+                    out PlacedBuildingSaveData supportSave))
+            {
+                Debug.LogError(
+                    $"Surface-placed object '{saved.definitionId}' references " +
+                    $"missing support ID '{saved.supportingSurfaceInstanceId}'.");
+
+                return false;
+            }
+
+            BuildableDefinition supportDefinition =
+                FindDefinition(supportSave.definitionId);
+
+            if (supportDefinition == null ||
+                !supportDefinition.canSupportSurfaceObjects)
+            {
+                Debug.LogError(
+                    $"Object '{supportSave.definitionId}' is saved as a " +
+                    "supporting surface but its BuildableDefinition does not " +
+                    "allow surface objects.");
 
                 return false;
             }
