@@ -26,6 +26,7 @@ MonoBehaviour:
   canRotate: 1
   buildCost: 1500
   blocksPathfinding: 0
+  menuCategory: Passenger Services
   category: 3
   icon: {fileID: 0}
   roomFurnitureRole: 0

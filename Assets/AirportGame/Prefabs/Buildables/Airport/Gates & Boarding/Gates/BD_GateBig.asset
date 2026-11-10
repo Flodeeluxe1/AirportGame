@@ -25,5 +25,8 @@ MonoBehaviour:
   mountHeight: 2
   canRotate: 1
   buildCost: 200000
+  blocksPathfinding: 0
+  menuCategory: Gates & Boarding
   category: 3
   icon: {fileID: 0}
+  roomFurnitureRole: 0

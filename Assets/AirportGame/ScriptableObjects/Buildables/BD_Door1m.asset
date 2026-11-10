@@ -12,8 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b707bf0339cdddd48ac715a8e271822e, type: 3}
   m_Name: BD_Door1m
   m_EditorClassIdentifier: Assembly-CSharp::BuildableDefinition
-  category: 2
-  icon: {fileID: 0}
   id: door.door.1m
   displayName: Door 1m
   prefab: {fileID: 270298778564795986, guid: f3782d1f90e5c094e8aa3f875b8f0d2f, type: 3}
@@ -23,5 +21,12 @@ MonoBehaviour:
   depth: 1
   edgeLength: 1
   requiresExistingWall: 1
+  isWallMounted: 0
+  mountHeight: 2
   canRotate: 0
   buildCost: 300
+  blocksPathfinding: 0
+  menuCategory: Door
+  category: 2
+  icon: {fileID: 0}
+  roomFurnitureRole: 0

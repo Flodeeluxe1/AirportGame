@@ -12,8 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b707bf0339cdddd48ac715a8e271822e, type: 3}
   m_Name: BD_CheckInDesk
   m_EditorClassIdentifier: Assembly-CSharp::BuildableDefinition
-  category: 3
-  icon: {fileID: 0}
   id: airport.checkin.desk
   displayName: Check-in Desk
   prefab: {fileID: 5763874352558134915, guid: f631780a1cb54e743b698821217b37b8, type: 3}
@@ -21,5 +19,14 @@ MonoBehaviour:
   requiredSurface: 1
   width: 1
   depth: 1
+  edgeLength: 1
+  requiresExistingWall: 0
+  isWallMounted: 0
+  mountHeight: 2
   canRotate: 1
   buildCost: 200
+  blocksPathfinding: 0
+  menuCategory: Passenger Services
+  category: 3
+  icon: {fileID: 0}
+  roomFurnitureRole: 0

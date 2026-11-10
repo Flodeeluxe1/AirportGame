@@ -25,5 +25,8 @@ MonoBehaviour:
   mountHeight: 2
   canRotate: 0
   buildCost: 400
+  blocksPathfinding: 0
+  menuCategory: Door
   category: 2
   icon: {fileID: 0}
+  roomFurnitureRole: 0

@@ -26,6 +26,7 @@ MonoBehaviour:
   canRotate: 1
   buildCost: 4000
   blocksPathfinding: 0
+  menuCategory: Airport Operations
   category: 3
   icon: {fileID: 0}
   roomFurnitureRole: 0

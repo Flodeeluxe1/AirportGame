@@ -12,8 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b707bf0339cdddd48ac715a8e271822e, type: 3}
   m_Name: BD_BoardingDesk
   m_EditorClassIdentifier: Assembly-CSharp::BuildableDefinition
-  category: 3
-  icon: {fileID: 0}
   id: airport.boarding.desk
   displayName: Boarding Desk
   prefab: {fileID: 8481279272420588019, guid: c8dad2d0d6acccc4ba7a8fab4f6654f5, type: 3}
@@ -21,5 +19,14 @@ MonoBehaviour:
   requiredSurface: 1
   width: 3
   depth: 1
+  edgeLength: 1
+  requiresExistingWall: 0
+  isWallMounted: 0
+  mountHeight: 2
   canRotate: 1
   buildCost: 300
+  blocksPathfinding: 0
+  menuCategory: Gates & Boarding
+  category: 3
+  icon: {fileID: 0}
+  roomFurnitureRole: 0

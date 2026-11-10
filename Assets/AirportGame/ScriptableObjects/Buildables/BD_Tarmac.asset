@@ -26,6 +26,7 @@ MonoBehaviour:
   canRotate: 0
   buildCost: 15
   blocksPathfinding: 0
+  menuCategory: Tarmac
   category: 7
   icon: {fileID: 0}
   roomFurnitureRole: 0

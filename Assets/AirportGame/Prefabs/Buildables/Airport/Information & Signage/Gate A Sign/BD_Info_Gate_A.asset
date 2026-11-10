@@ -26,6 +26,7 @@ MonoBehaviour:
   canRotate: 1
   buildCost: 800
   blocksPathfinding: 0
+  menuCategory: Information & Signage
   category: 3
   icon: {fileID: 0}
   roomFurnitureRole: 0

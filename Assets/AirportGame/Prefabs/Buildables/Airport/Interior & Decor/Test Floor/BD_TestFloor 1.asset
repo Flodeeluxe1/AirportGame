@@ -12,14 +12,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b707bf0339cdddd48ac715a8e271822e, type: 3}
   m_Name: BD_TestFloor 1
   m_EditorClassIdentifier: Assembly-CSharp::BuildableDefinition
-  category: 3
-  icon: {fileID: 0}
-  id: airport.floor.test
+  id: airport.floor.test1
   displayName: Test Floor
   prefab: {fileID: 9344313534737377, guid: 0eb4ed5c985964c4189c388d03a52173, type: 3}
   placementType: 2
   requiredSurface: 1
   width: 1
   depth: 1
+  edgeLength: 1
+  requiresExistingWall: 0
+  isWallMounted: 0
+  mountHeight: 2
   canRotate: 0
   buildCost: 1
+  blocksPathfinding: 0
+  menuCategory: Interior & Decor
+  category: 3
+  icon: {fileID: 0}
+  roomFurnitureRole: 0

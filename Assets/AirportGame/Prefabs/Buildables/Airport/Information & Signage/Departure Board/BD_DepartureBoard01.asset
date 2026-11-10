@@ -25,5 +25,8 @@ MonoBehaviour:
   mountHeight: 2
   canRotate: 0
   buildCost: 150
+  blocksPathfinding: 0
+  menuCategory: Information & Signage
   category: 3
   icon: {fileID: 0}
+  roomFurnitureRole: 0

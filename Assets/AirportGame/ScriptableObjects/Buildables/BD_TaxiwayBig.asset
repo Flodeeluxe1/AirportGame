@@ -26,6 +26,7 @@ MonoBehaviour:
   canRotate: 1
   buildCost: 10
   blocksPathfinding: 0
+  menuCategory: Taxiways
   category: 6
   icon: {fileID: 0}
   roomFurnitureRole: 0
