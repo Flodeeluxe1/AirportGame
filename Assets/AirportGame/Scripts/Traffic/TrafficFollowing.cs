@@ -135,7 +135,14 @@ public sealed class TrafficFollowing : MonoBehaviour
         }
 
         if (summary != null)
-            debugRaycastSummary = summary.Length == 0 ? "No raycast results." : summary.ToString();
+        {
+            RaycastSummary = summary.Length == 0 ? "No raycast results." : summary.ToString();
+            debugRaycastSummary = RaycastSummary;
+        }
+        else
+        {
+            RaycastSummary = "Debug capture disabled";
+        }
 
         float targetSpeed = desiredSpeed;
         if (found)
