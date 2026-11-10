@@ -22,10 +22,10 @@ MonoBehaviour:
   edgeLength: 1
   requiresExistingWall: 0
   isWallMounted: 0
-  mountHeight: 2
-  canRotate: 1
   canBePlacedOnSurface: 0
   canSupportSurfaceObjects: 1
+  mountHeight: 2
+  canRotate: 1
   buildCost: 250
   blocksPathfinding: 0
   menuCategory: Office & Staff
