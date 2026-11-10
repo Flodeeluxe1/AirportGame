@@ -6,6 +6,21 @@ public class PlacedBuilding : MonoBehaviour
     public static event Action<PlacedBuilding> BuildingChanged;
 
     private bool isInitialized;
+    [SerializeField] private string instanceId;
+    private PlacedBuilding supportingSurface;
+    private bool isSurfacePlaced;
+
+    public string InstanceId
+    {
+        get
+        {
+            EnsureInstanceId();
+            return instanceId;
+        }
+    }
+
+    public bool IsSurfacePlaced => isSurfacePlaced;
+    public PlacedBuilding SupportingSurface => supportingSurface;
 
     public BuildableDefinition Definition { get; private set; }
 
@@ -39,6 +54,9 @@ public class PlacedBuilding : MonoBehaviour
         int rotation)
     {
         Definition = definition;
+        isSurfacePlaced = false;
+        supportingSurface = null;
+        EnsureInstanceId();
         Origin = origin;
         Width = width;
         Depth = depth;
@@ -86,6 +104,51 @@ public class PlacedBuilding : MonoBehaviour
 
         isInitialized = true;
         BuildingChanged?.Invoke(this);
+    }
+
+    public void InitializeSurface(
+        BuildableDefinition definition,
+        int rotation,
+        string restoredInstanceId = null)
+    {
+        Definition = definition;
+        Origin = Vector2Int.zero;
+        Width = 1;
+        Depth = 1;
+        Rotation = rotation;
+        EdgeLength = 0;
+        EdgeDirection = EdgeDirection.Horizontal;
+        isSurfacePlaced = true;
+        supportingSurface = null;
+
+        if (!string.IsNullOrWhiteSpace(restoredInstanceId))
+            instanceId = restoredInstanceId;
+
+        EnsureInstanceId();
+        isInitialized = true;
+        BuildingChanged?.Invoke(this);
+    }
+
+    public void SetSupportingSurface(PlacedBuilding surface)
+    {
+        supportingSurface = surface;
+
+        if (surface != null)
+            transform.SetParent(surface.transform, true);
+    }
+
+    public void SetInstanceId(string value)
+    {
+        if (!string.IsNullOrWhiteSpace(value))
+            instanceId = value;
+
+        EnsureInstanceId();
+    }
+
+    private void EnsureInstanceId()
+    {
+        if (string.IsNullOrWhiteSpace(instanceId))
+            instanceId = Guid.NewGuid().ToString("N");
     }
 
     private void OnEnable()
