@@ -52,10 +52,6 @@ public class FlightSchoolAssessmentController : MonoBehaviour
     [SerializeField]
     private RoomPurposeController roomPurposeController;
 
-    [Header("Assessment Refresh")]
-    [SerializeField, Min(0.1f)]
-    private float refreshInterval = 0.5f;
-
     [Header("Runtime Assessment Results")]
     [SerializeField]
     private List<FlightSchoolRoomAssessment> assessments =
@@ -64,7 +60,7 @@ public class FlightSchoolAssessmentController : MonoBehaviour
     [SerializeField]
     private string debugStatus = "Waiting for Flight School rooms.";
 
-    private float nextRefreshTime;
+    private Coroutine pendingRefresh;
 
     /// <summary>
     /// Current assessment results, one per detected assigned Flight School.
@@ -84,14 +80,88 @@ public class FlightSchoolAssessmentController : MonoBehaviour
     private void Awake()
     {
         ResolveReferences();
+    }
+
+    private void OnEnable()
+    {
+        ResolveReferences();
+        SubscribeToChanges();
+        RequestRefresh();
+    }
+
+    private void Start()
+    {
         RefreshAssessments();
     }
 
-    private void Update()
+    private void OnDisable()
     {
-        if (Time.unscaledTime < nextRefreshTime)
+        if (roomPurposeController != null)
+            roomPurposeController.AssignmentsChanged -= RequestRefresh;
+
+        RoomDetectionController roomDetection =
+            FindFirstObjectByType<RoomDetectionController>();
+
+        if (roomDetection != null)
+            roomDetection.RoomsChanged -= RequestRefresh;
+
+        PlacedBuilding.BuildingChanged -= HandleBuildingChanged;
+        HobbyAircraftParkingSpot.ParkingStatusChanged -= RequestRefresh;
+
+        if (pendingRefresh != null)
+        {
+            StopCoroutine(pendingRefresh);
+            pendingRefresh = null;
+        }
+    }
+
+    private void SubscribeToChanges()
+    {
+        if (roomPurposeController != null)
+            roomPurposeController.AssignmentsChanged += RequestRefresh;
+
+        RoomDetectionController roomDetection =
+            FindFirstObjectByType<RoomDetectionController>();
+
+        if (roomDetection != null)
+            roomDetection.RoomsChanged += RequestRefresh;
+
+        PlacedBuilding.BuildingChanged += HandleBuildingChanged;
+        HobbyAircraftParkingSpot.ParkingStatusChanged += RequestRefresh;
+    }
+
+    private void HandleBuildingChanged(PlacedBuilding building)
+    {
+        if (building == null || building.Definition == null)
+        {
+            RequestRefresh();
+            return;
+        }
+
+        RoomFurnitureRole role =
+            building.Definition.roomFurnitureRole;
+
+        if (role == RoomFurnitureRole.InstructorDesk ||
+            role == RoomFurnitureRole.StudentSeat)
+        {
+            RequestRefresh();
+        }
+    }
+
+    private void RequestRefresh()
+    {
+        if (!isActiveAndEnabled || pendingRefresh != null)
             return;
 
+        pendingRefresh = StartCoroutine(RefreshAfterChanges());
+    }
+
+    private System.Collections.IEnumerator RefreshAfterChanges()
+    {
+        // Coalesce multiple placement, room, and parking events.
+        yield return null;
+
+        pendingRefresh = null;
         RefreshAssessments();
     }
 
@@ -107,8 +177,11 @@ public class FlightSchoolAssessmentController : MonoBehaviour
     [ContextMenu("Refresh Flight School Assessments")]
     public void RefreshAssessments()
     {
-        nextRefreshTime =
-            Time.unscaledTime + Mathf.Max(0.1f, refreshInterval);
+        if (pendingRefresh != null)
+        {
+            StopCoroutine(pendingRefresh);
+            pendingRefresh = null;
+        }
 
         ResolveReferences();
 
