@@ -11,6 +11,7 @@ public class SurfacePlacementHandler : IPlacementHandler
     private PlacementPreview placementPreview;
     private Renderer[] previewRenderers;
     private PlacedBuilding currentSupport;
+    private Collider currentSupportCollider;
     private Vector3 currentPosition;
     private int currentRotation;
     private bool hasSupport;
@@ -35,6 +36,7 @@ public class SurfacePlacementHandler : IPlacementHandler
         previewRenderers = previewObject.GetComponentsInChildren<Renderer>(true);
         currentRotation = 0;
         currentSupport = null;
+        currentSupportCollider = null;
         hasSupport = false;
         isValid = false;
 
@@ -56,6 +58,7 @@ public class SurfacePlacementHandler : IPlacementHandler
     public void UpdatePlacementFromRay(Ray ray)
     {
         currentSupport = null;
+        currentSupportCollider = null;
         hasSupport = false;
         isValid = false;
 
@@ -78,6 +81,7 @@ public class SurfacePlacementHandler : IPlacementHandler
             }
 
             currentSupport = candidate;
+            currentSupportCollider = hit.collider;
             currentPosition = hit.point;
             hasSupport = true;
             break;
@@ -120,8 +124,12 @@ public class SurfacePlacementHandler : IPlacementHandler
 
     private bool HasClearance()
     {
-        if (currentSupport == null || previewRenderers == null)
+        if (currentSupport == null ||
+            currentSupportCollider == null ||
+            previewRenderers == null)
+        {
             return false;
+        }
 
         Bounds bounds = new Bounds(
             previewObject.transform.position,
@@ -147,6 +155,19 @@ public class SurfacePlacementHandler : IPlacementHandler
 
         if (!hasBounds)
             return false;
+
+        // Keep the complete placed object within the collider surface
+        // that is supporting it, rather than allowing it to hang over edges.
+        Bounds supportBounds = currentSupportCollider.bounds;
+        const float edgeTolerance = 0.01f;
+
+        if (bounds.min.x < supportBounds.min.x - edgeTolerance ||
+            bounds.max.x > supportBounds.max.x + edgeTolerance ||
+            bounds.min.z < supportBounds.min.z - edgeTolerance ||
+            bounds.max.z > supportBounds.max.z + edgeTolerance)
+        {
+            return false;
+        }
 
         Collider[] overlaps = Physics.OverlapBox(
             bounds.center,
@@ -240,6 +261,7 @@ public class SurfacePlacementHandler : IPlacementHandler
         placementPreview = null;
         previewRenderers = null;
         currentSupport = null;
+        currentSupportCollider = null;
         hasSupport = false;
         isValid = false;
         currentRotation = 0;
