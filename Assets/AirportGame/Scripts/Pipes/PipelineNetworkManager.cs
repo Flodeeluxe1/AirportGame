@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -79,8 +80,9 @@ public sealed class PipelineNetworkManager : MonoBehaviour
     private readonly List<PipelineNetwork> networks = new();
     private readonly Dictionary<FuelConnector, PipelineNetwork> connectorNetworks = new();
     private readonly HashSet<FuelStorageTank> initializedTanks = new();
-    private int lastTopologyHash;
-    private bool hasBuiltTopology;
+    private PipelinePrefabRuleManager subscribedPipelineRuleManager;
+    private bool hasStarted;
+    private Coroutine topologyRebuildRoutine;
     private float automaticRefillCheckTimer;
 
     private List<PipelineNetworkSaveData> pendingSavedInventories;
@@ -92,23 +94,43 @@ public sealed class PipelineNetworkManager : MonoBehaviour
         automaticRefillThresholdPercent;
     public int TopologyVersion { get; private set; }
 
+    private void OnEnable()
+    {
+        ResolveReferences();
+        SubscribeToPipelineRuleManager();
+        FuelConnector.ConnectorRegistered += HandleConnectorChanged;
+        FuelConnector.ConnectorUnregistered += HandleConnectorChanged;
+
+        if (hasStarted)
+            QueueTopologyRebuild();
+    }
+
     private void Start()
     {
         ResolveReferences();
+        SubscribeToPipelineRuleManager();
+        hasStarted = true;
         RebuildNetworks();
+    }
+
+    private void OnDisable()
+    {
+        if (subscribedPipelineRuleManager != null)
+            subscribedPipelineRuleManager.PipeTopologyChanged -= HandlePipeTopologyChanged;
+
+        subscribedPipelineRuleManager = null;
+        FuelConnector.ConnectorRegistered -= HandleConnectorChanged;
+        FuelConnector.ConnectorUnregistered -= HandleConnectorChanged;
+
+        if (topologyRebuildRoutine != null)
+        {
+            StopCoroutine(topologyRebuildRoutine);
+            topologyRebuildRoutine = null;
+        }
     }
 
     private void Update()
     {
-        ResolveReferences();
-
-        if (pipelineRuleManager != null)
-        {
-            int currentHash = CalculateTopologyHash();
-            if (!hasBuiltTopology || currentHash != lastTopologyHash)
-                RebuildNetworks();
-        }
-
         automaticRefillCheckTimer -= Time.deltaTime;
         if (automaticRefillCheckTimer <= 0f)
         {
@@ -116,6 +138,46 @@ public sealed class PipelineNetworkManager : MonoBehaviour
                 Mathf.Max(0.1f, automaticRefillCheckInterval);
             CheckAutomaticRefillRequests();
         }
+    }
+
+    private void HandlePipeTopologyChanged()
+    {
+        QueueTopologyRebuild();
+    }
+
+    private void HandleConnectorChanged(FuelConnector connector)
+    {
+        QueueTopologyRebuild();
+    }
+
+    private void SubscribeToPipelineRuleManager()
+    {
+        if (subscribedPipelineRuleManager == pipelineRuleManager)
+            return;
+
+        if (subscribedPipelineRuleManager != null)
+            subscribedPipelineRuleManager.PipeTopologyChanged -= HandlePipeTopologyChanged;
+
+        subscribedPipelineRuleManager = pipelineRuleManager;
+
+        if (subscribedPipelineRuleManager != null)
+            subscribedPipelineRuleManager.PipeTopologyChanged += HandlePipeTopologyChanged;
+    }
+
+    private void QueueTopologyRebuild()
+    {
+        if (!hasStarted || topologyRebuildRoutine != null || !isActiveAndEnabled)
+            return;
+
+        topologyRebuildRoutine = StartCoroutine(RebuildTopologyNextFrame());
+    }
+
+    private IEnumerator RebuildTopologyNextFrame()
+    {
+        // Coalesce multiple pipe/connector changes made during one operation.
+        yield return null;
+        topologyRebuildRoutine = null;
+        RebuildNetworks();
     }
 
     private void CheckAutomaticRefillRequests()
@@ -136,41 +198,6 @@ public sealed class PipelineNetworkManager : MonoBehaviour
                     network,
                     this,
                     automaticRefillThresholdPercent);
-        }
-    }
-
-    private int CalculateTopologyHash()
-    {
-        unchecked
-        {
-            int sum = 17;
-            int xor = 0;
-
-            if (pipelineRuleManager != null)
-            {
-                foreach (Vector2Int cell in pipelineRuleManager.PipeCells)
-                {
-                    int value = cell.GetHashCode();
-                    sum += value;
-                    xor ^= value;
-                }
-            }
-
-            FuelConnector[] connectors =
-                FindObjectsByType<FuelConnector>(FindObjectsSortMode.None);
-
-            foreach (FuelConnector connector in connectors)
-            {
-                if (connector == null)
-                    continue;
-
-                int value = connector.GetHashCode() * 397 ^
-                            connector.GridCell.GetHashCode();
-                sum += value;
-                xor ^= value;
-            }
-
-            return sum * 397 ^ xor;
         }
     }
 
@@ -230,7 +257,7 @@ public sealed class PipelineNetworkManager : MonoBehaviour
             : new List<PipelineNetworkSaveData>();
 
         hasPendingSavedInventories = true;
-        hasBuiltTopology = false;
+        QueueTopologyRebuild();
     }
 
     public void ClearNetworksForWorldReset()
@@ -240,8 +267,6 @@ public sealed class PipelineNetworkManager : MonoBehaviour
         initializedTanks.Clear();
         pendingSavedInventories = null;
         hasPendingSavedInventories = false;
-        hasBuiltTopology = false;
-        lastTopologyHash = 0;
         TopologyVersion++;
     }
 
@@ -264,8 +289,8 @@ public sealed class PipelineNetworkManager : MonoBehaviour
         HashSet<Vector2Int> remainingPipes =
             new HashSet<Vector2Int>(pipelineRuleManager.PipeCells);
 
-        FuelConnector[] allConnectors =
-            FindObjectsByType<FuelConnector>(FindObjectsSortMode.None);
+        List<FuelConnector> allConnectors =
+            new List<FuelConnector>(FuelConnector.ActiveConnectors);
 
         Dictionary<Vector2Int, List<FuelConnector>> connectorsByPipeCell = new();
         Dictionary<FuelConnector, List<Vector2Int>> adjacentPipesByConnector = new();
@@ -363,8 +388,6 @@ public sealed class PipelineNetworkManager : MonoBehaviour
             ApplySavedFuelInventories();
 
         TopologyVersion++;
-        lastTopologyHash = CalculateTopologyHash();
-        hasBuiltTopology = true;
 
         if (logNetworkRebuilds)
         {
