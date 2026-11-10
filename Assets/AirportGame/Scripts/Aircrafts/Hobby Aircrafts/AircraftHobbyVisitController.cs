@@ -2,8 +2,9 @@
 using UnityEngine;
 
 /// <summary>
-/// Manages a visiting hobby aircraft's landing revenue,
-/// grass parking fees, visit duration and departure request.
+/// Manages a visiting hobby aircraft's grass parking visit,
+/// duration, parking reservation and departure request.
+/// Airport charges are handled by AircraftAirportFees.
 /// Attach only to hobby/VFR aircraft.
 /// </summary>
 [DisallowMultipleComponent]
