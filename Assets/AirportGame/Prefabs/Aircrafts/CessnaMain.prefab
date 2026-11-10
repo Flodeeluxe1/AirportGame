@@ -4933,6 +4933,12 @@ MonoBehaviour:
   landingFee: 20
   parkingFee: 5
   parkingIntervalMinutes: 10
+  cleaningFeeUpTo10Passengers: 100
+  cleaningFeeUpTo50Passengers: 200
+  cleaningFeeUpTo100Passengers: 350
+  cleaningFeeUpTo200Passengers: 500
+  cleaningFeeUpTo300Passengers: 750
+  cleaningFeeAbove300Passengers: 1000
   economyManager: {fileID: 0}
   gameTimeManager: {fileID: 0}
   aircraftStatus: {fileID: 0}
