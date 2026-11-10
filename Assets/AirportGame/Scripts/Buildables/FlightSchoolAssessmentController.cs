@@ -52,6 +52,9 @@ public class FlightSchoolAssessmentController : MonoBehaviour
     [SerializeField]
     private RoomPurposeController roomPurposeController;
 
+    private RoomDetectionController roomDetection;
+    private bool isRefreshing;
+
     [Header("Runtime Assessment Results")]
     [SerializeField]
     private List<FlightSchoolRoomAssessment> assessments =
@@ -99,9 +102,6 @@ public class FlightSchoolAssessmentController : MonoBehaviour
         if (roomPurposeController != null)
             roomPurposeController.AssignmentsChanged -= RequestRefresh;
 
-        RoomDetectionController roomDetection =
-            FindFirstObjectByType<RoomDetectionController>();
-
         if (roomDetection != null)
             roomDetection.RoomsChanged -= RequestRefresh;
 
@@ -119,9 +119,6 @@ public class FlightSchoolAssessmentController : MonoBehaviour
     {
         if (roomPurposeController != null)
             roomPurposeController.AssignmentsChanged += RequestRefresh;
-
-        RoomDetectionController roomDetection =
-            FindFirstObjectByType<RoomDetectionController>();
 
         if (roomDetection != null)
             roomDetection.RoomsChanged += RequestRefresh;
@@ -150,7 +147,7 @@ public class FlightSchoolAssessmentController : MonoBehaviour
 
     private void RequestRefresh()
     {
-        if (!isActiveAndEnabled || pendingRefresh != null)
+        if (!isActiveAndEnabled || isRefreshing || pendingRefresh != null)
             return;
 
         pendingRefresh = StartCoroutine(RefreshAfterChanges());
@@ -172,6 +169,9 @@ public class FlightSchoolAssessmentController : MonoBehaviour
             roomPurposeController =
                 FindFirstObjectByType<RoomPurposeController>();
         }
+
+        if (roomDetection == null)
+            roomDetection = FindFirstObjectByType<RoomDetectionController>();
     }
 
     [ContextMenu("Refresh Flight School Assessments")]
@@ -184,6 +184,7 @@ public class FlightSchoolAssessmentController : MonoBehaviour
         }
 
         ResolveReferences();
+        isRefreshing = true;
 
         assessments.Clear();
 
@@ -191,6 +192,7 @@ public class FlightSchoolAssessmentController : MonoBehaviour
         {
             debugStatus =
                 "RoomPurposeController was not found in the scene.";
+            isRefreshing = false;
             return;
         }
 
@@ -224,7 +226,10 @@ public class FlightSchoolAssessmentController : MonoBehaviour
 
             bool meetsRequirements =
                 roomPurposeController.ValidateFlightSchool(
-                    room, out string validationReason);
+                    room,
+                    furniture.instructorDesks,
+                    furniture.studentSeats,
+                    out string validationReason);
 
             int areaPoints =
                 CalculateAreaQualityPoints(room.CellCount);
@@ -285,6 +290,8 @@ public class FlightSchoolAssessmentController : MonoBehaviour
             ? "No assigned Flight School rooms detected."
             : $"Assessed {assessments.Count} Flight School room(s); " +
               $"{operationalCount} meet minimum requirements.";
+
+        isRefreshing = false;
     }
 
     public bool TryGetAssessment(
