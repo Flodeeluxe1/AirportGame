@@ -1,9 +1,16 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class PlacedBuilding : MonoBehaviour
 {
     public static event Action<PlacedBuilding> BuildingChanged;
+
+    private static readonly List<PlacedBuilding> activeBuildings =
+        new List<PlacedBuilding>();
+
+    public static IReadOnlyList<PlacedBuilding> ActiveBuildings =>
+        activeBuildings;
 
     private bool isInitialized;
     [SerializeField] private string instanceId;
@@ -71,6 +78,7 @@ public class PlacedBuilding : MonoBehaviour
                 : EdgeDirection.Horizontal;
 
         isInitialized = true;
+        RegisterActiveBuilding();
         BuildingChanged?.Invoke(this);
     }
 
@@ -151,20 +159,39 @@ public class PlacedBuilding : MonoBehaviour
             instanceId = Guid.NewGuid().ToString("N");
     }
 
+    private void RegisterActiveBuilding()
+    {
+        if (!activeBuildings.Contains(this))
+            activeBuildings.Add(this);
+    }
+
+    private void UnregisterActiveBuilding()
+    {
+        activeBuildings.Remove(this);
+    }
+
     private void OnEnable()
     {
         if (isInitialized)
+        {
+            RegisterActiveBuilding();
             BuildingChanged?.Invoke(this);
+        }
     }
 
     private void OnDisable()
     {
         if (isInitialized)
+        {
+            UnregisterActiveBuilding();
             BuildingChanged?.Invoke(this);
+        }
     }
 
     private void OnDestroy()
     {
+        UnregisterActiveBuilding();
+
         if (isInitialized)
             BuildingChanged?.Invoke(this);
     }
