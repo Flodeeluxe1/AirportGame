@@ -57,6 +57,7 @@ public class SightseeingAircraftSpawner : MonoBehaviour
     [SerializeField] private string scheduleStatus = "Initializing";
 
     private bool waitingMessageLogged;
+    private bool subscribedToGameTime;
 
     public bool FlightPending => flightPending;
     public bool HourlyScheduleEnabled => hourlyScheduleEnabled;
@@ -76,13 +77,17 @@ public class SightseeingAircraftSpawner : MonoBehaviour
     {
         PlacedBuilding.BuildingChanged += HandleBuildingChanged;
         RebuildTicketDeskCache();
+        if (gameTimeManager == null)
+            gameTimeManager = FindFirstObjectByType<GameTimeManager>();
+        SubscribeToGameTime();
     }
 
     private void OnDisable()
     {
         PlacedBuilding.BuildingChanged -= HandleBuildingChanged;
-        if (gameTimeManager != null)
+        if (gameTimeManager != null && subscribedToGameTime)
             gameTimeManager.GameTimeAdvanced -= HandleGameTimeAdvanced;
+        subscribedToGameTime = false;
     }
 
     private static void RebuildTicketDeskCache()
@@ -113,6 +118,15 @@ public class SightseeingAircraftSpawner : MonoBehaviour
             building.Definition != null &&
             building.Definition.id == TicketDeskDefinitionId)
             ticketDeskBuildings.Add(building);
+    }
+
+    private void SubscribeToGameTime()
+    {
+        if (gameTimeManager == null || subscribedToGameTime)
+            return;
+
+        gameTimeManager.GameTimeAdvanced += HandleGameTimeAdvanced;
+        subscribedToGameTime = true;
     }
 
     private void Awake()
@@ -153,7 +167,7 @@ public class SightseeingAircraftSpawner : MonoBehaviour
         // Establish the current hour as the baseline.
         // The first scheduled flight becomes due at the next hour boundary.
         lastObservedHourSlot = GetCurrentHourSlot();
-        gameTimeManager.GameTimeAdvanced += HandleGameTimeAdvanced;
+        SubscribeToGameTime();
 
         scheduleStatus = HasTicketDeskPlaced()
             ? (hourlyScheduleEnabled
