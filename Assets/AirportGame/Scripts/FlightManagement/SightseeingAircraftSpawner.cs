@@ -189,8 +189,6 @@ public class SightseeingAircraftSpawner : MonoBehaviour
         if (gameTimeManager.CurrentSpeedMultiplier <= 0)
             return;
 
-        CheckForNewHourlySlot();
-
         if (!flightPending)
             return;
 
