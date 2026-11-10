@@ -10,17 +10,6 @@ using UnityEngine;
 [RequireComponent(typeof(AircraftFlightIdentity))]
 public class AircraftHobbyVisitController : MonoBehaviour
 {
-    [Header("Landing Fee")]
-    [Min(0)]
-    [SerializeField] public int landingFee = 20;
-
-    [Header("Parking Fee")]
-    [Min(0)]
-    [SerializeField] public int parkingFee = 5;
-
-    [Min(1)]
-    [SerializeField] public int parkingIntervalMinutes = 10;
-
     [Header("Visit Duration")]
     [Min(1)]
     [SerializeField] public int minimumStayMinutes = 60;
@@ -34,28 +23,23 @@ public class AircraftHobbyVisitController : MonoBehaviour
     [SerializeField] private float parkingSpotReleaseDistance = 2f;
 
     [Header("Runtime Status")]
-    [SerializeField] private bool landingFeeCharged;
     [SerializeField] private bool hasParked;
     [SerializeField] private bool departureRequested;
     [SerializeField] private float visitMinutesRemaining;
     [SerializeField] private string debugStatus = "Waiting for landing";
 
-    public int LandingFee => landingFee;
-    public int ParkingFee => parkingFee;
-
     private AircraftFlightIdentity flightIdentity;
     private AircraftHobbyLandingController landingController;
     private AircraftHobbyLandingTaxiController hobbyTaxiController;
     private HobbyAircraftParkingSpot reservedSpot;
-    private AirportEconomyManager economyManager;
     private GameTimeManager gameTimeManager;
 
     private double parkedAtGameSeconds;
     private double departureAtGameSeconds;
-    private double nextParkingFeeAtGameSeconds;
 
     public bool DepartureRequested => departureRequested;
     public bool HasParked => hasParked;
+    public bool IsParkingFeeEligible => hasParked && !departureRequested;
     public string DebugStatus => debugStatus;
 
     private void Awake()
@@ -63,9 +47,6 @@ public class AircraftHobbyVisitController : MonoBehaviour
         flightIdentity = GetComponent<AircraftFlightIdentity>();
         landingController = GetComponent<AircraftHobbyLandingController>();
         hobbyTaxiController = GetComponent<AircraftHobbyLandingTaxiController>();
-
-        economyManager =
-            FindFirstObjectByType<AirportEconomyManager>();
 
         gameTimeManager =
             FindFirstObjectByType<GameTimeManager>();
@@ -87,13 +68,8 @@ public class AircraftHobbyVisitController : MonoBehaviour
         if (hobbyTaxiController == null)
             hobbyTaxiController = GetComponent<AircraftHobbyLandingTaxiController>();
 
-        if (economyManager == null)
-            economyManager = FindFirstObjectByType<AirportEconomyManager>();
-
         if (gameTimeManager == null)
             gameTimeManager = FindFirstObjectByType<GameTimeManager>();
-
-        ChargeLandingFeeIfNeeded();
 
         if (!hasParked)
         {
@@ -108,42 +84,6 @@ public class AircraftHobbyVisitController : MonoBehaviour
         }
 
         UpdateParkingVisit();
-    }
-
-    private void ChargeLandingFeeIfNeeded()
-    {
-        if (landingFeeCharged ||
-            landingController == null ||
-            !landingController.IsLandingComplete)
-        {
-            return;
-        }
-
-        if (economyManager == null)
-        {
-            debugStatus = "Landed; waiting for AirportEconomyManager";
-            return;
-        }
-
-        if (landingFee > 0)
-        {
-            economyManager.AddRevenue(
-                landingFee,
-                $"Hobby aircraft landing fee ({flightIdentity.FlightNumber})"
-            );
-        }
-
-        landingFeeCharged = true;
-
-        debugStatus = landingFee > 0
-            ? $"Landed; collected ${landingFee} landing fee"
-            : "Landed; no landing fee charged";
-
-        Debug.Log(
-            $"{flightIdentity.FlightNumber}: hobby landing fee " +
-            $"processed (${landingFee}).",
-            this
-        );
     }
 
     private void TryBeginParkingVisit()
@@ -185,9 +125,6 @@ public class AircraftHobbyVisitController : MonoBehaviour
         departureAtGameSeconds =
             now + stayMinutes * 60.0;
 
-        nextParkingFeeAtGameSeconds =
-            now + Mathf.Max(1, parkingIntervalMinutes) * 60.0;
-
         hasParked = true;
 
         debugStatus =
@@ -218,32 +155,6 @@ public class AircraftHobbyVisitController : MonoBehaviour
             0f,
             (float)((departureAtGameSeconds - now) / 60.0)
         );
-
-        // Charge only for completed parking intervals before departure.
-        while (parkingFee > 0 &&
-               nextParkingFeeAtGameSeconds <= now &&
-               nextParkingFeeAtGameSeconds < departureAtGameSeconds)
-        {
-            if (economyManager == null)
-            {
-                economyManager =
-                    FindFirstObjectByType<AirportEconomyManager>();
-
-                if (economyManager == null)
-                {
-                    debugStatus = "Parking fee pending: economy manager unavailable";
-                    return;
-                }
-            }
-
-            economyManager.AddRevenue(
-                parkingFee,
-                $"Hobby aircraft parking fee ({flightIdentity.FlightNumber})"
-            );
-
-            nextParkingFeeAtGameSeconds +=
-                Mathf.Max(1, parkingIntervalMinutes) * 60.0;
-        }
 
         if (now >= departureAtGameSeconds)
         {
