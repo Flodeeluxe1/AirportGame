@@ -45,6 +45,8 @@ public sealed class PipelinePrefabRuleManager : MonoBehaviour
 
     public IReadOnlyCollection<Vector2Int> PipeCells => pipeCells;
 
+    public event System.Action PipeTopologyChanged;
+
     private static readonly Vector2Int[] Directions =
     {
         Vector2Int.up,
@@ -101,6 +103,7 @@ public sealed class PipelinePrefabRuleManager : MonoBehaviour
             return true;
 
         RebuildVisuals();
+        PipeTopologyChanged?.Invoke();
 
         if (logPlacement)
             Debug.Log($"PIPELINE CELL PLACED | {cell}", this);
@@ -127,7 +130,10 @@ public sealed class PipelinePrefabRuleManager : MonoBehaviour
             changed |= pipeCells.Add(cell);
 
         if (changed)
+        {
             RebuildVisuals();
+            PipeTopologyChanged?.Invoke();
+        }
 
         if (logPlacement && changed)
             Debug.Log($"PIPELINE BUILT | Added {requested.Count} grid cells", this);
@@ -141,6 +147,7 @@ public sealed class PipelinePrefabRuleManager : MonoBehaviour
             return false;
 
         RebuildVisuals();
+        PipeTopologyChanged?.Invoke();
         return true;
     }
 
@@ -260,12 +267,16 @@ public sealed class PipelinePrefabRuleManager : MonoBehaviour
         }
 
         RebuildVisuals();
+        PipeTopologyChanged?.Invoke();
     }
 
     public void ClearAllPipes()
     {
+        bool changed = pipeCells.Count > 0;
         pipeCells.Clear();
         ClearVisuals();
+        if (changed)
+            PipeTopologyChanged?.Invoke();
     }
 
     private int GetConnectionMask(
@@ -283,10 +294,7 @@ public sealed class PipelinePrefabRuleManager : MonoBehaviour
                 mask |= DirectionBits[i];
         }
 
-        FuelConnector[] connectors =
-            FindObjectsByType<FuelConnector>(FindObjectsSortMode.None);
-
-        foreach (FuelConnector connector in connectors)
+        foreach (FuelConnector connector in FuelConnector.ActiveConnectors)
         {
             if (connector == null)
                 continue;
