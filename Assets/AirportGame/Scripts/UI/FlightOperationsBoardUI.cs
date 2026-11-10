@@ -178,15 +178,16 @@ public class FlightOperationsBoardUI : MonoBehaviour
         long currentDay = gameTimeManager.CurrentDay;
         int currentMinute = gameTimeManager.Hour * 60 + gameTimeManager.Minute;
 
-        if (currentDay != lastRenderedDay)
+        bool dayChanged = currentDay != lastRenderedDay;
+
+        if (dayChanged)
         {
             lastRenderedDay = currentDay;
             RebuildEntriesForCurrentDay();
         }
 
-        if (currentDay != lastRenderedDay || currentMinute != lastRenderedMinute)
+        if (dayChanged || currentMinute != lastRenderedMinute)
         {
-            lastRenderedDay = currentDay;
             lastRenderedMinute = currentMinute;
             RenderBoard();
         }
