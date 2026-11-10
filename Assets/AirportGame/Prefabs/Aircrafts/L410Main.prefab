@@ -21,6 +21,7 @@ GameObject:
   - component: {fileID: -3097119825025368915}
   - component: {fileID: 7274079364506538117}
   - component: {fileID: -5377837908492148942}
+  - component: {fileID: -7123456789012345678}
   m_Layer: 7
   m_Name: L410Main
   m_TagString: Untagged
@@ -1415,3 +1416,24 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 2774220344278030320, guid: 6011a2c838097c94db47527aa3ed4565, type: 3}
   m_PrefabInstance: {fileID: 8712370441465966709}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &-7123456789012345678
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3545578725970996442}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 109a25440e7fdd44b871e7d3a13cef3f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AircraftAirportFees
+  landingFee: 20
+  parkingFee: 5
+  parkingIntervalMinutes: 10
+  economyManager: {fileID: 0}
+  gameTimeManager: {fileID: 0}
+  aircraftStatus: {fileID: 0}
+  turnaroundController: {fileID: 0}
+  hobbyVisitController: {fileID: 0}
+  hobbyLandingController: {fileID: 0}
