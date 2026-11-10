@@ -62,6 +62,7 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
     private AircraftHobbyDepartureTaxiController departureController;
     private AircraftFuelTank fuelTank;
     private AircraftStatus aircraftStatus;
+    private AircraftTaxiTrafficFollowing trafficFollowing;
     private readonly List<Vector2Int> plannedRoute = new();
     private readonly List<Vector3> movementPoints = new();
     private int movementIndex;
@@ -78,6 +79,7 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
         departureController = GetComponent<AircraftHobbyDepartureTaxiController>();
         fuelTank = GetComponent<AircraftFuelTank>();
         aircraftStatus = GetComponent<AircraftStatus>();
+        trafficFollowing = GetComponent<AircraftTaxiTrafficFollowing>();
 
         // The normal departure controller must not select a runway or begin
         // turning as soon as the visit ends. Fuel station availability is
@@ -245,6 +247,12 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
         }
 
         BuildFuelStationMovementPoints(bestRoute, bestStation.AircraftFuelStopPoint);
+
+        // Publish the route once when the aircraft is dispatched. The ATC
+        // follower retains it while the aircraft moves; it does not need to
+        // be recopied every frame.
+        if (trafficFollowing != null)
+            trafficFollowing.SetPlannedTaxiRoute(plannedRoute);
 
         // Detailed route diagnostics are optional because building a long
         // per-cell log can itself create a frame spike during dispatch.
@@ -464,6 +472,9 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
             return;
         }
 
+        if (trafficFollowing != null)
+            trafficFollowing.SetPlannedTaxiRoute(plannedRoute);
+
         if (departureController != null)
             departureController.enabled = false;
 
@@ -526,14 +537,10 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
             return;
         }
 
-        AircraftTaxiTrafficFollowing trafficFollowing =
-            GetComponent<AircraftTaxiTrafficFollowing>();
-
         float speedKnots = taxiSpeedKnots;
 
         if (trafficFollowing != null)
         {
-            trafficFollowing.SetPlannedTaxiRoute(plannedRoute);
             speedKnots = trafficFollowing.GetTrafficFollowingSpeed(taxiSpeedKnots);
         }
         else if (aircraftStatus != null)
