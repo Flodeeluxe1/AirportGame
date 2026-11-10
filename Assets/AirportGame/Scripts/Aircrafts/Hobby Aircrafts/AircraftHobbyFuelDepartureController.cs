@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Text;
 using UnityEngine;
 
 /// <summary>
@@ -245,29 +246,35 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
 
         BuildFuelStationMovementPoints(bestRoute, bestStation.AircraftFuelStopPoint);
 
-        // Log the complete selected taxi route and the actual world-space
-        // movement points once when the aircraft commits to refuelling.
-        string routeLog = $"\\nSelected fuel station: {bestStation.name}" +
-            $"\\nAircraft world position: {transform.position}" +
-            $"\\nFuel stop point: {bestStation.AircraftFuelStopPoint.position}" +
-            $"\\nRoute cells ({bestRoute.Count}): ";
-        for (int i = 0; i < bestRoute.Count; i++)
+        // Detailed route diagnostics are optional because building a long
+        // per-cell log can itself create a frame spike during dispatch.
+        if (logFuelDecision)
         {
-            Vector2Int cell = bestRoute[i];
-            routeLog += $"[{i}] {cell} -> {gridManager.GridToWorldCenter(cell)}";
-            if (i < bestRoute.Count - 1)
-                routeLog += " | ";
-        }
+            StringBuilder routeLog = new StringBuilder(256);
+            routeLog.AppendLine($"Selected fuel station: {bestStation.name}");
+            routeLog.AppendLine($"Aircraft world position: {transform.position}");
+            routeLog.AppendLine($"Fuel stop point: {bestStation.AircraftFuelStopPoint.position}");
+            routeLog.Append($"Route cells ({bestRoute.Count}): ");
 
-        routeLog += $"\\nMovement points ({movementPoints.Count}): ";
-        for (int i = 0; i < movementPoints.Count; i++)
-        {
-            routeLog += $"[{i}] {movementPoints[i]}";
-            if (i < movementPoints.Count - 1)
-                routeLog += " | ";
-        }
+            for (int i = 0; i < bestRoute.Count; i++)
+            {
+                Vector2Int cell = bestRoute[i];
+                routeLog.Append($"[{i}] {cell} -> {gridManager.GridToWorldCenter(cell)}");
+                if (i < bestRoute.Count - 1)
+                    routeLog.Append(" | ");
+            }
 
-        Debug.Log($"{name}: FUEL TAXI ROUTE{routeLog}", this);
+            routeLog.Append($"\\nMovement points ({movementPoints.Count}): ");
+
+            for (int i = 0; i < movementPoints.Count; i++)
+            {
+                routeLog.Append($"[{i}] {movementPoints[i]}");
+                if (i < movementPoints.Count - 1)
+                    routeLog.Append(" | ");
+            }
+
+            Debug.Log($"{name}: FUEL TAXI ROUTE\\n{routeLog}", this);
+        }
 
         if (movementPoints.Count == 0)
         {
@@ -328,60 +335,65 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
             starts.RemoveRange(maximumStartCandidates,
                 starts.Count - maximumStartCandidates);
 
-        // The stop point may be inside the station prefab and offset from
-        // the taxiway. Only consider centerline cells within the configured
-        // grid distance so the final approach cannot cut across the airport.
+        // Gather all valid final approach cells once. The multi-target A*
+        // search evaluates this complete set in one traversal per start cell.
         List<Vector2Int> targets = new();
+        Dictionary<Vector2Int, float> targetApproachCosts = new();
+
         foreach (Vector2Int cell in taxiwayNetwork.TaxiwayCenterlineCells)
         {
             if (!gridManager.IsInsideGrid(cell) || !taxiwayNetwork.IsTaxiway(cell))
                 continue;
 
-            if (Vector2Int.Distance(cell, stopCell) <= maximumStopApproachDistanceCells)
-                targets.Add(cell);
+            if (Vector2Int.Distance(cell, stopCell) > maximumStopApproachDistanceCells)
+                continue;
+
+            float approachDistance = Vector3.Distance(
+                gridManager.GridToWorldCenter(cell),
+                station.AircraftFuelStopPoint.position);
+
+            targets.Add(cell);
+
+            // Pathfinding costs are measured in grid steps. Convert the final
+            // world-space approach distance to the same approximate scale.
+            targetApproachCosts[cell] = approachDistance / gridManager.CellSize;
         }
 
-        targets.Sort((a, b) =>
-            Vector3.Distance(
-                gridManager.GridToWorldCenter(a),
-                station.AircraftFuelStopPoint.position).CompareTo(
-            Vector3.Distance(
-                gridManager.GridToWorldCenter(b),
-                station.AircraftFuelStopPoint.position)));
+        if (targets.Count == 0)
+            return false;
 
         foreach (Vector2Int start in starts)
         {
-            foreach (Vector2Int target in targets)
+            List<Vector2Int> route =
+                taxiwayPathfinder.FindPathToBestTarget(
+                    start,
+                    targetApproachCosts,
+                    out _,
+                    out _);
+
+            if (route == null || route.Count < 2)
+                continue;
+
+            float distance = Vector3.Distance(
+                transform.position,
+                gridManager.GridToWorldCenter(route[0]));
+
+            for (int i = 1; i < route.Count; i++)
             {
-                List<Vector2Int> route = taxiwayPathfinder.FindPath(start, target);
-
-                // A one-cell path means the selected start is already the
-                // destination cell. Accepting it would skip taxiway travel
-                // and send the aircraft directly toward the station stop point.
-                if (route == null || route.Count < 2)
-                    continue;
-
-                float distance = Vector3.Distance(
-                    transform.position,
-                    gridManager.GridToWorldCenter(route[0]));
-
-                for (int i = 1; i < route.Count; i++)
-                {
-                    distance += Vector3.Distance(
-                        gridManager.GridToWorldCenter(route[i - 1]),
-                        gridManager.GridToWorldCenter(route[i]));
-                }
-
                 distance += Vector3.Distance(
-                    gridManager.GridToWorldCenter(route[route.Count - 1]),
-                    station.AircraftFuelStopPoint.position);
-
-                if (distance >= bestDistance)
-                    continue;
-
-                bestDistance = distance;
-                bestRoute = route;
+                    gridManager.GridToWorldCenter(route[i - 1]),
+                    gridManager.GridToWorldCenter(route[i]));
             }
+
+            distance += Vector3.Distance(
+                gridManager.GridToWorldCenter(route[route.Count - 1]),
+                station.AircraftFuelStopPoint.position);
+
+            if (distance >= bestDistance)
+                continue;
+
+            bestDistance = distance;
+            bestRoute = route;
         }
 
         return bestRoute != null;
