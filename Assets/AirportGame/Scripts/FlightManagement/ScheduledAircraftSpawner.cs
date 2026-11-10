@@ -12,6 +12,7 @@ public class ScheduledAircraftSpawner : MonoBehaviour
     [SerializeField] private Transform spawnPoint;
     [SerializeField] private TestFlightCatalog flightCatalog;
     [SerializeField] private GameTimeManager gameTimeManager;
+    [SerializeField] private AirportManagementController airportManagementController;
 
     [Header("Spawn Queue")]
     [Tooltip("Minimum game-time interval between aircraft spawns, in seconds.")]
@@ -212,6 +213,18 @@ public class ScheduledAircraftSpawner : MonoBehaviour
         ProcessSpawnQueue();
     }
 
+    private bool IsAirportOperational()
+    {
+        if (airportManagementController == null)
+        {
+            airportManagementController =
+                FindFirstObjectByType<AirportManagementController>();
+        }
+
+        return airportManagementController != null &&
+               airportManagementController.IsAirportOperational;
+    }
+
     private bool TryReadGameSecond(out int seconds)
     {
         seconds = 0;
@@ -292,6 +305,25 @@ public class ScheduledAircraftSpawner : MonoBehaviour
             return;
         }
 
+        // A flight whose arrival time passes while the airport has no valid
+        // CEO Office is skipped rather than held for a later arrival.
+        if (!IsAirportOperational())
+        {
+            spawnedOperationIds.Add(operationId);
+
+            if (logQueueChanges)
+            {
+                Debug.Log(
+                    $"Scheduled arrival skipped | Flight: " +
+                    $"{scheduled.Definition.FlightNumber} | " +
+                    "No valid CEO Office.",
+                    this
+                );
+            }
+
+            return;
+        }
+
         QueuedAircraftSpawn queuedFlight = new QueuedAircraftSpawn
         {
             Scheduled = scheduled,
@@ -318,6 +350,24 @@ public class ScheduledAircraftSpawner : MonoBehaviour
     {
         if (spawnQueue.Count == 0)
             return;
+
+        // If the CEO Office becomes invalid while flights are queued,
+        // discard those arrivals instead of spawning them later in a burst.
+        if (!IsAirportOperational())
+        {
+            while (spawnQueue.Count > 0)
+            {
+                QueuedAircraftSpawn skipped = spawnQueue.Dequeue();
+
+                if (skipped == null)
+                    continue;
+
+                queuedOperationIds.Remove(skipped.OperationId);
+                spawnedOperationIds.Add(skipped.OperationId);
+            }
+
+            return;
+        }
 
         long currentGameTime =
             gameDayIndex * SecondsPerDay + lastGameSecond;
