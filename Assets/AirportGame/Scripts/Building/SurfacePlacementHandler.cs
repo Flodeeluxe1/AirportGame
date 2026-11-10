@@ -169,6 +169,52 @@ public class SurfacePlacementHandler : IPlacementHandler
             return false;
         }
 
+        Bounds candidateBounds =
+            new Bounds(bounds.center, bounds.size * 0.95f);
+
+        // Some imported furniture has no collider. Check the rendered
+        // bounds of existing surface objects as a second overlap guard.
+        PlacedBuilding[] placedBuildings =
+            Object.FindObjectsByType<PlacedBuilding>(
+                FindObjectsSortMode.None);
+
+        foreach (PlacedBuilding other in placedBuildings)
+        {
+            if (other == null ||
+                other == currentSupport ||
+                !other.IsSurfacePlaced)
+            {
+                continue;
+            }
+
+            Renderer[] otherRenderers =
+                other.GetComponentsInChildren<Renderer>(true);
+
+            bool hasOtherBounds = false;
+            Bounds otherBounds = new Bounds(
+                other.transform.position,
+                Vector3.zero);
+
+            foreach (Renderer otherRenderer in otherRenderers)
+            {
+                if (otherRenderer == null || !otherRenderer.enabled)
+                    continue;
+
+                if (!hasOtherBounds)
+                {
+                    otherBounds = otherRenderer.bounds;
+                    hasOtherBounds = true;
+                }
+                else
+                {
+                    otherBounds.Encapsulate(otherRenderer.bounds);
+                }
+            }
+
+            if (hasOtherBounds && candidateBounds.Intersects(otherBounds))
+                return false;
+        }
+
         Collider[] overlaps = Physics.OverlapBox(
             bounds.center,
             bounds.extents * 0.95f,
