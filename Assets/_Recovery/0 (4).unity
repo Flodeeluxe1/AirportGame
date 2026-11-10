@@ -2425,6 +2425,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1281064222}
+  - component: {fileID: 1281064223}
   m_Layer: 0
   m_Name: WasteCollectionManager
   m_TagString: Untagged
@@ -2447,6 +2448,25 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1281064223
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1281064221}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3c9f5a1d7e6248b0a6d2f4c8e1b73590, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::WasteCollectionManager
+  garbageCollectorSpawner: {fileID: 2134991062}
+  dispatchThresholdPercent: 1
+  scanInterval: 2
+  logCollectionChecks: 1
+  trackedDisposalCount: 0
+  totalCurrentWaste: 0
+  totalWasteCapacity: 0
 --- !u!1 &1332688657
 GameObject:
   m_ObjectHideFlags: 0
@@ -4136,6 +4156,7 @@ GameObject:
   - component: {fileID: 2134991059}
   - component: {fileID: 2134991060}
   - component: {fileID: 2134991061}
+  - component: {fileID: 2134991062}
   m_Layer: 0
   m_Name: RoadTrafficSpawner
   m_TagString: Untagged
@@ -4304,6 +4325,27 @@ MonoBehaviour:
   spawnHeightOffset: 0.2
   retryCooldownAfterFailureSeconds: 30
   logDispatches: 1
+--- !u!114 &2134991062
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2134991054}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b73e1f9a4c6d428f9a1e5b7c3d2f6084, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GarbageCollectorSpawner
+  garbageCollectorPrefab: {fileID: 5132349342966066208, guid: 65d7f4facc6e6e344a1f5c19b873647d, type: 3}
+  spawnPoint: {fileID: 2134991058}
+  exitPoint: {fileID: 1964681761}
+  gridManager: {fileID: 728659359}
+  roadNetwork: {fileID: 401526682}
+  maximumActiveCollectors: 3
+  spawnHeightOffset: 0.2
+  logDispatches: 1
+  logDispatchDiagnostics: 1
 --- !u!1 &2136825550
 GameObject:
   m_ObjectHideFlags: 0
