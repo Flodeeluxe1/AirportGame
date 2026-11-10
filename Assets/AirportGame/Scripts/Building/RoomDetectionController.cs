@@ -43,9 +43,6 @@ public class RoomDetectionController : MonoBehaviour
     [SerializeField] private EdgeOccupancy edgeOccupancy;
 
     [Header("Detection")]
-    [SerializeField, Min(0.1f)]
-    private float refreshInterval = 0.5f;
-
     [SerializeField]
     private bool logRoomChanges = true;
 
@@ -141,6 +138,12 @@ public class RoomDetectionController : MonoBehaviour
     }
 
     [ContextMenu("Refresh Rooms")]
+    private void ForceRefreshRooms()
+    {
+        isDirty = true;
+        RefreshRooms();
+    }
+
     public void RefreshRooms()
     {
         if (!isDirty && hasCompletedInitialRefresh)
@@ -230,8 +233,9 @@ public class RoomDetectionController : MonoBehaviour
         isDirty = false;
         hasCompletedInitialRefresh = true;
 
-        if (roomLayoutChanged)
-            RoomsChanged?.Invoke();
+        // Boundary edits can change room validity (for example, wall to
+        // door) without changing the room's cell signature.
+        RoomsChanged?.Invoke();
     }
 
     private List<Vector2Int> CollectRoomComponent(
