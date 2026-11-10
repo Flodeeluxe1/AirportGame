@@ -460,7 +460,7 @@ public class RoomInfoPanelUIController : MonoBehaviour
                 "• Fully enclosed room\\n" +
                 "• At least one door\\n" +
                 "• One desk or office table\\n" +
-                "• One office chair\\n" +
+                "• One chair\\n" +
                 "• One computer\\n" +
                 "• One printer\\n" +
                 "• Required furniture must be inside this room";
