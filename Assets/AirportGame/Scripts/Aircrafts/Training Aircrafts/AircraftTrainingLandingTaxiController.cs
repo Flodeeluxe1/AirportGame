@@ -62,6 +62,9 @@ public class AircraftTrainingLandingTaxiController : MonoBehaviour
     [TextArea(2, 5)]
     public string debugStatus = "Waiting for training landing completion.";
 
+    private AircraftTaxiTrafficFollowing trafficFollowing;
+    private IReadOnlyList<Vector2Int> lastPublishedTaxiRoute;
+
     private enum TaxiPhase
     {
         WaitingForLanding,
@@ -159,6 +162,8 @@ public class AircraftTrainingLandingTaxiController : MonoBehaviour
 
         if (taxiwayPathfinder == null)
             taxiwayPathfinder = FindFirstObjectByType<TaxiwayPathfinder>();
+
+        trafficFollowing = GetComponent<AircraftTaxiTrafficFollowing>();
     }
 
 
@@ -211,6 +216,7 @@ public class AircraftTrainingLandingTaxiController : MonoBehaviour
 
     public void ResetForNextTrainingLesson()
     {
+        lastPublishedTaxiRoute = null;
         route.Clear();
         taxiMovementPath.Clear();
 
@@ -444,6 +450,7 @@ public class AircraftTrainingLandingTaxiController : MonoBehaviour
             return;
         }
 
+        lastPublishedTaxiRoute = null;
         route.Clear();
         route.AddRange(chosenPath);
 
@@ -858,6 +865,18 @@ public class AircraftTrainingLandingTaxiController : MonoBehaviour
         }
     }
 
+    private void PublishPlannedTaxiRoute(IReadOnlyList<Vector2Int> plannedRoute)
+    {
+        if (trafficFollowing == null || plannedRoute == null ||
+            ReferenceEquals(lastPublishedTaxiRoute, plannedRoute))
+        {
+            return;
+        }
+
+        trafficFollowing.SetPlannedTaxiRoute(plannedRoute);
+        lastPublishedTaxiRoute = plannedRoute;
+    }
+
     private void FollowTaxiwayRoute()
     {
         while (currentRouteIndex < taxiMovementPath.Count)
@@ -952,12 +971,9 @@ public class AircraftTrainingLandingTaxiController : MonoBehaviour
 
         float speedKnots = taxiSpeedKnots;
 
-        AircraftTaxiTrafficFollowing trafficFollowing =
-            GetComponent<AircraftTaxiTrafficFollowing>();
-
         if (trafficFollowing != null)
         {
-            trafficFollowing.SetPlannedTaxiRoute(route);
+            PublishPlannedTaxiRoute(route);
             speedKnots =
                 trafficFollowing.GetTrafficFollowingSpeed(taxiSpeedKnots);
         }
