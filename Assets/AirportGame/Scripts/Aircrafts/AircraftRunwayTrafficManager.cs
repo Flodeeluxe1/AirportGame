@@ -4,6 +4,10 @@ using UnityEngine;
 
 public class AircraftRunwayTrafficManager : MonoBehaviour
 {
+
+    [Header("Logging")]
+    [SerializeField] private bool logLineUpReservationReleased = false;
+    [SerializeField] private bool logDepartureReservationReleased = false;
     private sealed class RunwayReservation
     {
         public AircraftRunway Runway;
@@ -329,13 +333,16 @@ public class AircraftRunwayTrafficManager : MonoBehaviour
         {
             departureReservations.Remove(id);
 
-            Debug.Log(
-                $"RUNWAY DEPARTURE RESERVATION RELEASED | " +
-                $"Aircraft: {departureAircraft.name} | " +
-                $"Runway: " +
-                $"{(reservation.Runway != null ? reservation.Runway.name : "Unknown")}",
-                this
-            );
+            if (logDepartureReservationReleased)
+            {
+                Debug.Log(
+                    $"RUNWAY DEPARTURE RESERVATION RELEASED | " +
+                    $"Aircraft: {departureAircraft.name} | " +
+                    $"Runway: " +
+                    $"{(reservation.Runway != null ? reservation.Runway.name : "Unknown")}",
+                    this
+                );
+            }
         }
 
         ReleaseRunwayLineUpReservation(departureAircraft);
@@ -497,12 +504,15 @@ public class AircraftRunwayTrafficManager : MonoBehaviour
 
         lineupReservations.Remove(id);
 
-        Debug.Log(
-            $"RUNWAY LINE-UP RESERVATION RELEASED | Aircraft: " +
-            $"{departureAircraft.name} | Runway: " +
-            $"{(reservation.Runway != null ? reservation.Runway.name : "Unknown")}",
-            this
-        );
+        if (logLineUpReservationReleased)
+        {
+            Debug.Log(
+                $"RUNWAY LINE-UP RESERVATION RELEASED | Aircraft: " +
+                $"{departureAircraft.name} | Runway: " +
+                $"{(reservation.Runway != null ? reservation.Runway.name : "Unknown")}",
+                this
+            );
+        }
     }
 
     /// <summary>
