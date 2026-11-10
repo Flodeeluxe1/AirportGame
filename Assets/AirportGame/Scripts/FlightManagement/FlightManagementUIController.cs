@@ -403,6 +403,7 @@ public class FlightManagementUIController : MonoBehaviour
         scheduleLoadMessage = "New airport: no flights scheduled.";
 
         RefreshScheduleUI();
+        SaveSchedule();
 
         Debug.Log(
             "FlightManagementUIController: Active flight schedule cleared. " +
