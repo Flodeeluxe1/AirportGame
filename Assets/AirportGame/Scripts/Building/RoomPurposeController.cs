@@ -5,7 +5,9 @@ using UnityEngine.InputSystem;
 public enum RoomPurpose
 {
     None,
-    FlightSchool
+    FlightSchool,
+    CEOOffice,
+    CFOOffice
 }
 
 public class RoomPurposeController : MonoBehaviour
@@ -221,6 +223,16 @@ public class RoomPurposeController : MonoBehaviour
                 valid
                     ? $"Flight School assigned at {anchor}: VALID."
                     : $"Flight School assigned at {anchor}: INVALID — {reason}");
+        }
+        else if (purpose == RoomPurpose.CEOOffice ||
+                 purpose == RoomPurpose.CFOOffice)
+        {
+            bool valid = ValidateOffice(room, out string reason);
+
+            Debug.Log(
+                valid
+                    ? $"{purpose} assigned at {anchor}: VALID."
+                    : $"{purpose} assigned at {anchor}: INVALID — {reason}");
         }
         else
         {
@@ -444,13 +456,94 @@ public class RoomPurposeController : MonoBehaviour
             if (!BuildingTouchesRoom(placed, roomCells))
                 continue;
 
-            if (role == RoomFurnitureRole.InstructorDesk)
+            if ((role & RoomFurnitureRole.InstructorDesk) != 0)
                 desks++;
-            else if (role == RoomFurnitureRole.StudentSeat)
+            if ((role & RoomFurnitureRole.StudentSeat) != 0)
                 seats++;
         }
 
         return ValidateFurnitureCounts(desks, seats, out reason);
+    }
+
+    public bool ValidateOffice(
+        RoomDetectionController.DetectedRoom room,
+        out string reason)
+    {
+        if (room == null || room.cells == null || room.cells.Count == 0)
+        {
+            reason = "Room was not detected.";
+            return false;
+        }
+
+        if (!HasDoor(room))
+        {
+            reason = "Needs at least one door on its boundary.";
+            return false;
+        }
+
+        int desks = 0;
+        int chairs = 0;
+        int computers = 0;
+        int printers = 0;
+
+        HashSet<Vector2Int> roomCells =
+            new HashSet<Vector2Int>(room.cells);
+
+        PlacedBuilding[] placedBuildings =
+            FindObjectsByType<PlacedBuilding>(
+                FindObjectsInactive.Exclude,
+                FindObjectsSortMode.None);
+
+        foreach (PlacedBuilding placed in placedBuildings)
+        {
+            if (placed == null || placed.Definition == null)
+                continue;
+
+            RoomFurnitureRole role =
+                placed.Definition.roomFurnitureRole;
+
+            if (!BuildingTouchesRoom(placed, roomCells))
+                continue;
+
+            if ((role & RoomFurnitureRole.OfficeDesk) != 0)
+                desks++;
+
+            if ((role & RoomFurnitureRole.OfficeChair) != 0)
+                chairs++;
+
+            if ((role & RoomFurnitureRole.OfficeComputer) != 0)
+                computers++;
+
+            if ((role & RoomFurnitureRole.OfficePrinter) != 0)
+                printers++;
+        }
+
+        if (desks < 1)
+        {
+            reason = "Needs at least one desk or office table.";
+            return false;
+        }
+
+        if (chairs < 1)
+        {
+            reason = "Needs at least one office chair.";
+            return false;
+        }
+
+        if (computers < 1)
+        {
+            reason = "Needs at least one computer.";
+            return false;
+        }
+
+        if (printers < 1)
+        {
+            reason = "Needs at least one printer.";
+            return false;
+        }
+
+        reason = "";
+        return true;
     }
 
     public bool ValidateFlightSchool(
@@ -522,6 +615,14 @@ public class RoomPurposeController : MonoBehaviour
         PlacedBuilding building,
         HashSet<Vector2Int> roomCells)
     {
+        if (building.IsSurfacePlaced)
+        {
+            building = building.SupportingSurface;
+
+            if (building == null)
+                return false;
+        }
+
         if (building.IsEdgeBuilding)
             return false;
 
