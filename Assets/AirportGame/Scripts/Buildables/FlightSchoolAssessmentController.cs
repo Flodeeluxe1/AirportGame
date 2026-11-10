@@ -347,7 +347,11 @@ public class FlightSchoolAssessmentController : MonoBehaviour
                 building.Definition.roomFurnitureRole;
 
             if ((role & RoomFurnitureRole.InstructorDesk) == 0 &&
-                (role & RoomFurnitureRole.StudentSeat) == 0)
+                (role & RoomFurnitureRole.StudentSeat) == 0 &&
+                (role & RoomFurnitureRole.OfficeDesk) == 0 &&
+                (role & RoomFurnitureRole.OfficeChair) == 0 &&
+                (role & RoomFurnitureRole.OfficeComputer) == 0 &&
+                (role & RoomFurnitureRole.OfficePrinter) == 0)
             {
                 continue;
             }
