@@ -38,6 +38,7 @@ public class BuildController : MonoBehaviour
     private AreaPlacementHandler areaHandler;
     private DoorPlacementHandler doorHandler;
     private WallMountedPlacementHandler wallMountedHandler;
+    private SurfacePlacementHandler surfaceHandler;
     private RoadPlacementHandler roadHandler;
     private TaxiwayPlacementHandler taxiwayHandler;
     private PipelinePlacementHandler pipelineHandler;
@@ -65,6 +66,7 @@ public class BuildController : MonoBehaviour
         areaHandler = new AreaPlacementHandler();
         doorHandler = new DoorPlacementHandler();
         wallMountedHandler = new WallMountedPlacementHandler();
+        surfaceHandler = new SurfacePlacementHandler();
         roadHandler = new RoadPlacementHandler();
         taxiwayHandler = new TaxiwayPlacementHandler();
         pipelineHandler = new PipelinePlacementHandler();
@@ -101,6 +103,10 @@ public class BuildController : MonoBehaviour
             this, gridManager, gridOccupancy, edgeOccupancy
         );
 
+        surfaceHandler.Initialize(
+            this, gridManager, gridOccupancy, edgeOccupancy
+        );
+
         roadHandler.Initialize(
             this, gridManager, gridOccupancy, edgeOccupancy
         );
@@ -131,6 +137,11 @@ public class BuildController : MonoBehaviour
             return;
 
         if (currentDefinition != null &&
+            currentDefinition.canBePlacedOnSurface)
+        {
+            UpdateSurfacePlacement();
+        }
+        else if (currentDefinition != null &&
             currentDefinition.isWallMounted)
         {
             UpdateWallMountedPlacement();
@@ -195,6 +206,17 @@ public class BuildController : MonoBehaviour
         {
             CancelBuilding();
         }
+    }
+
+    private void UpdateSurfacePlacement()
+    {
+        if (mainCamera == null || surfaceHandler == null)
+            return;
+
+        Ray mouseRay =
+            mainCamera.ScreenPointToRay(GetMousePosition());
+
+        surfaceHandler.UpdatePlacementFromRay(mouseRay);
     }
 
     private void UpdateWallMountedPlacement()
@@ -275,6 +297,9 @@ public class BuildController : MonoBehaviour
     {
         if (definition == null)
             return null;
+
+        if (definition.canBePlacedOnSurface)
+            return surfaceHandler;
 
         if (definition.category == BuildCategory.Taxiways)
             return taxiwayHandler;
