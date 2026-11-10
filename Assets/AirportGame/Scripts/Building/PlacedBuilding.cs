@@ -1,7 +1,12 @@
+using System;
 using UnityEngine;
 
 public class PlacedBuilding : MonoBehaviour
 {
+    public static event Action<PlacedBuilding> BuildingChanged;
+
+    private bool isInitialized;
+
     public BuildableDefinition Definition { get; private set; }
 
     public Vector2Int Origin { get; private set; }
@@ -46,6 +51,9 @@ public class PlacedBuilding : MonoBehaviour
             rotation == 270
                 ? EdgeDirection.Vertical
                 : EdgeDirection.Horizontal;
+
+        isInitialized = true;
+        BuildingChanged?.Invoke(this);
     }
 
     public void InitializeEdge(
@@ -75,5 +83,26 @@ public class PlacedBuilding : MonoBehaviour
             EdgeDirection.Horizontal
                 ? 0
                 : 90;
+
+        isInitialized = true;
+        BuildingChanged?.Invoke(this);
+    }
+
+    private void OnEnable()
+    {
+        if (isInitialized)
+            BuildingChanged?.Invoke(this);
+    }
+
+    private void OnDisable()
+    {
+        if (isInitialized)
+            BuildingChanged?.Invoke(this);
+    }
+
+    private void OnDestroy()
+    {
+        if (isInitialized)
+            BuildingChanged?.Invoke(this);
     }
 }
