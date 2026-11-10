@@ -63,6 +63,8 @@ public class BuildableDefinition : ScriptableObject
     public bool blocksPathfinding = false;
 
     [Header("UI")]
+    [Tooltip("Menu category is generated from the buildable folder by the Editor catalogue builder.")]
+    public string menuCategory;
     public BuildCategory category = BuildCategory.Airport;
     public Texture2D icon;
 
