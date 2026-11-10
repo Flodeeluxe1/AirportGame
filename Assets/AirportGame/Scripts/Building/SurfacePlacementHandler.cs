@@ -62,7 +62,11 @@ public class SurfacePlacementHandler : IPlacementHandler
         hasSupport = false;
         isValid = false;
 
-        RaycastHit[] hits = Physics.RaycastAll(ray, 1000f);
+        RaycastHit[] hits = Physics.RaycastAll(
+            ray,
+            1000f,
+            Physics.DefaultRaycastLayers,
+            QueryTriggerInteraction.Collide);
         System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
 
         foreach (RaycastHit hit in hits)
