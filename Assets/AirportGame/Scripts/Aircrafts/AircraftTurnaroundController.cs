@@ -839,6 +839,31 @@ public class AircraftTurnaroundController : MonoBehaviour
         CompleteTask(TaskType.Cleaning);
     }
 
+    /// <summary>
+    /// Keeps cleaning under external vehicle control after an assignment fails.
+    /// The turnaround retries the request instead of completing a simulated task.
+    /// </summary>
+    public void CancelExternalCleaning()
+    {
+        externalCleaningControlled =
+            cleaning.Status == AircraftTurnaroundTaskStatus.InProgress;
+        cleaningVehicleRequestRetryTimer = 5f;
+    }
+
+    /// <summary>
+    /// Requests an available cleaning vehicle. If none is available,
+    /// Update retries the request after the configured delay.
+    /// </summary>
+    private void RequestExternalCleaningServiceIfAvailable()
+    {
+        if (cleaning.Status != AircraftTurnaroundTaskStatus.InProgress)
+            return;
+
+        externalCleaningControlled = true;
+        cleaningVehicleRequestRetryTimer = 5f;
+        AircraftCleaningVehicleController.RequestCleaning(this);
+    }
+
     private void ChargeCleaningFee()
     {
         PassengerFlightRevenue passengerRevenue =
