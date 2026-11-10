@@ -51,21 +51,11 @@ public class GridSurface : MonoBehaviour
             gridManager.Height
         ];
 
-        bool foundationChanged = false;
-
         for (int x = 0; x < gridManager.Width; x++)
         {
             for (int z = 0; z < gridManager.Height; z++)
-            {
-                if (surfaces[x, z] == BuildSurface.Foundation)
-                    foundationChanged = true;
-
                 surfaces[x, z] = BuildSurface.Grass;
-            }
         }
-
-        if (foundationChanged)
-            FoundationSurfaceChanged?.Invoke();
 
         surfaceOwners.Clear();
         obstacleOwners.Clear();
@@ -333,13 +323,21 @@ public class GridSurface : MonoBehaviour
             return;
         }
 
+        bool foundationChanged = false;
+
         for (int x = 0; x < gridManager.Width; x++)
         {
             for (int z = 0; z < gridManager.Height; z++)
             {
+                if (surfaces[x, z] == BuildSurface.Foundation)
+                    foundationChanged = true;
+
                 surfaces[x, z] = BuildSurface.Grass;
             }
         }
+
+        if (foundationChanged)
+            FoundationSurfaceChanged?.Invoke();
 
         surfaceOwners.Clear();
         obstacleOwners.Clear();
