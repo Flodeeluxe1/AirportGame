@@ -24,6 +24,7 @@ public class GameTimeManager : MonoBehaviour
     private float baseFixedDeltaTime;
 
     public event Action<long, long> GameTimeAdvanced;
+    public event Action<int> GameSpeedChanged;
 
     public int CurrentSpeedMultiplier =>
         currentSpeedMultiplier;
@@ -123,6 +124,7 @@ public class GameTimeManager : MonoBehaviour
             return;
         }
 
+        int previousMultiplier = currentSpeedMultiplier;
         currentSpeedMultiplier = multiplier;
 
         Time.timeScale = multiplier;
@@ -132,6 +134,9 @@ public class GameTimeManager : MonoBehaviour
             Time.fixedDeltaTime =
                 baseFixedDeltaTime * multiplier;
         }
+
+        if (previousMultiplier != multiplier)
+            GameSpeedChanged?.Invoke(multiplier);
 
         Debug.Log(
             $"GAME SPEED | " +
