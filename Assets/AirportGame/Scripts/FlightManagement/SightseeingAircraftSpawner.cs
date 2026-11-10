@@ -1,4 +1,5 @@
 
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -25,6 +26,7 @@ public class SightseeingAircraftSpawner : MonoBehaviour
         "airport.sightseeing.ticketdesk";
 
     private static SightseeingAircraftSpawner activeSpawner;
+    private static readonly HashSet<PlacedBuilding> ticketDeskBuildings = new HashSet<PlacedBuilding>();
 
     [Header("References")]
     [SerializeField] private GameObject sightseeingAircraftPrefab;
@@ -67,20 +69,50 @@ public class SightseeingAircraftSpawner : MonoBehaviour
     /// </summary>
     public static bool HasTicketDeskPlaced()
     {
-        PlacedBuilding[] buildings =
-            FindObjectsByType<PlacedBuilding>(
-                FindObjectsSortMode.None);
+        return ticketDeskBuildings.Count > 0;
+    }
 
+    private void OnEnable()
+    {
+        PlacedBuilding.BuildingChanged += HandleBuildingChanged;
+        RebuildTicketDeskCache();
+    }
+
+    private void OnDisable()
+    {
+        PlacedBuilding.BuildingChanged -= HandleBuildingChanged;
+        if (gameTimeManager != null)
+            gameTimeManager.GameTimeAdvanced -= HandleGameTimeAdvanced;
+    }
+
+    private static void RebuildTicketDeskCache()
+    {
+        ticketDeskBuildings.Clear();
+        PlacedBuilding[] buildings = FindObjectsByType<PlacedBuilding>(FindObjectsSortMode.None);
         foreach (PlacedBuilding building in buildings)
-        {
-            if (building == null || building.Definition == null)
-                continue;
+            AddTicketDeskIfRelevant(building);
+    }
 
-            if (building.Definition.id == TicketDeskDefinitionId)
-                return true;
+    private static void HandleBuildingChanged(PlacedBuilding building)
+    {
+        if (building == null || !building.isActiveAndEnabled ||
+            building.Definition == null ||
+            building.Definition.id != TicketDeskDefinitionId)
+        {
+            if (building != null)
+                ticketDeskBuildings.Remove(building);
+            return;
         }
 
-        return false;
+        ticketDeskBuildings.Add(building);
+    }
+
+    private static void AddTicketDeskIfRelevant(PlacedBuilding building)
+    {
+        if (building != null && building.isActiveAndEnabled &&
+            building.Definition != null &&
+            building.Definition.id == TicketDeskDefinitionId)
+            ticketDeskBuildings.Add(building);
     }
 
     private void Awake()
@@ -121,6 +153,7 @@ public class SightseeingAircraftSpawner : MonoBehaviour
         // Establish the current hour as the baseline.
         // The first scheduled flight becomes due at the next hour boundary.
         lastObservedHourSlot = GetCurrentHourSlot();
+        gameTimeManager.GameTimeAdvanced += HandleGameTimeAdvanced;
 
         scheduleStatus = HasTicketDeskPlaced()
             ? (hourlyScheduleEnabled
@@ -149,22 +182,6 @@ public class SightseeingAircraftSpawner : MonoBehaviour
         if (gameTimeManager == null)
             return;
 
-        // Without a ticket desk, do not retain a pending flight or
-        // accumulate missed hourly slots.
-        if (!HasTicketDeskPlaced())
-        {
-            flightPending = false;
-            retryTimer = 0f;
-            waitingMessageLogged = false;
-
-            // Keep the hour baseline current so placing a desk later
-            // does not trigger an immediate catch-up flight.
-            lastObservedHourSlot = GetCurrentHourSlot();
-
-            scheduleStatus = "Waiting for a sightseeing ticket desk";
-            return;
-        }
-
         if (!hourlyScheduleEnabled)
             return;
 
@@ -186,6 +203,23 @@ public class SightseeingAircraftSpawner : MonoBehaviour
         }
 
         ProcessPendingFlight();
+    }
+
+    private void HandleGameTimeAdvanced(long previousSecond, long currentSecond)
+    {
+        if (!HasTicketDeskPlaced())
+        {
+            flightPending = false;
+            retryTimer = 0f;
+            waitingMessageLogged = false;
+            lastObservedHourSlot = GetCurrentHourSlot();
+            scheduleStatus = "Waiting for a sightseeing ticket desk";
+            return;
+        }
+
+        if (hourlyScheduleEnabled && gameTimeManager != null &&
+            gameTimeManager.CurrentSpeedMultiplier > 0)
+            CheckForNewHourlySlot();
     }
 
     private void CheckForNewHourlySlot()
