@@ -111,6 +111,7 @@ public class PlacedBuilding : MonoBehaviour
                 : 90;
 
         isInitialized = true;
+        RegisterActiveBuilding();
         BuildingChanged?.Invoke(this);
     }
 
@@ -134,6 +135,7 @@ public class PlacedBuilding : MonoBehaviour
 
         EnsureInstanceId();
         isInitialized = true;
+        RegisterActiveBuilding();
         BuildingChanged?.Invoke(this);
     }
 
