@@ -416,26 +416,8 @@ public class RoomPurposeController : MonoBehaviour
         RoomDetectionController.DetectedRoom room,
         out string reason)
     {
-        reason = "";
-
-        if (room == null || room.cells == null)
-        {
-            reason = "Room was not detected.";
+        if (!ValidateRoomStructure(room, out reason))
             return false;
-        }
-
-        if (room.CellCount < minimumFoundationCells)
-        {
-            reason =
-                $"Needs at least {minimumFoundationCells} foundation cells; found {room.CellCount}.";
-            return false;
-        }
-
-        if (!HasDoor(room))
-        {
-            reason = "Needs at least one door on its boundary.";
-            return false;
-        }
 
         int desks = 0;
         int seats = 0;
@@ -467,6 +449,59 @@ public class RoomPurposeController : MonoBehaviour
             else if (role == RoomFurnitureRole.StudentSeat)
                 seats++;
         }
+
+        return ValidateFurnitureCounts(desks, seats, out reason);
+    }
+
+    public bool ValidateFlightSchool(
+        RoomDetectionController.DetectedRoom room,
+        int instructorDesks,
+        int studentSeats,
+        out string reason)
+    {
+        if (!ValidateRoomStructure(room, out reason))
+            return false;
+
+        return ValidateFurnitureCounts(
+            instructorDesks,
+            studentSeats,
+            out reason);
+    }
+
+    private bool ValidateRoomStructure(
+        RoomDetectionController.DetectedRoom room,
+        out string reason)
+    {
+        reason = "";
+
+        if (room == null || room.cells == null)
+        {
+            reason = "Room was not detected.";
+            return false;
+        }
+
+        if (room.CellCount < minimumFoundationCells)
+        {
+            reason =
+                $"Needs at least {minimumFoundationCells} foundation cells; found {room.CellCount}.";
+            return false;
+        }
+
+        if (!HasDoor(room))
+        {
+            reason = "Needs at least one door on its boundary.";
+            return false;
+        }
+
+        return true;
+    }
+
+    private bool ValidateFurnitureCounts(
+        int desks,
+        int seats,
+        out string reason)
+    {
+        reason = "";
 
         if (desks < 1)
         {
