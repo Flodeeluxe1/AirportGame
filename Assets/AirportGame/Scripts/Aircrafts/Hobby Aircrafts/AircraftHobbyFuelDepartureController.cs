@@ -337,7 +337,6 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
 
         // Gather all valid final approach cells once. The multi-target A*
         // search evaluates this complete set in one traversal per start cell.
-        List<Vector2Int> targets = new();
         Dictionary<Vector2Int, float> targetApproachCosts = new();
 
         foreach (Vector2Int cell in taxiwayNetwork.TaxiwayCenterlineCells)
@@ -352,14 +351,12 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
                 gridManager.GridToWorldCenter(cell),
                 station.AircraftFuelStopPoint.position);
 
-            targets.Add(cell);
-
             // Pathfinding costs are measured in grid steps. Convert the final
             // world-space approach distance to the same approximate scale.
             targetApproachCosts[cell] = approachDistance / gridManager.CellSize;
         }
 
-        if (targets.Count == 0)
+        if (targetApproachCosts.Count == 0)
             return false;
 
         foreach (Vector2Int start in starts)
