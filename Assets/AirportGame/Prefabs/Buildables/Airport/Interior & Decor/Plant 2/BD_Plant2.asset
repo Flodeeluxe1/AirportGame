@@ -23,6 +23,8 @@ MonoBehaviour:
   requiresExistingWall: 0
   isWallMounted: 0
   mountHeight: 2
+  canBePlacedOnSurface: 1
+  canSupportSurfaceObjects: 0
   canRotate: 1
   buildCost: 45
   blocksPathfinding: 0
