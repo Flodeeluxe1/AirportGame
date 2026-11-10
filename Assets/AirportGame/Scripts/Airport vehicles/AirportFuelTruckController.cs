@@ -541,9 +541,15 @@ public class AirportFuelTruckController : MonoBehaviour
         if (totalCost <= 0)
             return;
 
-        bool paymentRecorded = economyManager.AddRevenue(
-            totalCost,
-            $"CargoPax aircraft fuel sale ({job.Aircraft?.name ?? "aircraft"})");
+        AircraftAirportFees airportFees =
+            job.Aircraft != null
+                ? job.Aircraft.GetComponent<AircraftAirportFees>()
+                : null;
+
+        bool paymentRecorded = airportFees != null &&
+            airportFees.RecordCharge(
+                totalCost,
+                $"CargoPax aircraft fuel sale ({job.Aircraft?.name ?? "aircraft"})");
 
         if (paymentRecorded)
         {
