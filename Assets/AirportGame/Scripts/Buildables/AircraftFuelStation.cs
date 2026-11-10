@@ -47,7 +47,6 @@ public class AircraftFuelStation : MonoBehaviour
     private readonly System.Collections.Generic.List<AircraftHobbyFuelDepartureController> reservationQueue = new();
     private float fuelTransferredThisSession;
     private float fuelSessionPricePerLitre;
-    private AirportEconomyManager economyManager;
 
     public float SellingPricePerLitre => sellingPricePerLitre;
 
@@ -190,7 +189,6 @@ public class AircraftFuelStation : MonoBehaviour
     {
         maximumFuelLitres = Mathf.Max(1f, maximumFuelLitres);
         sellingPricePerLitre = Mathf.Max(0f, sellingPricePerLitre);
-        economyManager = FindFirstObjectByType<AirportEconomyManager>();
         ResolvePipelineReferences();
     }
 
