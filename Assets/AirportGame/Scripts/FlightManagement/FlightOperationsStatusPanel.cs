@@ -10,9 +10,6 @@ public class FlightOperationsStatusPanel : MonoBehaviour
     [SerializeField] private AircraftGateRegistry gateRegistry;
 
     [Header("Layout")]
-    [Min(0.1f)]
-    [SerializeField] private float refreshInterval = 0.5f;
-
     [Min(30f)]
     [SerializeField] private float statusListHeight = 54f;
 
@@ -20,7 +17,7 @@ public class FlightOperationsStatusPanel : MonoBehaviour
     private VisualElement panel;
     private ScrollView statusList;
 
-    private float nextRefreshTime;
+    private bool hasCreatedPanel;
 
     private readonly List<AircraftFlightIdentity> activeAircraft =
         new List<AircraftFlightIdentity>();
@@ -42,6 +39,26 @@ public class FlightOperationsStatusPanel : MonoBehaviour
 
             enabled = false;
         }
+    }
+
+    private void OnEnable()
+    {
+        AircraftFlightIdentity.AircraftRegistered += HandleAircraftChanged;
+        AircraftFlightIdentity.AircraftUnregistered += HandleAircraftChanged;
+        AircraftFlightIdentity.AircraftChanged += HandleAircraftChanged;
+    }
+
+    private void OnDisable()
+    {
+        AircraftFlightIdentity.AircraftRegistered -= HandleAircraftChanged;
+        AircraftFlightIdentity.AircraftUnregistered -= HandleAircraftChanged;
+        AircraftFlightIdentity.AircraftChanged -= HandleAircraftChanged;
+    }
+
+    private void HandleAircraftChanged(AircraftFlightIdentity identity)
+    {
+        if (hasCreatedPanel)
+            RefreshStatusList();
     }
 
     private void Update()
@@ -68,13 +85,11 @@ public class FlightOperationsStatusPanel : MonoBehaviour
                 return;
         }
 
-        if (Time.unscaledTime < nextRefreshTime)
-            return;
-
-        nextRefreshTime =
-            Time.unscaledTime + Mathf.Max(0.1f, refreshInterval);
-
-        RefreshStatusList();
+        if (!hasCreatedPanel)
+        {
+            hasCreatedPanel = true;
+            RefreshStatusList();
+        }
     }
 
     private void CreatePanel()
@@ -146,12 +161,8 @@ public class FlightOperationsStatusPanel : MonoBehaviour
         statusList.Clear();
         activeAircraft.Clear();
 
-        AircraftFlightIdentity[] identities =
-            FindObjectsByType<AircraftFlightIdentity>(
-                FindObjectsSortMode.None
-            );
-
-        foreach (AircraftFlightIdentity identity in identities)
+        foreach (AircraftFlightIdentity identity in
+                 AircraftFlightIdentity.ActiveAircraft)
         {
             if (identity == null ||
                 !identity.IsInitialized ||
