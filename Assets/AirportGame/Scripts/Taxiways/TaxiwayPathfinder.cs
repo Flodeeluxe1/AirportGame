@@ -165,6 +165,169 @@ public class TaxiwayPathfinder : MonoBehaviour
         return emptyPath;
     }
 
+    /// <summary>
+    /// Finds the lowest-cost route from one start cell to any supplied target.
+    /// This performs one A* search for the complete target set instead of one
+    /// separate search for every target.
+    /// </summary>
+    public List<Vector2Int> FindPathToBestTarget(
+        Vector2Int start,
+        IReadOnlyDictionary<Vector2Int, float> targetApproachCosts,
+        out Vector2Int bestTarget,
+        out float bestTotalCost,
+        int minimumTaxiwayWidth = 1)
+    {
+        bestTarget = default;
+        bestTotalCost = float.MaxValue;
+
+        if (taxiwayNetwork == null ||
+            targetApproachCosts == null ||
+            targetApproachCosts.Count == 0)
+        {
+            return new List<Vector2Int>();
+        }
+
+        minimumTaxiwayWidth = Mathf.Max(1, minimumTaxiwayWidth);
+
+        if (!IsSuitableGroundMovementCell(start, minimumTaxiwayWidth))
+            return new List<Vector2Int>();
+
+        List<Vector2Int> targets = new List<Vector2Int>();
+
+        foreach (KeyValuePair<Vector2Int, float> entry in targetApproachCosts)
+        {
+            if (entry.Key != start &&
+                IsSuitableGroundMovementCell(entry.Key, minimumTaxiwayWidth))
+            {
+                targets.Add(entry.Key);
+            }
+        }
+
+        if (targets.Count == 0)
+            return new List<Vector2Int>();
+
+        MinPriorityQueue openSet = new MinPriorityQueue();
+        Dictionary<Vector2Int, Vector2Int> cameFrom = new Dictionary<Vector2Int, Vector2Int>();
+        Dictionary<Vector2Int, float> gScore = new Dictionary<Vector2Int, float>();
+        HashSet<Vector2Int> closedSet = new HashSet<Vector2Int>();
+
+        gScore[start] = 0f;
+        openSet.Enqueue(start, GetMinimumTargetHeuristic(start, targets));
+
+        bool foundTarget = false;
+
+        while (openSet.Count > 0)
+        {
+            // The heuristic is a lower bound (at least one cost unit per
+            // grid step), so no remaining node can improve this target.
+            if (foundTarget && openSet.PeekPriority >= bestTotalCost)
+                break;
+
+            Vector2Int current = openSet.Dequeue();
+
+            if (!closedSet.Add(current))
+                continue;
+
+            float currentGScore = gScore[current];
+
+            if (targetApproachCosts.TryGetValue(current, out float approachCost) &&
+                current != start)
+            {
+                float totalCost = currentGScore + approachCost;
+
+                if (totalCost < bestTotalCost)
+                {
+                    bestTotalCost = totalCost;
+                    bestTarget = current;
+                    foundTarget = true;
+                }
+            }
+
+            TryVisitGroundNeighbor(
+                current, current + Vector2Int.up, currentGScore,
+                minimumTaxiwayWidth, targets, openSet, cameFrom, gScore, closedSet);
+
+            TryVisitGroundNeighbor(
+                current, current + Vector2Int.right, currentGScore,
+                minimumTaxiwayWidth, targets, openSet, cameFrom, gScore, closedSet);
+
+            TryVisitGroundNeighbor(
+                current, current + Vector2Int.down, currentGScore,
+                minimumTaxiwayWidth, targets, openSet, cameFrom, gScore, closedSet);
+
+            TryVisitGroundNeighbor(
+                current, current + Vector2Int.left, currentGScore,
+                minimumTaxiwayWidth, targets, openSet, cameFrom, gScore, closedSet);
+        }
+
+        if (!foundTarget)
+            return new List<Vector2Int>();
+
+        return ReconstructPath(cameFrom, start, bestTarget);
+    }
+
+    private void TryVisitGroundNeighbor(
+        Vector2Int current,
+        Vector2Int next,
+        float currentGScore,
+        int minimumTaxiwayWidth,
+        List<Vector2Int> targets,
+        MinPriorityQueue openSet,
+        Dictionary<Vector2Int, Vector2Int> cameFrom,
+        Dictionary<Vector2Int, float> gScore,
+        HashSet<Vector2Int> closedSet)
+    {
+        if (closedSet.Contains(next) ||
+            !IsSuitableGroundMovementCell(next, minimumTaxiwayWidth))
+        {
+            return;
+        }
+
+        float movementCost;
+
+        if (taxiwayNetwork.IsRunway(next))
+            movementCost = 100f;
+        else
+            movementCost = taxiwayNetwork.IsCenterlineCell(next)
+                ? 1f
+                : offCenterlineCost;
+
+        float tentativeGScore = currentGScore + movementCost;
+
+        if (gScore.TryGetValue(next, out float existingScore) &&
+            tentativeGScore >= existingScore)
+        {
+            return;
+        }
+
+        cameFrom[next] = current;
+        gScore[next] = tentativeGScore;
+
+        float priority =
+            tentativeGScore + GetMinimumTargetHeuristic(next, targets);
+
+        openSet.Enqueue(next, priority);
+    }
+
+    private float GetMinimumTargetHeuristic(
+        Vector2Int current,
+        List<Vector2Int> targets)
+    {
+        int minimumDistance = int.MaxValue;
+
+        for (int i = 0; i < targets.Count; i++)
+        {
+            int distance =
+                Mathf.Abs(current.x - targets[i].x) +
+                Mathf.Abs(current.y - targets[i].y);
+
+            if (distance < minimumDistance)
+                minimumDistance = distance;
+        }
+
+        return minimumDistance == int.MaxValue ? 0f : minimumDistance;
+    }
+
     private bool IsSuitableGroundMovementCell(
         Vector2Int cell,
         int minimumTaxiwayWidth)
@@ -276,6 +439,7 @@ public class TaxiwayPathfinder : MonoBehaviour
         private int orderCounter;
 
         public int Count => nodes.Count;
+        public float PeekPriority => nodes.Count > 0 ? nodes[0].Priority : float.MaxValue;
 
         public void Enqueue(
             Vector2Int position,
