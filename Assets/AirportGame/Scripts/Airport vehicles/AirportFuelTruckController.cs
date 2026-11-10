@@ -522,18 +522,6 @@ public class AirportFuelTruckController : MonoBehaviour
             return;
         }
 
-        AirportEconomyManager economyManager =
-            FindFirstObjectByType<AirportEconomyManager>();
-
-        if (economyManager == null)
-        {
-            Debug.LogWarning(
-                $"{name}: Could not record the aircraft fuel payment because " +
-                "AirportEconomyManager was not found.",
-                this);
-            return;
-        }
-
         float pricePerLitre = fuelStation.SellingPricePerLitre;
         int totalCost = Mathf.CeilToInt(
             job.FuelLitresDelivered * pricePerLitre);
