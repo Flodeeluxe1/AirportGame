@@ -372,7 +372,15 @@ public static class AirportSaveFileStore
                 // initialized empty collections are the correct migration.
                 data.schemaVersion = 2;
             }
-            else if (data.schemaVersion != CurrentSchemaVersion)
+
+            if (data.schemaVersion == 2 && CurrentSchemaVersion >= 3)
+            {
+                // Version 3 adds optional surface-placement relationships.
+                // Existing objects remain ordinary grid/edge placements.
+                data.schemaVersion = 3;
+            }
+
+            if (data.schemaVersion != CurrentSchemaVersion)
             {
                 error =
                     $"Save schema version {data.schemaVersion} has no " +
