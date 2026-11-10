@@ -100,6 +100,12 @@ public class GameTimeUIController : MonoBehaviour
         gameTimeManager.GameSpeedChanged += HandleGameSpeedChanged;
     }
 
+    private void Start()
+    {
+        // Ensure the initial display reflects GameTimeManager after all Awake calls.
+        RefreshDisplay();
+    }
+
     private void HandleGameTimeAdvanced(long previousAbsoluteSecond, long currentAbsoluteSecond)
     {
         RefreshDisplay();
