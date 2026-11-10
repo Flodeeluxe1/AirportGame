@@ -8,7 +8,8 @@
 
       <ui:VisualElement name="category-panel" class="category-panel">
         <ui:Label text="BUILD" class="panel-title"/>
-        <ui:TextField name="build-search-field" label="Search all" class="build-search-field"/>
+        <ui:Label text="Search all" class="build-search-label"/>
+        <ui:TextField name="build-search-field" class="build-search-field"/>
 
         <ui:ScrollView name="category-list" mode="Vertical" class="category-list">
           <ui:Button name="category-floor" text="Floor" class="category-button"/>
