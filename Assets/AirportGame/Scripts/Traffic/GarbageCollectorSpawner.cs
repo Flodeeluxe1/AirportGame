@@ -30,6 +30,8 @@ public class GarbageCollectorSpawner : MonoBehaviour
     private readonly HashSet<GarbageCollectorController> activeCollectors =
         new HashSet<GarbageCollectorController>();
 
+    public event System.Action CollectorAvailabilityChanged;
+
     public int MaximumActiveCollectors => Mathf.Max(1, maximumActiveCollectors);
 
     public int ActiveCollectorCount
@@ -176,9 +178,6 @@ public class GarbageCollectorSpawner : MonoBehaviour
         selectedRoute = null;
         reservedDisposals.RemoveWhere(disposal => disposal == null);
 
-        WasteDisposal[] disposals =
-            FindObjectsByType<WasteDisposal>(FindObjectsSortMode.None);
-
         int bestRouteLength = int.MaxValue;
         float bestDistance = float.MaxValue;
         int inactiveCount = 0;
@@ -188,7 +187,7 @@ public class GarbageCollectorSpawner : MonoBehaviour
         int belowThresholdCount = 0;
         int routeFailureCount = 0;
 
-        foreach (WasteDisposal disposal in disposals)
+        foreach (WasteDisposal disposal in WasteDisposal.ActiveDisposals)
         {
             if (disposal == null || !disposal.gameObject.activeInHierarchy)
             {
@@ -417,5 +416,6 @@ public class GarbageCollectorSpawner : MonoBehaviour
 
         activeCollectors.Remove(collector);
         ReleaseDisposal(collector.CurrentDisposal);
+        CollectorAvailabilityChanged?.Invoke();
     }
 }
