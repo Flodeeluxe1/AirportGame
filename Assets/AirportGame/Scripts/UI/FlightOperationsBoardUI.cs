@@ -114,8 +114,12 @@ public class FlightOperationsBoardUI : MonoBehaviour
 
     private void HandleAircraftChanged(AircraftFlightIdentity identity)
     {
-        if (identity == null || !identity.IsInitialized)
+        if (identity == null ||
+            !identity.IsInitialized ||
+            !AircraftFlightIdentity.ActiveAircraft.Contains(identity))
+        {
             return;
+        }
 
         UpdateAircraftEntry(identity);
         RenderBoard();
