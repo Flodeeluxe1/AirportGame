@@ -12,9 +12,6 @@ public class FlightOperationsBoardUI : MonoBehaviour
 
     [Header("UI")]
     [SerializeField] private TMP_Text boardText;
-    [Min(0.1f)]
-    [SerializeField] private float refreshIntervalSeconds = 0.5f;
-
     [Header("References")]
     [SerializeField] private TestFlightCatalog flightCatalog;
     [SerializeField] private GameTimeManager gameTimeManager;
@@ -75,7 +72,8 @@ public class FlightOperationsBoardUI : MonoBehaviour
     private long entriesDayIndex = long.MinValue;
 
     private bool scheduleLoaded;
-    private float refreshTimer;
+    private long lastRenderedDay = long.MinValue;
+    private int lastRenderedMinute = -1;
 
     private void Awake()
     {
@@ -103,6 +101,10 @@ public class FlightOperationsBoardUI : MonoBehaviour
         AircraftFlightIdentity.AircraftRegistered += HandleAircraftChanged;
         AircraftFlightIdentity.AircraftUnregistered += HandleAircraftChanged;
         AircraftFlightIdentity.AircraftChanged += HandleAircraftChanged;
+        FlightManagementUIController.AirportScheduleChanged += HandleAirportScheduleChanged;
+
+        if (gameTimeManager != null)
+            gameTimeManager.GameTimeAdvanced += HandleGameTimeAdvanced;
     }
 
     private void OnDisable()
@@ -110,6 +112,10 @@ public class FlightOperationsBoardUI : MonoBehaviour
         AircraftFlightIdentity.AircraftRegistered -= HandleAircraftChanged;
         AircraftFlightIdentity.AircraftUnregistered -= HandleAircraftChanged;
         AircraftFlightIdentity.AircraftChanged -= HandleAircraftChanged;
+        FlightManagementUIController.AirportScheduleChanged -= HandleAirportScheduleChanged;
+
+        if (gameTimeManager != null)
+            gameTimeManager.GameTimeAdvanced -= HandleGameTimeAdvanced;
     }
 
     private void HandleAircraftChanged(AircraftFlightIdentity identity)
@@ -150,25 +156,38 @@ public class FlightOperationsBoardUI : MonoBehaviour
         RebuildEntriesForCurrentDay();
         UpdateActiveAircraft();
         RenderBoard();
+        lastRenderedDay = gameTimeManager.CurrentDay;
+        lastRenderedMinute = gameTimeManager.Hour * 60 + gameTimeManager.Minute;
     }
 
-    private void Update()
+    private void HandleAirportScheduleChanged()
+    {
+        if (!enabled)
+            return;
+
+        ReloadScheduleIfChanged();
+        RebuildEntriesForCurrentDay();
+        RenderBoard();
+    }
+
+    private void HandleGameTimeAdvanced(long previousAbsoluteSecond, long currentAbsoluteSecond)
     {
         if (!enabled || gameTimeManager == null)
             return;
 
-        ReloadScheduleIfChanged();
+        long currentDay = gameTimeManager.CurrentDay;
+        int currentMinute = gameTimeManager.Hour * 60 + gameTimeManager.Minute;
 
-        long currentDayIndex = gameTimeManager.CurrentDay - 1;
-
-        if (entriesDayIndex != currentDayIndex)
-            RebuildEntriesForCurrentDay();
-
-        refreshTimer += Time.unscaledDeltaTime;
-
-        if (refreshTimer >= refreshIntervalSeconds)
+        if (currentDay != lastRenderedDay)
         {
-            refreshTimer = 0f;
+            lastRenderedDay = currentDay;
+            RebuildEntriesForCurrentDay();
+        }
+
+        if (currentDay != lastRenderedDay || currentMinute != lastRenderedMinute)
+        {
+            lastRenderedDay = currentDay;
+            lastRenderedMinute = currentMinute;
             RenderBoard();
         }
     }
