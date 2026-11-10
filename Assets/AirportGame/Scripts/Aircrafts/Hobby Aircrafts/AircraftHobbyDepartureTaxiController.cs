@@ -381,6 +381,27 @@ public class AircraftHobbyDepartureTaxiController : MonoBehaviour
                     this
                 );
 
+            // Runway preference is lexicographic: crosswind suitability,
+            // traffic count, headwind, then route length. Skip pathfinding
+            // when this runway already loses on an earlier criterion.
+            if (bestRunway != null)
+            {
+                if (!crosswindWithinLimit && bestCrosswindWithinLimit)
+                    continue;
+
+                if (crosswindWithinLimit == bestCrosswindWithinLimit)
+                {
+                    if (trafficCount > bestTrafficCount)
+                        continue;
+
+                    if (trafficCount == bestTrafficCount &&
+                        headwindKnots < bestHeadwindKnots - 0.01f)
+                    {
+                        continue;
+                    }
+                }
+            }
+
             if (!TryFindRouteToRunwayThreshold(
                     candidate,
                     candidateDirection,
@@ -952,8 +973,12 @@ public class AircraftHobbyDepartureTaxiController : MonoBehaviour
         int longitudinalCellCount =
             runwayAxisIsX ? placed.Width : placed.Depth;
 
-        int bestThresholdOffset = int.MaxValue;
-        float bestRouteLength = float.MaxValue;
+        // Group candidate taxiway centerlines by threshold offset. The
+        // existing selection rules always prefer the lowest reachable
+        // offset, so farther groups do not need pathfinding once one group
+        // has a valid route.
+        SortedDictionary<int, List<Vector2Int>> targetsByThresholdOffset = new();
+        HashSet<Vector2Int> addedTargets = new();
 
         for (int offset = 0;
              offset < longitudinalCellCount;
@@ -1043,45 +1068,64 @@ public class AircraftHobbyDepartureTaxiController : MonoBehaviour
                             ? target.y - placed.Origin.y
                             : placed.Origin.y + placed.Depth - 1 - target.y;
 
-                    if (thresholdOffset < 0)
+                    if (thresholdOffset < 0 || !addedTargets.Add(target))
                         continue;
 
-                    foreach (Vector2Int start in startCandidates)
+                    if (!targetsByThresholdOffset.TryGetValue(
+                            thresholdOffset,
+                            out List<Vector2Int> targets))
                     {
-                        List<Vector2Int> path =
-                            taxiwayPathfinder.FindPath(start, target);
-
-                        if (path == null || path.Count == 0)
-                            continue;
-
-                        float routeLength = CalculateRouteLength(path);
-
-                        Vector3 firstPoint =
-                            gridManager.GridToWorldCenter(path[0]);
-
-                        firstPoint.y = transform.position.y;
-
-                        routeLength += Vector3.Distance(
-                            transform.position,
-                            firstPoint
-                        );
-
-                        bool isBetterCandidate =
-                            thresholdOffset < bestThresholdOffset ||
-                            (
-                                thresholdOffset == bestThresholdOffset &&
-                                routeLength < bestRouteLength
-                            );
-
-                        if (!isBetterCandidate)
-                            continue;
-
-                        bestThresholdOffset = thresholdOffset;
-                        bestRouteLength = routeLength;
-                        bestRoute = path;
+                        targets = new List<Vector2Int>();
+                        targetsByThresholdOffset.Add(thresholdOffset, targets);
                     }
+
+                    targets.Add(target);
                 }
             }
+        }
+
+        // Preserve the original preference order: threshold offset first,
+        // then the shortest geometric route among targets at that offset.
+        foreach (KeyValuePair<int, List<Vector2Int>> targetGroup in
+                 targetsByThresholdOffset)
+        {
+            float bestRouteLengthAtOffset = float.MaxValue;
+
+            foreach (Vector2Int target in targetGroup.Value)
+            {
+                foreach (Vector2Int start in startCandidates)
+                {
+                    List<Vector2Int> path =
+                        taxiwayPathfinder.FindPath(start, target);
+
+                    if (path == null || path.Count == 0)
+                        continue;
+
+                    float routeLength = CalculateRouteLength(path);
+
+                    Vector3 firstPoint =
+                        gridManager.GridToWorldCenter(path[0]);
+
+                    firstPoint.y = transform.position.y;
+
+                    routeLength += Vector3.Distance(
+                        transform.position,
+                        firstPoint
+                    );
+
+                    if (routeLength >= bestRouteLengthAtOffset)
+                        continue;
+
+                    bestRouteLengthAtOffset = routeLength;
+                    bestRoute = path;
+                }
+            }
+
+            // This is the first threshold offset with a reachable route.
+            // Searching any larger offset cannot improve the existing
+            // threshold-first runway selection rule.
+            if (bestRoute != null)
+                return true;
         }
 
         return bestRoute != null;
