@@ -355,3 +355,15 @@
     background-color: rgb(55, 115, 78);
     color: white;
 }
+
+
+/* =========================================================
+   BUILD MENU SEARCH
+   ========================================================= */
+
+.build-search-field {
+    margin-left: 5px;
+    margin-right: 5px;
+    margin-bottom: 10px;
+    flex-shrink: 0;
+}
