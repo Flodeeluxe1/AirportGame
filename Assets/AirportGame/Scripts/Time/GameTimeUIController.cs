@@ -95,23 +95,18 @@ public class GameTimeUIController : MonoBehaviour
         octupleButton.clicked += OnOctupleClicked;
 
         RefreshDisplay();
+
+        gameTimeManager.GameTimeAdvanced += HandleGameTimeAdvanced;
+        gameTimeManager.GameSpeedChanged += HandleGameSpeedChanged;
     }
 
-    private void Update()
+    private void HandleGameTimeAdvanced(long previousAbsoluteSecond, long currentAbsoluteSecond)
     {
-        if (gameTimeManager == null)
-            return;
+        RefreshDisplay();
+    }
 
-        string currentTime =
-            $"Day {gameTimeManager.CurrentDay} | " +
-            gameTimeManager.FormattedTime;
-
-        if (currentTime != lastDisplayedTime)
-        {
-            clockLabel.text = currentTime;
-            lastDisplayedTime = currentTime;
-        }
-
+    private void HandleGameSpeedChanged(int newSpeedMultiplier)
+    {
         UpdateSpeedButtonStates();
     }
 
@@ -186,6 +181,12 @@ public class GameTimeUIController : MonoBehaviour
 
     private void OnDestroy()
     {
+        if (gameTimeManager != null)
+        {
+            gameTimeManager.GameTimeAdvanced -= HandleGameTimeAdvanced;
+            gameTimeManager.GameSpeedChanged -= HandleGameSpeedChanged;
+        }
+
         if (pauseButton != null)
             pauseButton.clicked -= OnPauseClicked;
 
