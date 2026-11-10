@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b707bf0339cdddd48ac715a8e271822e, type: 3}
+  m_Name: BD_Plant2
+  m_EditorClassIdentifier: Assembly-CSharp::BuildableDefinition
+  id: airport.interior.plant2
+  displayName: Plant 2
+  prefab: {fileID: 5500661605437975082, guid: 2db51a3ce7d7fe34a934d68f0c488f54, type: 3}
+  placementType: 0
+  requiredSurface: 1
+  width: 1
+  depth: 1
+  edgeLength: 1
+  requiresExistingWall: 0
+  isWallMounted: 0
+  mountHeight: 2
+  canRotate: 1
+  buildCost: 45
+  blocksPathfinding: 0
+  menuCategory: Interior & Decor
+  category: 3
+  icon: {fileID: 0}
+  roomFurnitureRole: 0
