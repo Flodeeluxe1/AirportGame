@@ -430,11 +430,11 @@ public class ScheduledCargoDeliverySpawner : MonoBehaviour
             return;
         }
 
-        // Process no more than one truck spawn per Update.
+        // Process no more than one truck spawn per game-time event.
         QueuedDelivery queuedDelivery = deliveryQueue.Peek();
 
         // If the road setup is temporarily unavailable, retain the delivery
-        // and retry it on a later Update.
+        // and retry it on a later game-time event.
         if (!TrySpawnQueuedDelivery(queuedDelivery))
             return;
 
