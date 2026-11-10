@@ -281,12 +281,6 @@ public class AircraftRunwayTrafficManager : MonoBehaviour
             }
         );
 
-        Debug.Log(
-            $"RUNWAY DEPARTURE RESERVED | Aircraft: " +
-            $"{departureAircraft.name} | Runway: {runway.name}",
-            this
-        );
-
         return true;
     }
 
