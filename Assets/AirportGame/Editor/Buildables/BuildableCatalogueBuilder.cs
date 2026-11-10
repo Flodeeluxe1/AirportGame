@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using UnityEditor;
 using UnityEngine;
@@ -176,7 +175,7 @@ public static class BuildableCatalogueBuilder
         return definition.category.ToString();
     }
 
-    private static void QueueRebuild()
+    public static void QueueRebuild()
     {
         if (rebuildQueued || rebuilding)
             return;
@@ -184,40 +183,40 @@ public static class BuildableCatalogueBuilder
         rebuildQueued = true;
         EditorApplication.delayCall += RebuildCatalogue;
     }
+}
 
-    private class BuildableAssetPostprocessor : AssetPostprocessor
+public class BuildableCatalogueAssetPostprocessor : AssetPostprocessor
+{
+    private static void OnPostprocessAllAssets(
+        string[] importedAssets,
+        string[] deletedAssets,
+        string[] movedAssets,
+        string[] movedFromAssetPaths)
     {
-        private static void OnPostprocessAllAssets(
-            string[] importedAssets,
-            string[] deletedAssets,
-            string[] movedAssets,
-            string[] movedFromAssetPaths)
+        if (TouchesBuildableAssets(importedAssets) ||
+            TouchesBuildableAssets(deletedAssets) ||
+            TouchesBuildableAssets(movedAssets) ||
+            TouchesBuildableAssets(movedFromAssetPaths))
         {
-            if (TouchesBuildableAssets(importedAssets) ||
-                TouchesBuildableAssets(deletedAssets) ||
-                TouchesBuildableAssets(movedAssets) ||
-                TouchesBuildableAssets(movedFromAssetPaths))
+            BuildableCatalogueBuilder.QueueRebuild();
+        }
+    }
+
+    private static bool TouchesBuildableAssets(string[] paths)
+    {
+        foreach (string path in paths)
+        {
+            if (path.StartsWith(
+                    "Assets/AirportGame/ScriptableObjects/Buildables/",
+                    StringComparison.OrdinalIgnoreCase) ||
+                path.StartsWith(
+                    "Assets/AirportGame/Prefabs/Buildables/",
+                    StringComparison.OrdinalIgnoreCase))
             {
-                QueueRebuild();
+                return true;
             }
         }
 
-        private static bool TouchesBuildableAssets(string[] paths)
-        {
-            foreach (string path in paths)
-            {
-                if (path.StartsWith(
-                        LegacyDefinitionsPath + "/",
-                        StringComparison.OrdinalIgnoreCase) ||
-                    path.StartsWith(
-                        BuildablesRootPath + "/",
-                        StringComparison.OrdinalIgnoreCase))
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
+        return false;
     }
 }
