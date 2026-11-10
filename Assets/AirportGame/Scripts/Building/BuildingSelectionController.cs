@@ -424,7 +424,7 @@ public class BuildingSelectionController : MonoBehaviour
         int selectionWidth,
         int selectionDepth)
     {
-        if (building == null)
+        if (building == null || building.IsSurfacePlaced)
             return false;
 
         int minX = selectionOrigin.x;
@@ -654,6 +654,9 @@ public class BuildingSelectionController : MonoBehaviour
                 building.GetComponent<PlacedBuilding>();
 
             if (placedBuilding == null)
+                continue;
+
+            if (placedBuilding.IsSurfacePlaced)
                 continue;
 
             bool isFoundation =
