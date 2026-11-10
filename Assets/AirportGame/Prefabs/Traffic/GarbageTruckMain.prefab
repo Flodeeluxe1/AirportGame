@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 7746180808667813702}
   - component: {fileID: 253150564575490532}
   - component: {fileID: -643947288131750254}
+  - component: {fileID: 1299809465215771832}
   m_Layer: 7
   m_Name: GarbageTruckMain
   m_TagString: Untagged
@@ -80,6 +81,28 @@ MonoBehaviour:
   debugState: Waiting for route
   debugPathIndex: 0
   debugPathLength: 0
+--- !u!114 &1299809465215771832
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5132349342966066208}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d4a1c9e8b7f64a2d9c3e5f1a8b6d0c42, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TrafficFollowing
+  trafficLayer:
+    serializedVersion: 2
+    m_Bits: 128
+  detectionDistance: 3
+  safeFollowingDistance: 1
+  rayOriginHeight: 0.15
+  rayOriginForwardOffset: 0.3
+  acceleration: 2
+  braking: 4
+  debugRaycastSummary: Not tested
 --- !u!1001 &5802615123071589599
 PrefabInstance:
   m_ObjectHideFlags: 0
