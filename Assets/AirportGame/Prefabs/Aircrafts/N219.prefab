@@ -280,8 +280,8 @@ MonoBehaviour:
   turningRadiusInCells: 2
   turnCurveResolution: 16
   taxiPathPointTolerance: 0.02
-  logRouteDetails: 1
-  logTaxiProgress: 1
+  logRouteDetails: 0
+  logTaxiProgress: 0
   drawDebugRoute: 1
   debugStatus: Waiting for landing completion.
   debugAssignedGate: None
@@ -320,9 +320,9 @@ MonoBehaviour:
     status: 0
     elapsedGameSeconds: 0
   fueling:
-    durationMinutes: 15
+    actualFuelLitres: 0
+    maximumFuelLitres: 0
     status: 0
-    elapsedGameSeconds: 0
   baggageLoading:
     durationMinutes: 10
     status: 0
@@ -341,6 +341,9 @@ MonoBehaviour:
   readyToDepart: 0
   turnaroundStarted: 0
   externalFuelingControlled: 0
+  fuelTruckRequestRetryTimer: 0
+  externalCleaningControlled: 0
+  cleaningVehicleRequestRetryTimer: 0
 --- !u!114 &5518959303240577811
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -505,3 +508,5 @@ MonoBehaviour:
   gameTimeManager: {fileID: 0}
   aircraftStatus: {fileID: 0}
   turnaroundController: {fileID: 0}
+  hobbyVisitController: {fileID: 0}
+  hobbyLandingController: {fileID: 0}

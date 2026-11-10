@@ -4722,7 +4722,7 @@ MonoBehaviour:
   debugDistanceToThreshold: 0
   debugGoAroundTargetAltitude: 0
   debugStatus: Waiting for initialization
-  showGlidePathForTesting: 1
+  showGlidePathForTesting: 0
   glidePathLineWidth: 0.15
 --- !u!114 &4611748060777580918
 MonoBehaviour:
@@ -4756,7 +4756,7 @@ MonoBehaviour:
   turningRadiusInCells: 2
   turnCurveResolution: 8
   taxiPathPointTolerance: 0.02
-  logTaxiProgress: 1
+  logTaxiProgress: 0
   debugStatus: Waiting for hobby landing completion.
 --- !u!114 &510167352823672194
 MonoBehaviour:
@@ -4901,7 +4901,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AircraftHobbyFuelDepartureController
   mandatoryRefuellingBelowFuelPercentage: 0.4
-  logFuelDecision: 1
+  logFuelDecision: 0
   taxiSpeedKnots: 12
   rotationSpeedDegreesPerSecond: 35
   arrivalDistance: 0.2
@@ -4939,6 +4939,8 @@ MonoBehaviour:
   gameTimeManager: {fileID: 0}
   aircraftStatus: {fileID: 0}
   turnaroundController: {fileID: 0}
+  hobbyVisitController: {fileID: 0}
+  hobbyLandingController: {fileID: 0}
 --- !u!1 &5959639169424167895
 GameObject:
   m_ObjectHideFlags: 0

@@ -275,7 +275,7 @@ MonoBehaviour:
   turningRadiusInCells: 2
   turnCurveResolution: 16
   taxiPathPointTolerance: 0.02
-  logTaxiProgress: 1
+  logTaxiProgress: 0
   debugStatus: Waiting for training landing completion.
 --- !u!114 &-4699634218804049046
 MonoBehaviour:
@@ -303,6 +303,7 @@ MonoBehaviour:
   debugBlockingDistance: 0
   debugTrafficDecision: Not tested
   debugATCClearance: Not requested
+  debugCurrentGridCell: {x: 0, y: 0}
   debugForwardRay: Not scanned
   debugLeftRay: Not scanned
   debugRightRay: Not scanned
@@ -319,19 +320,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 109a25440e7fdd44b871e7d3a13cef3f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AircraftAirportFees
-  landingFee: 150
-  parkingFee: 25
-  parkingIntervalMinutes: 30
-  cleaningFeeUpTo10Passengers: 100
-  cleaningFeeUpTo50Passengers: 200
-  cleaningFeeUpTo100Passengers: 350
-  cleaningFeeUpTo200Passengers: 500
-  cleaningFeeUpTo300Passengers: 750
-  cleaningFeeAbove300Passengers: 1000
+  landingFee: 0
+  parkingFee: 0
+  parkingIntervalMinutes: 1
+  cleaningFeeUpTo10Passengers: 0
+  cleaningFeeUpTo50Passengers: 0
+  cleaningFeeUpTo100Passengers: 0
+  cleaningFeeUpTo200Passengers: 0
+  cleaningFeeUpTo300Passengers: 0
+  cleaningFeeAbove300Passengers: 0
   economyManager: {fileID: 0}
   gameTimeManager: {fileID: 0}
   aircraftStatus: {fileID: 0}
   turnaroundController: {fileID: 0}
+  hobbyVisitController: {fileID: 0}
+  hobbyLandingController: {fileID: 0}
 --- !u!1001 &7649397686244966220
 PrefabInstance:
   m_ObjectHideFlags: 0
