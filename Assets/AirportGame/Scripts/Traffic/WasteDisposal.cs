@@ -18,11 +18,17 @@ public class WasteDisposal : MonoBehaviour
     public static event Action<WasteDisposal> DisposalRegistered;
     public static event Action<WasteDisposal> DisposalUnregistered;
     public static event Action<WasteDisposal, float> WasteAmountChanged;
+    public static event Action<WasteDisposal> DisposalCapacityChanged;
 
     private void OnEnable()
     {
         activeDisposals.Add(this);
         DisposalRegistered?.Invoke(this);
+    }
+
+    private void OnTransformChildrenChanged()
+    {
+        DisposalCapacityChanged?.Invoke(this);
     }
 
     private void OnDisable()
