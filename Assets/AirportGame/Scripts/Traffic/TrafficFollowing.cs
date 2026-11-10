@@ -38,6 +38,7 @@ public sealed class TrafficFollowing : MonoBehaviour
     private bool sideSensorsInitialized;
     private RaycastHit cachedSideBlockingHit;
     private bool cachedSideBlocking;
+    private int cachedSideDirectionIndex = -1;
 
     public float BrakeToStop(float currentSpeed)
     {
@@ -100,6 +101,7 @@ public sealed class TrafficFollowing : MonoBehaviour
             sideSensorsInitialized = true;
             cachedSideBlocking = false;
             cachedSideBlockingHit = default;
+            cachedSideDirectionIndex = -1;
             for (int i = 0; i < Angles.Length; i++)
             {
                 if (i == 2) continue;
@@ -120,6 +122,7 @@ public sealed class TrafficFollowing : MonoBehaviour
                 {
                     cachedSideBlocking = true;
                     cachedSideBlockingHit = hit;
+                    cachedSideDirectionIndex = i;
                 }
             }
         }
@@ -131,7 +134,7 @@ public sealed class TrafficFollowing : MonoBehaviour
             blockingHit = cachedSideBlockingHit;
             found = true;
             LastRayHitCollider = cachedSideBlockingHit.collider.name;
-            LastRayDirection = "Angled";
+            LastRayDirection = cachedSideDirectionIndex >= 0 ? Names[cachedSideDirectionIndex] : "Angled";
             LastRayDistance = cachedSideBlockingHit.distance;
         }
 
