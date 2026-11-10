@@ -643,12 +643,13 @@ public class CellBuildingMoveController : MonoBehaviour
             if (building.Definition == null)
                 continue;
 
-            if (building.Definition.placementType !=
-                    PlacementType.Cell ||
-                building.IsSurfacePlaced)
-            {
+            // Let the selection controller select surface objects directly.
+            // Do not fall through to the supporting table behind them.
+            if (building.IsSurfacePlaced)
+                return null;
+
+            if (building.Definition.placementType != PlacementType.Cell)
                 continue;
-            }
 
             return building.gameObject;
         }
