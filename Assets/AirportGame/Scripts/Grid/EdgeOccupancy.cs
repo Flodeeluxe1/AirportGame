@@ -3,6 +3,8 @@ using UnityEngine;
 
 public class EdgeOccupancy : MonoBehaviour
 {
+    public event System.Action OccupancyChanged;
+
     private readonly Dictionary<GridEdge, GameObject> occupiedEdges =
         new Dictionary<GridEdge, GameObject>();
 
@@ -77,12 +79,20 @@ public class EdgeOccupancy : MonoBehaviour
             return;
         }
 
+        if (occupiedEdges.TryGetValue(edge, out GameObject previousOwner) &&
+            previousOwner == building)
+        {
+            return;
+        }
+
         occupiedEdges[edge] = building;
+        OccupancyChanged?.Invoke();
     }
 
     public void Release(GridEdge edge)
     {
-        occupiedEdges.Remove(edge);
+        if (occupiedEdges.Remove(edge))
+            OccupancyChanged?.Invoke();
     }
 
     public void Release(
@@ -99,7 +109,8 @@ public class EdgeOccupancy : MonoBehaviour
         if (currentOwner != expectedOwner)
             return;
 
-        occupiedEdges.Remove(edge);
+        if (occupiedEdges.Remove(edge))
+            OccupancyChanged?.Invoke();
     }
 
     public void ReleaseBuilding(
@@ -124,13 +135,18 @@ public class EdgeOccupancy : MonoBehaviour
         }
 
         foreach (GridEdge edge in edgesToRelease)
-        {
             occupiedEdges.Remove(edge);
-        }
+
+        if (edgesToRelease.Count > 0)
+            OccupancyChanged?.Invoke();
     }
 
     public void Clear()
     {
+        if (occupiedEdges.Count == 0)
+            return;
+
         occupiedEdges.Clear();
+        OccupancyChanged?.Invoke();
     }
 }
