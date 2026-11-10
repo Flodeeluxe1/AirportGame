@@ -46,6 +46,10 @@ public class FlightScheduleBoardPanel : MonoBehaviour
     private readonly Dictionary<string, FlightRecord> records =
         new Dictionary<string, FlightRecord>();
 
+    private readonly Dictionary<string, AircraftFlightIdentity>
+        activeIdentitiesByFlightNumber =
+            new Dictionary<string, AircraftFlightIdentity>();
+
     private readonly List<ScheduledFlight> scheduledFlights =
         new List<ScheduledFlight>();
 
@@ -472,6 +476,7 @@ public class FlightScheduleBoardPanel : MonoBehaviour
             return;
 
         rows.Clear();
+        RebuildActiveAircraftLookup();
 
         clockLabel.text =
             $"DAY {gameTimeManager.CurrentDay}  " +
@@ -564,20 +569,32 @@ public class FlightScheduleBoardPanel : MonoBehaviour
             $"{delayed} delayed";
     }
 
-    private AircraftFlightIdentity FindActiveIdentity(string flightNumber)
+    private void RebuildActiveAircraftLookup()
     {
+        activeIdentitiesByFlightNumber.Clear();
+
         foreach (AircraftFlightIdentity identity in
                  AircraftFlightIdentity.ActiveAircraft)
         {
-            if (identity != null &&
-                identity.IsInitialized &&
-                identity.FlightNumber == flightNumber)
+            if (identity == null ||
+                !identity.IsInitialized ||
+                string.IsNullOrWhiteSpace(identity.FlightNumber) ||
+                activeIdentitiesByFlightNumber.ContainsKey(identity.FlightNumber))
             {
-                return identity;
+                continue;
             }
-        }
 
-        return null;
+            activeIdentitiesByFlightNumber.Add(
+                identity.FlightNumber, identity);
+        }
+    }
+
+    private AircraftFlightIdentity FindActiveIdentity(string flightNumber)
+    {
+        return activeIdentitiesByFlightNumber.TryGetValue(
+            flightNumber, out AircraftFlightIdentity identity)
+                ? identity
+                : null;
     }
 
     private string GetStatus(
