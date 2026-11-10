@@ -22,7 +22,6 @@ public class AircraftSSTakeoffController : MonoBehaviour
     [SerializeField] private AircraftRunwayTrafficManager trafficManager;
     [SerializeField] private GameTimeManager gameTimeManager;
     [SerializeField] private GridManager gridManager;
-    [SerializeField] private AirportEconomyManager economyManager;
     [SerializeField] private BoxCollider aircraftCollider;
 
     [Header("Takeoff Speed")]
@@ -167,9 +166,6 @@ public class AircraftSSTakeoffController : MonoBehaviour
 
         if (gridManager == null)
             gridManager = FindFirstObjectByType<GridManager>();
-
-        if (economyManager == null)
-            economyManager = FindFirstObjectByType<AirportEconomyManager>();
 
         if (aircraftCollider == null)
             aircraftCollider = GetComponentInChildren<BoxCollider>(true);
@@ -529,11 +525,13 @@ public class AircraftSSTakeoffController : MonoBehaviour
             return;
         }
 
-        if (economyManager == null)
+        AircraftAirportFees airportFees =
+            GetComponent<AircraftAirportFees>();
+
+        if (airportFees == null)
         {
             Debug.LogError(
-                $"{name}: AirportEconomyManager could not be found. " +
-                "Commission was not paid.",
+                $"{name}: AircraftAirportFees is missing. Commission was not paid.",
                 this);
             return;
         }
@@ -544,11 +542,7 @@ public class AircraftSSTakeoffController : MonoBehaviour
         if (commissionPaid <= 0)
             return;
 
-        AircraftAirportFees airportFees =
-            GetComponent<AircraftAirportFees>();
-
-        bool paid = airportFees != null &&
-            airportFees.RecordCharge(
+        bool paid = airportFees.RecordCharge(
                 commissionPaid,
                 $"Sightseeing flight ({passengersOnBoard} passengers)");
 
