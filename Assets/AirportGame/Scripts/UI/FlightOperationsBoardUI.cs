@@ -116,7 +116,7 @@ public class FlightOperationsBoardUI : MonoBehaviour
     {
         if (identity == null ||
             !identity.IsInitialized ||
-            !AircraftFlightIdentity.ActiveAircraft.Contains(identity))
+            !AircraftFlightIdentity.IsRegistered(identity))
         {
             return;
         }
