@@ -458,7 +458,7 @@ public class RoomPurposeController : MonoBehaviour
 
             if ((role & RoomFurnitureRole.InstructorDesk) != 0)
                 desks++;
-            if ((role & RoomFurnitureRole.StudentSeat) != 0)
+            if ((role & RoomFurnitureRole.Chair) != 0)
                 seats++;
         }
 
@@ -508,7 +508,7 @@ public class RoomPurposeController : MonoBehaviour
             if ((role & RoomFurnitureRole.OfficeDesk) != 0)
                 desks++;
 
-            if ((role & RoomFurnitureRole.OfficeChair) != 0)
+            if ((role & RoomFurnitureRole.Chair) != 0)
                 chairs++;
 
             if ((role & RoomFurnitureRole.OfficeComputer) != 0)
@@ -526,7 +526,7 @@ public class RoomPurposeController : MonoBehaviour
 
         if (chairs < 1)
         {
-            reason = "Needs at least one office chair.";
+            reason = "Needs at least one chair.";
             return false;
         }
 
