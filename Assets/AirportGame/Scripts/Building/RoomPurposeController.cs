@@ -10,6 +10,8 @@ public enum RoomPurpose
 
 public class RoomPurposeController : MonoBehaviour
 {
+    public event System.Action AssignmentsChanged;
+
     [Header("References")]
     [SerializeField] private Camera mainCamera;
     [SerializeField] private GridManager gridManager;
@@ -192,14 +194,24 @@ public class RoomPurposeController : MonoBehaviour
 
         if (purpose == RoomPurpose.None)
         {
-            assignments.Remove(anchor);
+            bool removed = assignments.Remove(anchor);
+            if (removed)
+                AssignmentsChanged?.Invoke();
+
             Debug.Log($"Room at {anchor} has no assigned purpose.");
             return;
         }
 
         // Assignment is allowed even if requirements are not yet met.
         // Validation controls operational status, not the ability to assign.
+        bool assignmentChanged =
+            !assignments.TryGetValue(anchor, out RoomPurpose previousPurpose) ||
+            previousPurpose != purpose;
+
         assignments[anchor] = purpose;
+
+        if (assignmentChanged)
+            AssignmentsChanged?.Invoke();
 
         if (purpose == RoomPurpose.FlightSchool)
         {
@@ -246,7 +258,11 @@ public class RoomPurposeController : MonoBehaviour
     /// </summary>
     public void ClearAssignments()
     {
+        bool hadAssignments = assignments.Count > 0;
         assignments.Clear();
+
+        if (hadAssignments)
+            AssignmentsChanged?.Invoke();
 
         previousClickCell = Vector2Int.zero;
         previousClickTime = -10f;
@@ -262,11 +278,15 @@ public class RoomPurposeController : MonoBehaviour
     public void RestoreAssignments(
         List<RoomPurposeAssignmentSaveData> savedAssignments)
     {
+        bool hadAssignments = assignments.Count > 0;
         assignments.Clear();
         ResolveReferences();
 
         if (roomDetection == null)
         {
+            if (hadAssignments)
+                AssignmentsChanged?.Invoke();
+
             Debug.LogWarning(
                 "RoomPurposeController: Cannot restore room assignments " +
                 "because RoomDetectionController was not found.");
@@ -277,6 +297,9 @@ public class RoomPurposeController : MonoBehaviour
 
         if (savedAssignments == null || savedAssignments.Count == 0)
         {
+            if (hadAssignments)
+                AssignmentsChanged?.Invoke();
+
             Debug.Log(
                 "RoomPurposeController: No saved room-purpose assignments to restore.");
             return;
@@ -354,6 +377,9 @@ public class RoomPurposeController : MonoBehaviour
                     $"RoomPurposeController: Restored '{purpose}' at {currentAnchor}.");
             }
         }
+
+        if (hadAssignments || restoredCount > 0)
+            AssignmentsChanged?.Invoke();
 
         Debug.Log(
             $"RoomPurposeController: Restored {restoredCount} of " +
