@@ -395,11 +395,8 @@ public class FlightScheduleBoardPanel : MonoBehaviour
 
     private void CaptureArrivalTimes()
     {
-        AircraftFlightIdentity[] identities =
-            FindObjectsByType<AircraftFlightIdentity>(
-                FindObjectsSortMode.None);
-
-        foreach (AircraftFlightIdentity identity in identities)
+        foreach (AircraftFlightIdentity identity in
+                 AircraftFlightIdentity.ActiveAircraft)
         {
             if (identity == null ||
                 !identity.IsInitialized ||
@@ -550,11 +547,8 @@ public class FlightScheduleBoardPanel : MonoBehaviour
 
     private AircraftFlightIdentity FindActiveIdentity(string flightNumber)
     {
-        AircraftFlightIdentity[] identities =
-            FindObjectsByType<AircraftFlightIdentity>(
-                FindObjectsSortMode.None);
-
-        foreach (AircraftFlightIdentity identity in identities)
+        foreach (AircraftFlightIdentity identity in
+                 AircraftFlightIdentity.ActiveAircraft)
         {
             if (identity != null &&
                 identity.IsInitialized &&
