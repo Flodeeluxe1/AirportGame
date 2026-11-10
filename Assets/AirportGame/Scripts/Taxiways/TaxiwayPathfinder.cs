@@ -263,15 +263,21 @@ public class TaxiwayPathfinder : MonoBehaviour
 
             TryVisitGroundNeighbor(
                 current, current + Vector2Int.right, currentGScore,
-                minimumTaxiwayWidth, targets, openSet, cameFrom, gScore, closedSet);
+                minimumTaxiwayWidth, targets,
+                minimumX, maximumX, minimumY, maximumY,
+                openSet, cameFrom, gScore, closedSet);
 
             TryVisitGroundNeighbor(
                 current, current + Vector2Int.down, currentGScore,
-                minimumTaxiwayWidth, targets, openSet, cameFrom, gScore, closedSet);
+                minimumTaxiwayWidth, targets,
+                minimumX, maximumX, minimumY, maximumY,
+                openSet, cameFrom, gScore, closedSet);
 
             TryVisitGroundNeighbor(
                 current, current + Vector2Int.left, currentGScore,
-                minimumTaxiwayWidth, targets, openSet, cameFrom, gScore, closedSet);
+                minimumTaxiwayWidth, targets,
+                minimumX, maximumX, minimumY, maximumY,
+                openSet, cameFrom, gScore, closedSet);
         }
 
         if (!foundTarget)
