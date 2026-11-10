@@ -1,4 +1,4 @@
-
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -16,6 +16,7 @@ public class AirportUIController : MonoBehaviour
 
     private VisualElement buildWindow;
     private ScrollView buildableList;
+    private ScrollView airportSubcategoryList;
 
     private Button buildButton;
     private Button zoneButton;
@@ -27,7 +28,11 @@ public class AirportUIController : MonoBehaviour
     private readonly Dictionary<BuildableDefinition, VisualElement> buildableCards =
         new();
 
+    private readonly Dictionary<string, Button> airportSubcategoryButtons =
+        new(StringComparer.Ordinal);
+
     private BuildCategory currentCategory;
+    private string currentAirportMenuCategory;
     private BuildableDefinition selectedBuildable;
 
     private void Awake()
@@ -49,10 +54,10 @@ public class AirportUIController : MonoBehaviour
         root = uiDocument.rootVisualElement;
 
         FindElements();
+        PopulateAirportSubcategories();
         RegisterEvents();
 
         currentCategory = BuildCategory.Floor;
-
         HideBuildWindow();
     }
 
@@ -77,6 +82,7 @@ public class AirportUIController : MonoBehaviour
     {
         buildWindow = root.Q<VisualElement>("build-window");
         buildableList = root.Q<ScrollView>("buildable-list");
+        airportSubcategoryList = root.Q<ScrollView>("airport-subcategory-list");
 
         if (buildableList != null)
         {
@@ -136,6 +142,9 @@ public class AirportUIController : MonoBehaviour
         if (buildableList == null)
             Debug.LogError("AirportUIController: 'buildable-list' was not found.");
 
+        if (airportSubcategoryList == null)
+            Debug.LogError("AirportUIController: 'airport-subcategory-list' was not found.");
+
         if (buildButton == null)
             Debug.LogError("AirportUIController: 'build-button' was not found.");
 
@@ -144,6 +153,51 @@ public class AirportUIController : MonoBehaviour
 
         if (deleteAllButton == null)
             Debug.LogError("AirportUIController: 'delete-all-button' was not found.");
+    }
+
+    private void PopulateAirportSubcategories()
+    {
+        if (airportSubcategoryList == null)
+            return;
+
+        airportSubcategoryList.Clear();
+        airportSubcategoryButtons.Clear();
+
+        if (buildCatalog == null || buildCatalog.buildables == null)
+            return;
+
+        SortedSet<string> categories = new(StringComparer.Ordinal);
+
+        foreach (BuildableDefinition definition in buildCatalog.buildables)
+        {
+            if (definition == null ||
+                definition.category != BuildCategory.Airport ||
+                string.IsNullOrWhiteSpace(definition.menuCategory))
+            {
+                continue;
+            }
+
+            categories.Add(definition.menuCategory);
+        }
+
+        foreach (string category in categories)
+        {
+            Button button = new Button();
+            button.text = category;
+            button.AddToClassList("airport-subcategory-button");
+
+            string selectedCategory = category;
+            button.clicked += () =>
+            {
+                SelectAirportMenuCategory(selectedCategory);
+            };
+
+            airportSubcategoryButtons.Add(category, button);
+            airportSubcategoryList.Add(button);
+        }
+
+        airportSubcategoryList.style.display =
+            DisplayStyle.None;
     }
 
     private void RegisterEvents()
@@ -216,7 +270,48 @@ public class AirportUIController : MonoBehaviour
     private void SelectCategory(BuildCategory category)
     {
         currentCategory = category;
+
+        if (category == BuildCategory.Airport)
+        {
+            if (string.IsNullOrEmpty(currentAirportMenuCategory) &&
+                airportSubcategoryButtons.Count > 0)
+            {
+                foreach (string menuCategory in airportSubcategoryButtons.Keys)
+                {
+                    currentAirportMenuCategory = menuCategory;
+                    break;
+                }
+            }
+
+            if (airportSubcategoryList != null)
+            {
+                airportSubcategoryList.style.display =
+                    airportSubcategoryButtons.Count > 0
+                        ? DisplayStyle.Flex
+                        : DisplayStyle.None;
+            }
+        }
+        else
+        {
+            if (airportSubcategoryList != null)
+                airportSubcategoryList.style.display = DisplayStyle.None;
+        }
+
         UpdateCategoryButtonStates();
+        UpdateAirportSubcategoryButtonStates();
+        PopulateBuildableList();
+    }
+
+    private void SelectAirportMenuCategory(string menuCategory)
+    {
+        currentCategory = BuildCategory.Airport;
+        currentAirportMenuCategory = menuCategory;
+
+        if (airportSubcategoryList != null)
+            airportSubcategoryList.style.display = DisplayStyle.Flex;
+
+        UpdateCategoryButtonStates();
+        UpdateAirportSubcategoryButtonStates();
         PopulateBuildableList();
     }
 
@@ -228,6 +323,28 @@ public class AirportUIController : MonoBehaviour
                 continue;
 
             if (pair.Key == currentCategory)
+            {
+                pair.Value.AddToClassList("category-selected");
+            }
+            else
+            {
+                pair.Value.RemoveFromClassList("category-selected");
+            }
+        }
+    }
+
+    private void UpdateAirportSubcategoryButtonStates()
+    {
+        foreach (KeyValuePair<string, Button> pair in airportSubcategoryButtons)
+        {
+            if (pair.Value == null)
+                continue;
+
+            if (currentCategory == BuildCategory.Airport &&
+                string.Equals(
+                    pair.Key,
+                    currentAirportMenuCategory,
+                    StringComparison.Ordinal))
             {
                 pair.Value.AddToClassList("category-selected");
             }
@@ -256,6 +373,16 @@ public class AirportUIController : MonoBehaviour
         {
             if (definition == null ||
                 definition.category != currentCategory)
+            {
+                continue;
+            }
+
+            if (currentCategory == BuildCategory.Airport &&
+                !string.IsNullOrEmpty(currentAirportMenuCategory) &&
+                !string.Equals(
+                    definition.menuCategory,
+                    currentAirportMenuCategory,
+                    StringComparison.Ordinal))
             {
                 continue;
             }

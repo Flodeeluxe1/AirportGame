@@ -1,4 +1,3 @@
-
 <ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
   <Style src="project://database/Assets/AirportGame/UI/AirportUI.uss?fileID=7433441132597879392&amp;guid=12497c851803d844cb55a5b69a5c3ccd&amp;type=3#AirportUI"/>
 
@@ -10,15 +9,21 @@
       <ui:VisualElement name="category-panel" class="category-panel">
         <ui:Label text="BUILD" class="panel-title"/>
 
-        <ui:Button name="category-floor" text="Floor" class="category-button"/>
-        <ui:Button name="category-wall" text="Wall" class="category-button"/>
-        <ui:Button name="category-door" text="Door" class="category-button"/>
-        <ui:Button name="category-airport" text="Airport" class="category-button"/>
-        <ui:Button name="category-roads" text="Roads" class="category-button"/>
-        <ui:Button name="category-commercial" text="Commercial" class="category-button"/>
-        <ui:Button name="category-taxiways" text="Taxiways" class="category-button"/>
-        <ui:Button name="category-tarmac" text="Tarmac" class="category-button"/>
-        <ui:Button name="category-pipelines" text="Pipelines" class="category-button"/>
+        <ui:ScrollView name="category-list" mode="Vertical" class="category-list">
+          <ui:Button name="category-floor" text="Floor" class="category-button"/>
+          <ui:Button name="category-wall" text="Wall" class="category-button"/>
+          <ui:Button name="category-door" text="Door" class="category-button"/>
+          <ui:Button name="category-airport" text="Airport" class="category-button"/>
+          <ui:ScrollView
+              name="airport-subcategory-list"
+              mode="Vertical"
+              class="airport-subcategory-list"/>
+          <ui:Button name="category-roads" text="Roads" class="category-button"/>
+          <ui:Button name="category-commercial" text="Commercial" class="category-button"/>
+          <ui:Button name="category-taxiways" text="Taxiways" class="category-button"/>
+          <ui:Button name="category-tarmac" text="Tarmac" class="category-button"/>
+          <ui:Button name="category-pipelines" text="Pipelines" class="category-button"/>
+        </ui:ScrollView>
       </ui:VisualElement>
 
       <ui:ScrollView
