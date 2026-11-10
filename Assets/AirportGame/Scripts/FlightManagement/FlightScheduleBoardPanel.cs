@@ -105,6 +105,12 @@ public class FlightScheduleBoardPanel : MonoBehaviour
     private void OnEnable()
     {
         AircraftFlightIdentity.AircraftChanged += HandleAircraftChanged;
+
+        foreach (AircraftFlightIdentity identity in
+                 AircraftFlightIdentity.ActiveAircraft)
+        {
+            CaptureArrivalTime(identity);
+        }
     }
 
     private void OnDisable()
