@@ -260,7 +260,7 @@ public class GarbageCollectorSpawner : MonoBehaviour
         if (selectedDisposal == null && logDispatchDiagnostics)
         {
             Debug.LogWarning(
-                $"GARBAGE DISPATCH SEARCH SUMMARY | Found disposals: {disposals.Length} | " +
+                $"GARBAGE DISPATCH SEARCH SUMMARY | Found disposals: {WasteDisposal.ActiveDisposals.Count} | " +
                 $"Inactive: {inactiveCount} | Reserved: {reservedCount} | Empty: {emptyCount} | " +
                 $"Missing stop point: {missingStopCount} | Below threshold: {belowThresholdCount} | " +
                 $"Route rejected: {routeFailureCount}.",
