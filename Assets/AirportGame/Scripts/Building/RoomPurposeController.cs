@@ -38,10 +38,6 @@ public class RoomPurposeController : MonoBehaviour
     private void Awake()
     {
         ResolveReferences();
-
-        // Keep airport management alongside the existing room-purpose system.
-        if (GetComponent<AirportManagementController>() == null)
-            gameObject.AddComponent<AirportManagementController>();
     }
 
     private void Update()
