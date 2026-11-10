@@ -8,6 +8,7 @@ using UnityEngine.UIElements;
 
 public class FlightManagementUIController : MonoBehaviour
 {
+    public static event Action AirportScheduleChanged;
     [Header("References")]
     [SerializeField] private UIDocument uiDocument;
     [SerializeField] private TestFlightCatalog flightCatalog;
@@ -363,6 +364,7 @@ public class FlightManagementUIController : MonoBehaviour
 
             string json = JsonUtility.ToJson(fileData, true);
             File.WriteAllText(scheduleFilePath, json);
+            AirportScheduleChanged?.Invoke();
         }
         catch (Exception exception)
         {
@@ -1886,6 +1888,7 @@ public class FlightManagementUIController : MonoBehaviour
 
             string json = JsonUtility.ToJson(fileData, true);
             File.WriteAllText(scheduleFilePath, json);
+            AirportScheduleChanged?.Invoke();
 
             Debug.Log(
                 $"FlightManagementUIController: Saved " +
