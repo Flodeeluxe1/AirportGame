@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -9,6 +10,27 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class WasteDisposal : MonoBehaviour
 {
+    private static readonly HashSet<WasteDisposal> activeDisposals =
+        new HashSet<WasteDisposal>();
+
+    public static IReadOnlyCollection<WasteDisposal> ActiveDisposals => activeDisposals;
+
+    public static event Action<WasteDisposal> DisposalRegistered;
+    public static event Action<WasteDisposal> DisposalUnregistered;
+    public static event Action<WasteDisposal, float> WasteAmountChanged;
+
+    private void OnEnable()
+    {
+        activeDisposals.Add(this);
+        DisposalRegistered?.Invoke(this);
+    }
+
+    private void OnDisable()
+    {
+        activeDisposals.Remove(this);
+        DisposalUnregistered?.Invoke(this);
+    }
+
     [Header("Dumpster Configuration")]
     [Range(1, 6)]
     [SerializeField] private int maximumDumpsterCount = 6;
@@ -119,6 +141,9 @@ public class WasteDisposal : MonoBehaviour
             remaining -= accepted;
         }
 
+        if (acceptedTotal > 0.001f)
+            WasteAmountChanged?.Invoke(this, acceptedTotal);
+
         return acceptedTotal;
     }
 
@@ -144,6 +169,9 @@ public class WasteDisposal : MonoBehaviour
             collectedTotal += collected;
             remaining -= collected;
         }
+
+        if (collectedTotal > 0.001f)
+            WasteAmountChanged?.Invoke(this, -collectedTotal);
 
         return collectedTotal;
     }
