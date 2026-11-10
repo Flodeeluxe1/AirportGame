@@ -88,6 +88,22 @@ public class ScheduledAircraftSpawner : MonoBehaviour
             ScheduleFileName
         );
 
+    private void OnEnable()
+    {
+        if (gameTimeManager != null)
+            gameTimeManager.GameTimeAdvanced += HandleGameTimeAdvanced;
+
+        FlightManagementUIController.AirportScheduleChanged += HandleAirportScheduleChanged;
+    }
+
+    private void OnDisable()
+    {
+        if (gameTimeManager != null)
+            gameTimeManager.GameTimeAdvanced -= HandleGameTimeAdvanced;
+
+        FlightManagementUIController.AirportScheduleChanged -= HandleAirportScheduleChanged;
+    }
+
     private void Start()
     {
         if (flightCatalog == null)
@@ -140,18 +156,8 @@ public class ScheduledAircraftSpawner : MonoBehaviour
 
         TryReloadScheduleIfChanged();
 
-        if (!TryReadGameSecond(out lastGameSecond))
-        {
-            Debug.LogError(
-                "ScheduledAircraftSpawner could not read " +
-                "GameTimeManager.FormattedTime.",
-                this
-            );
-            enabled = false;
-            return;
-        }
-
-        gameDayIndex = 0;
+        lastGameSecond = gameTimeManager.GetGameTimeSeconds();
+        gameDayIndex = gameTimeManager.CurrentDay - 1;
         initialized = true;
 
         Debug.Log(
@@ -163,48 +169,43 @@ public class ScheduledAircraftSpawner : MonoBehaviour
         );
     }
 
-    private void Update()
+    private void HandleAirportScheduleChanged()
+    {
+        if (initialized)
+            TryReloadScheduleIfChanged();
+    }
+
+    private void HandleGameTimeAdvanced(
+        long previousAbsoluteSecond,
+        long currentAbsoluteSecond)
     {
         if (!initialized)
             return;
 
-        TryReloadScheduleIfChanged();
-
-        if (!TryReadGameSecond(out int currentGameSecond))
-            return;
-
-        if (currentGameSecond != lastGameSecond)
+        if (currentAbsoluteSecond <= previousAbsoluteSecond)
         {
-            if (currentGameSecond > lastGameSecond)
-            {
-                ProcessTriggerRange(
-                    lastGameSecond,
-                    currentGameSecond,
-                    gameDayIndex
-                );
-            }
-            else
-            {
-                long previousDayIndex = gameDayIndex;
-
-                ProcessTriggerRange(
-                    lastGameSecond,
-                    SecondsPerDay - 1,
-                    previousDayIndex
-                );
-
-                gameDayIndex++;
-
-                ProcessTriggerRange(
-                    -1,
-                    currentGameSecond,
-                    gameDayIndex
-                );
-            }
-
-            lastGameSecond = currentGameSecond;
+            gameDayIndex = currentAbsoluteSecond / SecondsPerDay;
+            lastGameSecond = (int)(currentAbsoluteSecond % SecondsPerDay);
+            return;
         }
 
+        long previousDay = previousAbsoluteSecond / SecondsPerDay;
+        long currentDay = currentAbsoluteSecond / SecondsPerDay;
+
+        for (long day = previousDay; day <= currentDay; day++)
+        {
+            int fromSecond = day == previousDay
+                ? (int)(previousAbsoluteSecond % SecondsPerDay)
+                : -1;
+            int toSecond = day == currentDay
+                ? (int)(currentAbsoluteSecond % SecondsPerDay)
+                : SecondsPerDay - 1;
+
+            ProcessTriggerRange(fromSecond, toSecond, day);
+        }
+
+        gameDayIndex = currentDay;
+        lastGameSecond = (int)(currentAbsoluteSecond % SecondsPerDay);
         ProcessSpawnQueue();
     }
 
