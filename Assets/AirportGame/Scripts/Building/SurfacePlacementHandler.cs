@@ -310,8 +310,6 @@ public class SurfacePlacementHandler : IPlacementHandler
 
         // Test the actual oriented footprint instead of the world-axis-aligned
         // renderer bounds. This allows placement on rotated tables.
-        float surfaceY = currentPosition.y + 0.01f;
-
         Vector3[] localCorners =
         {
             new Vector3(localBounds.min.x, localBounds.min.y, localBounds.min.z),
