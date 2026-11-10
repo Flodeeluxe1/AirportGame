@@ -119,6 +119,21 @@ public class AircraftCargoPaxDepartureTaxiController : MonoBehaviour
     }
 
 
+
+    private void SetOperationalState(DepartureState newState)
+    {
+        if (currentState == newState)
+            return;
+
+        currentState = newState;
+
+        AircraftFlightIdentity identity =
+            GetComponent<AircraftFlightIdentity>();
+
+        if (identity != null)
+            identity.NotifyAircraftChanged();
+    }
+
     private void Update()
     {
         AircraftStatus status = GetComponent<AircraftStatus>();
@@ -158,13 +173,12 @@ public class AircraftCargoPaxDepartureTaxiController : MonoBehaviour
         if (gateExitController == null ||
             !gateExitController.ReadyForTaxi)
         {
-            currentState = DepartureState.WaitingForGateExit;
+            SetOperationalState(DepartureState.WaitingForGateExit);
             debugStatus = "Waiting for gate exit to finish";
             return;
         }
 
-        currentState = DepartureState.WaitingForRunway;
-
+        SetOperationalState(DepartureState.WaitingForRunway);
         retryTimer -= Time.deltaTime;
 
         if (retryTimer > 0f)
@@ -430,7 +444,7 @@ public class AircraftCargoPaxDepartureTaxiController : MonoBehaviour
         BuildSmoothedMovementWaypoints(taxiRoute);
         currentWaypointIndex = 0;
 
-        currentState = DepartureState.TaxiingToHoldingPoint;
+        SetOperationalState(DepartureState.TaxiingToHoldingPoint);
         debugStatus = $"Taxiing to safe holding point for {debugSelectedRunway}.";
 
         retryTimer = runwaySelectionRetryInterval;
@@ -501,7 +515,7 @@ public class AircraftCargoPaxDepartureTaxiController : MonoBehaviour
             Debug.LogWarning($"{name}: {debugStatus}", this);
 
             trafficManager.ReleaseRunwayLineUpReservation(this);
-            currentState = DepartureState.AtHoldingPoint;
+            SetOperationalState(DepartureState.AtHoldingPoint);
             return;
         }
 
@@ -513,7 +527,7 @@ public class AircraftCargoPaxDepartureTaxiController : MonoBehaviour
         BuildSmoothedMovementWaypoints(remainingRoute);
         currentWaypointIndex = movementWaypoints.Count > 1 ? 1 : 0;
 
-        currentState = DepartureState.TaxiingToRunwayEntry;
+        SetOperationalState(DepartureState.TaxiingToRunwayEntry);
         debugStatus =
             $"Runway clear. Taxiing from holding point to runway entry for {debugSelectedRunway}.";
     }
@@ -593,7 +607,7 @@ public class AircraftCargoPaxDepartureTaxiController : MonoBehaviour
         );
 
         currentWaypointIndex = 0;
-        currentState = DepartureState.MovingOntoRunway;
+        SetOperationalState(DepartureState.MovingOntoRunway);
         debugStatus =
             $"Moving onto {debugSelectedRunway} and lining up {debugTakeoffHeading}.";
     }
@@ -660,7 +674,7 @@ public class AircraftCargoPaxDepartureTaxiController : MonoBehaviour
             Quaternion.LookRotation(takeoffDirection, Vector3.up) *
             Quaternion.Euler(modelRotationOffset);
 
-        currentState = DepartureState.AligningOnRunway;
+        SetOperationalState(DepartureState.AligningOnRunway);
         debugStatus =
             $"On runway. Aligning with takeoff heading {debugTakeoffHeading}.";
     }
@@ -677,8 +691,7 @@ public class AircraftCargoPaxDepartureTaxiController : MonoBehaviour
             return;
 
         transform.rotation = runwayLineUpRotation;
-        currentState = DepartureState.LinedUpReadyForTakeoff;
-
+        SetOperationalState(DepartureState.LinedUpReadyForTakeoff);
         debugStatus =
             $"Lined up on {debugSelectedRunway}. Waiting for takeoff implementation.";
 
@@ -691,7 +704,7 @@ public class AircraftCargoPaxDepartureTaxiController : MonoBehaviour
         if (trafficManager != null)
             trafficManager.ReleaseRunwayLineUpReservation(this);
 
-        currentState = DepartureState.AtHoldingPoint;
+        SetOperationalState(DepartureState.AtHoldingPoint);
         debugStatus = $"Line-up aborted; holding for a safe solution. {reason}";
 
         Debug.LogWarning($"{name}: {debugStatus}", this);
@@ -1279,7 +1292,7 @@ public class AircraftCargoPaxDepartureTaxiController : MonoBehaviour
 
     private void ArriveAtHoldingPoint()
     {
-        currentState = DepartureState.AtHoldingPoint;
+        SetOperationalState(DepartureState.AtHoldingPoint);
         retryTimer = 0f;
 
         debugStatus =
