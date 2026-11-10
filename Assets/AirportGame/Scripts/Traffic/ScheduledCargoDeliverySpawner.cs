@@ -22,9 +22,6 @@ public class ScheduledCargoDeliverySpawner : MonoBehaviour
     [Min(0)]
     [SerializeField] private int minutesBeforeDeparture = 30;
 
-    [Min(0.1f)]
-    [SerializeField] private float scheduleRefreshInterval = 1f;
-
     [Header("Spawn Queue")]
     [Tooltip("Minimum game-time interval between cargo truck spawns.")]
     [Min(1)]
@@ -75,9 +72,24 @@ public class ScheduledCargoDeliverySpawner : MonoBehaviour
     private long gameDayIndex;
     private long nextAllowedSpawnGameSecond = -1;
 
-    private float scheduleRefreshTimer;
     private string lastScheduleSignature = string.Empty;
     private string lastZoneBlockedOperationId = string.Empty;
+
+    private void OnEnable()
+    {
+        if (gameTimeManager != null)
+            gameTimeManager.GameTimeAdvanced += HandleGameTimeAdvanced;
+
+        FlightManagementUIController.AirportScheduleChanged += HandleAirportScheduleChanged;
+    }
+
+    private void OnDisable()
+    {
+        if (gameTimeManager != null)
+            gameTimeManager.GameTimeAdvanced -= HandleGameTimeAdvanced;
+
+        FlightManagementUIController.AirportScheduleChanged -= HandleAirportScheduleChanged;
+    }
 
     private void Start()
     {
@@ -136,22 +148,10 @@ public class ScheduledCargoDeliverySpawner : MonoBehaviour
 
         roadModuleSize = Mathf.Max(1, roadModuleSize);
         spawnIntervalGameSeconds = Mathf.Max(1, spawnIntervalGameSeconds);
-        scheduleRefreshInterval = Mathf.Max(0.1f, scheduleRefreshInterval);
 
         RefreshSchedule();
-
-        if (!TryReadGameSecond(out lastGameSecond))
-        {
-            Debug.LogError(
-                "ScheduledCargoDeliverySpawner: Could not read game time.",
-                this
-            );
-
-            enabled = false;
-            return;
-        }
-
-        gameDayIndex = 0;
+        lastGameSecond = gameTimeManager.GetGameTimeSeconds();
+        gameDayIndex = gameTimeManager.CurrentDay - 1;
         initialized = true;
 
         SetupIncomingCollectionSpawner();
@@ -167,54 +167,43 @@ public class ScheduledCargoDeliverySpawner : MonoBehaviour
         );
     }
 
-    private void Update()
+    private void HandleAirportScheduleChanged()
+    {
+        if (initialized)
+            RefreshSchedule();
+    }
+
+    private void HandleGameTimeAdvanced(
+        long previousAbsoluteSecond,
+        long currentAbsoluteSecond)
     {
         if (!initialized)
             return;
 
-        scheduleRefreshTimer += Time.unscaledDeltaTime;
-
-        if (scheduleRefreshTimer >= scheduleRefreshInterval)
+        if (currentAbsoluteSecond <= previousAbsoluteSecond)
         {
-            scheduleRefreshTimer = 0f;
-            RefreshSchedule();
-        }
-
-        if (!TryReadGameSecond(out int currentGameSecond))
+            gameDayIndex = currentAbsoluteSecond / SecondsPerDay;
+            lastGameSecond = (int)(currentAbsoluteSecond % SecondsPerDay);
             return;
-
-        if (currentGameSecond != lastGameSecond)
-        {
-            if (currentGameSecond > lastGameSecond)
-            {
-                ProcessTriggerRange(
-                    lastGameSecond,
-                    currentGameSecond,
-                    gameDayIndex
-                );
-            }
-            else
-            {
-                long previousDayIndex = gameDayIndex;
-
-                ProcessTriggerRange(
-                    lastGameSecond,
-                    SecondsPerDay - 1,
-                    previousDayIndex
-                );
-
-                gameDayIndex++;
-
-                ProcessTriggerRange(
-                    -1,
-                    currentGameSecond,
-                    gameDayIndex
-                );
-            }
-
-            lastGameSecond = currentGameSecond;
         }
 
+        long previousDay = previousAbsoluteSecond / SecondsPerDay;
+        long currentDay = currentAbsoluteSecond / SecondsPerDay;
+
+        for (long day = previousDay; day <= currentDay; day++)
+        {
+            int fromSecond = day == previousDay
+                ? (int)(previousAbsoluteSecond % SecondsPerDay)
+                : -1;
+            int toSecond = day == currentDay
+                ? (int)(currentAbsoluteSecond % SecondsPerDay)
+                : SecondsPerDay - 1;
+
+            ProcessTriggerRange(fromSecond, toSecond, day);
+        }
+
+        gameDayIndex = currentDay;
+        lastGameSecond = (int)(currentAbsoluteSecond % SecondsPerDay);
         ProcessDeliveryQueue();
     }
 
