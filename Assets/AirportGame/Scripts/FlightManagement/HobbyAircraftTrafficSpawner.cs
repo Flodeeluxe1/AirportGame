@@ -522,15 +522,15 @@ public class HobbyAircraftTrafficSpawner : MonoBehaviour
 
     private float GetFeeDemandMultiplier()
     {
-        AircraftHobbyVisitController visitController =
-            hobbyAircraftPrefab.GetComponent<AircraftHobbyVisitController>();
+        AircraftAirportFees airportFees =
+            hobbyAircraftPrefab.GetComponent<AircraftAirportFees>();
 
-        if (visitController == null)
+        if (airportFees == null)
             return 1f;
 
         float feePenalty =
-            visitController.LandingFee * landingFeeSensitivity +
-            visitController.ParkingFee * parkingFeeSensitivity;
+            airportFees.LandingFee * landingFeeSensitivity +
+            airportFees.ParkingFee * parkingFeeSensitivity;
 
         return 1f / (1f + feePenalty);
     }
@@ -670,17 +670,6 @@ public class HobbyAircraftTrafficSpawner : MonoBehaviour
             );
 
             valid = false;
-        }
-
-        if (hobbyAircraftPrefab.GetComponent<AircraftAirportFees>() != null)
-        {
-            Debug.LogWarning(
-                "The hobby prefab also has AircraftAirportFees. " +
-                "HobbyAircraftVisitController already charges hobby fees, " +
-                "so remove AircraftAirportFees from this hobby prefab " +
-                "to avoid duplicate landing charges.",
-                hobbyAircraftPrefab
-            );
         }
 
         return valid;
