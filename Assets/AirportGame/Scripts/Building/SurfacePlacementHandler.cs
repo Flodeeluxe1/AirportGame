@@ -66,8 +66,11 @@ public class SurfacePlacementHandler : IPlacementHandler
             ray,
             1000f,
             Physics.DefaultRaycastLayers,
-            QueryTriggerInteraction.Collide);
-        System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+            QueryTriggerInteraction.Ignore);
+
+        System.Array.Sort(
+            hits,
+            (a, b) => a.distance.CompareTo(b.distance));
 
         foreach (RaycastHit hit in hits)
         {
@@ -97,72 +100,115 @@ public class SurfacePlacementHandler : IPlacementHandler
             return;
         }
 
+        UpdatePreviewTransform();
+
+        isValid = HasClearance();
+        placementPreview.SetValid(isValid);
+    }
+
+    private void UpdatePreviewTransform()
+    {
+        if (previewObject == null || currentSupport == null)
+            return;
+
+        // Surface objects rotate relative to the supporting furniture.
         previewObject.transform.rotation =
+            currentSupport.transform.rotation *
             Quaternion.Euler(0f, currentRotation, 0f);
 
         previewObject.transform.position = currentPosition;
 
-        // Align the lowest visible point of the preview with the hit surface.
-        float lowestY = float.PositiveInfinity;
+        if (!TryGetPreviewLocalBounds(out Bounds localBounds))
+            return;
+
+        // Keep the lowest visible point resting on the hit surface.
+        Vector3 lowestLocalPoint = new Vector3(
+            localBounds.center.x,
+            localBounds.min.y,
+            localBounds.center.z);
+
+        float lowestWorldY =
+            previewObject.transform.TransformPoint(lowestLocalPoint).y;
+
+        Vector3 position = previewObject.transform.position;
+        position.y += currentPosition.y - lowestWorldY;
+        previewObject.transform.position = position;
+    }
+
+    private bool TryGetPreviewLocalBounds(out Bounds localBounds)
+    {
+        localBounds = new Bounds();
+        bool hasBounds = false;
+
+        if (previewObject == null || previewRenderers == null)
+            return false;
+
+        Transform previewTransform = previewObject.transform;
 
         foreach (Renderer renderer in previewRenderers)
         {
             if (renderer == null || !renderer.enabled)
                 continue;
 
-            lowestY = Mathf.Min(lowestY, renderer.bounds.min.y);
+            Bounds rendererLocalBounds = renderer.localBounds;
+
+            for (int cornerIndex = 0; cornerIndex < 8; cornerIndex++)
+            {
+                Vector3 localCorner = new Vector3(
+                    (cornerIndex & 1) == 0
+                        ? rendererLocalBounds.min.x
+                        : rendererLocalBounds.max.x,
+                    (cornerIndex & 2) == 0
+                        ? rendererLocalBounds.min.y
+                        : rendererLocalBounds.max.y,
+                    (cornerIndex & 4) == 0
+                        ? rendererLocalBounds.min.z
+                        : rendererLocalBounds.max.z);
+
+                Vector3 worldCorner =
+                    renderer.transform.TransformPoint(localCorner);
+
+                Vector3 previewLocalCorner =
+                    previewTransform.InverseTransformPoint(worldCorner);
+
+                if (!hasBounds)
+                {
+                    localBounds = new Bounds(previewLocalCorner, Vector3.zero);
+                    hasBounds = true;
+                }
+                else
+                {
+                    localBounds.Encapsulate(previewLocalCorner);
+                }
+            }
         }
 
-        if (!float.IsPositiveInfinity(lowestY))
-        {
-            Vector3 position = previewObject.transform.position;
-            position.y += currentPosition.y - lowestY;
-            previewObject.transform.position = position;
-        }
-
-        isValid = HasClearance();
-        placementPreview.SetValid(isValid);
+        return hasBounds;
     }
 
     private bool HasClearance()
     {
         if (currentSupport == null ||
             currentSupportCollider == null ||
-            previewRenderers == null)
+            previewRenderers == null ||
+            !TryGetPreviewLocalBounds(out Bounds localBounds))
         {
             return false;
         }
 
-        Bounds bounds = new Bounds(
-            previewObject.transform.position,
-            Vector3.zero);
+        if (!FitsOnSupportingSurface(localBounds))
+            return false;
 
-        bool hasBounds = false;
+        Bounds worldBounds = GetPreviewWorldBounds();
 
-        foreach (Renderer renderer in previewRenderers)
-        {
-            if (renderer == null || !renderer.enabled)
-                continue;
-
-            if (!hasBounds)
-            {
-                bounds = renderer.bounds;
-                hasBounds = true;
-            }
-            else
-            {
-                bounds.Encapsulate(renderer.bounds);
-            }
-        }
-
-        if (!hasBounds || !FitsOnSupportingSurface(bounds))
+        if (worldBounds.size == Vector3.zero)
             return false;
 
         Bounds candidateBounds =
-            new Bounds(bounds.center, bounds.size * 0.95f);
+            new Bounds(worldBounds.center, worldBounds.size * 0.95f);
 
-        // Check rendered bounds too, because some imported furniture has no
-        // collider and must still prevent another object occupying the same space.
+        // Prevent overlap with other surface-placed objects, including objects
+        // whose imported prefabs do not contain colliders.
         foreach (PlacedBuilding other in PlacedBuilding.ActiveBuildings)
         {
             if (other == null ||
@@ -200,27 +246,27 @@ public class SurfacePlacementHandler : IPlacementHandler
                 return false;
         }
 
-        // Renderer.bounds is world-axis-aligned, so use an identity rotation.
+        // Check physical colliders as well, so surface objects cannot overlap
+        // walls or other placed furniture. The supporting furniture itself is
+        // allowed to intersect the bottom of the preview.
         Collider[] overlaps = Physics.OverlapBox(
-            bounds.center,
-            bounds.extents * 0.95f,
+            worldBounds.center,
+            worldBounds.extents * 0.95f,
             Quaternion.identity,
             Physics.DefaultRaycastLayers,
             QueryTriggerInteraction.Ignore);
 
         foreach (Collider overlap in overlaps)
         {
-            if (overlap == null)
+            if (overlap == null ||
+                overlap.transform.IsChildOf(previewObject.transform))
+            {
                 continue;
-
-            if (overlap.transform.IsChildOf(previewObject.transform))
-                continue;
+            }
 
             PlacedBuilding otherBuilding =
                 overlap.GetComponentInParent<PlacedBuilding>();
 
-            // The supporting furniture may intersect the bottom of the
-            // placed object's bounds. Other colliders remain blockers.
             if (otherBuilding == currentSupport)
                 continue;
 
@@ -230,32 +276,67 @@ public class SurfacePlacementHandler : IPlacementHandler
         return true;
     }
 
-    private bool FitsOnSupportingSurface(Bounds objectBounds)
+    private Bounds GetPreviewWorldBounds()
     {
-        if (currentSupportCollider == null)
+        Bounds bounds = new Bounds(
+            previewObject.transform.position,
+            Vector3.zero);
+
+        bool hasBounds = false;
+
+        foreach (Renderer renderer in previewRenderers)
+        {
+            if (renderer == null || !renderer.enabled)
+                continue;
+
+            if (!hasBounds)
+            {
+                bounds = renderer.bounds;
+                hasBounds = true;
+            }
+            else
+            {
+                bounds.Encapsulate(renderer.bounds);
+            }
+        }
+
+        return bounds;
+    }
+
+    private bool FitsOnSupportingSurface(Bounds localBounds)
+    {
+        if (currentSupportCollider == null || previewObject == null)
             return false;
 
-        // Check the complete footprint against the actual collider. This also
-        // handles rotated tables, unlike checking only collider.bounds.
+        // Test the actual oriented footprint instead of the world-axis-aligned
+        // renderer bounds. This allows placement on rotated tables.
         float surfaceY = currentPosition.y + 0.01f;
 
-        Vector3[] corners =
+        Vector3[] localCorners =
         {
-            new Vector3(objectBounds.min.x, surfaceY, objectBounds.min.z),
-            new Vector3(objectBounds.min.x, surfaceY, objectBounds.max.z),
-            new Vector3(objectBounds.max.x, surfaceY, objectBounds.min.z),
-            new Vector3(objectBounds.max.x, surfaceY, objectBounds.max.z)
+            new Vector3(localBounds.min.x, localBounds.min.y, localBounds.min.z),
+            new Vector3(localBounds.min.x, localBounds.min.y, localBounds.max.z),
+            new Vector3(localBounds.max.x, localBounds.min.y, localBounds.min.z),
+            new Vector3(localBounds.max.x, localBounds.min.y, localBounds.max.z),
+            new Vector3(localBounds.center.x, localBounds.min.y, localBounds.center.z)
         };
 
         const float horizontalTolerance = 0.02f;
         float toleranceSquared =
             horizontalTolerance * horizontalTolerance;
 
-        foreach (Vector3 corner in corners)
+        foreach (Vector3 localCorner in localCorners)
         {
-            Vector3 closest = currentSupportCollider.ClosestPoint(corner);
-            float dx = corner.x - closest.x;
-            float dz = corner.z - closest.z;
+            Vector3 worldCorner =
+                previewObject.transform.TransformPoint(localCorner);
+
+            worldCorner.y = surfaceY;
+
+            Vector3 closest =
+                currentSupportCollider.ClosestPoint(worldCorner);
+
+            float dx = worldCorner.x - closest.x;
+            float dz = worldCorner.z - closest.z;
 
             if (dx * dx + dz * dz > toleranceSquared)
                 return false;
@@ -271,14 +352,13 @@ public class SurfacePlacementHandler : IPlacementHandler
 
         currentRotation = (currentRotation + 90) % 360;
 
-        if (hasSupport)
-        {
-            previewObject.transform.rotation =
-                Quaternion.Euler(0f, currentRotation, 0f);
+        if (!hasSupport)
+            return;
 
-            isValid = HasClearance();
-            placementPreview.SetValid(isValid);
-        }
+        UpdatePreviewTransform();
+
+        isValid = HasClearance();
+        placementPreview.SetValid(isValid);
     }
 
     public void TryPlace()
