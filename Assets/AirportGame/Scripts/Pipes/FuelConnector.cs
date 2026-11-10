@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -8,6 +10,14 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public sealed class FuelConnector : MonoBehaviour
 {
+    private static readonly HashSet<FuelConnector> activeConnectors = new();
+
+    public static IReadOnlyCollection<FuelConnector> ActiveConnectors =>
+        activeConnectors;
+
+    public static event Action<FuelConnector> ConnectorRegistered;
+    public static event Action<FuelConnector> ConnectorUnregistered;
+
     [SerializeField] private GridManager gridManager;
 
     public Vector2Int GridCell
@@ -32,6 +42,18 @@ public sealed class FuelConnector : MonoBehaviour
     private void Awake()
     {
         ResolveGridManager();
+    }
+
+    private void OnEnable()
+    {
+        if (activeConnectors.Add(this))
+            ConnectorRegistered?.Invoke(this);
+    }
+
+    private void OnDisable()
+    {
+        if (activeConnectors.Remove(this))
+            ConnectorUnregistered?.Invoke(this);
     }
 
     private void ResolveGridManager()
