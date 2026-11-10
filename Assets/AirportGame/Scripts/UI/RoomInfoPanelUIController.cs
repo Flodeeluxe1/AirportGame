@@ -107,6 +107,7 @@ public class RoomInfoPanelUIController : MonoBehaviour
         nextAssessmentRefreshTime =
             Time.unscaledTime + AssessmentRefreshInterval;
 
+        UpdateValidationDisplay();
         UpdateAssessmentDisplay();
     }
 
@@ -433,6 +434,48 @@ public class RoomInfoPanelUIController : MonoBehaviour
                 validationLabel.text = valid
                     ? "Valid: this room meets the requirements."
                     : "Not valid yet:\n" + validationMessage;
+
+                validationLabel.style.color = valid
+                    ? new Color(0.35f, 0.85f, 0.48f, 1f)
+                    : new Color(1f, 0.55f, 0.40f, 1f);
+            }
+            else
+            {
+                validationLabel.text =
+                    "Cannot validate: RoomPurposeController is missing.";
+
+                validationLabel.style.color =
+                    new Color(1f, 0.55f, 0.40f, 1f);
+            }
+        }
+        else if (pendingPurpose == RoomPurpose.CEOOffice ||
+                 pendingPurpose == RoomPurpose.CFOOffice)
+        {
+            requirementsLabel.text =
+                pendingPurpose == RoomPurpose.CEOOffice
+                    ? "CEO Office requirements:\\n"
+                    : "CFO Office requirements:\\n";
+
+            requirementsLabel.text +=
+                "• Fully enclosed room\\n" +
+                "• At least one door\\n" +
+                "• One desk or office table\\n" +
+                "• One office chair\\n" +
+                "• One computer\\n" +
+                "• One printer\\n" +
+                "• Required furniture must be inside this room";
+
+            if (roomPurposeController != null)
+            {
+                bool valid =
+                    roomPurposeController.ValidateOffice(
+                        selectedRoom,
+                        out string validationMessage
+                    );
+
+                validationLabel.text = valid
+                    ? "Functional: this office meets all requirements."
+                    : "Not functional yet:\\n" + validationMessage;
 
                 validationLabel.style.color = valid
                     ? new Color(0.35f, 0.85f, 0.48f, 1f)
