@@ -378,3 +378,31 @@
     background-color: rgb(235, 238, 242);
     color: rgb(25, 27, 32);
 }
+
+
+.build-search-label {
+    margin-left: 5px;
+    margin-bottom: 4px;
+    color: white;
+    font-size: 11px;
+    -unity-font-style: bold;
+    flex-shrink: 0;
+}
+
+.build-search-field {
+    width: 100%;
+    min-height: 32px;
+    height: 32px;
+    margin-left: 5px;
+    margin-right: 5px;
+    margin-bottom: 10px;
+    flex-shrink: 0;
+}
+
+.build-search-field .unity-base-text-field__input,
+.build-search-field .unity-text-field__input {
+    width: 100%;
+    min-width: 0;
+    background-color: rgb(235, 238, 242);
+    color: rgb(25, 27, 32);
+}
