@@ -89,6 +89,9 @@ public class PlacedBuilding : MonoBehaviour
         EdgeDirection direction)
     {
         Definition = definition;
+        isSurfacePlaced = false;
+        supportingSurface = null;
+        EnsureInstanceId();
 
         Origin = origin;
 
