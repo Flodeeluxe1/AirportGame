@@ -38,6 +38,10 @@ public class RoomPurposeController : MonoBehaviour
     private void Awake()
     {
         ResolveReferences();
+
+        // Keep airport management alongside the existing room-purpose system.
+        if (GetComponent<AirportManagementController>() == null)
+            gameObject.AddComponent<AirportManagementController>();
     }
 
     private void Update()
@@ -178,6 +182,37 @@ public class RoomPurposeController : MonoBehaviour
         return assignments.TryGetValue(anchor, out RoomPurpose purpose)
             ? purpose
             : RoomPurpose.None;
+    }
+
+    /// <summary>
+    /// Returns true when at least one currently detected room is assigned
+    /// to the requested office purpose and passes the existing office rules.
+    /// </summary>
+    public bool HasValidAssignedOffice(RoomPurpose purpose)
+    {
+        if (purpose != RoomPurpose.CEOOffice &&
+            purpose != RoomPurpose.CFOOffice)
+        {
+            return false;
+        }
+
+        ResolveReferences();
+
+        if (roomDetection == null)
+            return false;
+
+        roomDetection.RefreshRooms();
+
+        foreach (RoomDetectionController.DetectedRoom room in roomDetection.Rooms)
+        {
+            if (room == null || GetAssignedPurpose(room) != purpose)
+                continue;
+
+            if (ValidateOffice(room, out _))
+                return true;
+        }
+
+        return false;
     }
 
     public void AssignPurpose(
