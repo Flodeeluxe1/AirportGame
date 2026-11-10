@@ -166,12 +166,26 @@ public class AircraftCargoPaxLandingController : MonoBehaviour
         rolloutElapsed = 0f;
         flareDecisionMade = false;
 
-        state = LandingState.Aligning;
-
+        SetOperationalState(LandingState.Aligning);
         debugStatus =
             "Flying toward the runway approach alignment point.";
 
         UpdateDebugInformation();
+    }
+
+
+    private void SetOperationalState(LandingState newState)
+    {
+        if (state == newState)
+            return;
+
+        state = newState;
+
+        AircraftFlightIdentity identity =
+            GetComponent<AircraftFlightIdentity>();
+
+        if (identity != null)
+            identity.NotifyAircraftChanged();
     }
 
     private void Update()
@@ -451,8 +465,7 @@ public class AircraftCargoPaxLandingController : MonoBehaviour
             currentSpeed =
                 AircraftStatus.KnotsToWorldSpeed(approachSpeedKnots);
 
-            state = LandingState.FinalApproach;
-
+            SetOperationalState(LandingState.FinalApproach);
             debugStatus =
                 "Aligned. Starting the 3-degree final approach.";
 
@@ -534,8 +547,7 @@ public class AircraftCargoPaxLandingController : MonoBehaviour
         if (debugSidewindComponentKnots >
             maximumSidewindComponentKnots)
         {
-            state = LandingState.GoAround;
-
+            SetOperationalState(LandingState.GoAround);
             debugGoAroundTargetAltitude =
                 runwaySurfaceY +
                 Mathf.Max(
@@ -562,7 +574,7 @@ public class AircraftCargoPaxLandingController : MonoBehaviour
             return;
         }
 
-        state = LandingState.Flare;
+        SetOperationalState(LandingState.Flare);
         debugStatus = "Crosswind within limit. Flare initiated.";
     }
 
@@ -671,8 +683,7 @@ public class AircraftCargoPaxLandingController : MonoBehaviour
 
         SetFlightOrientation(0f, noseRaiseDegrees);
 
-        state = LandingState.Rollout;
-
+        SetOperationalState(LandingState.Rollout);
         debugStatus =
             "Touchdown. Rolling out and decelerating.";
 
@@ -727,8 +738,7 @@ public class AircraftCargoPaxLandingController : MonoBehaviour
         // Publish the exact rollout speed before handing over to taxi.
         PublishCurrentSpeed();
 
-        state = LandingState.LandingComplete;
-
+        SetOperationalState(LandingState.LandingComplete);
         AircraftFlightIdentity flightIdentity =
             GetComponent<AircraftFlightIdentity>();
 
@@ -830,7 +840,7 @@ public class AircraftCargoPaxLandingController : MonoBehaviour
             this
         );
 
-        state = LandingState.Failed;
+        SetOperationalState(LandingState.Failed);
         debugLandingState = "GoAroundComplete";
 
         Destroy(gameObject);
@@ -947,7 +957,7 @@ public class AircraftCargoPaxLandingController : MonoBehaviour
 
     private void Fail(string reason)
     {
-        state = LandingState.Failed;
+        SetOperationalState(LandingState.Failed);
         debugStatus = reason;
 
         Debug.LogError(
