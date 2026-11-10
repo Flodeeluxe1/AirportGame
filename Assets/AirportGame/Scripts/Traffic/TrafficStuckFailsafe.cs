@@ -10,6 +10,10 @@ public class TrafficStuckFailsafe : MonoBehaviour
     [Min(0.001f)]
     public float movementThreshold = 0.05f;
 
+    [Tooltip("How often vehicle movement is sampled by the stuck failsafe.")]
+    [Min(0.02f)]
+    public float movementCheckInterval = 0.25f;
+
     [Header("Parking Wait Failsafe")]
     [Tooltip("Destroy the vehicle if it waits this long for a parking space.")]
     [Min(0.1f)]
@@ -38,6 +42,7 @@ public class TrafficStuckFailsafe : MonoBehaviour
 
     private float stationaryTimer;
     private float parkingWaitTimer;
+    private float movementCheckTimer;
 
     private bool collidersTemporarilyDisabled;
 
@@ -104,13 +109,20 @@ public class TrafficStuckFailsafe : MonoBehaviour
             debugParkingWaitTime = 0f;
         }
 
+        // Movement is sampled at a configurable interval rather than every frame.
+        movementCheckTimer += Time.deltaTime;
+
+        if (movementCheckTimer < movementCheckInterval)
+            return;
+
+        float sampleElapsed = movementCheckTimer;
+        movementCheckTimer = 0f;
+
         // Preserve the existing collider recovery behavior.
         if (collidersTemporarilyDisabled)
         {
             if (disableCollidersUntilMoving)
-            {
                 CheckForMovementAfterFailsafe();
-            }
 
             return;
         }
@@ -129,7 +141,7 @@ public class TrafficStuckFailsafe : MonoBehaviour
             return;
         }
 
-        stationaryTimer += Time.deltaTime;
+        stationaryTimer += sampleElapsed;
         debugStationaryTime = stationaryTimer;
 
         if (stationaryTimer >= stuckTime)
@@ -179,6 +191,7 @@ public class TrafficStuckFailsafe : MonoBehaviour
 
         disabledPosition = transform.position;
         stationaryTimer = 0f;
+        movementCheckTimer = 0f;
         debugStationaryTime = 0f;
 
         SetFailsafeLog(
@@ -217,6 +230,7 @@ public class TrafficStuckFailsafe : MonoBehaviour
         debugCollidersDisabled = false;
 
         stationaryTimer = 0f;
+        movementCheckTimer = 0f;
         debugStationaryTime = 0f;
 
         stationaryAnchor = transform.position;
