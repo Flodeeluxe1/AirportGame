@@ -15,15 +15,17 @@ MonoBehaviour:
   id: airport.interior.clock
   displayName: Clock
   prefab: {fileID: 1996829000367705453, guid: b2baa11c7e87fe941afe32f3c50cc082, type: 3}
-  placementType: 0
-  requiredSurface: 1
+  placementType: 1
+  requiredSurface: 5
   width: 1
   depth: 1
   edgeLength: 1
-  requiresExistingWall: 0
-  isWallMounted: 0
+  requiresExistingWall: 1
+  isWallMounted: 1
   mountHeight: 2
-  canRotate: 1
+  canBePlacedOnSurface: 0
+  canSupportSurfaceObjects: 0
+  canRotate: 0
   buildCost: 20
   blocksPathfinding: 0
   menuCategory: Interior & Decor

@@ -320,6 +320,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dd1e7714ffb03b94a82fb23708897059, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AircraftRunwayTrafficManager
+  logLineUpReservationReleased: 0
+  logDepartureReservationReleased: 0
   runwayOccupancyBuffer: 0.5
   gridManager: {fileID: 0}
   runwayToRelease: {fileID: 0}
@@ -1446,7 +1448,6 @@ MonoBehaviour:
   gridManager: {fileID: 728659359}
   gridSurface: {fileID: 728659360}
   edgeOccupancy: {fileID: 751787733}
-  refreshInterval: 0.5
   logRoomChanges: 1
 --- !u!1 &732156761
 GameObject:
@@ -1512,7 +1513,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FlightSchoolAssessmentController
   roomPurposeController: {fileID: 0}
-  refreshInterval: 0.5
   assessments: []
   debugStatus: Waiting for Flight School rooms.
 --- !u!1 &732953584
@@ -1655,6 +1655,7 @@ MonoBehaviour:
   spawnPoint: {fileID: 756627278}
   gameTimeManager: {fileID: 449210932}
   gridManager: {fileID: 728659359}
+  airportManagementController: {fileID: 0}
   maximumActiveHobbyAircraft: 20
   demandCheckIntervalMinutes: 10
   testFlightMode: 0
@@ -2235,6 +2236,7 @@ MonoBehaviour:
   spawnPoint: {fileID: 1023196800}
   flightCatalog: {fileID: 1712716984}
   gameTimeManager: {fileID: 449210932}
+  airportManagementController: {fileID: 0}
   spawnIntervalSeconds: 120
   logScheduleReloads: 1
   logAircraftSpawns: 1
@@ -2461,8 +2463,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::WasteCollectionManager
   garbageCollectorSpawner: {fileID: 2134991062}
+  fixedCollectionFeePerTrip: 25
+  disposalFeePerUnit: 0.2
   dispatchThresholdPercent: 1
-  scanInterval: 2
   logCollectionChecks: 1
   trackedDisposalCount: 0
   totalCurrentWaste: 0
@@ -2526,6 +2529,37 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 27.90472, y: 0, z: 21.7546}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1390174454
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1390174455}
+  m_Layer: 0
+  m_Name: AirportManagementController
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1390174455
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1390174454}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -660.0566, y: -397.9203, z: 84.10366}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -2766,7 +2800,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FlightOperationsStatusPanel
   uiDocument: {fileID: 762824360}
   gateRegistry: {fileID: 0}
-  refreshInterval: 0.5
   statusListHeight: 54
 --- !u!114 &1478484327
 MonoBehaviour:
@@ -2875,7 +2908,6 @@ MonoBehaviour:
   flightCatalog: {fileID: 1712716984}
   gateRegistry: {fileID: 335832197}
   gameTimeManager: {fileID: 449210932}
-  refreshInterval: 0.5
   onTimeToleranceMinutes: 5
 --- !u!114 &1478484330
 MonoBehaviour:
@@ -4044,7 +4076,6 @@ MonoBehaviour:
   gameTimeManager: {fileID: 449210932}
   roadModuleSize: 2
   minutesBeforeDeparture: 30
-  scheduleRefreshInterval: 1
   spawnIntervalGameSeconds: 2
   spawnHeightOffset: 0.2
   logScheduleChanges: 1
@@ -4297,12 +4328,11 @@ MonoBehaviour:
   gameTimeManager: {fileID: 449210932}
   roadModuleSize: 2
   minutesBeforeDeparture: 30
-  scheduleRefreshInterval: 1
   spawnIntervalGameSeconds: 2
   spawnHeightOffset: 0.2
-  logScheduleChanges: 1
-  logTruckSpawns: 1
-  logQueueChanges: 1
+  logScheduleChanges: 0
+  logTruckSpawns: 0
+  logQueueChanges: 0
 --- !u!114 &2134991061
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4344,8 +4374,8 @@ MonoBehaviour:
   roadNetwork: {fileID: 401526682}
   maximumActiveCollectors: 3
   spawnHeightOffset: 0.2
-  logDispatches: 1
-  logDispatchDiagnostics: 1
+  logDispatches: 0
+  logDispatchDiagnostics: 0
 --- !u!1 &2136825550
 GameObject:
   m_ObjectHideFlags: 0
@@ -4645,6 +4675,7 @@ SceneRoots:
   - {fileID: 1399790237}
   - {fileID: 449210933}
   - {fileID: 2136825552}
+  - {fileID: 1390174455}
   - {fileID: 1048131945}
   - {fileID: 1832806717}
   - {fileID: 2112575486}

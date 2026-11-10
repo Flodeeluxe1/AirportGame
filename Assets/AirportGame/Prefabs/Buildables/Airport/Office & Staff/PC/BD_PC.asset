@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BuildableDefinition
   id: airport.office.pc
   displayName: PC
-  prefab: {fileID: 2024588990946668635, guid: a5ac041b79f79364ca8481b503332787, type: 3}
+  prefab: {fileID: 3397794668357964319, guid: a5ac041b79f79364ca8481b503332787, type: 3}
   placementType: 0
   requiredSurface: 1
   width: 1
@@ -22,9 +22,9 @@ MonoBehaviour:
   edgeLength: 1
   requiresExistingWall: 0
   isWallMounted: 0
+  mountHeight: 2
   canBePlacedOnSurface: 1
   canSupportSurfaceObjects: 0
-  mountHeight: 2
   canRotate: 1
   buildCost: 400
   blocksPathfinding: 0
