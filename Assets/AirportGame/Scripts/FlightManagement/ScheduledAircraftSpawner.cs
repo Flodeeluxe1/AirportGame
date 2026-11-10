@@ -90,6 +90,9 @@ public class ScheduledAircraftSpawner : MonoBehaviour
 
     private void OnEnable()
     {
+        if (gameTimeManager == null)
+            gameTimeManager = FindFirstObjectByType<GameTimeManager>();
+
         if (gameTimeManager != null)
             gameTimeManager.GameTimeAdvanced += HandleGameTimeAdvanced;
 
