@@ -55,6 +55,13 @@ public class BuildableDefinition : ScriptableObject
     [Min(0f)]
     public float mountHeight = 2f;
 
+    [Header("Surface Placement")]
+    [Tooltip("Allows this object to be placed freely on a supporting placed object instead of occupying floor grid cells.")]
+    public bool canBePlacedOnSurface = false;
+
+    [Tooltip("Allows other surface-placeable objects to be placed on this object.")]
+    public bool canSupportSurfaceObjects = false;
+
     [Header("Building")]
     public bool canRotate = true;
     public int buildCost = 0;
