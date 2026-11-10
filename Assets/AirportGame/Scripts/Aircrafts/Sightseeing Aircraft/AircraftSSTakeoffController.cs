@@ -544,9 +544,13 @@ public class AircraftSSTakeoffController : MonoBehaviour
         if (commissionPaid <= 0)
             return;
 
-        bool paid = economyManager.AddRevenue(
-            commissionPaid,
-            $"Sightseeing flight ({passengersOnBoard} passengers)");
+        AircraftAirportFees airportFees =
+            GetComponent<AircraftAirportFees>();
+
+        bool paid = airportFees != null &&
+            airportFees.RecordCharge(
+                commissionPaid,
+                $"Sightseeing flight ({passengersOnBoard} passengers)");
 
         if (!paid)
         {
