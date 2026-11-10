@@ -14,11 +14,16 @@ public enum BuildCategory
     Pipelines
 }
 
+[System.Flags]
 public enum RoomFurnitureRole
 {
-    None,
-    InstructorDesk,
-    StudentSeat
+    None = 0,
+    InstructorDesk = 1,
+    StudentSeat = 2,
+    OfficeDesk = 4,
+    OfficeChair = 8,
+    OfficeComputer = 16,
+    OfficePrinter = 32
 }
 
 [CreateAssetMenu(
