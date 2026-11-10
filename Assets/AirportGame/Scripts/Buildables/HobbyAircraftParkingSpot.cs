@@ -1,4 +1,5 @@
 
+using System;
 using UnityEngine;
 
 /// <summary>
@@ -8,6 +9,8 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class HobbyAircraftParkingSpot : MonoBehaviour
 {
+    public static event Action ParkingStatusChanged;
+
     [Header("Parking Position")]
     [Tooltip("Optional child Transform marking where the aircraft should park.")]
     [SerializeField] private Transform parkingPosition;
@@ -23,6 +26,16 @@ public class HobbyAircraftParkingSpot : MonoBehaviour
     [SerializeField] private GameObject reservedAircraft;
 
     private PlacedBuilding placedBuilding;
+
+    private void OnEnable()
+    {
+        ParkingStatusChanged?.Invoke();
+    }
+
+    private void OnDisable()
+    {
+        ParkingStatusChanged?.Invoke();
+    }
 
     public bool ReservedForFlightSchool =>
         reservedForFlightSchool;
@@ -71,7 +84,11 @@ public class HobbyAircraftParkingSpot : MonoBehaviour
     /// </summary>
     public void RestoreFlightSchoolDesignation(bool isDesignated)
     {
+        if (reservedForFlightSchool == isDesignated)
+            return;
+
         reservedForFlightSchool = isDesignated;
+        ParkingStatusChanged?.Invoke();
     }
 
     public bool TryReserve(
@@ -96,6 +113,7 @@ public class HobbyAircraftParkingSpot : MonoBehaviour
             return false;
 
         reservedAircraft = aircraft;
+        ParkingStatusChanged?.Invoke();
 
         Debug.Log(
             $"Parking spot reserved | Spot: {name} | " +
@@ -113,6 +131,7 @@ public class HobbyAircraftParkingSpot : MonoBehaviour
             return false;
 
         reservedAircraft = null;
+        ParkingStatusChanged?.Invoke();
 
         Debug.Log(
             $"Parking spot released | Spot: {name} | " +
