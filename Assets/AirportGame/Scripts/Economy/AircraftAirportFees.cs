@@ -122,6 +122,10 @@ public class AircraftAirportFees : MonoBehaviour
 
         while (now >= nextParkingChargeTime)
         {
+            if (hobbyVisitController != null &&
+                nextParkingChargeTime >= hobbyVisitController.ParkingFeeEndGameSeconds)
+                break;
+
             if (parkingFee > 0 && !RecordCharge(parkingFee, "Parking fee - " + name))
                 return;
 
