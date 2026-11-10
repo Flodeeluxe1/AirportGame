@@ -17,6 +17,8 @@ public class AirportUIController : MonoBehaviour
     private VisualElement buildWindow;
     private ScrollView buildableList;
     private ScrollView airportSubcategoryList;
+    private TextField buildSearchField;
+    private string buildSearchQuery = string.Empty;
 
     private Button buildButton;
     private Button zoneButton;
@@ -83,6 +85,16 @@ public class AirportUIController : MonoBehaviour
         buildWindow = root.Q<VisualElement>("build-window");
         buildableList = root.Q<ScrollView>("buildable-list");
         airportSubcategoryList = root.Q<ScrollView>("airport-subcategory-list");
+        buildSearchField = root.Q<TextField>("build-search-field");
+
+        if (buildSearchField != null)
+        {
+            buildSearchField.RegisterValueChangedCallback(evt =>
+            {
+                buildSearchQuery = evt.newValue?.Trim() ?? string.Empty;
+                PopulateBuildableList();
+            });
+        }
 
         if (buildableList != null)
         {
@@ -371,24 +383,46 @@ public class AirportUIController : MonoBehaviour
 
         foreach (BuildableDefinition definition in buildCatalog.buildables)
         {
-            if (definition == null ||
-                definition.category != currentCategory)
-            {
+            if (definition == null)
                 continue;
-            }
 
-            if (currentCategory == BuildCategory.Airport &&
-                !string.IsNullOrEmpty(currentAirportMenuCategory) &&
-                !string.Equals(
-                    definition.menuCategory,
-                    currentAirportMenuCategory,
-                    StringComparison.Ordinal))
+            if (!string.IsNullOrEmpty(buildSearchQuery))
             {
-                continue;
+                if (!MatchesBuildSearch(definition, buildSearchQuery))
+                    continue;
+            }
+            else
+            {
+                if (definition.category != currentCategory)
+                    continue;
+
+                if (currentCategory == BuildCategory.Airport &&
+                    !string.IsNullOrEmpty(currentAirportMenuCategory) &&
+                    !string.Equals(
+                        definition.menuCategory,
+                        currentAirportMenuCategory,
+                        StringComparison.Ordinal))
+                {
+                    continue;
+                }
             }
 
             CreateBuildableButton(definition);
         }
+    }
+
+    private bool MatchesBuildSearch(BuildableDefinition definition, string query)
+    {
+        return ContainsSearchText(definition.displayName, query) ||
+               ContainsSearchText(definition.id, query) ||
+               ContainsSearchText(definition.menuCategory, query) ||
+               ContainsSearchText(definition.category.ToString(), query);
+    }
+
+    private static bool ContainsSearchText(string value, string query)
+    {
+        return !string.IsNullOrEmpty(value) &&
+               value.IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0;
     }
 
     private void CreateBuildableButton(BuildableDefinition definition)
