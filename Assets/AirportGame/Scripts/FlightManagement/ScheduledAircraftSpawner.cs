@@ -334,8 +334,7 @@ public class ScheduledAircraftSpawner : MonoBehaviour
 
         if (!SpawnQueuedAircraft(queuedFlight))
         {
-            // Retry while preserving queue order. A short delay avoids
-            // repeatedly attempting the same unavailable gate every frame.
+            // Retry while preserving queue order on a later game-time event.
             nextAllowedSpawnGameSecond = currentGameTime + 1;
             return;
         }
