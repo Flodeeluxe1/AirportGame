@@ -42,6 +42,7 @@ public sealed class PipelinePrefabRuleManager : MonoBehaviour
 
     private readonly HashSet<Vector2Int> pipeCells = new();
     private readonly Dictionary<Vector2Int, GameObject> visuals = new();
+    private readonly Dictionary<Vector2Int, int> connectorCellCounts = new();
 
     public IReadOnlyCollection<Vector2Int> PipeCells => pipeCells;
 
@@ -63,6 +64,60 @@ public sealed class PipelinePrefabRuleManager : MonoBehaviour
     private void Awake()
     {
         ResolveReferences();
+    }
+
+    private void OnEnable()
+    {
+        FuelConnector.ConnectorRegistered += HandleConnectorRegistered;
+        FuelConnector.ConnectorUnregistered += HandleConnectorUnregistered;
+        RebuildConnectorCellCache();
+    }
+
+    private void OnDisable()
+    {
+        FuelConnector.ConnectorRegistered -= HandleConnectorRegistered;
+        FuelConnector.ConnectorUnregistered -= HandleConnectorUnregistered;
+        connectorCellCounts.Clear();
+    }
+
+    private void HandleConnectorRegistered(FuelConnector connector)
+    {
+        if (connector == null)
+            return;
+
+        Vector2Int cell = connector.GridCell;
+        connectorCellCounts.TryGetValue(cell, out int count);
+        connectorCellCounts[cell] = count + 1;
+    }
+
+    private void HandleConnectorUnregistered(FuelConnector connector)
+    {
+        if (connector == null)
+            return;
+
+        Vector2Int cell = connector.GridCell;
+        if (!connectorCellCounts.TryGetValue(cell, out int count))
+            return;
+
+        if (count <= 1)
+            connectorCellCounts.Remove(cell);
+        else
+            connectorCellCounts[cell] = count - 1;
+    }
+
+    private void RebuildConnectorCellCache()
+    {
+        connectorCellCounts.Clear();
+
+        foreach (FuelConnector connector in FuelConnector.ActiveConnectors)
+        {
+            if (connector == null)
+                continue;
+
+            Vector2Int cell = connector.GridCell;
+            connectorCellCounts.TryGetValue(cell, out int count);
+            connectorCellCounts[cell] = count + 1;
+        }
     }
 
     private void ResolveReferences()
@@ -290,22 +345,11 @@ public sealed class PipelinePrefabRuleManager : MonoBehaviour
             Vector2Int neighbour = cell + Directions[i];
 
             if (pipeCells.Contains(neighbour) ||
+                connectorCellCounts.ContainsKey(neighbour) ||
                 (additionalCells != null && additionalCells.Contains(neighbour)))
+            {
                 mask |= DirectionBits[i];
-        }
-
-        foreach (FuelConnector connector in FuelConnector.ActiveConnectors)
-        {
-            if (connector == null)
-                continue;
-
-            Vector2Int connectorCell = connector.GridCell;
-            Vector2Int offset = connectorCell - cell;
-
-            if (offset == Vector2Int.up) mask |= North;
-            else if (offset == Vector2Int.right) mask |= East;
-            else if (offset == Vector2Int.down) mask |= South;
-            else if (offset == Vector2Int.left) mask |= West;
+            }
         }
 
         return mask;
