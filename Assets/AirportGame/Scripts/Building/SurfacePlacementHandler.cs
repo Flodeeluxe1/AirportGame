@@ -40,7 +40,7 @@ public class SurfacePlacementHandler : IPlacementHandler
         hasSupport = false;
         isValid = false;
 
-        // Preview colliders must not block the placement ray.
+        // Preview colliders must not block the placement ray or overlap tests.
         foreach (Collider previewCollider in
                  previewObject.GetComponentsInChildren<Collider>(true))
         {
@@ -98,17 +98,15 @@ public class SurfacePlacementHandler : IPlacementHandler
 
         previewObject.transform.position = currentPosition;
 
+        // Align the lowest visible point of the preview with the hit surface.
         float lowestY = float.PositiveInfinity;
 
-        if (previewRenderers != null)
+        foreach (Renderer renderer in previewRenderers)
         {
-            foreach (Renderer renderer in previewRenderers)
-            {
-                if (renderer == null || !renderer.enabled)
-                    continue;
+            if (renderer == null || !renderer.enabled)
+                continue;
 
-                lowestY = Mathf.Min(lowestY, renderer.bounds.min.y);
-            }
+            lowestY = Mathf.Min(lowestY, renderer.bounds.min.y);
         }
 
         if (!float.IsPositiveInfinity(lowestY))
@@ -159,8 +157,8 @@ public class SurfacePlacementHandler : IPlacementHandler
         Bounds candidateBounds =
             new Bounds(bounds.center, bounds.size * 0.95f);
 
-        // Some imported furniture has no collider. Check rendered bounds
-        // of existing surface objects as a second overlap guard.
+        // Check rendered bounds too, because some imported furniture has no
+        // collider and must still prevent another object occupying the same space.
         foreach (PlacedBuilding other in PlacedBuilding.ActiveBuildings)
         {
             if (other == null ||
@@ -198,6 +196,7 @@ public class SurfacePlacementHandler : IPlacementHandler
                 return false;
         }
 
+        // Renderer.bounds is world-axis-aligned, so use an identity rotation.
         Collider[] overlaps = Physics.OverlapBox(
             bounds.center,
             bounds.extents * 0.95f,
@@ -216,12 +215,11 @@ public class SurfacePlacementHandler : IPlacementHandler
             PlacedBuilding otherBuilding =
                 overlap.GetComponentInParent<PlacedBuilding>();
 
-            // The supporting furniture is allowed to intersect the
-            // bottom of the placed object's bounds.
+            // The supporting furniture may intersect the bottom of the
+            // placed object's bounds. Other colliders remain blockers.
             if (otherBuilding == currentSupport)
                 continue;
 
-            // Other placed objects, walls and obstacles block placement.
             return false;
         }
 
@@ -233,9 +231,10 @@ public class SurfacePlacementHandler : IPlacementHandler
         if (currentSupportCollider == null)
             return false;
 
-        // Test the four corners of the object's footprint against the actual
-        // support collider. This also handles rotated tables.
+        // Check the complete footprint against the actual collider. This also
+        // handles rotated tables, unlike checking only collider.bounds.
         float surfaceY = currentPosition.y + 0.01f;
+
         Vector3[] corners =
         {
             new Vector3(objectBounds.min.x, surfaceY, objectBounds.min.z),
@@ -245,7 +244,8 @@ public class SurfacePlacementHandler : IPlacementHandler
         };
 
         const float horizontalTolerance = 0.02f;
-        float toleranceSquared = horizontalTolerance * horizontalTolerance;
+        float toleranceSquared =
+            horizontalTolerance * horizontalTolerance;
 
         foreach (Vector3 corner in corners)
         {
