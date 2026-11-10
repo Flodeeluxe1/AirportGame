@@ -339,6 +339,12 @@ public class AirportWorldResetController : MonoBehaviour
             PlacedBuildingSaveData savedBuilding = new PlacedBuildingSaveData
             {
                 definitionId = definitionId,
+                isSurfacePlaced = building.IsSurfacePlaced,
+                instanceId = building.InstanceId,
+                supportingSurfaceInstanceId =
+                    building.SupportingSurface != null
+                        ? building.SupportingSurface.InstanceId
+                        : "",
 
                 originX = building.Origin.x,
                 originZ = building.Origin.y,
@@ -568,6 +574,12 @@ public class AirportWorldResetController : MonoBehaviour
         List<FoundationBoundaryOwnership> restoredOwnershipComponents =
             new List<FoundationBoundaryOwnership>();
 
+        Dictionary<string, PlacedBuilding> restoredBuildingsById =
+            new Dictionary<string, PlacedBuilding>();
+
+        List<KeyValuePair<PlacedBuilding, string>> pendingSurfaceParents =
+            new List<KeyValuePair<PlacedBuilding, string>>();
+
         // 1. Restore placed objects and logical grid/edge occupancy.
         foreach (PlacedBuildingSaveData saved in data.placedBuildings)
         {
@@ -629,13 +641,22 @@ public class AirportWorldResetController : MonoBehaviour
             EdgeDirection edgeDirection =
                 (EdgeDirection)saved.edgeDirection;
 
-            if (isEdgeObject)
+            if (saved.isSurfacePlaced)
+            {
+                placedBuilding.InitializeSurface(
+                    definition,
+                    saved.rotation,
+                    saved.instanceId);
+            }
+            else if (isEdgeObject)
             {
                 placedBuilding.InitializeEdge(
                     definition,
                     origin,
                     Mathf.Max(1, saved.edgeLength),
                     edgeDirection);
+
+                placedBuilding.SetInstanceId(saved.instanceId);
             }
             else
             {
@@ -645,6 +666,20 @@ public class AirportWorldResetController : MonoBehaviour
                     Mathf.Max(1, saved.width),
                     Mathf.Max(1, saved.depth),
                     saved.rotation);
+
+                placedBuilding.SetInstanceId(saved.instanceId);
+            }
+
+            if (!string.IsNullOrWhiteSpace(placedBuilding.InstanceId))
+                restoredBuildingsById[placedBuilding.InstanceId] = placedBuilding;
+
+            if (saved.isSurfacePlaced &&
+                !string.IsNullOrWhiteSpace(saved.supportingSurfaceInstanceId))
+            {
+                pendingSurfaceParents.Add(
+                    new KeyValuePair<PlacedBuilding, string>(
+                        placedBuilding,
+                        saved.supportingSurfaceInstanceId));
             }
 
             CargoTugLotSpawner cargoTugLot =
@@ -709,7 +744,12 @@ public class AirportWorldResetController : MonoBehaviour
                 restoredOwnershipComponents.Add(ownership);
             }
 
-            if (isFoundation || isTarmac)
+            if (saved.isSurfacePlaced)
+            {
+                // Surface objects are parented to their supporting furniture
+                // after every saved object has been instantiated.
+            }
+            else if (isFoundation || isTarmac)
             {
                 BuildSurface areaSurface = isTarmac
                     ? BuildSurface.Tarmac
@@ -771,7 +811,7 @@ public class AirportWorldResetController : MonoBehaviour
                     restoredEdges++;
                 }
             }
-            else
+            else if (!saved.isSurfacePlaced)
             {
                 gridOccupancy.Occupy(
                     origin,
@@ -781,6 +821,29 @@ public class AirportWorldResetController : MonoBehaviour
             }
 
             restoredBuildings++;
+        }
+
+        // Resolve surface parents only after all placed objects exist.
+        foreach (KeyValuePair<PlacedBuilding, string> relationship
+                 in pendingSurfaceParents)
+        {
+            if (relationship.Key == null)
+                continue;
+
+            if (restoredBuildingsById.TryGetValue(
+                    relationship.Value,
+                    out PlacedBuilding support) &&
+                support != null)
+            {
+                relationship.Key.SetSupportingSurface(support);
+            }
+            else
+            {
+                Debug.LogWarning(
+                    $"Could not restore supporting surface " +
+                    $"'{relationship.Value}' for " +
+                    $"'{relationship.Key.name}'.");
+            }
         }
 
         // Resolve relationships after every saved object is instantiated.
