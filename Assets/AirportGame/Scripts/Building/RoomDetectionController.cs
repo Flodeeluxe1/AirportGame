@@ -1,10 +1,13 @@
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 public class RoomDetectionController : MonoBehaviour
 {
+    public event Action RoomsChanged;
+
     [Serializable]
     public class DetectedRoom
     {
@@ -49,7 +52,9 @@ public class RoomDetectionController : MonoBehaviour
     private readonly List<DetectedRoom> detectedRooms =
         new List<DetectedRoom>();
 
-    private float nextRefreshTime;
+    private bool isDirty = true;
+    private bool hasCompletedInitialRefresh;
+    private Coroutine pendingRefresh;
     private string previousRoomSignature = "";
 
     public IReadOnlyList<DetectedRoom> Rooms => detectedRooms;
@@ -61,19 +66,59 @@ public class RoomDetectionController : MonoBehaviour
         ResolveReferences();
     }
 
+    private void OnEnable()
+    {
+        ResolveReferences();
+
+        if (gridSurface != null)
+            gridSurface.FoundationSurfaceChanged += HandleGridChanged;
+
+        if (edgeOccupancy != null)
+            edgeOccupancy.OccupancyChanged += HandleGridChanged;
+
+        MarkRoomsDirty();
+    }
+
     private void Start()
     {
         RefreshRooms();
     }
 
-    private void Update()
+    private void OnDisable()
     {
-        if (Time.unscaledTime < nextRefreshTime)
-            return;
+        if (gridSurface != null)
+            gridSurface.FoundationSurfaceChanged -= HandleGridChanged;
 
-        nextRefreshTime =
-            Time.unscaledTime + refreshInterval;
+        if (edgeOccupancy != null)
+            edgeOccupancy.OccupancyChanged -= HandleGridChanged;
 
+        if (pendingRefresh != null)
+        {
+            StopCoroutine(pendingRefresh);
+            pendingRefresh = null;
+        }
+    }
+
+    private void HandleGridChanged()
+    {
+        MarkRoomsDirty();
+    }
+
+    private void MarkRoomsDirty()
+    {
+        isDirty = true;
+
+        if (isActiveAndEnabled && pendingRefresh == null)
+            pendingRefresh = StartCoroutine(RefreshAfterGridChanges());
+    }
+
+    private IEnumerator RefreshAfterGridChanges()
+    {
+        // Many cells can change during one placement or demolition action.
+        // Wait one frame so the complete edit is applied before scanning.
+        yield return null;
+
+        pendingRefresh = null;
         RefreshRooms();
     }
 
@@ -98,6 +143,15 @@ public class RoomDetectionController : MonoBehaviour
     [ContextMenu("Refresh Rooms")]
     public void RefreshRooms()
     {
+        if (!isDirty && hasCompletedInitialRefresh)
+            return;
+
+        if (pendingRefresh != null)
+        {
+            StopCoroutine(pendingRefresh);
+            pendingRefresh = null;
+        }
+
         ResolveReferences();
 
         detectedRooms.Clear();
@@ -159,9 +213,11 @@ public class RoomDetectionController : MonoBehaviour
         );
 
         string signature = BuildRoomSignature();
+        bool roomLayoutChanged =
+            !hasCompletedInitialRefresh ||
+            signature != previousRoomSignature;
 
-        if (logRoomChanges &&
-            signature != previousRoomSignature)
+        if (logRoomChanges && roomLayoutChanged)
         {
             Debug.Log(
                 $"RoomDetectionController: Found " +
@@ -171,6 +227,11 @@ public class RoomDetectionController : MonoBehaviour
         }
 
         previousRoomSignature = signature;
+        isDirty = false;
+        hasCompletedInitialRefresh = true;
+
+        if (roomLayoutChanged)
+            RoomsChanged?.Invoke();
     }
 
     private List<Vector2Int> CollectRoomComponent(
