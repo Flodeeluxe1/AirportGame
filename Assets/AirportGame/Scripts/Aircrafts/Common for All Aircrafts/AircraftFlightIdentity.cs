@@ -1,9 +1,20 @@
 
+using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 [DisallowMultipleComponent]
 public class AircraftFlightIdentity : MonoBehaviour
 {
+    private static readonly HashSet<AircraftFlightIdentity> activeAircraft = new();
+
+    public static IReadOnlyCollection<AircraftFlightIdentity> ActiveAircraft =>
+        activeAircraft;
+
+    public static event Action<AircraftFlightIdentity> AircraftRegistered;
+    public static event Action<AircraftFlightIdentity> AircraftUnregistered;
+    public static event Action<AircraftFlightIdentity> AircraftChanged;
+
     [Header("Flight Identity")]
     [SerializeField] private string flightNumber;
 
@@ -35,6 +46,24 @@ public class AircraftFlightIdentity : MonoBehaviour
     public bool HasActualGate =>
         !string.IsNullOrEmpty(actualGateStableId);
 
+    private void OnEnable()
+    {
+        activeAircraft.Add(this);
+        AircraftRegistered?.Invoke(this);
+    }
+
+    private void OnDisable()
+    {
+        if (activeAircraft.Remove(this))
+            AircraftUnregistered?.Invoke(this);
+    }
+
+    public void NotifyAircraftChanged()
+    {
+        if (isActiveAndEnabled)
+            AircraftChanged?.Invoke(this);
+    }
+
     public void Initialize(
         FlightDefinition definition,
         string plannedGateStableId,
@@ -62,6 +91,7 @@ public class AircraftFlightIdentity : MonoBehaviour
         IsHobbyFlight = false;
         IsTrainingFlight = false;
         IsInitialized = true;
+        NotifyAircraftChanged();
 
         Debug.Log(
             $"Aircraft initialized | Flight: {FlightNumber} | " +
@@ -99,6 +129,7 @@ public class AircraftFlightIdentity : MonoBehaviour
         IsHobbyFlight = true;
         IsTrainingFlight = false;
         IsInitialized = true;
+        NotifyAircraftChanged();
 
         Debug.Log(
             $"Hobby aircraft initialized | Flight: {FlightNumber} | " +
@@ -134,6 +165,7 @@ public class AircraftFlightIdentity : MonoBehaviour
         IsHobbyFlight = false;
         IsTrainingFlight = true;
         IsInitialized = true;
+        NotifyAircraftChanged();
 
         Debug.Log(
             $"Training aircraft initialized | Flight: {FlightNumber} | " +
@@ -153,12 +185,20 @@ public class AircraftFlightIdentity : MonoBehaviour
             return;
         }
 
+        if (actualGateStableId == gateStableId)
+            return;
+
         actualGateStableId = gateStableId;
+        NotifyAircraftChanged();
     }
 
     public void ClearActualGate()
     {
+        if (string.IsNullOrEmpty(actualGateStableId))
+            return;
+
         actualGateStableId = string.Empty;
+        NotifyAircraftChanged();
     }
 
     private string FormatTime(int minutes)
