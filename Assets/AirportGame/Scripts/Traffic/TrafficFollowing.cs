@@ -58,6 +58,7 @@ public sealed class TrafficFollowing : MonoBehaviour
 
         if (skipRaycasts)
         {
+            sideSensorsInitialized = false;
             RaycastSummary = "Traffic raycasts skipped: intersection reservation held.";
             if (captureRaycastDebugInfo) debugRaycastSummary = RaycastSummary;
             return Mathf.MoveTowards(currentSpeed, desiredSpeed, acceleration * Time.deltaTime);
