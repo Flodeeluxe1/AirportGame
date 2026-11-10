@@ -151,7 +151,7 @@ public class SurfacePlacementHandler : IPlacementHandler
         Collider[] overlaps = Physics.OverlapBox(
             bounds.center,
             bounds.extents * 0.95f,
-            previewObject.transform.rotation,
+            Quaternion.identity,
             Physics.DefaultRaycastLayers,
             QueryTriggerInteraction.Ignore);
 
