@@ -70,6 +70,9 @@ public class AircraftHobbyDepartureTaxiController : MonoBehaviour
     [Min(0f)]
     [SerializeField] private float lineUpSafetyMarginInCells = 0.25f;
 
+    [Header("Logging")]
+    [SerializeField] private bool logLinedUpReadyForTakeoff = false;
+
     [Header("Runtime Status")]
     [SerializeField]
     private DepartureState currentState =
@@ -857,13 +860,16 @@ public class AircraftHobbyDepartureTaxiController : MonoBehaviour
             $"Lined up on {debugSelectedRunway}. " +
             "Waiting for takeoff implementation.";
 
-        Debug.Log(
-            $"AIRCRAFT LINED UP READY FOR TAKEOFF | " +
-            $"Aircraft: {name} | Runway: {debugSelectedRunway} | " +
-            $"Heading: {debugTakeoffHeading} | " +
-            $"Position: {transform.position}",
-            this
-        );
+        if (logLinedUpReadyForTakeoff)
+        {
+            Debug.Log(
+                $"AIRCRAFT LINED UP READY FOR TAKEOFF | " +
+                $"Aircraft: {name} | Runway: {debugSelectedRunway} | " +
+                $"Heading: {debugTakeoffHeading} | " +
+                $"Position: {transform.position}",
+                this
+            );
+        }
 
         // Keep both reservations until the takeoff controller takes over
         // and the aircraft clears the runway.
