@@ -644,7 +644,8 @@ public class CellBuildingMoveController : MonoBehaviour
                 continue;
 
             if (building.Definition.placementType !=
-                PlacementType.Cell)
+                    PlacementType.Cell ||
+                building.IsSurfacePlaced)
             {
                 continue;
             }
