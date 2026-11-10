@@ -16,7 +16,6 @@ public class FlightScheduleBoardPanel : MonoBehaviour
     [SerializeField] private GameTimeManager gameTimeManager;
 
     [Header("Display")]
-    [SerializeField, Min(0.1f)] private float refreshInterval = 0.5f;
     [SerializeField, Min(0)] private int onTimeToleranceMinutes = 5;
 
     [Serializable]
@@ -61,7 +60,6 @@ public class FlightScheduleBoardPanel : MonoBehaviour
     private Button openButton;
 
     private string selectedFilter = "ALL";
-    private float nextRefreshTime;
     private long observedWriteTicks = long.MinValue;
     private long observedDay = -1;
     private bool windowOpen;
@@ -109,6 +107,15 @@ public class FlightScheduleBoardPanel : MonoBehaviour
     private void OnEnable()
     {
         AircraftFlightIdentity.AircraftChanged += HandleAircraftChanged;
+        FlightManagementUIController.AirportScheduleChanged += HandleAirportScheduleChanged;
+
+        if (gameTimeManager != null)
+        {
+            gameTimeManager.GameTimeAdvanced += HandleGameTimeAdvanced;
+            observedDay = gameTimeManager.CurrentDay;
+        }
+
+        ReloadScheduleIfChanged();
 
         foreach (AircraftFlightIdentity identity in
                  AircraftFlightIdentity.ActiveAircraft)
@@ -120,6 +127,10 @@ public class FlightScheduleBoardPanel : MonoBehaviour
     private void OnDisable()
     {
         AircraftFlightIdentity.AircraftChanged -= HandleAircraftChanged;
+        FlightManagementUIController.AirportScheduleChanged -= HandleAirportScheduleChanged;
+
+        if (gameTimeManager != null)
+            gameTimeManager.GameTimeAdvanced -= HandleGameTimeAdvanced;
     }
 
     private void OnDestroy()
@@ -136,7 +147,15 @@ public class FlightScheduleBoardPanel : MonoBehaviour
             RefreshBoard();
     }
 
-    private void Update()
+    private void HandleAirportScheduleChanged()
+    {
+        ReloadScheduleIfChanged();
+
+        if (windowOpen)
+            RefreshBoard();
+    }
+
+    private void HandleGameTimeAdvanced(long previousAbsoluteSecond, long currentAbsoluteSecond)
     {
         if (root == null || gameTimeManager == null)
             return;
@@ -146,14 +165,6 @@ public class FlightScheduleBoardPanel : MonoBehaviour
             observedDay = gameTimeManager.CurrentDay;
             records.Clear();
         }
-
-        if (Time.unscaledTime < nextRefreshTime)
-            return;
-
-        nextRefreshTime =
-            Time.unscaledTime + Mathf.Max(0.1f, refreshInterval);
-
-        ReloadScheduleIfChanged();
 
         if (windowOpen)
             RefreshBoard();
