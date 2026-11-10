@@ -65,6 +65,7 @@ public class WasteCollectionManager : MonoBehaviour
         WasteDisposal.DisposalRegistered += RegisterDisposal;
         WasteDisposal.DisposalUnregistered += UnregisterDisposal;
         WasteDisposal.WasteAmountChanged += HandleWasteAmountChanged;
+        WasteDisposal.DisposalCapacityChanged += HandleDisposalCapacityChanged;
 
         if (garbageCollectorSpawner != null)
             garbageCollectorSpawner.CollectorAvailabilityChanged += TryDispatchEligibleCollectors;
@@ -81,6 +82,7 @@ public class WasteCollectionManager : MonoBehaviour
         WasteDisposal.DisposalRegistered -= RegisterDisposal;
         WasteDisposal.DisposalUnregistered -= UnregisterDisposal;
         WasteDisposal.WasteAmountChanged -= HandleWasteAmountChanged;
+        WasteDisposal.DisposalCapacityChanged -= HandleDisposalCapacityChanged;
 
         if (garbageCollectorSpawner != null)
             garbageCollectorSpawner.CollectorAvailabilityChanged -= TryDispatchEligibleCollectors;
@@ -105,6 +107,15 @@ public class WasteCollectionManager : MonoBehaviour
         trackedDisposals.Remove(disposal);
         trackedCapacities.Remove(disposal);
         RefreshWasteTotals();
+    }
+
+    private void HandleDisposalCapacityChanged(WasteDisposal disposal)
+    {
+        if (disposal == null || !trackedDisposals.Contains(disposal))
+            return;
+
+        RefreshWasteTotals();
+        TryDispatchEligibleCollectors();
     }
 
     private void HandleWasteAmountChanged(WasteDisposal disposal, float delta)
