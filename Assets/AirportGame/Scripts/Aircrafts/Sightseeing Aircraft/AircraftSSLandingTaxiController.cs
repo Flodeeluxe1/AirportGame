@@ -73,6 +73,9 @@ public class AircraftSSLandingTaxiController : MonoBehaviour
         Failed
     }
 
+    private AircraftTaxiTrafficFollowing trafficFollowing;
+    private IReadOnlyList<Vector2Int> lastPublishedTaxiRoute;
+
     private struct ExitCandidate
     {
         public Vector2Int Cell;
@@ -145,6 +148,8 @@ public class AircraftSSLandingTaxiController : MonoBehaviour
 
         if (taxiwayPathfinder == null)
             taxiwayPathfinder = FindFirstObjectByType<TaxiwayPathfinder>();
+
+        trafficFollowing = GetComponent<AircraftTaxiTrafficFollowing>();
     }
 
     private void Update()
@@ -440,6 +445,7 @@ public class AircraftSSLandingTaxiController : MonoBehaviour
             return;
         }
 
+        lastPublishedTaxiRoute = null;
         route.Clear();
         route.AddRange(chosenPath);
 
@@ -900,6 +906,18 @@ public class AircraftSSLandingTaxiController : MonoBehaviour
         }
     }
 
+    private void PublishPlannedTaxiRoute(IReadOnlyList<Vector2Int> plannedRoute)
+    {
+        if (trafficFollowing == null || plannedRoute == null ||
+            ReferenceEquals(lastPublishedTaxiRoute, plannedRoute))
+        {
+            return;
+        }
+
+        trafficFollowing.SetPlannedTaxiRoute(plannedRoute);
+        lastPublishedTaxiRoute = plannedRoute;
+    }
+
     private void FollowTaxiwayRoute()
     {
         while (currentRouteIndex < taxiMovementPath.Count)
@@ -1002,12 +1020,9 @@ public class AircraftSSLandingTaxiController : MonoBehaviour
 
         float speedKnots = taxiSpeedKnots;
 
-        AircraftTaxiTrafficFollowing trafficFollowing =
-            GetComponent<AircraftTaxiTrafficFollowing>();
-
         if (trafficFollowing != null)
         {
-            trafficFollowing.SetPlannedTaxiRoute(route);
+            PublishPlannedTaxiRoute(route);
             speedKnots =
                 trafficFollowing.GetTrafficFollowingSpeed(taxiSpeedKnots);
         }
