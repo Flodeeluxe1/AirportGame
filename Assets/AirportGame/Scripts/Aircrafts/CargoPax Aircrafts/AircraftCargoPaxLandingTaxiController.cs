@@ -91,6 +91,9 @@ public class AircraftCargoPaxLandingTaxiController : MonoBehaviour
         Failed
     }
 
+    private AircraftTaxiTrafficFollowing trafficFollowing;
+    private IReadOnlyList<Vector2Int> lastPublishedTaxiRoute;
+
     private readonly List<Vector2Int> taxiRoute =
         new List<Vector2Int>();
 
@@ -244,6 +247,7 @@ public class AircraftCargoPaxLandingTaxiController : MonoBehaviour
 
     private void CalculateTaxiRoute()
     {
+        lastPublishedTaxiRoute = null;
         taxiRoute.Clear();
         taxiMovementPath.Clear();
 
@@ -875,6 +879,18 @@ public class AircraftCargoPaxLandingTaxiController : MonoBehaviour
         return candidates;
     }
 
+    private void PublishPlannedTaxiRoute(IReadOnlyList<Vector2Int> plannedRoute)
+    {
+        if (trafficFollowing == null || plannedRoute == null ||
+            ReferenceEquals(lastPublishedTaxiRoute, plannedRoute))
+        {
+            return;
+        }
+
+        trafficFollowing.SetPlannedTaxiRoute(plannedRoute);
+        lastPublishedTaxiRoute = plannedRoute;
+    }
+
     private void UpdateTaxiMovement()
     {
         if (assignedGate == null)
@@ -999,7 +1015,7 @@ public class AircraftCargoPaxLandingTaxiController : MonoBehaviour
             FaceMovementDirection(movement);
 
         if (trafficFollowing != null)
-            trafficFollowing.SetPlannedTaxiRoute(taxiRoute);
+            PublishPlannedTaxiRoute(taxiRoute);
 
         float taxiSpeedKnots = this.taxiSpeedKnots;
 
@@ -1141,6 +1157,7 @@ public class AircraftCargoPaxLandingTaxiController : MonoBehaviour
         debugRouteCells = 0;
         debugCurrentWaypoint = 0;
 
+        lastPublishedTaxiRoute = null;
         taxiRoute.Clear();
         taxiMovementPath.Clear();
 
