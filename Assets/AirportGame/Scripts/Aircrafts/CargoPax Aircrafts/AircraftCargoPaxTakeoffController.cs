@@ -98,6 +98,21 @@ public class AircraftCargoPaxTakeoffController : MonoBehaviour
         ResolveReferences();
     }
 
+
+    private void SetOperationalState(TakeoffState newState)
+    {
+        if (currentState == newState)
+            return;
+
+        currentState = newState;
+
+        AircraftFlightIdentity identity =
+            GetComponent<AircraftFlightIdentity>();
+
+        if (identity != null)
+            identity.NotifyAircraftChanged();
+    }
+
     private void Update()
     {
         if (currentState == TakeoffState.Completed)
@@ -247,8 +262,7 @@ public class AircraftCargoPaxTakeoffController : MonoBehaviour
 
         ApplyTakeoffOrientation(0f);
 
-        currentState = TakeoffState.TakeoffRoll;
-
+        SetOperationalState(TakeoffState.TakeoffRoll);
         debugStatus =
             $"Accelerating on runway. Rotation begins at " +
             $"{rotationTriggerSpeedKnots:F1} knots.";
@@ -282,8 +296,7 @@ public class AircraftCargoPaxTakeoffController : MonoBehaviour
         if (currentSpeedKnots >= rotationTriggerSpeedKnots - 0.001f)
         {
             currentSpeedKnots = rotationTriggerSpeedKnots;
-            currentState = TakeoffState.Rotating;
-
+            SetOperationalState(TakeoffState.Rotating);
             debugStatus =
                 $"Rotation started at {currentSpeedKnots:F1} knots.";
 
@@ -358,8 +371,7 @@ public class AircraftCargoPaxTakeoffController : MonoBehaviour
             currentNoseUpDegrees = targetNoseUpDegrees;
             ApplyTakeoffOrientation(currentNoseUpDegrees);
 
-            currentState = TakeoffState.Climbing;
-
+            SetOperationalState(TakeoffState.Climbing);
             debugStatus =
                 $"Climbing at {targetNoseUpDegrees:F1} degrees nose-up.";
 
@@ -548,8 +560,7 @@ public class AircraftCargoPaxTakeoffController : MonoBehaviour
 
         UpdateAltitude();
 
-        currentState = TakeoffState.Completed;
-
+        SetOperationalState(TakeoffState.Completed);
         PublishCurrentSpeed();
 
         ReleaseRunwayReservations();
