@@ -102,10 +102,28 @@ public class FlightScheduleBoardPanel : MonoBehaviour
         window.style.display = DisplayStyle.None;
     }
 
+    private void OnEnable()
+    {
+        AircraftFlightIdentity.AircraftChanged += HandleAircraftChanged;
+    }
+
+    private void OnDisable()
+    {
+        AircraftFlightIdentity.AircraftChanged -= HandleAircraftChanged;
+    }
+
     private void OnDestroy()
     {
         if (instance == this)
             instance = null;
+    }
+
+    private void HandleAircraftChanged(AircraftFlightIdentity identity)
+    {
+        CaptureArrivalTime(identity);
+
+        if (windowOpen)
+            RefreshBoard();
     }
 
     private void Update()
@@ -126,7 +144,6 @@ public class FlightScheduleBoardPanel : MonoBehaviour
             Time.unscaledTime + Mathf.Max(0.1f, refreshInterval);
 
         ReloadScheduleIfChanged();
-        CaptureArrivalTimes();
 
         if (windowOpen)
             RefreshBoard();
@@ -393,29 +410,25 @@ public class FlightScheduleBoardPanel : MonoBehaviour
         return record;
     }
 
-    private void CaptureArrivalTimes()
+    private void CaptureArrivalTime(AircraftFlightIdentity identity)
     {
-        foreach (AircraftFlightIdentity identity in
-                 AircraftFlightIdentity.ActiveAircraft)
+        if (identity == null ||
+            !identity.IsInitialized ||
+            string.IsNullOrEmpty(identity.FlightNumber))
         {
-            if (identity == null ||
-                !identity.IsInitialized ||
-                string.IsNullOrEmpty(identity.FlightNumber))
-            {
-                continue;
-            }
-
-            AircraftCargoPaxLandingController landing =
-                identity.GetComponent<AircraftCargoPaxLandingController>();
-
-            if (landing == null || !landing.IsLandingComplete)
-                continue;
-
-            FlightRecord record = GetOrCreateRecord(identity.FlightNumber);
-
-            if (!record.actualArrivalMinute.HasValue)
-                record.actualArrivalMinute = CurrentMinuteOfDay();
+            return;
         }
+
+        AircraftCargoPaxLandingController landing =
+            identity.GetComponent<AircraftCargoPaxLandingController>();
+
+        if (landing == null || !landing.IsLandingComplete)
+            return;
+
+        FlightRecord record = GetOrCreateRecord(identity.FlightNumber);
+
+        if (!record.actualArrivalMinute.HasValue)
+            record.actualArrivalMinute = CurrentMinuteOfDay();
     }
 
     /// <summary>
