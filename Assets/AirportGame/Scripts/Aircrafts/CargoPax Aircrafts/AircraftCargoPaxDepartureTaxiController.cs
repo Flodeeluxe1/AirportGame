@@ -87,6 +87,9 @@ public class AircraftCargoPaxDepartureTaxiController : MonoBehaviour
     [SerializeField] private string debugTakeoffHeading = "None";
     [SerializeField] private string debugStatus = "Waiting for gate exit";
 
+    private AircraftTaxiTrafficFollowing trafficFollowing;
+    private IReadOnlyList<Vector2Int> lastPublishedTaxiRoute;
+
     private readonly List<Vector2Int> taxiRoute = new();
     private readonly List<Vector2Int> runwayJoinRoute = new();
     private readonly List<Vector3> movementWaypoints = new();
@@ -213,6 +216,9 @@ public class AircraftCargoPaxDepartureTaxiController : MonoBehaviour
 
         if (aircraftCollider == null)
             aircraftCollider = GetComponentInChildren<BoxCollider>(true);
+
+        if (trafficFollowing == null)
+            trafficFollowing = GetComponent<AircraftTaxiTrafficFollowing>();
     }
 
     public bool TrySelectDepartureRunway()
@@ -430,9 +436,11 @@ public class AircraftCargoPaxDepartureTaxiController : MonoBehaviour
         debugRequiredHoldingDistance = bestRequiredDistance;
         debugActualHoldingDistance = bestActualDistance;
 
+        lastPublishedTaxiRoute = null;
         taxiRoute.Clear();
         taxiRoute.AddRange(bestSafeRoute);
 
+        lastPublishedTaxiRoute = null;
         runwayJoinRoute.Clear();
         runwayJoinRoute.AddRange(bestJoinRoute);
 
@@ -1065,6 +1073,18 @@ public class AircraftCargoPaxDepartureTaxiController : MonoBehaviour
         return length;
     }
 
+    private void PublishPlannedTaxiRoute(IReadOnlyList<Vector2Int> plannedRoute)
+    {
+        if (trafficFollowing == null || plannedRoute == null ||
+            ReferenceEquals(lastPublishedTaxiRoute, plannedRoute))
+        {
+            return;
+        }
+
+        trafficFollowing.SetPlannedTaxiRoute(plannedRoute);
+        lastPublishedTaxiRoute = plannedRoute;
+    }
+
     private void UpdateTaxiMovement()
     {
         if (movementWaypoints.Count == 0 ||
@@ -1076,11 +1096,8 @@ public class AircraftCargoPaxDepartureTaxiController : MonoBehaviour
 
         float cruisingSpeedKnots = taxiSpeedKnots;
 
-        AircraftTaxiTrafficFollowing trafficFollowing =
-            GetComponent<AircraftTaxiTrafficFollowing>();
-
         if (trafficFollowing != null)
-            trafficFollowing.SetPlannedTaxiRoute(
+            PublishPlannedTaxiRoute(
                 currentState == DepartureState.TaxiingToRunwayEntry
                     ? runwayJoinRoute
                     : taxiRoute);
