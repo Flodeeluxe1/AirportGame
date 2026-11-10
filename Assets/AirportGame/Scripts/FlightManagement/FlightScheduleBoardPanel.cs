@@ -60,6 +60,7 @@ public class FlightScheduleBoardPanel : MonoBehaviour
     private Button openButton;
 
     private string selectedFilter = "ALL";
+    private float nextRefreshTime;
     private long observedWriteTicks = long.MinValue;
     private long observedDay = -1;
     private bool windowOpen;
@@ -166,8 +167,11 @@ public class FlightScheduleBoardPanel : MonoBehaviour
             records.Clear();
         }
 
-        if (windowOpen)
+        if (windowOpen && Time.unscaledTime >= nextRefreshTime)
+        {
+            nextRefreshTime = Time.unscaledTime + 0.5f;
             RefreshBoard();
+        }
     }
 
     // ------------------------------------------------------------
