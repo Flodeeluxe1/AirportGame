@@ -11,6 +11,11 @@ public class AircraftFlightIdentity : MonoBehaviour
     public static IReadOnlyCollection<AircraftFlightIdentity> ActiveAircraft =>
         activeAircraft;
 
+    public static bool IsRegistered(AircraftFlightIdentity identity)
+    {
+        return identity != null && activeAircraft.Contains(identity);
+    }
+
     public static event Action<AircraftFlightIdentity> AircraftRegistered;
     public static event Action<AircraftFlightIdentity> AircraftUnregistered;
     public static event Action<AircraftFlightIdentity> AircraftChanged;
