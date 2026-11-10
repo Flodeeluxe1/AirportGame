@@ -140,7 +140,7 @@ public static class BuildableCatalogueBuilder
         string assetPath,
         BuildableDefinition definition)
     {
-        string normalizedPath = assetPath.Replace('\\\\', '/');
+        string normalizedPath = assetPath.Replace('\\', '/');
         string airportRoot = BuildablesRootPath + "/Airport/";
 
         if (normalizedPath.StartsWith(
