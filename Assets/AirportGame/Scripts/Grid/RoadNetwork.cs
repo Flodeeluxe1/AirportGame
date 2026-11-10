@@ -202,16 +202,17 @@ public class RoadNetwork : MonoBehaviour
                 return ReconstructPath(cameFrom, start, target);
 
             closedSet.Add(current);
-            foreach (Vector2Int next in GetValidNextRoadCells(current))
+            int currentScore = gScore[current];
+            if (roadCells.TryGetValue(current, out RoadCell currentCell))
             {
-                if (closedSet.Contains(next))
-                    continue;
-                int tentative = gScore[current] + 1;
-                if (gScore.TryGetValue(next, out int oldScore) && tentative >= oldScore)
-                    continue;
-                cameFrom[next] = current;
-                gScore[next] = tentative;
-                openSet.Enqueue(next, tentative + GetHeuristic(next, target));
+                TryVisitNeighbor(current, currentCell, RoadDirection.North, North,
+                    target, currentScore, cameFrom, gScore, closedSet, openSet);
+                TryVisitNeighbor(current, currentCell, RoadDirection.East, East,
+                    target, currentScore, cameFrom, gScore, closedSet, openSet);
+                TryVisitNeighbor(current, currentCell, RoadDirection.South, South,
+                    target, currentScore, cameFrom, gScore, closedSet, openSet);
+                TryVisitNeighbor(current, currentCell, RoadDirection.West, West,
+                    target, currentScore, cameFrom, gScore, closedSet, openSet);
             }
         }
         return empty;
@@ -222,29 +223,37 @@ public class RoadNetwork : MonoBehaviour
         return (Mathf.Abs(current.x - target.x) + Mathf.Abs(current.y - target.y)) / RoadModuleSize;
     }
 
-    private List<Vector2Int> GetValidNextRoadCells(Vector2Int current)
-    {
-        var result = new List<Vector2Int>();
-        if (!roadCells.TryGetValue(current, out RoadCell cell))
-            return result;
-        AddIfValid(result, cell, RoadDirection.North, North);
-        AddIfValid(result, cell, RoadDirection.East, East);
-        AddIfValid(result, cell, RoadDirection.South, South);
-        AddIfValid(result, cell, RoadDirection.West, West);
-        return result;
-    }
-
-    private void AddIfValid(List<Vector2Int> result, RoadCell cell, RoadDirection direction, Vector2Int offset)
+    private void TryVisitNeighbor(
+        Vector2Int current,
+        RoadCell cell,
+        RoadDirection direction,
+        Vector2Int offset,
+        Vector2Int target,
+        int currentScore,
+        Dictionary<Vector2Int, Vector2Int> cameFrom,
+        Dictionary<Vector2Int, int> gScore,
+        HashSet<Vector2Int> closedSet,
+        PriorityQueue openSet)
     {
         if (!IsConnected(cell, direction))
             return;
+
         Vector2Int next = cell.Position + offset;
         if (!roadCells.TryGetValue(next, out RoadCell nextCell))
             return;
-        bool currentSupportsMovement = cell.Direction == direction;
-        bool nextSupportsMovement = nextCell.Direction == direction;
-        if (currentSupportsMovement || nextSupportsMovement)
-            result.Add(next);
+
+        if (cell.Direction != direction && nextCell.Direction != direction)
+            return;
+        if (closedSet.Contains(next))
+            return;
+
+        int tentative = currentScore + 1;
+        if (gScore.TryGetValue(next, out int oldScore) && tentative >= oldScore)
+            return;
+
+        cameFrom[next] = current;
+        gScore[next] = tentative;
+        openSet.Enqueue(next, tentative + GetHeuristic(next, target));
     }
 
     private bool IsConnected(RoadCell cell, RoadDirection direction)
@@ -321,13 +330,14 @@ public class RoadNetwork : MonoBehaviour
         return result;
     }
 
-    private class PriorityQueue
+    private sealed class PriorityQueue
     {
-        private class Node
+        private struct Node
         {
             public Vector2Int Position;
             public int Priority;
             public int Order;
+
             public Node(Vector2Int position, int priority, int order)
             {
                 Position = position;
@@ -339,22 +349,64 @@ public class RoadNetwork : MonoBehaviour
         private readonly List<Node> nodes = new List<Node>();
         private int orderCounter;
         public int Count => nodes.Count;
+
         public void Enqueue(Vector2Int position, int priority)
         {
-            nodes.Add(new Node(position, priority, orderCounter++));
+            Node node = new Node(position, priority, orderCounter++);
+            nodes.Add(node);
+            int index = nodes.Count - 1;
+
+            while (index > 0)
+            {
+                int parent = (index - 1) / 2;
+                if (!ComesBefore(node, nodes[parent]))
+                    break;
+                nodes[index] = nodes[parent];
+                index = parent;
+            }
+
+            nodes[index] = node;
         }
+
         public Vector2Int Dequeue()
         {
-            int bestIndex = 0;
-            for (int i = 1; i < nodes.Count; i++)
+            Node result = nodes[0];
+            int lastIndex = nodes.Count - 1;
+            Node last = nodes[lastIndex];
+            nodes.RemoveAt(lastIndex);
+
+            if (nodes.Count > 0)
             {
-                if (nodes[i].Priority < nodes[bestIndex].Priority ||
-                    (nodes[i].Priority == nodes[bestIndex].Priority && nodes[i].Order < nodes[bestIndex].Order))
-                    bestIndex = i;
+                int index = 0;
+                while (true)
+                {
+                    int left = index * 2 + 1;
+                    if (left >= nodes.Count)
+                        break;
+
+                    int right = left + 1;
+                    int bestChild = right < nodes.Count &&
+                                    ComesBefore(nodes[right], nodes[left])
+                        ? right
+                        : left;
+
+                    if (!ComesBefore(nodes[bestChild], last))
+                        break;
+
+                    nodes[index] = nodes[bestChild];
+                    index = bestChild;
+                }
+
+                nodes[index] = last;
             }
-            Vector2Int result = nodes[bestIndex].Position;
-            nodes.RemoveAt(bestIndex);
-            return result;
+
+            return result.Position;
+        }
+
+        private static bool ComesBefore(Node a, Node b)
+        {
+            return a.Priority < b.Priority ||
+                   (a.Priority == b.Priority && a.Order < b.Order);
         }
     }
 }
