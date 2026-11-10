@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -21,9 +22,6 @@ public class WasteCollectionManager : MonoBehaviour
     [Header("Automatic Collection")]
     [Range(0f, 100f)]
     [SerializeField] private float dispatchThresholdPercent = 75f;
-    [Min(0.1f)]
-    [SerializeField] private float scanInterval = 2f;
-
     [Header("Diagnostics")]
     [SerializeField] private bool logCollectionChecks = true;
 
@@ -32,7 +30,12 @@ public class WasteCollectionManager : MonoBehaviour
     [SerializeField] private float totalCurrentWaste;
     [SerializeField] private float totalWasteCapacity;
 
-    private float scanTimer;
+    private readonly HashSet<WasteDisposal> trackedDisposals =
+        new HashSet<WasteDisposal>();
+
+    private readonly Dictionary<WasteDisposal, float> trackedCapacities =
+        new Dictionary<WasteDisposal, float>();
+
     private AirportEconomyManager economyManager;
 
     public int TrackedDisposalCount => trackedDisposalCount;
@@ -57,14 +60,82 @@ public class WasteCollectionManager : MonoBehaviour
         }
     }
 
-    private void Update()
+    private void OnEnable()
     {
-        scanTimer += Time.deltaTime;
-        if (scanTimer < scanInterval)
+        WasteDisposal.DisposalRegistered += RegisterDisposal;
+        WasteDisposal.DisposalUnregistered += UnregisterDisposal;
+        WasteDisposal.WasteAmountChanged += HandleWasteAmountChanged;
+
+        if (garbageCollectorSpawner != null)
+            garbageCollectorSpawner.CollectorAvailabilityChanged += TryDispatchEligibleCollectors;
+
+        foreach (WasteDisposal disposal in WasteDisposal.ActiveDisposals)
+            RegisterDisposal(disposal);
+
+        RefreshWasteTotals();
+        TryDispatchEligibleCollectors();
+    }
+
+    private void OnDisable()
+    {
+        WasteDisposal.DisposalRegistered -= RegisterDisposal;
+        WasteDisposal.DisposalUnregistered -= UnregisterDisposal;
+        WasteDisposal.WasteAmountChanged -= HandleWasteAmountChanged;
+
+        if (garbageCollectorSpawner != null)
+            garbageCollectorSpawner.CollectorAvailabilityChanged -= TryDispatchEligibleCollectors;
+    }
+
+    private void RegisterDisposal(WasteDisposal disposal)
+    {
+        if (disposal == null || !disposal.gameObject.activeInHierarchy ||
+            !trackedDisposals.Add(disposal))
             return;
 
-        scanTimer = 0f;
+        trackedCapacities[disposal] = disposal.MaximumWasteCapacity;
         RefreshWasteTotals();
+        TryDispatchEligibleCollectors();
+    }
+
+    private void UnregisterDisposal(WasteDisposal disposal)
+    {
+        if (disposal == null)
+            return;
+
+        trackedDisposals.Remove(disposal);
+        trackedCapacities.Remove(disposal);
+        RefreshWasteTotals();
+    }
+
+    private void HandleWasteAmountChanged(WasteDisposal disposal, float delta)
+    {
+        if (disposal == null || !trackedDisposals.Contains(disposal))
+            return;
+
+        totalCurrentWaste = Mathf.Max(0f, totalCurrentWaste + delta);
+
+        float newCapacity = disposal.MaximumWasteCapacity;
+        if (trackedCapacities.TryGetValue(disposal, out float oldCapacity))
+            totalWasteCapacity += newCapacity - oldCapacity;
+        else
+            totalWasteCapacity += newCapacity;
+
+        trackedCapacities[disposal] = newCapacity;
+        totalWasteCapacity = Mathf.Max(0f, totalWasteCapacity);
+        trackedDisposalCount = trackedDisposals.Count;
+
+        if (delta > 0.001f)
+            TryDispatchEligibleCollectors();
+    }
+
+    private void TryDispatchEligibleCollectors()
+    {
+        if (garbageCollectorSpawner == null || !garbageCollectorSpawner.isActiveAndEnabled)
+            return;
+
+        if (garbageCollectorSpawner.ActiveCollectorCount >=
+            garbageCollectorSpawner.MaximumActiveCollectors)
+            return;
 
         if (logCollectionChecks)
         {
@@ -73,34 +144,17 @@ public class WasteCollectionManager : MonoBehaviour
                 : 0f;
 
             Debug.Log(
-                $"WASTE COLLECTION CHECK | Airport total: {totalCurrentWaste:F1}/{totalWasteCapacity:F1} " +
+                $"WASTE COLLECTION EVENT | Airport total: {totalCurrentWaste:F1}/{totalWasteCapacity:F1} " +
                 $"({totalPercent:F1}%) | Per-disposal dispatch threshold: {dispatchThresholdPercent:F1}% | " +
                 $"Disposals: {trackedDisposalCount} | Active collectors: " +
-                $"{(garbageCollectorSpawner != null ? garbageCollectorSpawner.ActiveCollectorCount : 0)}/" +
-                $"{(garbageCollectorSpawner != null ? garbageCollectorSpawner.MaximumActiveCollectors : 0)}",
+                $"{garbageCollectorSpawner.ActiveCollectorCount}/{garbageCollectorSpawner.MaximumActiveCollectors}",
                 this);
-        }
-
-        if (garbageCollectorSpawner == null || !garbageCollectorSpawner.isActiveAndEnabled)
-        {
-            if (logCollectionChecks)
-                Debug.LogWarning("WASTE COLLECTION CHECK BLOCKED | GarbageCollectorSpawner is missing or disabled.", this);
-            return;
-        }
-
-        if (garbageCollectorSpawner.ActiveCollectorCount >=
-            garbageCollectorSpawner.MaximumActiveCollectors)
-        {
-            if (logCollectionChecks)
-                Debug.Log("WASTE COLLECTION CHECK BLOCKED | Maximum active collector count reached.", this);
-            return;
         }
 
         while (garbageCollectorSpawner.ActiveCollectorCount <
                garbageCollectorSpawner.MaximumActiveCollectors)
         {
-            if (!garbageCollectorSpawner.TryDispatchCollector(
-                    dispatchThresholdPercent))
+            if (!garbageCollectorSpawner.TryDispatchCollector(dispatchThresholdPercent))
                 break;
         }
     }
@@ -114,13 +168,10 @@ public class WasteCollectionManager : MonoBehaviour
         if (amount <= 0f)
             return 0f;
 
-        WasteDisposal[] disposals =
-            FindObjectsByType<WasteDisposal>(FindObjectsSortMode.None);
-
         float remaining = amount;
         float acceptedTotal = 0f;
 
-        foreach (WasteDisposal disposal in disposals)
+        foreach (WasteDisposal disposal in trackedDisposals)
         {
             if (disposal == null || !disposal.gameObject.activeInHierarchy ||
                 disposal.RemainingWasteCapacity <= 0.001f)
@@ -191,17 +242,34 @@ public class WasteCollectionManager : MonoBehaviour
         totalCurrentWaste = 0f;
         totalWasteCapacity = 0f;
 
-        WasteDisposal[] disposals =
-            FindObjectsByType<WasteDisposal>(FindObjectsSortMode.None);
+        trackedDisposals.RemoveWhere(disposal => disposal == null);
+        List<WasteDisposal> stale = null;
 
-        foreach (WasteDisposal disposal in disposals)
+        foreach (WasteDisposal disposal in trackedDisposals)
         {
             if (disposal == null || !disposal.gameObject.activeInHierarchy)
+            {
+                if (stale == null)
+                    stale = new List<WasteDisposal>();
+                stale.Add(disposal);
                 continue;
+            }
 
             trackedDisposalCount++;
             totalCurrentWaste += disposal.CurrentWaste;
-            totalWasteCapacity += disposal.MaximumWasteCapacity;
+            float capacity = disposal.MaximumWasteCapacity;
+            totalWasteCapacity += capacity;
+            trackedCapacities[disposal] = capacity;
+        }
+
+        if (stale != null)
+        {
+            foreach (WasteDisposal disposal in stale)
+            {
+                trackedDisposals.Remove(disposal);
+                trackedCapacities.Remove(disposal);
+            }
+            trackedDisposalCount = trackedDisposals.Count;
         }
     }
 }
