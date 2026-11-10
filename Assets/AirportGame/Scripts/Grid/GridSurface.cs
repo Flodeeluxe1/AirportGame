@@ -3,6 +3,8 @@ using UnityEngine;
 
 public class GridSurface : MonoBehaviour
 {
+    public event System.Action FoundationSurfaceChanged;
+
     [SerializeField]
     private GridManager gridManager;
 
@@ -49,13 +51,21 @@ public class GridSurface : MonoBehaviour
             gridManager.Height
         ];
 
+        bool foundationChanged = false;
+
         for (int x = 0; x < gridManager.Width; x++)
         {
             for (int z = 0; z < gridManager.Height; z++)
             {
+                if (surfaces[x, z] == BuildSurface.Foundation)
+                    foundationChanged = true;
+
                 surfaces[x, z] = BuildSurface.Grass;
             }
         }
+
+        if (foundationChanged)
+            FoundationSurfaceChanged?.Invoke();
 
         surfaceOwners.Clear();
         obstacleOwners.Clear();
@@ -91,10 +101,24 @@ public class GridSurface : MonoBehaviour
             !gridManager.IsInsideGrid(position))
             return;
 
+        BuildSurface previousSurface = surfaces[position.x, position.y];
+        if (previousSurface == surface)
+        {
+            if (surface == BuildSurface.Grass)
+                surfaceOwners.Remove(position);
+            return;
+        }
+
         surfaces[position.x, position.y] = surface;
 
         if (surface == BuildSurface.Grass)
             surfaceOwners.Remove(position);
+
+        if (previousSurface == BuildSurface.Foundation ||
+            surface == BuildSurface.Foundation)
+        {
+            FoundationSurfaceChanged?.Invoke();
+        }
     }
 
     public void SetSurfaceArea(
@@ -211,7 +235,11 @@ public class GridSurface : MonoBehaviour
                 surfaces != null &&
                 gridManager.IsInsideGrid(cell))
             {
+                BuildSurface previousSurface = surfaces[cell.x, cell.y];
                 surfaces[cell.x, cell.y] = BuildSurface.Grass;
+
+                if (previousSurface == BuildSurface.Foundation)
+                    FoundationSurfaceChanged?.Invoke();
             }
         }
     }
@@ -345,7 +373,11 @@ public class GridSurface : MonoBehaviour
         }
 
         surfaceOwners.Remove(position);
+        BuildSurface previousSurface = surfaces[position.x, position.y];
         surfaces[position.x, position.y] = BuildSurface.Grass;
+
+        if (previousSurface == BuildSurface.Foundation)
+            FoundationSurfaceChanged?.Invoke();
 
         // Remove an obstacle only if this same object owns the cell.
         if (obstacleOwners.TryGetValue(position, out GameObject obstacleOwner) &&
@@ -382,13 +414,16 @@ public class GridSurface : MonoBehaviour
         }
 
         // Preserve the original surface only on the first registration.
-        if (surfaces[position.x, position.y] != BuildSurface.Taxiway)
+        BuildSurface previousSurface = surfaces[position.x, position.y];
+        if (previousSurface != BuildSurface.Taxiway)
         {
-            taxiwayUnderlyingSurfaces[position] =
-                surfaces[position.x, position.y];
+            taxiwayUnderlyingSurfaces[position] = previousSurface;
         }
 
         surfaces[position.x, position.y] = BuildSurface.Taxiway;
+
+        if (previousSurface == BuildSurface.Foundation)
+            FoundationSurfaceChanged?.Invoke();
     }
 
     public void UnregisterTaxiwayCell(Vector2Int position)
@@ -400,6 +435,8 @@ public class GridSurface : MonoBehaviour
             return;
         }
 
+        BuildSurface previousSurface = surfaces[position.x, position.y];
+
         if (taxiwayUnderlyingSurfaces.TryGetValue(
                 position,
                 out BuildSurface underlyingSurface))
@@ -407,10 +444,17 @@ public class GridSurface : MonoBehaviour
             surfaces[position.x, position.y] = underlyingSurface;
             taxiwayUnderlyingSurfaces.Remove(position);
         }
-        else if (surfaces[position.x, position.y] == BuildSurface.Taxiway)
+        else if (previousSurface == BuildSurface.Taxiway)
         {
             // Fallback for taxiway cells without saved underlying data.
             surfaces[position.x, position.y] = BuildSurface.Grass;
+        }
+
+        BuildSurface currentSurface = surfaces[position.x, position.y];
+        if (previousSurface == BuildSurface.Foundation ||
+            currentSurface == BuildSurface.Foundation)
+        {
+            FoundationSurfaceChanged?.Invoke();
         }
     }
 
@@ -429,14 +473,17 @@ public class GridSurface : MonoBehaviour
             return;
 
         // Preserve the original surface only on first registration.
-        if (surfaces[position.x, position.y] != BuildSurface.Runway &&
+        BuildSurface previousSurface = surfaces[position.x, position.y];
+        if (previousSurface != BuildSurface.Runway &&
             !runwayUnderlyingSurfaces.ContainsKey(position))
         {
-            runwayUnderlyingSurfaces[position] =
-                surfaces[position.x, position.y];
+            runwayUnderlyingSurfaces[position] = previousSurface;
         }
 
         surfaces[position.x, position.y] = BuildSurface.Runway;
+
+        if (previousSurface == BuildSurface.Foundation)
+            FoundationSurfaceChanged?.Invoke();
     }
 
     public void UnregisterRunwayCell(Vector2Int position)
@@ -448,6 +495,8 @@ public class GridSurface : MonoBehaviour
             return;
         }
 
+        BuildSurface previousSurface = surfaces[position.x, position.y];
+
         if (runwayUnderlyingSurfaces.TryGetValue(
                 position,
                 out BuildSurface underlyingSurface))
@@ -455,9 +504,16 @@ public class GridSurface : MonoBehaviour
             surfaces[position.x, position.y] = underlyingSurface;
             runwayUnderlyingSurfaces.Remove(position);
         }
-        else if (surfaces[position.x, position.y] == BuildSurface.Runway)
+        else if (previousSurface == BuildSurface.Runway)
         {
             surfaces[position.x, position.y] = BuildSurface.Grass;
+        }
+
+        BuildSurface currentSurface = surfaces[position.x, position.y];
+        if (previousSurface == BuildSurface.Foundation ||
+            currentSurface == BuildSurface.Foundation)
+        {
+            FoundationSurfaceChanged?.Invoke();
         }
     }
 
