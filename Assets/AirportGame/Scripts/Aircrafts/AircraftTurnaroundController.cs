@@ -271,27 +271,6 @@ public class AircraftTurnaroundController : MonoBehaviour
     [SerializeField]
     private TaskProgress cleaning = new TaskProgress(10f);
 
-    [Header("Cleaning Fees")]
-    [SerializeField, Min(0)]
-    private int cleaningFeeUpTo10Passengers = 100;
-
-    [SerializeField, Min(0)]
-    private int cleaningFeeUpTo50Passengers = 200;
-
-    [SerializeField, Min(0)]
-    private int cleaningFeeUpTo100Passengers = 350;
-
-    [SerializeField, Min(0)]
-    private int cleaningFeeUpTo200Passengers = 500;
-
-    [SerializeField, Min(0)]
-    private int cleaningFeeUpTo300Passengers = 750;
-
-    [SerializeField, Min(0)]
-    private int cleaningFeeAbove300Passengers = 1000;
-
-    private AirportEconomyManager economyManager;
-
     [SerializeField]
     private FuelingProgress fueling = new FuelingProgress();
 
@@ -868,77 +847,23 @@ public class AircraftTurnaroundController : MonoBehaviour
         if (passengerRevenue == null)
         {
             Debug.LogWarning(
-                $"{name}: Cannot determine the cleaning fee because " +
-                "PassengerFlightRevenue is missing.",
+                name + ": Cannot determine the cleaning fee because PassengerFlightRevenue is missing.",
                 this);
             return;
         }
 
-        int capacity = passengerRevenue.SeatCapacity;
-        int fee;
+        AircraftAirportFees airportFees =
+            GetComponent<AircraftAirportFees>();
 
-        if (capacity <= 10)
-            fee = cleaningFeeUpTo10Passengers;
-        else if (capacity <= 50)
-            fee = cleaningFeeUpTo50Passengers;
-        else if (capacity <= 100)
-            fee = cleaningFeeUpTo100Passengers;
-        else if (capacity <= 200)
-            fee = cleaningFeeUpTo200Passengers;
-        else if (capacity <= 300)
-            fee = cleaningFeeUpTo300Passengers;
-        else
-            fee = cleaningFeeAbove300Passengers;
-
-        if (fee <= 0)
-            return;
-
-        if (economyManager == null)
-            economyManager = FindFirstObjectByType<AirportEconomyManager>();
-
-        if (economyManager == null)
+        if (airportFees == null)
         {
             Debug.LogError(
-                $"{name}: Cleaning is complete, but no AirportEconomyManager " +
-                "was found. The cleaning fee could not be charged.",
+                name + ": AircraftAirportFees is missing; cleaning revenue could not be recorded.",
                 this);
             return;
         }
 
-        if (economyManager.AddRevenue(
-                fee,
-                $"Aircraft cleaning ({capacity} seats)"))
-        {
-            Debug.Log(
-                $"{name}: Cleaning revenue of {fee} received for an aircraft " +
-                $"with {capacity} passenger seats.",
-                this);
-        }
-        else
-        {
-            Debug.LogWarning(
-                $"{name}: Cleaning was completed, but the fee of {fee} " +
-                "could not be added to airport revenue.",
-                this);
-        }
-    }
-
-    public void CancelExternalCleaning()
-    {
-        // Do not fall back to simulated cleaning if no vehicle is available.
-        externalCleaningControlled =
-            cleaning.Status == AircraftTurnaroundTaskStatus.InProgress;
-        cleaningVehicleRequestRetryTimer = 5f;
-    }
-
-    private void RequestExternalCleaningServiceIfAvailable()
-    {
-        if (cleaning.Status != AircraftTurnaroundTaskStatus.InProgress)
-            return;
-
-        externalCleaningControlled = true;
-        cleaningVehicleRequestRetryTimer = 5f;
-        AircraftCleaningVehicleController.RequestCleaning(this);
+        airportFees.ChargeCleaningFee(passengerRevenue.SeatCapacity);
     }
 
     /// <summary>
