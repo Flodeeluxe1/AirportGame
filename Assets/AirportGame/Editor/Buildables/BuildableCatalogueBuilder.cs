@@ -45,23 +45,10 @@ public static class BuildableCatalogueBuilder
                 return;
             }
 
-            List<string> searchFolders = new List<string>();
-
-            if (AssetDatabase.IsValidFolder(LegacyDefinitionsPath))
-                searchFolders.Add(LegacyDefinitionsPath);
-
-            if (AssetDatabase.IsValidFolder(BuildablesRootPath))
-                searchFolders.Add(BuildablesRootPath);
-
-            if (searchFolders.Count == 0)
-            {
-                Debug.LogError(
-                    "BuildableCatalogueBuilder: No buildable asset folders were found.");
-                return;
-            }
-
             string[] guids =
-                AssetDatabase.FindAssets("t:BuildableDefinition", searchFolders.ToArray());
+                AssetDatabase.FindAssets(
+                    "t:BuildableDefinition",
+                    new[] { "Assets/AirportGame" });
 
             List<BuildableDefinition> definitions = new List<BuildableDefinition>();
             Dictionary<string, BuildableDefinition> definitionsById =
