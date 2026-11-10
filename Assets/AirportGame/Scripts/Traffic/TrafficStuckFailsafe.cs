@@ -43,6 +43,7 @@ public class TrafficStuckFailsafe : MonoBehaviour
     private float stationaryTimer;
     private float parkingWaitTimer;
     private float movementCheckTimer;
+    private float stationaryElapsedSinceSample;
 
     private bool collidersTemporarilyDisabled;
 
@@ -110,13 +111,15 @@ public class TrafficStuckFailsafe : MonoBehaviour
         }
 
         // Movement is sampled at a configurable interval rather than every frame.
-        movementCheckTimer += Time.deltaTime;
+        movementCheckTimer += Time.unscaledDeltaTime;
+        stationaryElapsedSinceSample += Time.deltaTime;
 
-        if (movementCheckTimer < movementCheckInterval)
+        if (movementCheckTimer < Mathf.Max(0.02f, movementCheckInterval))
             return;
 
-        float sampleElapsed = movementCheckTimer;
+        float sampleElapsed = stationaryElapsedSinceSample;
         movementCheckTimer = 0f;
+        stationaryElapsedSinceSample = 0f;
 
         // Preserve the existing collider recovery behavior.
         if (collidersTemporarilyDisabled)
@@ -137,6 +140,7 @@ public class TrafficStuckFailsafe : MonoBehaviour
         {
             stationaryAnchor = transform.position;
             stationaryTimer = 0f;
+            stationaryElapsedSinceSample = 0f;
             debugStationaryTime = 0f;
             return;
         }
@@ -192,6 +196,7 @@ public class TrafficStuckFailsafe : MonoBehaviour
         disabledPosition = transform.position;
         stationaryTimer = 0f;
         movementCheckTimer = 0f;
+        stationaryElapsedSinceSample = 0f;
         debugStationaryTime = 0f;
 
         SetFailsafeLog(
@@ -231,6 +236,7 @@ public class TrafficStuckFailsafe : MonoBehaviour
 
         stationaryTimer = 0f;
         movementCheckTimer = 0f;
+        stationaryElapsedSinceSample = 0f;
         debugStationaryTime = 0f;
 
         stationaryAnchor = transform.position;
