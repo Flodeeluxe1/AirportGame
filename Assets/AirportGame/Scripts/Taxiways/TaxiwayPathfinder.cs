@@ -193,14 +193,24 @@ public class TaxiwayPathfinder : MonoBehaviour
             return new List<Vector2Int>();
 
         List<Vector2Int> targets = new List<Vector2Int>();
+        int minimumX = int.MaxValue;
+        int maximumX = int.MinValue;
+        int minimumY = int.MaxValue;
+        int maximumY = int.MinValue;
 
         foreach (KeyValuePair<Vector2Int, float> entry in targetApproachCosts)
         {
-            if (entry.Key != start &&
-                IsSuitableGroundMovementCell(entry.Key, minimumTaxiwayWidth))
+            if (entry.Key == start ||
+                !IsSuitableGroundMovementCell(entry.Key, minimumTaxiwayWidth))
             {
-                targets.Add(entry.Key);
+                continue;
             }
+
+            targets.Add(entry.Key);
+            minimumX = Mathf.Min(minimumX, entry.Key.x);
+            maximumX = Mathf.Max(maximumX, entry.Key.x);
+            minimumY = Mathf.Min(minimumY, entry.Key.y);
+            maximumY = Mathf.Max(maximumY, entry.Key.y);
         }
 
         if (targets.Count == 0)
@@ -212,7 +222,9 @@ public class TaxiwayPathfinder : MonoBehaviour
         HashSet<Vector2Int> closedSet = new HashSet<Vector2Int>();
 
         gScore[start] = 0f;
-        openSet.Enqueue(start, GetMinimumTargetHeuristic(start, targets));
+        openSet.Enqueue(
+            start,
+            GetTargetBoundsHeuristic(start, minimumX, maximumX, minimumY, maximumY));
 
         bool foundTarget = false;
 
@@ -245,7 +257,9 @@ public class TaxiwayPathfinder : MonoBehaviour
 
             TryVisitGroundNeighbor(
                 current, current + Vector2Int.up, currentGScore,
-                minimumTaxiwayWidth, targets, openSet, cameFrom, gScore, closedSet);
+                minimumTaxiwayWidth, targets,
+                minimumX, maximumX, minimumY, maximumY,
+                openSet, cameFrom, gScore, closedSet);
 
             TryVisitGroundNeighbor(
                 current, current + Vector2Int.right, currentGScore,
@@ -272,6 +286,10 @@ public class TaxiwayPathfinder : MonoBehaviour
         float currentGScore,
         int minimumTaxiwayWidth,
         List<Vector2Int> targets,
+        int minimumX,
+        int maximumX,
+        int minimumY,
+        int maximumY,
         MinPriorityQueue openSet,
         Dictionary<Vector2Int, Vector2Int> cameFrom,
         Dictionary<Vector2Int, float> gScore,
@@ -304,28 +322,34 @@ public class TaxiwayPathfinder : MonoBehaviour
         gScore[next] = tentativeGScore;
 
         float priority =
-            tentativeGScore + GetMinimumTargetHeuristic(next, targets);
+            tentativeGScore +
+            GetTargetBoundsHeuristic(next, minimumX, maximumX, minimumY, maximumY);
 
         openSet.Enqueue(next, priority);
     }
 
-    private float GetMinimumTargetHeuristic(
+    private float GetTargetBoundsHeuristic(
         Vector2Int current,
-        List<Vector2Int> targets)
+        int minimumX,
+        int maximumX,
+        int minimumY,
+        int maximumY)
     {
-        int minimumDistance = int.MaxValue;
+        int distanceX = current.x < minimumX
+            ? minimumX - current.x
+            : current.x > maximumX
+                ? current.x - maximumX
+                : 0;
 
-        for (int i = 0; i < targets.Count; i++)
-        {
-            int distance =
-                Mathf.Abs(current.x - targets[i].x) +
-                Mathf.Abs(current.y - targets[i].y);
+        int distanceY = current.y < minimumY
+            ? minimumY - current.y
+            : current.y > maximumY
+                ? current.y - maximumY
+                : 0;
 
-            if (distance < minimumDistance)
-                minimumDistance = distance;
-        }
-
-        return minimumDistance == int.MaxValue ? 0f : minimumDistance;
+        // Distance to the target bounding rectangle is a cheap lower bound
+        // for the distance to any target cell.
+        return distanceX + distanceY;
     }
 
     private bool IsSuitableGroundMovementCell(
