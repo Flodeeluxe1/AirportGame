@@ -40,6 +40,7 @@ public class AircraftHobbyVisitController : MonoBehaviour
     public bool DepartureRequested => departureRequested;
     public bool HasParked => hasParked;
     public bool IsParkingFeeEligible => hasParked && !departureRequested;
+    public double ParkingFeeEndGameSeconds => departureAtGameSeconds;
     public string DebugStatus => debugStatus;
 
     private void Awake()
