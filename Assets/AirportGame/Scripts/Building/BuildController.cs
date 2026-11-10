@@ -161,7 +161,15 @@ public class BuildController : MonoBehaviour
             currentHandler?.Rotate();
         }
 
-        if (currentDefinition.category == BuildCategory.Taxiways)
+        if (currentDefinition.canBePlacedOnSurface)
+        {
+            if (mouse.leftButton.wasPressedThisFrame &&
+                !IsPointerOverBuildUI())
+            {
+                currentHandler?.TryPlace();
+            }
+        }
+        else if (currentDefinition.category == BuildCategory.Taxiways)
         {
             HandleTaxiwayInput(mouse);
         }
