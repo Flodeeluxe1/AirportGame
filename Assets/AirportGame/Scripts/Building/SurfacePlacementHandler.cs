@@ -174,11 +174,7 @@ public class SurfacePlacementHandler : IPlacementHandler
 
         // Some imported furniture has no collider. Check the rendered
         // bounds of existing surface objects as a second overlap guard.
-        PlacedBuilding[] placedBuildings =
-            Object.FindObjectsByType<PlacedBuilding>(
-                FindObjectsSortMode.None);
-
-        foreach (PlacedBuilding other in placedBuildings)
+        foreach (PlacedBuilding other in PlacedBuilding.ActiveBuildings)
         {
             if (other == null ||
                 other == currentSupport ||
