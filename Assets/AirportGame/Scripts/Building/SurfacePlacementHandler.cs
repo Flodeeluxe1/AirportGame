@@ -199,6 +199,142 @@ public class SurfacePlacementHandler : IPlacementHandler
         return true;
     }
 
+    private bool FitsOnSupportingSurface(Bounds objectBounds)
+    {
+        if (currentSupportCollider == null)
+            return false;
+
+        // Test the four corners of the object's footprint against the actual
+        // support collider. This works with rotated tables and avoids relying
+        // on the collider's world-axis-aligned bounds.
+        float surfaceY = currentPosition.y + 0.01f;
+        Vector3[] corners =
+        {
+            new Vector3(objectBounds.min.x, surfaceY, objectBounds.min.z),
+            new Vector3(objectBounds.min.x, surfaceY, objectBounds.max.z),
+            new Vector3(objectBounds.max.x, surfaceY, objectBounds.min.z),
+            new Vector3(objectBounds.max.x, surfaceY, objectBounds.max.z)
+        };
+
+        const float horizontalTolerance = 0.02f;
+        float toleranceSquared = horizontalTolerance * horizontalTolerance;
+
+        foreach (Vector3 corner in corners)
+        {
+            Vector3 closest = currentSupportCollider.ClosestPoint(corner);
+            float dx = corner.x - closest.x;
+            float dz = corner.z - closest.z;
+
+            if (dx * dx + dz * dz > toleranceSquared)
+                return false;
+        }
+
+        return true;
+    }
+
+    public void Rotate()
+    {
+        if (definition == null || !definition.canRotate)
+            return;
+
+        currentRotation = (currentRotation + 90) % 360;
+
+        if (hasSupport)
+        {
+            previewObject.transform.rotation =
+                Quaternion.Euler(0f, currentRotation, 0f);
+
+            isValid = HasClearance();
+            placementPreview.SetValid(isValid);
+        }
+    }
+
+    public void TryPlace()
+    {
+        if (!hasSupport || !isValid || currentSupport == null ||
+            currentSupportCollider == null ||
+            currentSupport.Definition == null ||
+            !currentSupport.Definition.canSupportSurfaceObjects)
+        {
+            Debug.Log("Cannot place object: aim at the top of a supporting surface.");
+            return;
+        }
+
+        if (!ConstructionCostUtility.TryPay(
+                definition, 1, "Building construction"))
+        {
+            return;
+        }
+
+        GameObject placedObject = Object.Instantiate(
+            definition.prefab,
+            previewObject.transform.position,
+            previewObject.transform.rotation);
+
+        PlacedBuilding placedBuilding =
+            placedObject.GetComponent<PlacedBuilding>();
+
+        if (placedBuilding == null)
+            placedBuilding = placedObject.AddComponent<PlacedBuilding>();
+
+        placedBuilding.InitializeSurface(definition, currentRotation);
+        placedBuilding.SetSupportingSurface(currentSupport);
+
+        Debug.Log(
+            $"Placed {definition.displayName} on " +
+            $"{currentSupport.Definition.displayName}. " +
+            $"Cost: ${definition.buildCost:N0}.");
+    }
+
+    public void Cancel()
+    {
+    }
+
+    public void Reset()
+    {
+        definition = null;
+        previewObject = null;
+        placementPreview = null;
+        previewRenderers = null;
+        currentSupport = null;
+        currentSupportCollider = null;
+        hasSupport = false;
+        isValid = false;
+        currentRotation = 0;
+    }
+}        if (!FitsOnSupportingSurface(bounds))
+            return false;
+
+        Collider[] overlaps = Physics.OverlapBox(
+            bounds.center,
+            bounds.extents * 0.95f,
+            Quaternion.identity,
+            Physics.DefaultRaycastLayers,
+            QueryTriggerInteraction.Ignore);
+
+        foreach (Collider overlap in overlaps)
+        {
+            if (overlap == null)
+                continue;
+
+            if (overlap.transform.IsChildOf(previewObject.transform))
+                continue;
+
+            PlacedBuilding otherBuilding =
+                overlap.GetComponentInParent<PlacedBuilding>();
+
+            // The supporting furniture is allowed to intersect the
+            // bottom of the placed object's bounds.
+            if (otherBuilding == currentSupport)
+                continue;
+
+            // Other placed objects, walls and obstacles block placement.
+            return false;
+        }
+
+        return true;
+    }
+
     public void Rotate()
     {
         if (definition == null || !definition.canRotate)
