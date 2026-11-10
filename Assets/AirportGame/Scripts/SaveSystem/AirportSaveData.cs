@@ -6,7 +6,7 @@ using UnityEngine;
 [Serializable]
 public class AirportSaveData
 {
-    public const int CurrentSchemaVersion = 2;
+    public const int CurrentSchemaVersion = 3;
 
     public int schemaVersion = CurrentSchemaVersion;
     public string saveName = "";
@@ -79,6 +79,10 @@ public class AirportSaveData
 public class PlacedBuildingSaveData
 {
     public string definitionId = "";
+
+    public bool isSurfacePlaced;
+    public string instanceId = "";
+    public string supportingSurfaceInstanceId = "";
 
     public int originX;
     public int originZ;
