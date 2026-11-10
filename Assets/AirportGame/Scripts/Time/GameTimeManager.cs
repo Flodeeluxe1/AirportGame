@@ -1,4 +1,5 @@
 
+using System;
 using UnityEngine;
 
 public class GameTimeManager : MonoBehaviour
@@ -21,6 +22,8 @@ public class GameTimeManager : MonoBehaviour
 
     private double gameSeconds;
     private float baseFixedDeltaTime;
+
+    public event Action<long, long> GameTimeAdvanced;
 
     public int CurrentSpeedMultiplier =>
         currentSpeedMultiplier;
@@ -63,6 +66,8 @@ public class GameTimeManager : MonoBehaviour
         if (currentSpeedMultiplier == 0)
             return;
 
+        long previousAbsoluteSecond = GetAbsoluteGameSecond();
+
         double totalGameSeconds =
             gameSeconds +
             Time.unscaledDeltaTime *
@@ -80,6 +85,27 @@ public class GameTimeManager : MonoBehaviour
 
         gameSeconds =
             totalGameSeconds % SecondsPerDay;
+
+        NotifyGameTimeAdvanced(previousAbsoluteSecond);
+    }
+
+    private long GetAbsoluteGameSecond()
+    {
+        return (currentDay - 1) * (long)SecondsPerDay +
+               (long)System.Math.Floor(gameSeconds);
+    }
+
+    private void NotifyGameTimeAdvanced(long previousAbsoluteSecond)
+    {
+        long currentAbsoluteSecond = GetAbsoluteGameSecond();
+
+        if (currentAbsoluteSecond != previousAbsoluteSecond)
+        {
+            GameTimeAdvanced?.Invoke(
+                previousAbsoluteSecond,
+                currentAbsoluteSecond
+            );
+        }
     }
 
     public void SetSpeed(int multiplier)
@@ -125,17 +151,22 @@ public class GameTimeManager : MonoBehaviour
 
     public void SetGameTimeSeconds(int seconds)
     {
+        long previousAbsoluteSecond = GetAbsoluteGameSecond();
         gameSeconds = Mathf.Clamp(seconds, 0, 86399);
+        NotifyGameTimeAdvanced(previousAbsoluteSecond);
     }
 
     public void ResetToStartTime()
     {
+        long previousAbsoluteSecond = GetAbsoluteGameSecond();
+
         gameSeconds =
             startHour * 3600.0 +
             startMinute * 60.0 +
             startSecond;
 
         currentDay = 1;
+        NotifyGameTimeAdvanced(previousAbsoluteSecond);
     }
 
     public void Pause()
