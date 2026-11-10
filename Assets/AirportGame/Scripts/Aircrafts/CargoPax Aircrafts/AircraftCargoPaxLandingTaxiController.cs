@@ -197,6 +197,21 @@ public class AircraftCargoPaxLandingTaxiController : MonoBehaviour
         aircraftStatus = GetComponent<AircraftStatus>();
     }
 
+
+    private void SetOperationalState(TaxiPhase newState)
+    {
+        if (phase == newState)
+            return;
+
+        phase = newState;
+
+        AircraftFlightIdentity identity =
+            GetComponent<AircraftFlightIdentity>();
+
+        if (identity != null)
+            identity.NotifyAircraftChanged();
+    }
+
     private void Update()
     {
         if (aircraftStatus != null)
@@ -474,8 +489,7 @@ public class AircraftCargoPaxLandingTaxiController : MonoBehaviour
         currentWaypointIndex = 0;
         hasArrivedAtGate = false;
         isTaxiing = true;
-        phase = TaxiPhase.RollingForwardOnRunway;
-
+        SetOperationalState(TaxiPhase.RollingForwardOnRunway);
         Vector3 adjustedPosition = transform.position;
         adjustedPosition.y = taxiWorldY;
         transform.position = adjustedPosition;
@@ -901,8 +915,7 @@ public class AircraftCargoPaxLandingTaxiController : MonoBehaviour
             waypointArrivalDistance)
         {
             SetPositionAt(runwayExitPoint);
-            phase = TaxiPhase.JoiningTaxiway;
-
+            SetOperationalState(TaxiPhase.JoiningTaxiway);
             debugStatus =
                 $"Reached runway exit {debugRunwayExitCell}. Joining taxiway.";
 
@@ -930,8 +943,7 @@ public class AircraftCargoPaxLandingTaxiController : MonoBehaviour
 
             currentWaypointIndex = 1;
             debugCurrentWaypoint = currentWaypointIndex;
-            phase = TaxiPhase.FollowingTaxiway;
-
+            SetOperationalState(TaxiPhase.FollowingTaxiway);
             debugStatus =
                 $"Joined taxiway. Following route to {assignedGate.DisplayName}.";
 
@@ -959,7 +971,7 @@ public class AircraftCargoPaxLandingTaxiController : MonoBehaviour
             return;
         }
 
-        phase = TaxiPhase.ApproachingGate;
+        SetOperationalState(TaxiPhase.ApproachingGate);
         debugStatus = $"Taxiway route complete. Approaching {assignedGate.DisplayName}.";
     }
 
@@ -1054,7 +1066,7 @@ public class AircraftCargoPaxLandingTaxiController : MonoBehaviour
 
         isTaxiing = false;
         hasArrivedAtGate = true;
-        phase = TaxiPhase.Arrived;
+        SetOperationalState(TaxiPhase.Arrived);
         debugCurrentWaypoint = taxiMovementPath.Count;
         debugTaxiPhase = phase.ToString();
 
@@ -1077,7 +1089,7 @@ public class AircraftCargoPaxLandingTaxiController : MonoBehaviour
     {
         isTaxiing = false;
         hasArrivedAtGate = false;
-        phase = TaxiPhase.Failed;
+        SetOperationalState(TaxiPhase.Failed);
         debugTaxiPhase = phase.ToString();
         debugStatus = reason;
 
@@ -1134,7 +1146,7 @@ public class AircraftCargoPaxLandingTaxiController : MonoBehaviour
 
         isTaxiing = false;
         hasArrivedAtGate = false;
-        phase = TaxiPhase.Failed;
+        SetOperationalState(TaxiPhase.Failed);
         debugTaxiPhase = phase.ToString();
 
         Debug.LogWarning(
