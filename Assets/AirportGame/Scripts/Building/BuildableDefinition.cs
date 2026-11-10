@@ -19,9 +19,8 @@ public enum RoomFurnitureRole
 {
     None = 0,
     InstructorDesk = 1,
-    StudentSeat = 2,
+    Chair = 2,
     OfficeDesk = 4,
-    OfficeChair = 8,
     OfficeComputer = 16,
     OfficePrinter = 32
 }
