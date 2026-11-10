@@ -112,7 +112,6 @@ public class AircraftCargoPaxLandingTaxiController : MonoBehaviour
 
     private AircraftGate assignedGate;
     private AircraftRunway selectedRunway;
-    private AircraftTaxiTrafficFollowing trafficFollowing;
     private AircraftStatus aircraftStatus;
 
     private Vector3 landingDirection;
