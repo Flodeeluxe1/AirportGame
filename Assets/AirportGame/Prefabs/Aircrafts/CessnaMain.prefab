@@ -4773,7 +4773,6 @@ MonoBehaviour:
   minimumStayMinutes: 5
   maximumStayMinutes: 10
   parkingSpotReleaseDistance: 2
-  landingFeeCharged: 0
   hasParked: 0
   departureRequested: 0
   visitMinutesRemaining: 0
