@@ -266,11 +266,13 @@ public class AircraftFuelStation : MonoBehaviour
 
         if (totalCost > 0)
         {
-            if (economyManager == null)
-                economyManager = FindFirstObjectByType<AirportEconomyManager>();
+            AircraftAirportFees airportFees =
+                currentlyServicedAircraft != null
+                    ? currentlyServicedAircraft.GetComponent<AircraftAirportFees>()
+                    : null;
 
-            if (economyManager == null ||
-                !economyManager.AddRevenue(
+            if (airportFees == null ||
+                !airportFees.RecordCharge(
                     totalCost,
                     $"Hobby aircraft fuel sales ({currentlyServicedAircraft?.name ?? "aircraft"})"))
             {
