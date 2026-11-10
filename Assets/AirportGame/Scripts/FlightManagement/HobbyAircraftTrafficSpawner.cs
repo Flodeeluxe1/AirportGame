@@ -15,6 +15,7 @@ public class HobbyAircraftTrafficSpawner : MonoBehaviour
     [SerializeField] private Transform spawnPoint;
     [SerializeField] private GameTimeManager gameTimeManager;
     [SerializeField] private GridManager gridManager;
+    [SerializeField] private AirportManagementController airportManagementController;
 
     [Header("Traffic Limits")]
     [Min(1)]
@@ -283,6 +284,19 @@ public class HobbyAircraftTrafficSpawner : MonoBehaviour
 
     private bool TrySpawnVisitor(bool ignoreDemandRoll)
     {
+        if (airportManagementController == null)
+        {
+            airportManagementController =
+                FindFirstObjectByType<AirportManagementController>();
+        }
+
+        if (airportManagementController == null ||
+            !airportManagementController.IsAirportOperational)
+        {
+            debugStatus = "Waiting for a valid CEO Office";
+            return false;
+        }
+
         if (!HasRequiredAirportInfrastructure(out int runwayCount))
         {
             debugStatus = "Waiting for a usable runway and airport systems";
