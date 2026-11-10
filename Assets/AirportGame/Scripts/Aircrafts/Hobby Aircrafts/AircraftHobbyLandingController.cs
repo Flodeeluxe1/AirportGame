@@ -674,13 +674,6 @@ public class AircraftHobbyLandingController : MonoBehaviour
         debugSidewindComponentKnots =
             CalculateSidewindComponentKnots();
 
-        Debug.Log(
-            $"AIRCRAFT FLARE DECISION | " +
-            $"Runway: {debugSelectedRunway} | " +
-            $"Sidewind: {debugSidewindComponentKnots:F1} knots | " +
-            $"Maximum: {maximumSidewindComponentKnots:F1} knots"
-        );
-
         if (debugSidewindComponentKnots >
             maximumSidewindComponentKnots)
         {
@@ -871,11 +864,6 @@ public class AircraftHobbyLandingController : MonoBehaviour
         debugStatus =
             "Touchdown. Rolling out and decelerating.";
 
-        Debug.Log(
-            $"AIRCRAFT TOUCHDOWN | " +
-            $"Runway: {debugSelectedRunway} | " +
-            $"Speed: {touchdownSpeedKnots:F1} knots"
-        );
     }
 
     private void UpdateRollout()
