@@ -4770,9 +4770,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 55525b5280edd2940967179e57e81867, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AircraftHobbyVisitController
-  landingFee: 20
-  parkingFee: 5
-  parkingIntervalMinutes: 10
   minimumStayMinutes: 5
   maximumStayMinutes: 10
   parkingSpotReleaseDistance: 2
