@@ -20,6 +20,11 @@ public class FloorFinishRenderer : MonoBehaviour
     private readonly Dictionary<Vector2Int, ChunkVisual> chunks =
         new Dictionary<Vector2Int, ChunkVisual>();
 
+    private readonly HashSet<Vector2Int> dirtyChunks =
+        new HashSet<Vector2Int>();
+
+    private bool isStrokeActive;
+
     private int GridWidth => gridManager != null ? gridManager.Width : 0;
     private int GridHeight => gridManager != null ? gridManager.Height : 0;
 
@@ -94,7 +99,7 @@ public class FloorFinishRenderer : MonoBehaviour
             return true;
 
         finishIndices[cell.x, cell.y] = finishIndex;
-        RebuildChunk(GetChunkCoordinate(cell));
+        MarkChunkDirty(GetChunkCoordinate(cell));
         return true;
     }
 
@@ -107,8 +112,39 @@ public class FloorFinishRenderer : MonoBehaviour
             return true;
 
         finishIndices[cell.x, cell.y] = -1;
-        RebuildChunk(GetChunkCoordinate(cell));
+        MarkChunkDirty(GetChunkCoordinate(cell));
         return true;
+    }
+
+    public void BeginStroke()
+    {
+        isStrokeActive = true;
+    }
+
+    public void EndStroke()
+    {
+        isStrokeActive = false;
+        FlushDirtyChunks();
+    }
+
+    private void MarkChunkDirty(Vector2Int coordinate)
+    {
+        dirtyChunks.Add(coordinate);
+
+        if (!isStrokeActive)
+            FlushDirtyChunks();
+    }
+
+    private void FlushDirtyChunks()
+    {
+        if (dirtyChunks.Count == 0)
+            return;
+
+        List<Vector2Int> pending = new List<Vector2Int>(dirtyChunks);
+        dirtyChunks.Clear();
+
+        foreach (Vector2Int coordinate in pending)
+            RebuildChunk(coordinate);
     }
 
     public void ClearAllFinishes()
@@ -135,6 +171,8 @@ public class FloorFinishRenderer : MonoBehaviour
         }
 
         chunks.Clear();
+        dirtyChunks.Clear();
+        isStrokeActive = false;
     }
 
     public string GetFinishId(Vector2Int cell)
@@ -165,7 +203,7 @@ public class FloorFinishRenderer : MonoBehaviour
             return false;
 
         finishIndices[cell.x, cell.y] = finishIndex;
-        RebuildChunk(GetChunkCoordinate(cell));
+        MarkChunkDirty(GetChunkCoordinate(cell));
         return true;
     }
 
@@ -203,18 +241,37 @@ public class FloorFinishRenderer : MonoBehaviour
     {
         ClearAllFinishes();
 
-        if (savedCells == null)
+        if (savedCells == null || catalogue == null ||
+            gridSurface == null || finishIndices == null)
             return;
+
+        HashSet<Vector2Int> affectedChunks = new HashSet<Vector2Int>();
 
         foreach (FloorFinishCellSaveData saved in savedCells)
         {
             if (saved == null)
                 continue;
 
-            RestoreFinish(
-                new Vector2Int(saved.x, saved.z),
-                saved.finishId);
+            Vector2Int cell = new Vector2Int(saved.x, saved.z);
+
+            if (!IsValidCell(cell) ||
+                gridSurface.GetSurface(cell) != BuildSurface.Foundation)
+                continue;
+
+            FloorFinishDefinition finish = catalogue.FindById(saved.finishId);
+            if (finish == null || finish.material == null)
+                continue;
+
+            int index = catalogue.GetIndex(finish);
+            if (index < 0)
+                continue;
+
+            finishIndices[cell.x, cell.y] = index;
+            affectedChunks.Add(GetChunkCoordinate(cell));
         }
+
+        foreach (Vector2Int coordinate in affectedChunks)
+            RebuildChunk(coordinate);
     }
 
     public void RemoveFinishesInArea(Vector2Int origin, int width, int depth)
@@ -242,7 +299,7 @@ public class FloorFinishRenderer : MonoBehaviour
         }
 
         foreach (Vector2Int chunk in affectedChunks)
-            RebuildChunk(chunk);
+            MarkChunkDirty(chunk);
     }
 
     private bool IsValidCell(Vector2Int cell)
