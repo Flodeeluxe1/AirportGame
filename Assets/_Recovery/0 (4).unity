@@ -2582,6 +2582,34 @@ MonoBehaviour:
   roomDetectionController: {fileID: 0}
   hasValidCEOOffice: 0
   hasValidCFOOffice: 0
+  customFeeSettings:
+    hobby:
+      landingFee: 0
+      parkingFee: 0
+      parkingIntervalMinutes: 15
+    flightSchool:
+      landingFee: 0
+      parkingFee: 0
+      parkingIntervalMinutes: 15
+    sightseeing:
+      landingFee: 0
+      parkingFee: 0
+      parkingIntervalMinutes: 15
+    cargo:
+      landingFee: 0
+      parkingFee: 0
+      parkingIntervalMinutes: 15
+    passenger:
+      landingFee: 0
+      parkingFee: 0
+      parkingIntervalMinutes: 15
+    fuelServiceFee: 0
+    cleaningFeeUpTo10Passengers: 100
+    cleaningFeeUpTo50Passengers: 200
+    cleaningFeeUpTo100Passengers: 350
+    cleaningFeeUpTo200Passengers: 500
+    cleaningFeeUpTo300Passengers: 750
+    cleaningFeeAbove300Passengers: 1000
 --- !u!1 &1399790235
 GameObject:
   m_ObjectHideFlags: 0
@@ -2731,6 +2759,7 @@ GameObject:
   - component: {fileID: 1478484328}
   - component: {fileID: 1478484330}
   - component: {fileID: 1478484331}
+  - component: {fileID: 1478484332}
   m_Layer: 0
   m_Name: AirportUI
   m_TagString: Untagged
@@ -2965,6 +2994,20 @@ MonoBehaviour:
   pipelineNetworkManager: {fileID: 1428745612}
   fuelTruckSpawner: {fileID: 0}
   refreshInterval: 1
+--- !u!114 &1478484332
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1478484321}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7e6f1a9b3c2d4e5f8a0b1c6d9e2f7345, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FinanceManagementUIController
+  uiDocument: {fileID: 762824360}
+  airportManagementController: {fileID: 1390174456}
 --- !u!1 &1502454834
 GameObject:
   m_ObjectHideFlags: 0
