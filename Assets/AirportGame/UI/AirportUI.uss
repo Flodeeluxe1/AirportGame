@@ -407,3 +407,23 @@
     background-color: rgb(235, 238, 242);
     color: rgb(25, 27, 32);
 }
+
+
+/* FLOOR FINISH PALETTE */
+
+.floor-finish-card {
+    height: 88px;
+    justify-content: center;
+}
+
+.floor-finish-icon {
+    width: 72px;
+    height: 54px;
+    margin-bottom: 3px;
+}
+
+.floor-finish-name {
+    font-size: 9px;
+    white-space: normal;
+    -unity-text-align: middle-center;
+}
