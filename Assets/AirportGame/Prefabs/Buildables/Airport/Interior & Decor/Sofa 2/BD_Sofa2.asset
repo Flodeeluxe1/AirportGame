@@ -23,10 +23,12 @@ MonoBehaviour:
   requiresExistingWall: 0
   isWallMounted: 0
   mountHeight: 2
+  canBePlacedOnSurface: 0
+  canSupportSurfaceObjects: 0
   canRotate: 1
   buildCost: 220
   blocksPathfinding: 0
   menuCategory: Interior & Decor
   category: 3
-  icon: {fileID: 0}
+  icon: {fileID: 2800000, guid: 42443f28c18c7934a9724d118bea077a, type: 3}
   roomFurnitureRole: 0

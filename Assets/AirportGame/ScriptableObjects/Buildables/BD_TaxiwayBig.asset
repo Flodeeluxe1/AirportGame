@@ -23,10 +23,12 @@ MonoBehaviour:
   requiresExistingWall: 0
   isWallMounted: 0
   mountHeight: 2
+  canBePlacedOnSurface: 0
+  canSupportSurfaceObjects: 0
   canRotate: 1
   buildCost: 10
   blocksPathfinding: 0
   menuCategory: Taxiways
   category: 6
-  icon: {fileID: 0}
+  icon: {fileID: 2800000, guid: a9cbb1c861b09354eb16f4fb5a87610b, type: 3}
   roomFurnitureRole: 0

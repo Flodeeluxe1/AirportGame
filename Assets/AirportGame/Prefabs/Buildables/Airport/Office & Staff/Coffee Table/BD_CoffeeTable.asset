@@ -22,13 +22,13 @@ MonoBehaviour:
   edgeLength: 1
   requiresExistingWall: 0
   isWallMounted: 0
+  mountHeight: 2
   canBePlacedOnSurface: 0
   canSupportSurfaceObjects: 1
-  mountHeight: 2
   canRotate: 1
   buildCost: 45
   blocksPathfinding: 0
   menuCategory: Office & Staff
   category: 3
-  icon: {fileID: 0}
+  icon: {fileID: 2800000, guid: 0c19e0826ed3943429e5570a977e4688, type: 3}
   roomFurnitureRole: 0

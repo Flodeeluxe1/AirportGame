@@ -23,10 +23,12 @@ MonoBehaviour:
   requiresExistingWall: 0
   isWallMounted: 0
   mountHeight: 2
+  canBePlacedOnSurface: 0
+  canSupportSurfaceObjects: 0
   canRotate: 1
   buildCost: 1500
   blocksPathfinding: 0
   menuCategory: Airport Operations
   category: 3
-  icon: {fileID: 0}
+  icon: {fileID: 2800000, guid: 4c2e5f9af94c7dc42bebb03adb09b3f2, type: 3}
   roomFurnitureRole: 0

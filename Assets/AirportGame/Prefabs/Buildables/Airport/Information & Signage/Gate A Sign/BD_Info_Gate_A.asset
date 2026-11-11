@@ -23,10 +23,12 @@ MonoBehaviour:
   requiresExistingWall: 1
   isWallMounted: 1
   mountHeight: 2
+  canBePlacedOnSurface: 0
+  canSupportSurfaceObjects: 0
   canRotate: 1
   buildCost: 800
   blocksPathfinding: 0
   menuCategory: Information & Signage
   category: 3
-  icon: {fileID: 0}
+  icon: {fileID: 2800000, guid: 5d2dbc5bc48691140a7e672758e06202, type: 3}
   roomFurnitureRole: 0

@@ -23,10 +23,12 @@ MonoBehaviour:
   requiresExistingWall: 0
   isWallMounted: 0
   mountHeight: 2
+  canBePlacedOnSurface: 0
+  canSupportSurfaceObjects: 0
   canRotate: 0
   buildCost: 25
   blocksPathfinding: 0
   menuCategory: Floor
   category: 0
-  icon: {fileID: 0}
+  icon: {fileID: 2800000, guid: 5c11167b60d660848ada93a88cd20978, type: 3}
   roomFurnitureRole: 0

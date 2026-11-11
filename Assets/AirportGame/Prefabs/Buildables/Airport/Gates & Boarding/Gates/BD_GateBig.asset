@@ -23,10 +23,12 @@ MonoBehaviour:
   requiresExistingWall: 0
   isWallMounted: 0
   mountHeight: 2
+  canBePlacedOnSurface: 0
+  canSupportSurfaceObjects: 0
   canRotate: 1
   buildCost: 200000
   blocksPathfinding: 0
   menuCategory: Gates & Boarding
   category: 3
-  icon: {fileID: 0}
+  icon: {fileID: 2800000, guid: 8f4d53c4d237e3443bb91640d3a1da49, type: 3}
   roomFurnitureRole: 0
