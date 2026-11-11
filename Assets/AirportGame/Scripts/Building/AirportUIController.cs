@@ -430,6 +430,12 @@ public class AirportUIController : MonoBehaviour
         VisualElement card = new VisualElement();
         card.AddToClassList("buildable-card");
 
+        Image iconImage = new Image();
+        iconImage.AddToClassList("buildable-icon");
+        iconImage.scaleMode = ScaleMode.ScaleToFit;
+        iconImage.image = definition.icon;
+        card.Add(iconImage);
+
         Label nameLabel = new Label(definition.displayName);
         nameLabel.AddToClassList("buildable-name");
         card.Add(nameLabel);
