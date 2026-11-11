@@ -24,6 +24,9 @@ public class ScheduledAircraftSpawner : MonoBehaviour
     [SerializeField] private bool logAircraftSpawns = true;
     [SerializeField] private bool logQueueChanges = true;
 
+    public GameObject CargoAircraftPrefab => aircraftPrefab;
+    public GameObject PassengerAircraftPrefab => passengerAircraftPrefab;
+
     private const int ScheduleFileVersion = 1;
     private const int MinutesBeforeScheduledTime = 1;
     private const string ScheduleFileName = "flight_schedule.json";
@@ -476,6 +479,16 @@ public class ScheduledAircraftSpawner : MonoBehaviour
             spawnPoint.position,
             spawnPoint.rotation
         );
+
+        AircraftAirportFees airportFees =
+            aircraft.GetComponent<AircraftAirportFees>();
+        if (airportFees != null)
+        {
+            airportFees.SetFeeCategory(
+                scheduled.Definition.OperationType == FlightOperationType.CargoOnly
+                    ? AirportFeeCategory.Cargo
+                    : AirportFeeCategory.Passenger);
+        }
 
         AircraftFlightIdentity identity =
             aircraft.GetComponent<AircraftFlightIdentity>();
