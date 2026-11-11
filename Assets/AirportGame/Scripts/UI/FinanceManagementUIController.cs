@@ -363,6 +363,13 @@ public class FinanceManagementUIController : MonoBehaviour
             (s, v) => s.passenger.parkingFee = v,
             (s, v) => s.passenger.parkingIntervalMinutes = v);
 
+        AddSectionTitle("FUEL SERVICE FEES");
+        AddDescription("A flat service charge is added once per completed refuelling session. Fuel price per litre remains configured at the fuel station.");
+        AddCleaningField(
+            "Per refuelling session",
+            settings.fuelServiceFee,
+            (s, v) => s.fuelServiceFee = v);
+
         AddSectionTitle("CLEANING FEES");
         AddDescription("Cleaning price is selected using the aircraft's maximum passenger capacity.");
         AddCleaningField(
