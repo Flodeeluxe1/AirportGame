@@ -6,7 +6,7 @@ using UnityEngine;
 [Serializable]
 public class AirportSaveData
 {
-    public const int CurrentSchemaVersion = 4;
+    public const int CurrentSchemaVersion = 5;
 
     public int schemaVersion = CurrentSchemaVersion;
     public string saveName = "";
@@ -34,6 +34,9 @@ public class AirportSaveData
 
     public List<PipelineNetworkSaveData> pipelineNetworks =
         new List<PipelineNetworkSaveData>();
+
+    public List<FloorFinishCellSaveData> floorFinishCells =
+        new List<FloorFinishCellSaveData>();
 
     public List<FlightScheduleSaveData> flightSchedule =
         new List<FlightScheduleSaveData>();
@@ -69,6 +72,9 @@ public class AirportSaveData
 
         if (pipelineNetworks == null)
             pipelineNetworks = new List<PipelineNetworkSaveData>();
+
+        if (floorFinishCells == null)
+            floorFinishCells = new List<FloorFinishCellSaveData>();
 
         if (flightSchedule == null)
             flightSchedule = new List<FlightScheduleSaveData>();
