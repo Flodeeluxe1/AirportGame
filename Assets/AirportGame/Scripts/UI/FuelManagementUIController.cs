@@ -11,6 +11,13 @@ public class FuelManagementUIController : MonoBehaviour
 {
     [Header("References")]
     [SerializeField] private UIDocument uiDocument;
+
+    public UIDocument UiDocument =>
+        uiDocument != null
+            ? uiDocument
+            : GetComponent<UIDocument>() != null
+                ? GetComponent<UIDocument>()
+                : FindFirstObjectByType<UIDocument>();
     [SerializeField] private PipelineNetworkManager pipelineNetworkManager;
     [SerializeField] private FuelTruckSpawner fuelTruckSpawner;
 
