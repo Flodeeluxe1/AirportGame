@@ -333,6 +333,7 @@ public class FloorFinishRenderer : MonoBehaviour
         orderedFinishIndices.Sort();
 
         List<Material> materials = new List<Material>();
+        List<List<int>> allSubmeshTriangles = new List<List<int>>();
         List<Vector3> allVertices = new List<Vector3>();
         List<Vector2> allUvs = new List<Vector2>();
         Mesh mesh = new Mesh
@@ -355,13 +356,17 @@ public class FloorFinishRenderer : MonoBehaviour
             for (int i = 0; i < triangles.Count; i++)
                 triangles[i] += vertexOffset;
 
-            mesh.subMeshCount++;
-            mesh.SetTriangles(triangles, mesh.subMeshCount - 1, false);
+            allSubmeshTriangles.Add(triangles);
             materials.Add(finish.material);
         }
 
         mesh.SetVertices(allVertices);
         mesh.SetUVs(0, allUvs);
+        mesh.subMeshCount = allSubmeshTriangles.Count;
+
+        for (int i = 0; i < allSubmeshTriangles.Count; i++)
+            mesh.SetTriangles(allSubmeshTriangles[i], i, false);
+
         mesh.RecalculateNormals();
         mesh.RecalculateBounds();
 
