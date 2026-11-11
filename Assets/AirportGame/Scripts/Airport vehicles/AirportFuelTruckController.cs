@@ -523,8 +523,12 @@ public class AirportFuelTruckController : MonoBehaviour
         }
 
         float pricePerLitre = fuelStation.SellingPricePerLitre;
-        int totalCost = Mathf.CeilToInt(
+        int fuelCost = Mathf.CeilToInt(
             job.FuelLitresDelivered * pricePerLitre);
+        int serviceFee = AirportManagementController.Instance != null
+            ? AirportManagementController.Instance.GetActiveFuelServiceFee()
+            : 0;
+        int totalCost = fuelCost + serviceFee;
 
         if (totalCost <= 0)
             return;
@@ -537,7 +541,7 @@ public class AirportFuelTruckController : MonoBehaviour
         bool paymentRecorded = airportFees != null &&
             airportFees.RecordCharge(
                 totalCost,
-                $"CargoPax aircraft fuel sale ({job.Aircraft?.name ?? "aircraft"})");
+                $"CargoPax aircraft fuel sale and service fee ({job.Aircraft?.name ?? "aircraft"})");
 
         if (paymentRecorded)
         {
