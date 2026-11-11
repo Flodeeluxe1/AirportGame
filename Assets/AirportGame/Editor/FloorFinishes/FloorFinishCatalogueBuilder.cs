@@ -1,0 +1,302 @@
+#if UNITY_EDITOR
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using UnityEditor;
+using UnityEngine;
+
+public static class FloorFinishCatalogueBuilder
+{
+    private const string GeneratedRoot =
+        "Assets/AirportGame/Generated/FloorFinishes";
+
+    private const string DefinitionsFolder =
+        GeneratedRoot + "/Definitions";
+
+    private const string MaterialsFolder =
+        GeneratedRoot + "/Materials";
+
+    private const string CatalogueFolder =
+        "Assets/AirportGame/ScriptableObjects/FloorFinishes";
+
+    private const string CataloguePath =
+        CatalogueFolder + "/FloorFinishCatalogue.asset";
+
+    private static readonly string[] SearchRoots =
+    {
+        "Assets/Floor materials pack",
+        "Assets/Texture_and_materials/Tiles_floor",
+        "Assets/Texture_and_materials/Paving_stone"
+    };
+
+    [MenuItem("Airport/Floor Finishes/Build Catalogue From Project Materials")]
+    public static void BuildCatalogue()
+    {
+        EnsureFolder("Assets/AirportGame/Generated");
+        EnsureFolder(GeneratedRoot);
+        EnsureFolder(DefinitionsFolder);
+        EnsureFolder(MaterialsFolder);
+        EnsureFolder("Assets/AirportGame/ScriptableObjects");
+        EnsureFolder(CatalogueFolder);
+
+        List<string> materialGuids = new List<string>();
+
+        foreach (string root in SearchRoots)
+        {
+            if (!AssetDatabase.IsValidFolder(root))
+            {
+                Debug.LogWarning(
+                    $"FloorFinishCatalogueBuilder: Search folder not found: {root}");
+                continue;
+            }
+
+            materialGuids.AddRange(
+                AssetDatabase.FindAssets("t:Material", new[] { root }));
+        }
+
+        List<FloorFinishDefinition> definitions =
+            new List<FloorFinishDefinition>();
+
+        HashSet<string> processedNames =
+            new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (string guid in materialGuids.Distinct())
+        {
+            string sourcePath = AssetDatabase.GUIDToAssetPath(guid);
+            Material source = AssetDatabase.LoadAssetAtPath<Material>(sourcePath);
+
+            if (source == null || !IsFloorMaterial(source.name))
+                continue;
+
+            if (!processedNames.Add(source.name))
+            {
+                Debug.LogWarning(
+                    $"FloorFinishCatalogueBuilder: Duplicate material name " +
+                    $"'{source.name}' was skipped.");
+                continue;
+            }
+
+            Material finishMaterial = CreateOrUpdateUrpMaterial(source);
+            if (finishMaterial == null)
+                continue;
+
+            string id = "floor." + Sanitize(source.name);
+            string definitionPath =
+                DefinitionsFolder + "/" + Sanitize(source.name) + ".asset";
+
+            FloorFinishDefinition definition =
+                AssetDatabase.LoadAssetAtPath<FloorFinishDefinition>(
+                    definitionPath);
+
+            if (definition == null)
+            {
+                definition = ScriptableObject.CreateInstance<FloorFinishDefinition>();
+                AssetDatabase.CreateAsset(definition, definitionPath);
+            }
+
+            definition.id = id;
+            definition.displayName = MakeDisplayName(source.name);
+            definition.material = finishMaterial;
+            definition.icon = GetBaseTexture(finishMaterial);
+
+            EditorUtility.SetDirty(definition);
+            definitions.Add(definition);
+        }
+
+        definitions = definitions
+            .OrderBy(x => x.displayName, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        FloorFinishCatalogue catalogue =
+            AssetDatabase.LoadAssetAtPath<FloorFinishCatalogue>(CataloguePath);
+
+        if (catalogue == null)
+        {
+            catalogue = ScriptableObject.CreateInstance<FloorFinishCatalogue>();
+            AssetDatabase.CreateAsset(catalogue, CataloguePath);
+        }
+
+        SerializedObject serializedCatalogue = new SerializedObject(catalogue);
+        SerializedProperty finishes =
+            serializedCatalogue.FindProperty("finishes");
+
+        finishes.arraySize = definitions.Count;
+
+        for (int i = 0; i < definitions.Count; i++)
+            finishes.GetArrayElementAtIndex(i).objectReferenceValue = definitions[i];
+
+        serializedCatalogue.ApplyModifiedPropertiesWithoutUndo();
+        EditorUtility.SetDirty(catalogue);
+
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
+
+        Debug.Log(
+            $"FloorFinishCatalogueBuilder: Created/updated {definitions.Count} " +
+            $"floor finishes. Catalogue: {CataloguePath}");
+    }
+
+    private static Material CreateOrUpdateUrpMaterial(Material source)
+    {
+        string safeName = Sanitize(source.name);
+        string targetPath = MaterialsFolder + "/" + safeName + "_URP.mat";
+
+        Material target =
+            AssetDatabase.LoadAssetAtPath<Material>(targetPath);
+
+        Shader urpLit = Shader.Find("Universal Render Pipeline/Lit");
+        if (urpLit == null)
+        {
+            Debug.LogError(
+                "FloorFinishCatalogueBuilder: URP/Lit shader was not found.");
+            return null;
+        }
+
+        if (target == null)
+        {
+            target = new Material(urpLit);
+            target.name = source.name + " URP";
+            AssetDatabase.CreateAsset(target, targetPath);
+        }
+        else
+        {
+            target.shader = urpLit;
+        }
+
+        Texture baseMap = GetTexture(source, "_BaseMap", "_MainTex");
+        Texture normalMap = GetTexture(source, "_BumpMap");
+        Texture metallicMap = GetTexture(
+            source, "_MetallicGlossMap", "_MetallicMap");
+        Texture occlusionMap = GetTexture(source, "_OcclusionMap");
+
+        SetTextureAndTransform(target, "_BaseMap", baseMap, source,
+            "_BaseMap", "_MainTex");
+        SetTextureAndTransform(target, "_BumpMap", normalMap, source,
+            "_BumpMap");
+        SetTextureAndTransform(target, "_MetallicGlossMap", metallicMap, source,
+            "_MetallicGlossMap", "_MetallicMap");
+        SetTextureAndTransform(target, "_OcclusionMap", occlusionMap, source,
+            "_OcclusionMap");
+
+        if (source.HasProperty("_Color") && target.HasProperty("_BaseColor"))
+            target.SetColor("_BaseColor", source.GetColor("_Color"));
+        else if (source.HasProperty("_BaseColor") && target.HasProperty("_BaseColor"))
+            target.SetColor("_BaseColor", source.GetColor("_BaseColor"));
+
+        if (source.HasProperty("_Metallic") && target.HasProperty("_Metallic"))
+            target.SetFloat("_Metallic", source.GetFloat("_Metallic"));
+
+        if (source.HasProperty("_Glossiness") && target.HasProperty("_Smoothness"))
+            target.SetFloat("_Smoothness", source.GetFloat("_Glossiness"));
+        else if (source.HasProperty("_Smoothness") && target.HasProperty("_Smoothness"))
+            target.SetFloat("_Smoothness", source.GetFloat("_Smoothness"));
+
+        if (normalMap != null)
+            target.EnableKeyword("_NORMALMAP");
+
+        if (metallicMap != null)
+            target.EnableKeyword("_METALLICGLOSSMAP");
+
+        target.enableInstancing = true;
+        EditorUtility.SetDirty(target);
+
+        return target;
+    }
+
+    private static Texture GetTexture(Material material, params string[] properties)
+    {
+        foreach (string property in properties)
+        {
+            if (material.HasProperty(property))
+            {
+                Texture texture = material.GetTexture(property);
+                if (texture != null)
+                    return texture;
+            }
+        }
+
+        return null;
+    }
+
+    private static void SetTextureAndTransform(
+        Material target,
+        string targetProperty,
+        Texture texture,
+        Material source,
+        params string[] sourceProperties)
+    {
+        if (!target.HasProperty(targetProperty) || texture == null)
+            return;
+
+        target.SetTexture(targetProperty, texture);
+
+        foreach (string sourceProperty in sourceProperties)
+        {
+            if (!source.HasProperty(sourceProperty))
+                continue;
+
+            target.SetTextureScale(
+                targetProperty,
+                source.GetTextureScale(sourceProperty));
+
+            target.SetTextureOffset(
+                targetProperty,
+                source.GetTextureOffset(sourceProperty));
+
+            break;
+        }
+    }
+
+    private static Texture2D GetBaseTexture(Material material)
+    {
+        Texture texture = GetTexture(material, "_BaseMap", "_MainTex");
+        return texture as Texture2D;
+    }
+
+    private static bool IsFloorMaterial(string materialName)
+    {
+        return materialName.StartsWith("Floor_", StringComparison.OrdinalIgnoreCase) ||
+               materialName.StartsWith("Tiles_floor", StringComparison.OrdinalIgnoreCase) ||
+               materialName.StartsWith("Paving_stone", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string MakeDisplayName(string value)
+    {
+        return value.Replace("_", " ").Replace("(", " ").Replace(")", "").Trim();
+    }
+
+    private static string Sanitize(string value)
+    {
+        char[] invalid = Path.GetInvalidFileNameChars();
+        string result = value.ToLowerInvariant();
+
+        foreach (char character in invalid)
+            result = result.Replace(character.ToString(), "");
+
+        result = result.Replace(" ", "_")
+            .Replace("(", "")
+            .Replace(")", "")
+            .Replace("-", "_");
+
+        return result;
+    }
+
+    private static void EnsureFolder(string path)
+    {
+        if (AssetDatabase.IsValidFolder(path))
+            return;
+
+        string parent = Path.GetDirectoryName(path)?.Replace("\\", "/");
+        string folderName = Path.GetFileName(path);
+
+        if (string.IsNullOrEmpty(parent) || string.IsNullOrEmpty(folderName))
+            return;
+
+        EnsureFolder(parent);
+
+        if (!AssetDatabase.IsValidFolder(path))
+            AssetDatabase.CreateFolder(parent, folderName);
+    }
+}
+#endif
