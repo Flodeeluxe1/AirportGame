@@ -1059,6 +1059,15 @@ public class BuildingSelectionController : MonoBehaviour
                     if (!gridSurface.RemoveSurfaceCell(cell, building))
                         continue;
 
+                    if (!isTarmac)
+                    {
+                        FloorFinishRenderer finishRenderer =
+                            FindFirstObjectByType<FloorFinishRenderer>();
+
+                        if (finishRenderer != null)
+                            finishRenderer.ClearFinish(cell);
+                    }
+
                     if (isTarmac)
                     {
                         if (tarmacTilemapController != null)
