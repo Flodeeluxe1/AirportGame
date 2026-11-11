@@ -556,7 +556,7 @@ public class FinanceManagementUIController : MonoBehaviour
         if (airportManagementController.SaveCustomFeeSettings(settings))
         {
             availabilityMessage.text =
-                "Airport fees saved successfully. Custom fees are now active.";
+                "Fee changes applied. Save your airport to store them in this save slot.";
         }
         else
         {
