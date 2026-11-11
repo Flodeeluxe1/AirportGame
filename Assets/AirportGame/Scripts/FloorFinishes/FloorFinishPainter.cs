@@ -72,6 +72,7 @@ public class FloorFinishPainter : MonoBehaviour
 
             isDragging = true;
             lastPaintedCell = new Vector2Int(int.MinValue, int.MinValue);
+            floorFinishRenderer?.BeginStroke();
             PaintUnderPointer();
         }
 
@@ -81,6 +82,7 @@ public class FloorFinishPainter : MonoBehaviour
         if (mouse.leftButton.wasReleasedThisFrame)
         {
             isDragging = false;
+            floorFinishRenderer?.EndStroke();
             lastPaintedCell = new Vector2Int(int.MinValue, int.MinValue);
         }
     }
@@ -109,6 +111,9 @@ public class FloorFinishPainter : MonoBehaviour
 
     public void CancelPainting()
     {
+        if (isDragging)
+            floorFinishRenderer?.EndStroke();
+
         isActive = false;
         isDragging = false;
         selectedFinish = null;
@@ -122,7 +127,10 @@ public class FloorFinishPainter : MonoBehaviour
             return;
 
         if (IsPointerOverBuildUI())
+        {
+            lastPaintedCell = new Vector2Int(int.MinValue, int.MinValue);
             return;
+        }
 
         Ray ray = mainCamera.ScreenPointToRay(
             Mouse.current.position.ReadValue());
