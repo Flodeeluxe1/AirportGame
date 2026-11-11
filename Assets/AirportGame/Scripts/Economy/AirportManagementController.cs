@@ -1,6 +1,5 @@
 using System;
 using System.Collections;
-using System.IO;
 using UnityEngine;
 
 public enum AirportFeeCategory
@@ -48,13 +47,6 @@ public class AirportManagementController : MonoBehaviour
         [Min(0)] public int cleaningFeeAbove300Passengers = 1000;
     }
 
-    [Serializable]
-    private class FeeSettingsSaveData
-    {
-        public int version = 1;
-        public FeeSettings settings;
-    }
-
     [Header("References")]
     [SerializeField] private RoomPurposeController roomPurposeController;
     [SerializeField] private RoomDetectionController roomDetectionController;
@@ -70,11 +62,6 @@ public class AirportManagementController : MonoBehaviour
 
     private FeeSettings defaultFeeSettings;
     private Coroutine pendingRefresh;
-
-    private const string FeeSettingsFileName = "airport_fee_settings.json";
-
-    private string FeeSettingsFilePath =>
-        Path.Combine(Application.persistentDataPath, FeeSettingsFileName);
 
     public bool IsAirportOperational => hasValidCEOOffice;
     public bool CanAdjustFees => hasValidCFOOffice;
@@ -301,29 +288,6 @@ public class AirportManagementController : MonoBehaviour
         if (cleaningDefaults != null)
             cleaningDefaults.CopyDefaultCleaningFeesTo(defaultFeeSettings);
 
-        if (File.Exists(FeeSettingsFilePath))
-        {
-            try
-            {
-                FeeSettingsSaveData saved =
-                    JsonUtility.FromJson<FeeSettingsSaveData>(
-                        File.ReadAllText(FeeSettingsFilePath));
-
-                if (saved != null && saved.settings != null)
-                {
-                    customFeeSettings = SanitizeFeeSettings(saved.settings);
-                    return;
-                }
-            }
-            catch (Exception exception)
-            {
-                Debug.LogWarning(
-                    "AirportManagementController: Could not load saved airport fees. " +
-                    exception.Message,
-                    this);
-            }
-        }
-
         customFeeSettings = CloneFeeSettings(defaultFeeSettings);
     }
 
@@ -389,32 +353,23 @@ public class AirportManagementController : MonoBehaviour
         if (!CanAdjustFees || settings == null)
             return false;
 
-        FeeSettings candidate = SanitizeFeeSettings(settings);
+        customFeeSettings = SanitizeFeeSettings(settings);
+        StateChanged?.Invoke();
+        return true;
+    }
 
-        try
-        {
-            FeeSettingsSaveData saveData = new FeeSettingsSaveData
-            {
-                version = 1,
-                settings = candidate
-            };
+    public FeeSettings GetCustomFeeSettingsForSave()
+    {
+        return CloneFeeSettings(customFeeSettings);
+    }
 
-            File.WriteAllText(
-                FeeSettingsFilePath,
-                JsonUtility.ToJson(saveData, true));
+    public void RestoreCustomFeeSettingsFromSave(FeeSettings settings)
+    {
+        customFeeSettings = settings != null
+            ? SanitizeFeeSettings(settings)
+            : CloneFeeSettings(defaultFeeSettings);
 
-            customFeeSettings = candidate;
-            StateChanged?.Invoke();
-            return true;
-        }
-        catch (Exception exception)
-        {
-            Debug.LogError(
-                "AirportManagementController: Could not save airport fees. " +
-                exception.Message,
-                this);
-            return false;
-        }
+        StateChanged?.Invoke();
     }
 
     public bool TryGetActiveAircraftFees(
