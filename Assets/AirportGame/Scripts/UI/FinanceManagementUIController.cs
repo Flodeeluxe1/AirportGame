@@ -45,6 +45,15 @@ public class FinanceManagementUIController : MonoBehaviour
             uiDocument = GetComponent<UIDocument>();
 
         if (uiDocument == null)
+        {
+            FuelManagementUIController fuelUI =
+                FindFirstObjectByType<FuelManagementUIController>();
+
+            if (fuelUI != null)
+                uiDocument = fuelUI.UiDocument;
+        }
+
+        if (uiDocument == null)
             uiDocument = FindFirstObjectByType<UIDocument>();
 
         if (airportManagementController == null)
