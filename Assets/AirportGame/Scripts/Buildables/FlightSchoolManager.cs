@@ -71,6 +71,8 @@ public class FlightSchoolManager : MonoBehaviour
     private float nextRoomRefreshTime;
     private static FlightSchoolManager activeManager;
 
+    public GameObject TrainingAircraftPrefab => trainingAircraftPrefab;
+
     private void Awake()
     {
         if (activeManager != null && activeManager != this)
@@ -397,6 +399,11 @@ public class FlightSchoolManager : MonoBehaviour
 
             if (aircraft == null)
                 continue;
+
+            AircraftAirportFees airportFees =
+                aircraft.GetComponent<AircraftAirportFees>();
+            if (airportFees != null)
+                airportFees.SetFeeCategory(AirportFeeCategory.FlightSchool);
 
             if (!spot.TryReserve(aircraft, true))
             {
