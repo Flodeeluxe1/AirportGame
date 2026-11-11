@@ -490,6 +490,7 @@ public class AirportManagementController : MonoBehaviour
         SanitizeProfile(result.cargo);
         SanitizeProfile(result.passenger);
 
+        result.fuelServiceFee = Mathf.Max(0, result.fuelServiceFee);
         result.cleaningFeeUpTo10Passengers =
             Mathf.Max(0, result.cleaningFeeUpTo10Passengers);
         result.cleaningFeeUpTo50Passengers =
