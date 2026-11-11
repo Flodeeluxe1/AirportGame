@@ -218,7 +218,7 @@ public class FinanceManagementUIController : MonoBehaviour
         officeStatusLabel = new Label("CFO OFFICE ACTIVE");
         officeStatusLabel.style.fontSize = 11;
         officeStatusLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
-        officeStatusLabel.style.color = new Color32(100, 210, 140, 255);
+        officeStatusLabel.style.color = (Color)new Color32(100, 210, 140, 255);
 
         Button closeButton = new Button(CloseWindow)
         {
@@ -275,7 +275,7 @@ public class FinanceManagementUIController : MonoBehaviour
         if (airportManagementController == null)
         {
             officeStatusLabel.text = "CFO CONTROLLER MISSING";
-            officeStatusLabel.style.color = new Color32(235, 105, 95, 255);
+            officeStatusLabel.style.color = (Color)new Color32(235, 105, 95, 255);
             availabilityMessage.text =
                 "AirportManagementController was not found. Fee settings are unavailable.";
             saveButton.SetEnabled(false);
@@ -287,8 +287,8 @@ public class FinanceManagementUIController : MonoBehaviour
             ? "CFO OFFICE ACTIVE"
             : "CFO OFFICE REQUIRED";
         officeStatusLabel.style.color = canEdit
-            ? new Color32(100, 210, 140, 255)
-            : new Color32(235, 175, 85, 255);
+            ? (Color)new Color32(100, 210, 140, 255)
+            : (Color)new Color32(235, 175, 85, 255);
 
         availabilityMessage.text = canEdit
             ? "Custom fee management is available. Changes take effect after saving."
@@ -481,7 +481,7 @@ public class FinanceManagementUIController : MonoBehaviour
         field.value = Mathf.Max(0, value).ToString();
         field.style.height = 28;
         field.style.color = Color.white;
-        field.style.backgroundColor = new Color32(235, 238, 242, 255);
+        field.style.backgroundColor = (Color)new Color32(235, 238, 242, 255);
         field.style.marginTop = 2;
 
         container.Add(title);
@@ -517,7 +517,7 @@ public class FinanceManagementUIController : MonoBehaviour
         Label label = new Label(title);
         label.style.fontSize = 13;
         label.style.unityFontStyleAndWeight = FontStyle.Bold;
-        label.style.color = new Color32(215, 222, 231, 255);
+        label.style.color = (Color)new Color32(215, 222, 231, 255);
         label.style.marginTop = 7;
         label.style.marginBottom = 5;
         settingsScroll.Add(label);
