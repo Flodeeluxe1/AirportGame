@@ -51,6 +51,24 @@ public class FloorFinishMenuController : MonoBehaviour
         CreateMenuControls();
     }
 
+    private void Start()
+    {
+        ScrollView subcategoryList =
+            uiDocument.rootVisualElement.Q<ScrollView>("airport-subcategory-list");
+
+        if (subcategoryList != null)
+        {
+            foreach (Button button in subcategoryList.Query<Button>().ToList())
+                button.clicked += ReturnToBuildMenu;
+        }
+
+        TextField searchField =
+            uiDocument.rootVisualElement.Q<TextField>("build-search-field");
+
+        if (searchField != null)
+            searchField.RegisterValueChangedCallback(_ => ReturnToBuildMenu());
+    }
+
     private void CreateMenuControls()
     {
         foreach (Button existingButton in categoryList.Query<Button>().ToList())
@@ -114,6 +132,7 @@ public class FloorFinishMenuController : MonoBehaviour
 
             VisualElement card = new VisualElement();
             card.AddToClassList("buildable-card");
+            card.AddToClassList("floor-finish-card");
 
             Image icon = new Image
             {
@@ -121,10 +140,12 @@ public class FloorFinishMenuController : MonoBehaviour
                 scaleMode = ScaleMode.ScaleToFit
             };
             icon.AddToClassList("buildable-icon");
+            icon.AddToClassList("floor-finish-icon");
             card.Add(icon);
 
             Label name = new Label(finish.displayName);
             name.AddToClassList("buildable-name");
+            name.AddToClassList("floor-finish-name");
             card.Add(name);
 
             card.RegisterCallback<ClickEvent>(evt =>
