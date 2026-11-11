@@ -544,9 +544,28 @@ public class HobbyAircraftTrafficSpawner : MonoBehaviour
         if (airportFees == null)
             return 1f;
 
+        int landingFee = airportFees.LandingFee;
+        int parkingFee = airportFees.ParkingFee;
+
+        AirportManagementController management =
+            airportManagementController != null
+                ? airportManagementController
+                : AirportManagementController.Instance;
+
+        if (management != null &&
+            management.TryGetActiveAircraftFees(
+                AirportFeeCategory.Hobby,
+                out int customLandingFee,
+                out int customParkingFee,
+                out _))
+        {
+            landingFee = customLandingFee;
+            parkingFee = customParkingFee;
+        }
+
         float feePenalty =
-            airportFees.LandingFee * landingFeeSensitivity +
-            airportFees.ParkingFee * parkingFeeSensitivity;
+            landingFee * landingFeeSensitivity +
+            parkingFee * parkingFeeSensitivity;
 
         return 1f / (1f + feePenalty);
     }
