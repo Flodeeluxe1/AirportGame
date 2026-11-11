@@ -13,6 +13,7 @@ public class FinanceManagementUIController : MonoBehaviour
     [Header("References")]
     [SerializeField] private UIDocument uiDocument;
     [SerializeField] private AirportManagementController airportManagementController;
+    private AirportManagementController subscribedController;
 
     private VisualElement root;
     private VisualElement window;
