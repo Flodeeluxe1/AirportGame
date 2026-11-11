@@ -114,10 +114,12 @@ public class FloorFinishPainter : MonoBehaviour
         if (buildController != null && buildController.IsBuilding)
             buildController.CancelBuilding();
 
+        floorFinishRenderer?.HidePreviewArea();
         selectedFinish = finish;
         isActive = true;
         isDragging = false;
         dragStartCell = new Vector2Int(int.MinValue, int.MinValue);
+        previewEndCell = new Vector2Int(int.MinValue, int.MinValue);
     }
 
     public void BeginErasing()
@@ -125,10 +127,12 @@ public class FloorFinishPainter : MonoBehaviour
         if (buildController != null && buildController.IsBuilding)
             buildController.CancelBuilding();
 
+        floorFinishRenderer?.HidePreviewArea();
         selectedFinish = null;
         isActive = true;
         isDragging = false;
         dragStartCell = new Vector2Int(int.MinValue, int.MinValue);
+        previewEndCell = new Vector2Int(int.MinValue, int.MinValue);
     }
 
     public void CancelPainting()
@@ -141,6 +145,7 @@ public class FloorFinishPainter : MonoBehaviour
         floorFinishRenderer?.HidePreviewArea();
         selectedFinish = null;
         dragStartCell = new Vector2Int(int.MinValue, int.MinValue);
+        previewEndCell = new Vector2Int(int.MinValue, int.MinValue);
     }
 
     private void UpdatePreviewUnderPointer()
