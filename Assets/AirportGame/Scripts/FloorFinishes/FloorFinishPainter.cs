@@ -98,7 +98,7 @@ public class FloorFinishPainter : MonoBehaviour
         selectedFinish = finish;
         isActive = true;
         isDragging = false;
-        lastPaintedCell = new Vector2Int(int.MinValue, int.MinValue);
+        dragStartCell = new Vector2Int(int.MinValue, int.MinValue);
     }
 
     public void BeginErasing()
@@ -106,7 +106,7 @@ public class FloorFinishPainter : MonoBehaviour
         selectedFinish = null;
         isActive = true;
         isDragging = false;
-        lastPaintedCell = new Vector2Int(int.MinValue, int.MinValue);
+        dragStartCell = new Vector2Int(int.MinValue, int.MinValue);
     }
 
     public void CancelPainting()
@@ -117,7 +117,7 @@ public class FloorFinishPainter : MonoBehaviour
         isActive = false;
         isDragging = false;
         selectedFinish = null;
-        lastPaintedCell = new Vector2Int(int.MinValue, int.MinValue);
+        dragStartCell = new Vector2Int(int.MinValue, int.MinValue);
     }
 
     private void PaintUnderPointer()
@@ -128,7 +128,7 @@ public class FloorFinishPainter : MonoBehaviour
 
         if (IsPointerOverBuildUI())
         {
-            lastPaintedCell = new Vector2Int(int.MinValue, int.MinValue);
+            dragStartCell = new Vector2Int(int.MinValue, int.MinValue);
             return;
         }
 
