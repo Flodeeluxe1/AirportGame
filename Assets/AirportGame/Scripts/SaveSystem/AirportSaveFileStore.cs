@@ -380,6 +380,13 @@ public static class AirportSaveFileStore
                 data.schemaVersion = 3;
             }
 
+            if (data.schemaVersion == 3 && CurrentSchemaVersion >= 4)
+            {
+                // Version 4 adds optional custom airport fee settings.
+                // Older saves use the current default fee profiles.
+                data.schemaVersion = 4;
+            }
+
             if (data.schemaVersion != CurrentSchemaVersion)
             {
                 error =
