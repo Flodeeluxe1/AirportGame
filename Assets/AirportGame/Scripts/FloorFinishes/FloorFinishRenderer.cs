@@ -124,13 +124,13 @@ public class FloorFinishRenderer : MonoBehaviour
 
         foreach (ChunkVisual chunk in chunks.Values)
         {
-            if (chunk != null && chunk.mesh != null)
-                chunk.mesh.Clear();
-        }
+            if (chunk == null)
+                continue;
 
-        foreach (ChunkVisual chunk in chunks.Values)
-        {
-            if (chunk != null && chunk.gameObject != null)
+            if (chunk.mesh != null)
+                Destroy(chunk.mesh);
+
+            if (chunk.gameObject != null)
                 Destroy(chunk.gameObject);
         }
 
@@ -337,7 +337,8 @@ public class FloorFinishRenderer : MonoBehaviour
         List<Vector2> allUvs = new List<Vector2>();
         Mesh mesh = new Mesh
         {
-            name = $"FloorFinishChunk_{chunkCoordinate.x}_{chunkCoordinate.y}"
+            name = $"FloorFinishChunk_{chunkCoordinate.x}_{chunkCoordinate.y}",
+            indexFormat = IndexFormat.UInt32
         };
 
         foreach (int finishIndex in orderedFinishIndices)
@@ -359,7 +360,6 @@ public class FloorFinishRenderer : MonoBehaviour
             materials.Add(finish.material);
         }
 
-        mesh.indexFormat = IndexFormat.UInt32;
         mesh.SetVertices(allVertices);
         mesh.SetUVs(0, allUvs);
         mesh.RecalculateNormals();
