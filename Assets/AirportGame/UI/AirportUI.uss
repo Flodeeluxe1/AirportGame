@@ -155,7 +155,7 @@
 }
 
 .buildable-card {
-    width: 82.5px;
+    width: 86.5px;
     height: 93.5px;
 
     margin-bottom: 5px;
@@ -178,10 +178,10 @@
 }
 
 .buildable-icon {
-    width: 55px;
-    height: 55px;
+    width: 77px;
+    height: 94px;
 
-    margin-bottom: 2px;
+    margin-bottom: 3px;
 
     background-color: rgb(30, 32, 37);
 
@@ -191,9 +191,9 @@
 }
 
 .buildable-name {
-    font-size: 9.9px;
+    font-size: 9px;
 
-    margin-top: 1px;
+    margin-top: 3px;
     margin-bottom: 1px;
 
     -unity-text-align: middle-center;
