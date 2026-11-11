@@ -306,6 +306,10 @@ public class FinanceManagementUIController : MonoBehaviour
             settings.hobby.landingFee,
             (s, v) => s.hobby.landingFee = v);
         AddCategoryFeeField(
+            "Flight School",
+            settings.flightSchool.landingFee,
+            (s, v) => s.flightSchool.landingFee = v);
+        AddCategoryFeeField(
             "Sightseeing",
             settings.sightseeing.landingFee,
             (s, v) => s.sightseeing.landingFee = v);
@@ -325,6 +329,11 @@ public class FinanceManagementUIController : MonoBehaviour
             settings.hobby,
             (s, v) => s.hobby.parkingFee = v,
             (s, v) => s.hobby.parkingIntervalMinutes = v);
+        AddParkingCategory(
+            "Flight School",
+            settings.flightSchool,
+            (s, v) => s.flightSchool.parkingFee = v,
+            (s, v) => s.flightSchool.parkingIntervalMinutes = v);
         AddParkingCategory(
             "Sightseeing",
             settings.sightseeing,
