@@ -489,10 +489,24 @@ public class FinanceManagementUIController : MonoBehaviour
 
         TextField field = new TextField();
         field.value = Mathf.Max(0, value).ToString();
-        field.style.height = 28;
+        field.style.height = 38;
+        field.style.minHeight = 38;
+        field.style.paddingTop = 4;
+        field.style.paddingBottom = 4;
         field.style.color = (Color)new Color32(25, 27, 32, 255);
         field.style.backgroundColor = (Color)new Color32(235, 238, 242, 255);
         field.style.marginTop = 2;
+
+        VisualElement inputElement =
+            field.Q<VisualElement>(className: "unity-text-field__input");
+
+        if (inputElement != null)
+        {
+            inputElement.style.minHeight = 34;
+            inputElement.style.paddingTop = 4;
+            inputElement.style.paddingBottom = 4;
+            inputElement.style.alignItems = Align.Center;
+        }
 
         container.Add(title);
         container.Add(field);
