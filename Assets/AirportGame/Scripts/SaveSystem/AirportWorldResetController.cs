@@ -291,6 +291,11 @@ public class AirportWorldResetController : MonoBehaviour
 
         ResolveRoomPurposeReferences();
 
+        AirportManagementController airportManagementController =
+            AirportManagementController.Instance != null
+                ? AirportManagementController.Instance
+                : FindFirstObjectByType<AirportManagementController>();
+
         AirportSaveData data = new AirportSaveData
         {
             saveName = string.IsNullOrWhiteSpace(saveName)
@@ -300,6 +305,10 @@ public class AirportWorldResetController : MonoBehaviour
             gameTimeSeconds = gameTimeManager.GetGameTimeSeconds(),
             gameSpeedMultiplier = gameTimeManager.CurrentSpeedMultiplier,
             balance = economyManager.Balance,
+            hasCustomAirportFees = airportManagementController != null,
+            airportFeeSettings = airportManagementController != null
+                ? airportManagementController.GetCustomFeeSettingsForSave()
+                : null,
 
             flightSchedule =
                 flightManagementUIController.GetScheduleForAirportSave(),
@@ -996,6 +1005,17 @@ public class AirportWorldResetController : MonoBehaviour
                 "AirportWorldResetController: RoomPurposeController was " +
                 "not found. The airport loaded, but room-purpose assignments " +
                 "could not be restored.");
+        }
+
+        AirportManagementController airportManagementController =
+            AirportManagementController.Instance != null
+                ? AirportManagementController.Instance
+                : FindFirstObjectByType<AirportManagementController>();
+
+        if (airportManagementController != null)
+        {
+            airportManagementController.RestoreCustomFeeSettingsFromSave(
+                data.hasCustomAirportFees ? data.airportFeeSettings : null);
         }
 
         // 5. Restore saved game time, speed, and balance.
