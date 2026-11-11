@@ -134,7 +134,7 @@ public static class BuildablePreviewGenerator
             instance.name = definition.prefab.name + "_Preview";
             instance.transform.position = Vector3.zero;
             instance.transform.rotation =
-                Quaternion.Euler(20f, -35f, 0f);
+                Quaternion.Euler(0f, -35f, 20f);
 
             // Prevent custom prefab scripts and animators from changing the
             // preview object. Renderers and their original materials remain.
