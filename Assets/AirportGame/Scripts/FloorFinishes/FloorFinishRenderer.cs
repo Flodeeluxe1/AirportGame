@@ -24,6 +24,9 @@ public class FloorFinishRenderer : MonoBehaviour
         new HashSet<Vector2Int>();
 
     private bool isStrokeActive;
+    private GameObject previewObject;
+    private Mesh previewMesh;
+    private MeshRenderer previewRenderer;
 
     private int GridWidth => gridManager != null ? gridManager.Width : 0;
     private int GridHeight => gridManager != null ? gridManager.Height : 0;
@@ -42,6 +45,11 @@ public class FloorFinishRenderer : MonoBehaviour
 
     private void OnDestroy()
     {
+        if (previewMesh != null)
+            Destroy(previewMesh);
+
+        if (previewObject != null)
+            Destroy(previewObject);
         foreach (ChunkVisual chunk in chunks.Values)
         {
             if (chunk == null)
@@ -114,6 +122,110 @@ public class FloorFinishRenderer : MonoBehaviour
         finishIndices[cell.x, cell.y] = -1;
         MarkChunkDirty(GetChunkCoordinate(cell));
         return true;
+    }
+
+    public void ShowPreviewArea(
+        Vector2Int from,
+        Vector2Int to,
+        FloorFinishDefinition finish)
+    {
+        if (finish == null || finish.material == null ||
+            gridManager == null || gridSurface == null)
+        {
+            HidePreviewArea();
+            return;
+        }
+
+        int minX = Mathf.Min(from.x, to.x);
+        int maxX = Mathf.Max(from.x, to.x);
+        int minZ = Mathf.Min(from.y, to.y);
+        int maxZ = Mathf.Max(from.y, to.y);
+
+        List<Vector3> vertices = new List<Vector3>();
+        List<Vector2> uvs = new List<Vector2>();
+        List<int> triangles = new List<int>();
+        float cellSize = gridManager.CellSize;
+
+        for (int x = minX; x <= maxX; x++)
+        {
+            for (int z = minZ; z <= maxZ; z++)
+            {
+                Vector2Int cell = new Vector2Int(x, z);
+
+                if (!IsValidCell(cell) ||
+                    gridSurface.GetSurface(cell) != BuildSurface.Foundation)
+                    continue;
+
+                float localX = (x - minX) * cellSize;
+                float localZ = (z - minZ) * cellSize;
+                int vertexStart = vertices.Count;
+
+                vertices.Add(new Vector3(localX, surfaceOffset + 0.005f, localZ));
+                vertices.Add(new Vector3(localX, surfaceOffset + 0.005f, localZ + cellSize));
+                vertices.Add(new Vector3(localX + cellSize, surfaceOffset + 0.005f, localZ + cellSize));
+                vertices.Add(new Vector3(localX + cellSize, surfaceOffset + 0.005f, localZ));
+
+                uvs.Add(new Vector2(0f, 0f));
+                uvs.Add(new Vector2(0f, 1f));
+                uvs.Add(new Vector2(1f, 1f));
+                uvs.Add(new Vector2(1f, 0f));
+
+                triangles.Add(vertexStart);
+                triangles.Add(vertexStart + 1);
+                triangles.Add(vertexStart + 2);
+                triangles.Add(vertexStart);
+                triangles.Add(vertexStart + 2);
+                triangles.Add(vertexStart + 3);
+            }
+        }
+
+        if (triangles.Count == 0)
+        {
+            HidePreviewArea();
+            return;
+        }
+
+        EnsurePreviewObjects();
+        previewMesh.Clear();
+        previewMesh.SetVertices(vertices);
+        previewMesh.SetUVs(0, uvs);
+        previewMesh.SetTriangles(triangles, 0);
+        previewMesh.RecalculateNormals();
+        previewMesh.RecalculateBounds();
+
+        previewObject.transform.position =
+            gridManager.GridToWorld(new Vector2Int(minX, minZ));
+        previewRenderer.sharedMaterial = finish.material;
+        previewObject.SetActive(true);
+    }
+
+    public void HidePreviewArea()
+    {
+        if (previewObject != null)
+            previewObject.SetActive(false);
+    }
+
+    private void EnsurePreviewObjects()
+    {
+        if (previewObject != null)
+            return;
+
+        previewObject = new GameObject("Floor Finish Paint Preview");
+        previewObject.transform.SetParent(transform, false);
+
+        MeshFilter filter = previewObject.AddComponent<MeshFilter>();
+        previewRenderer = previewObject.AddComponent<MeshRenderer>();
+        previewMesh = new Mesh
+        {
+            name = "Floor Finish Paint Preview"
+        };
+
+        filter.sharedMesh = previewMesh;
+        previewRenderer.shadowCastingMode = ShadowCastingMode.Off;
+        previewRenderer.receiveShadows = false;
+        previewRenderer.lightProbeUsage = LightProbeUsage.Off;
+        previewRenderer.reflectionProbeUsage = ReflectionProbeUsage.Off;
+        previewObject.SetActive(false);
     }
 
     public void BeginStroke()
