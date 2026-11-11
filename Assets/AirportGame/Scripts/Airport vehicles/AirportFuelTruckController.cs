@@ -548,6 +548,7 @@ public class AirportFuelTruckController : MonoBehaviour
             Debug.Log(
                 $"AIRPORT INCOME | Aircraft fuel: " +
                 $"{job.FuelLitresDelivered:N1} L x ${pricePerLitre:N2}/L " +
+                $"(${fuelCost:N0}) + service fee ${serviceFee:N0} " +
                 $"= +${totalCost:N0} | Aircraft: " +
                 $"{job.Aircraft?.name ?? "aircraft"}",
                 this);
