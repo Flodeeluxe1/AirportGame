@@ -1014,6 +1014,7 @@ public class AirportWorldResetController : MonoBehaviour
 
         if (airportManagementController != null)
         {
+            airportManagementController.RefreshOfficeStatus();
             airportManagementController.RestoreCustomFeeSettingsFromSave(
                 data.hasCustomAirportFees ? data.airportFeeSettings : null);
         }
