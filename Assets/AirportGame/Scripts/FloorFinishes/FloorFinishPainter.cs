@@ -15,7 +15,7 @@ public class FloorFinishPainter : MonoBehaviour
     private FloorFinishDefinition selectedFinish;
     private bool isActive;
     private bool isDragging;
-    private Vector2Int lastPaintedCell = new Vector2Int(int.MinValue, int.MinValue);
+    private Vector2Int dragStartCell = new Vector2Int(int.MinValue, int.MinValue);
 
     public bool IsActive => isActive;
 
@@ -71,7 +71,7 @@ public class FloorFinishPainter : MonoBehaviour
                 return;
 
             isDragging = true;
-            lastPaintedCell = new Vector2Int(int.MinValue, int.MinValue);
+            dragStartCell = new Vector2Int(int.MinValue, int.MinValue);
             floorFinishRenderer?.BeginStroke();
             PaintUnderPointer();
         }
@@ -83,7 +83,7 @@ public class FloorFinishPainter : MonoBehaviour
         {
             isDragging = false;
             floorFinishRenderer?.EndStroke();
-            lastPaintedCell = new Vector2Int(int.MinValue, int.MinValue);
+            dragStartCell = new Vector2Int(int.MinValue, int.MinValue);
         }
     }
 
@@ -148,48 +148,23 @@ public class FloorFinishPainter : MonoBehaviour
         if (!gridManager.IsInsideGrid(cell))
             return;
 
-        if (lastPaintedCell.x == int.MinValue)
-        {
-            PaintCell(cell);
-        }
-        else
-        {
-            PaintLine(lastPaintedCell, cell);
-        }
+        if (dragStartCell.x == int.MinValue)
+            dragStartCell = cell;
 
-        lastPaintedCell = cell;
+        PaintRectangle(dragStartCell, cell);
     }
 
-    private void PaintLine(Vector2Int from, Vector2Int to)
+    private void PaintRectangle(Vector2Int from, Vector2Int to)
     {
-        int x = from.x;
-        int z = from.y;
-        int dx = Mathf.Abs(to.x - from.x);
-        int dz = Mathf.Abs(to.y - from.y);
-        int stepX = from.x < to.x ? 1 : -1;
-        int stepZ = from.y < to.y ? 1 : -1;
-        int error = dx - dz;
+        int minX = Mathf.Min(from.x, to.x);
+        int maxX = Mathf.Max(from.x, to.x);
+        int minZ = Mathf.Min(from.y, to.y);
+        int maxZ = Mathf.Max(from.y, to.y);
 
-        while (true)
+        for (int x = minX; x <= maxX; x++)
         {
-            PaintCell(new Vector2Int(x, z));
-
-            if (x == to.x && z == to.y)
-                break;
-
-            int twiceError = error * 2;
-
-            if (twiceError > -dz)
-            {
-                error -= dz;
-                x += stepX;
-            }
-
-            if (twiceError < dx)
-            {
-                error += dx;
-                z += stepZ;
-            }
+            for (int z = minZ; z <= maxZ; z++)
+                PaintCell(new Vector2Int(x, z));
         }
     }
 
