@@ -259,8 +259,12 @@ public class AircraftFuelStation : MonoBehaviour
         if (fuelTransferredThisSession <= 0f)
             return;
 
-        int totalCost = Mathf.CeilToInt(
+        int fuelCost = Mathf.CeilToInt(
             fuelTransferredThisSession * fuelSessionPricePerLitre);
+        int serviceFee = AirportManagementController.Instance != null
+            ? AirportManagementController.Instance.GetActiveFuelServiceFee()
+            : 0;
+        int totalCost = fuelCost + serviceFee;
 
         if (totalCost > 0)
         {
@@ -272,7 +276,7 @@ public class AircraftFuelStation : MonoBehaviour
             if (airportFees == null ||
                 !airportFees.RecordCharge(
                     totalCost,
-                    $"Hobby aircraft fuel sales ({currentlyServicedAircraft?.name ?? "aircraft"})"))
+                    $"Hobby aircraft fuel sales and service fee ({currentlyServicedAircraft?.name ?? "aircraft"})"))
             {
                 debugStatus = "Could not record completed aircraft fuel sale";
             }
