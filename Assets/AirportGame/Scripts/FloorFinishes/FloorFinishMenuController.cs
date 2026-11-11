@@ -53,6 +53,9 @@ public class FloorFinishMenuController : MonoBehaviour
 
     private void CreateMenuControls()
     {
+        foreach (Button existingButton in categoryList.Query<Button>().ToList())
+            existingButton.clicked += ReturnToBuildMenu;
+
         floorFinishesButton = new Button
         {
             text = "Floor Finishes"
