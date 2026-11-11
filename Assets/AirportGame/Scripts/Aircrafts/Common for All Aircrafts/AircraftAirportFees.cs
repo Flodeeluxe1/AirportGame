@@ -43,6 +43,7 @@ public class AircraftAirportFees : MonoBehaviour
     private bool cleaningFeePaid;
     private bool wasParked;
     private long nextParkingChargeTime;
+    private int activeParkingIntervalMinutes;
     private const long SecondsPerDay = 86400L;
 
     public int DefaultLandingFee => Mathf.Max(0, landingFee);
@@ -186,6 +187,14 @@ public class AircraftAirportFees : MonoBehaviour
         if (!wasParked)
         {
             wasParked = true;
+            activeParkingIntervalMinutes = activeIntervalMinutes;
+            nextParkingChargeTime = now + intervalSeconds;
+            return;
+        }
+
+        if (activeParkingIntervalMinutes != activeIntervalMinutes)
+        {
+            activeParkingIntervalMinutes = activeIntervalMinutes;
             nextParkingChargeTime = now + intervalSeconds;
             return;
         }
