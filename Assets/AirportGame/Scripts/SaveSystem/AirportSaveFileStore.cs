@@ -387,6 +387,13 @@ public static class AirportSaveFileStore
                 data.schemaVersion = 4;
             }
 
+            if (data.schemaVersion == 4 && CurrentSchemaVersion >= 5)
+            {
+                // Version 5 adds optional per-cell floor finish data.
+                // Older saves retain the standard foundation appearance.
+                data.schemaVersion = 5;
+            }
+
             if (data.schemaVersion != CurrentSchemaVersion)
             {
                 error =
