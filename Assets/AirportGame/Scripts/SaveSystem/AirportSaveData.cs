@@ -6,7 +6,7 @@ using UnityEngine;
 [Serializable]
 public class AirportSaveData
 {
-    public const int CurrentSchemaVersion = 3;
+    public const int CurrentSchemaVersion = 4;
 
     public int schemaVersion = CurrentSchemaVersion;
     public string saveName = "";
@@ -40,6 +40,9 @@ public class AirportSaveData
 
     public List<RoomPurposeAssignmentSaveData> roomPurposeAssignments =
         new List<RoomPurposeAssignmentSaveData>();
+
+    public bool hasCustomAirportFees;
+    public AirportManagementController.FeeSettings airportFeeSettings;
 
     public void EnsureCollections()
     {
