@@ -490,7 +490,7 @@ public class FinanceManagementUIController : MonoBehaviour
         TextField field = new TextField();
         field.value = Mathf.Max(0, value).ToString();
         field.style.height = 28;
-        field.style.color = Color.white;
+        field.style.color = (Color)new Color32(25, 27, 32, 255);
         field.style.backgroundColor = (Color)new Color32(235, 238, 242, 255);
         field.style.marginTop = 2;
 
