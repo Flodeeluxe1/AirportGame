@@ -45,6 +45,13 @@ public class FloorFinishPainter : MonoBehaviour
         if (!isActive)
             return;
 
+        if (buildWindow != null &&
+            buildWindow.resolvedStyle.display == DisplayStyle.None)
+        {
+            CancelPainting();
+            return;
+        }
+
         Mouse mouse = Mouse.current;
         Keyboard keyboard = Keyboard.current;
 
@@ -130,18 +137,66 @@ public class FloorFinishPainter : MonoBehaviour
         Vector3 hitPoint = ray.GetPoint(distance);
         Vector2Int cell = gridManager.WorldToGrid(hitPoint);
 
-        if (!gridManager.IsInsideGrid(cell) || cell == lastPaintedCell)
+        if (!gridManager.IsInsideGrid(cell))
             return;
 
-        if (gridSurface.GetSurface(cell) != BuildSurface.Foundation)
+        if (lastPaintedCell.x == int.MinValue)
+        {
+            PaintCell(cell);
+        }
+        else
+        {
+            PaintLine(lastPaintedCell, cell);
+        }
+
+        lastPaintedCell = cell;
+    }
+
+    private void PaintLine(Vector2Int from, Vector2Int to)
+    {
+        int x = from.x;
+        int z = from.y;
+        int dx = Mathf.Abs(to.x - from.x);
+        int dz = Mathf.Abs(to.y - from.y);
+        int stepX = from.x < to.x ? 1 : -1;
+        int stepZ = from.y < to.y ? 1 : -1;
+        int error = dx - dz;
+
+        while (true)
+        {
+            PaintCell(new Vector2Int(x, z));
+
+            if (x == to.x && z == to.y)
+                break;
+
+            int twiceError = error * 2;
+
+            if (twiceError > -dz)
+            {
+                error -= dz;
+                x += stepX;
+            }
+
+            if (twiceError < dx)
+            {
+                error += dx;
+                z += stepZ;
+            }
+        }
+    }
+
+    private void PaintCell(Vector2Int cell)
+    {
+        if (!gridManager.IsInsideGrid(cell) ||
+            gridSurface.GetSurface(cell) != BuildSurface.Foundation)
+        {
             return;
+        }
 
         if (selectedFinish == null)
             floorFinishRenderer.ClearFinish(cell);
         else
             floorFinishRenderer.SetFinish(cell, selectedFinish);
-
-        lastPaintedCell = cell;
     }
 
     private bool IsPointerOverBuildUI()
