@@ -67,18 +67,33 @@ public class FinanceManagementUIController : MonoBehaviour
 
     private void OnEnable()
     {
-        if (airportManagementController == null)
-            airportManagementController =
-                FindFirstObjectByType<AirportManagementController>();
-
-        if (airportManagementController != null)
-            airportManagementController.StateChanged += HandleAirportStateChanged;
+        ResolveAirportManagementController();
     }
 
     private void OnDisable()
     {
-        if (airportManagementController != null)
-            airportManagementController.StateChanged -= HandleAirportStateChanged;
+        if (subscribedController != null)
+            subscribedController.StateChanged -= HandleAirportStateChanged;
+
+        subscribedController = null;
+    }
+
+    private void ResolveAirportManagementController()
+    {
+        if (airportManagementController == null)
+            airportManagementController =
+                FindFirstObjectByType<AirportManagementController>();
+
+        if (subscribedController == airportManagementController)
+            return;
+
+        if (subscribedController != null)
+            subscribedController.StateChanged -= HandleAirportStateChanged;
+
+        subscribedController = airportManagementController;
+
+        if (isActiveAndEnabled && subscribedController != null)
+            subscribedController.StateChanged += HandleAirportStateChanged;
     }
 
     private void Update()
@@ -255,9 +270,7 @@ public class FinanceManagementUIController : MonoBehaviour
 
     private void RefreshWindow()
     {
-        if (airportManagementController == null)
-            airportManagementController =
-                FindFirstObjectByType<AirportManagementController>();
+        ResolveAirportManagementController();
 
         if (airportManagementController == null)
         {
