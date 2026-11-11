@@ -8,6 +8,9 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class AircraftAirportFees : MonoBehaviour
 {
+    private AirportFeeCategory feeCategory = AirportFeeCategory.None;
+    private AirportManagementController airportManagementController;
+
     [Header("Landing Fee")]
     [Min(0)]
     [SerializeField] private int landingFee = 20;
@@ -42,9 +45,71 @@ public class AircraftAirportFees : MonoBehaviour
     private long nextParkingChargeTime;
     private const long SecondsPerDay = 86400L;
 
-    public int LandingFee => Mathf.Max(0, landingFee);
-    public int ParkingFee => Mathf.Max(0, parkingFee);
-    public int ParkingIntervalMinutes => Mathf.Max(1, parkingIntervalMinutes);
+    public int DefaultLandingFee => Mathf.Max(0, landingFee);
+    public int DefaultParkingFee => Mathf.Max(0, parkingFee);
+    public int DefaultParkingIntervalMinutes => Mathf.Max(1, parkingIntervalMinutes);
+
+    public int LandingFee => GetEffectiveFees(out _, out _);
+
+    public int ParkingFee
+    {
+        get
+        {
+            GetEffectiveFees(out int fee, out _);
+            return fee;
+        }
+    }
+
+    public int ParkingIntervalMinutes
+    {
+        get
+        {
+            GetEffectiveFees(out _, out int interval);
+            return interval;
+        }
+    }
+
+    public void SetFeeCategory(AirportFeeCategory category)
+    {
+        feeCategory = category;
+    }
+
+    public void CopyDefaultCleaningFeesTo(
+        AirportManagementController.FeeSettings settings)
+    {
+        if (settings == null)
+            return;
+
+        settings.cleaningFeeUpTo10Passengers = cleaningFeeUpTo10Passengers;
+        settings.cleaningFeeUpTo50Passengers = cleaningFeeUpTo50Passengers;
+        settings.cleaningFeeUpTo100Passengers = cleaningFeeUpTo100Passengers;
+        settings.cleaningFeeUpTo200Passengers = cleaningFeeUpTo200Passengers;
+        settings.cleaningFeeUpTo300Passengers = cleaningFeeUpTo300Passengers;
+        settings.cleaningFeeAbove300Passengers = cleaningFeeAbove300Passengers;
+    }
+
+    private int GetEffectiveFees(out int effectiveParkingFee, out int interval)
+    {
+        effectiveParkingFee = Mathf.Max(0, parkingFee);
+        interval = Mathf.Max(1, parkingIntervalMinutes);
+
+        if (airportManagementController == null)
+            airportManagementController = AirportManagementController.Instance;
+
+        if (airportManagementController != null &&
+            airportManagementController.TryGetActiveAircraftFees(
+                feeCategory,
+                out int activeLandingFee,
+                out int activeParkingFee,
+                out int activeInterval))
+        {
+            effectiveParkingFee = activeParkingFee;
+            interval = activeInterval;
+            return activeLandingFee;
+        }
+
+        return Mathf.Max(0, landingFee);
+    }
 
     private void Awake()
     {
@@ -67,6 +132,9 @@ public class AircraftAirportFees : MonoBehaviour
             gameTimeManager = FindFirstObjectByType<GameTimeManager>();
         if (economyManager == null || gameTimeManager == null)
             return;
+
+        if (airportManagementController == null)
+            airportManagementController = AirportManagementController.Instance;
 
         ChargeLandingFeeIfDue();
         UpdateParkingFees();
@@ -92,13 +160,14 @@ public class AircraftAirportFees : MonoBehaviour
         if (landingFeePaid || !HasCompletedLanding())
             return;
 
-        if (landingFee <= 0)
+        int activeLandingFee = GetEffectiveFees(out _, out _);
+        if (activeLandingFee <= 0)
         {
             landingFeePaid = true;
             return;
         }
 
-        if (RecordCharge(landingFee, "Landing fee - " + name))
+        if (RecordCharge(activeLandingFee, "Landing fee - " + name))
             landingFeePaid = true;
     }
 
@@ -111,7 +180,8 @@ public class AircraftAirportFees : MonoBehaviour
         }
 
         long now = GetTotalGameSeconds();
-        long intervalSeconds = ParkingIntervalMinutes * 60L;
+        GetEffectiveFees(out int activeParkingFee, out int activeIntervalMinutes);
+        long intervalSeconds = activeIntervalMinutes * 60L;
 
         if (!wasParked)
         {
@@ -126,7 +196,7 @@ public class AircraftAirportFees : MonoBehaviour
                 nextParkingChargeTime >= hobbyVisitController.ParkingFeeEndGameSeconds)
                 break;
 
-            if (parkingFee > 0 && !RecordCharge(parkingFee, "Parking fee - " + name))
+            if (activeParkingFee > 0 && !RecordCharge(activeParkingFee, "Parking fee - " + name))
                 return;
 
             nextParkingChargeTime += intervalSeconds;
@@ -166,12 +236,25 @@ public class AircraftAirportFees : MonoBehaviour
         if (cleaningFeePaid)
             return true;
 
-        int fee = seatCapacity <= 10 ? cleaningFeeUpTo10Passengers :
+        if (airportManagementController == null)
+            airportManagementController = AirportManagementController.Instance;
+
+        int fee;
+        if (airportManagementController != null &&
+            airportManagementController.TryGetActiveCleaningFee(
+                seatCapacity, out int customFee))
+        {
+            fee = customFee;
+        }
+        else
+        {
+            fee = seatCapacity <= 10 ? cleaningFeeUpTo10Passengers :
                   seatCapacity <= 50 ? cleaningFeeUpTo50Passengers :
                   seatCapacity <= 100 ? cleaningFeeUpTo100Passengers :
                   seatCapacity <= 200 ? cleaningFeeUpTo200Passengers :
                   seatCapacity <= 300 ? cleaningFeeUpTo300Passengers :
                   cleaningFeeAbove300Passengers;
+        }
 
         if (fee <= 0)
         {
