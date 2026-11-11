@@ -9,6 +9,7 @@ public class FloorFinishPainter : MonoBehaviour
     [SerializeField] private GridManager gridManager;
     [SerializeField] private GridSurface gridSurface;
     [SerializeField] private FloorFinishRenderer floorFinishRenderer;
+    [SerializeField] private BuildController buildController;
     [SerializeField] private UIDocument uiDocument;
 
     private VisualElement buildWindow;
@@ -16,6 +17,7 @@ public class FloorFinishPainter : MonoBehaviour
     private bool isActive;
     private bool isDragging;
     private Vector2Int dragStartCell = new Vector2Int(int.MinValue, int.MinValue);
+    private Vector2Int previewEndCell = new Vector2Int(int.MinValue, int.MinValue);
 
     public bool IsActive => isActive;
 
@@ -32,6 +34,9 @@ public class FloorFinishPainter : MonoBehaviour
 
         if (floorFinishRenderer == null)
             floorFinishRenderer = FindFirstObjectByType<FloorFinishRenderer>();
+
+        if (buildController == null)
+            buildController = FindFirstObjectByType<BuildController>();
 
         if (uiDocument == null)
             uiDocument = FindFirstObjectByType<UIDocument>();
@@ -72,18 +77,29 @@ public class FloorFinishPainter : MonoBehaviour
 
             isDragging = true;
             dragStartCell = new Vector2Int(int.MinValue, int.MinValue);
+            previewEndCell = new Vector2Int(int.MinValue, int.MinValue);
             floorFinishRenderer?.BeginStroke();
-            PaintUnderPointer();
+            UpdatePreviewUnderPointer();
         }
 
         if (isDragging && mouse.leftButton.isPressed)
-            PaintUnderPointer();
+            UpdatePreviewUnderPointer();
 
-        if (mouse.leftButton.wasReleasedThisFrame)
+        if (mouse.leftButton.wasReleasedThisFrame && isDragging)
         {
+            UpdatePreviewUnderPointer();
+
+            if (dragStartCell.x != int.MinValue &&
+                previewEndCell.x != int.MinValue)
+            {
+                PaintRectangle(dragStartCell, previewEndCell);
+            }
+
             isDragging = false;
+            floorFinishRenderer?.HidePreviewArea();
             floorFinishRenderer?.EndStroke();
             dragStartCell = new Vector2Int(int.MinValue, int.MinValue);
+            previewEndCell = new Vector2Int(int.MinValue, int.MinValue);
         }
     }
 
@@ -95,6 +111,9 @@ public class FloorFinishPainter : MonoBehaviour
             return;
         }
 
+        if (buildController != null && buildController.IsBuilding)
+            buildController.CancelBuilding();
+
         selectedFinish = finish;
         isActive = true;
         isDragging = false;
@@ -103,6 +122,9 @@ public class FloorFinishPainter : MonoBehaviour
 
     public void BeginErasing()
     {
+        if (buildController != null && buildController.IsBuilding)
+            buildController.CancelBuilding();
+
         selectedFinish = null;
         isActive = true;
         isDragging = false;
@@ -116,11 +138,12 @@ public class FloorFinishPainter : MonoBehaviour
 
         isActive = false;
         isDragging = false;
+        floorFinishRenderer?.HidePreviewArea();
         selectedFinish = null;
         dragStartCell = new Vector2Int(int.MinValue, int.MinValue);
     }
 
-    private void PaintUnderPointer()
+    private void UpdatePreviewUnderPointer()
     {
         if (mainCamera == null || gridManager == null ||
             gridSurface == null || floorFinishRenderer == null)
@@ -128,7 +151,7 @@ public class FloorFinishPainter : MonoBehaviour
 
         if (IsPointerOverBuildUI())
         {
-            dragStartCell = new Vector2Int(int.MinValue, int.MinValue);
+            floorFinishRenderer.HidePreviewArea();
             return;
         }
 
@@ -140,18 +163,26 @@ public class FloorFinishPainter : MonoBehaviour
             new Vector3(0f, gridManager.transform.position.y, 0f));
 
         if (!gridPlane.Raycast(ray, out float distance))
+        {
+            floorFinishRenderer.HidePreviewArea();
             return;
+        }
 
         Vector3 hitPoint = ray.GetPoint(distance);
         Vector2Int cell = gridManager.WorldToGrid(hitPoint);
 
         if (!gridManager.IsInsideGrid(cell))
+        {
+            floorFinishRenderer.HidePreviewArea();
             return;
+        }
 
         if (dragStartCell.x == int.MinValue)
             dragStartCell = cell;
 
-        PaintRectangle(dragStartCell, cell);
+        previewEndCell = cell;
+        floorFinishRenderer.ShowPreviewArea(
+            dragStartCell, previewEndCell, selectedFinish);
     }
 
     private void PaintRectangle(Vector2Int from, Vector2Int to)
