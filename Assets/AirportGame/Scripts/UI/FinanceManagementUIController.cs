@@ -281,7 +281,9 @@ public class FinanceManagementUIController : MonoBehaviour
             ? "Custom fee management is available. Changes take effect after saving."
             : "A functional CFO Office is required to change fees. Default airport fees are currently being used.";
 
-        FeeFieldsEnabled(canEdit);
+        AirportManagementController.FeeSettings settings =
+            airportManagementController.GetFeeSettingsForDisplay();
+        BuildFeeFields(settings, canEdit);
         saveButton.SetEnabled(canEdit);
     }
 
@@ -299,33 +301,45 @@ public class FinanceManagementUIController : MonoBehaviour
         feeFields.Clear();
 
         AddSectionTitle("LANDING FEES");
-        AddAircraftProfile(
+        AddCategoryFeeField(
             "Hobby",
-            settings.hobby,
-            (s, v) => s.hobby.landingFee = v,
-            (s, v) => s.hobby.parkingFee = v,
-            (s, v) => s.hobby.parkingIntervalMinutes = v);
-        AddAircraftProfile(
+            settings.hobby.landingFee,
+            (s, v) => s.hobby.landingFee = v);
+        AddCategoryFeeField(
             "Sightseeing",
-            settings.sightseeing,
-            (s, v) => s.sightseeing.landingFee = v,
-            (s, v) => s.sightseeing.parkingFee = v,
-            (s, v) => s.sightseeing.parkingIntervalMinutes = v);
-        AddAircraftProfile(
+            settings.sightseeing.landingFee,
+            (s, v) => s.sightseeing.landingFee = v);
+        AddCategoryFeeField(
             "Cargo",
-            settings.cargo,
-            (s, v) => s.cargo.landingFee = v,
-            (s, v) => s.cargo.parkingFee = v,
-            (s, v) => s.cargo.parkingIntervalMinutes = v);
-        AddAircraftProfile(
+            settings.cargo.landingFee,
+            (s, v) => s.cargo.landingFee = v);
+        AddCategoryFeeField(
             "Passenger",
-            settings.passenger,
-            (s, v) => s.passenger.landingFee = v,
-            (s, v) => s.passenger.parkingFee = v,
-            (s, v) => s.passenger.parkingIntervalMinutes = v);
+            settings.passenger.landingFee,
+            (s, v) => s.passenger.landingFee = v);
 
         AddSectionTitle("PARKING FEES");
         AddDescription("Each category has its own price per completed billing interval.");
+        AddParkingCategory(
+            "Hobby",
+            settings.hobby,
+            (s, v) => s.hobby.parkingFee = v,
+            (s, v) => s.hobby.parkingIntervalMinutes = v);
+        AddParkingCategory(
+            "Sightseeing",
+            settings.sightseeing,
+            (s, v) => s.sightseeing.parkingFee = v,
+            (s, v) => s.sightseeing.parkingIntervalMinutes = v);
+        AddParkingCategory(
+            "Cargo",
+            settings.cargo,
+            (s, v) => s.cargo.parkingFee = v,
+            (s, v) => s.cargo.parkingIntervalMinutes = v);
+        AddParkingCategory(
+            "Passenger",
+            settings.passenger,
+            (s, v) => s.passenger.parkingFee = v,
+            (s, v) => s.passenger.parkingIntervalMinutes = v);
 
         AddSectionTitle("CLEANING FEES");
         AddDescription("Cleaning price is selected using the aircraft's maximum passenger capacity.");
@@ -357,10 +371,28 @@ public class FinanceManagementUIController : MonoBehaviour
         FeeFieldsEnabled(canEdit);
     }
 
-    private void AddAircraftProfile(
+    private void AddCategoryFeeField(
+        string category,
+        int value,
+        Action<AirportManagementController.FeeSettings, int> apply)
+    {
+        VisualElement row = CreateCard();
+        row.style.flexDirection = FlexDirection.Row;
+        row.style.alignItems = Align.Center;
+        row.style.justifyContent = Justify.SpaceBetween;
+
+        Label title = new Label(category);
+        title.style.fontSize = 11;
+        title.style.color = Color.white;
+        row.Add(title);
+
+        AddNumberField(row, "Landing fee (€)", value, apply, 135);
+        settingsScroll.Add(row);
+    }
+
+    private void AddParkingCategory(
         string category,
         AirportManagementController.AircraftFeeProfile profile,
-        Action<AirportManagementController.FeeSettings, int> setLanding,
         Action<AirportManagementController.FeeSettings, int> setParking,
         Action<AirportManagementController.FeeSettings, int> setInterval)
     {
@@ -375,11 +407,8 @@ public class FinanceManagementUIController : MonoBehaviour
         VisualElement fields = new VisualElement();
         fields.style.flexDirection = FlexDirection.Row;
         fields.style.flexWrap = Wrap.Wrap;
-
-        AddNumberField(fields, "Landing fee (€)", profile.landingFee, setLanding);
         AddNumberField(fields, "Parking fee (€)", profile.parkingFee, setParking);
         AddNumberField(fields, "Every (minutes)", profile.parkingIntervalMinutes, setInterval);
-
         card.Add(fields);
         settingsScroll.Add(card);
     }
