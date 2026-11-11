@@ -22,6 +22,7 @@ public class AirportWorldResetController : MonoBehaviour
 
     [Header("Foundation")]
     [SerializeField] private FoundationTilemapController foundationTilemapController;
+    [SerializeField] private FloorFinishRenderer floorFinishRenderer;
 
     [Header("Tarmac")]
     [SerializeField] private TarmacTilemapController tarmacTilemapController;
@@ -83,6 +84,12 @@ public class AirportWorldResetController : MonoBehaviour
             roomPurposeController.ClearAssignments();
 
         buildController.CancelBuilding();
+
+        if (floorFinishRenderer == null)
+            floorFinishRenderer = FindFirstObjectByType<FloorFinishRenderer>();
+
+        if (floorFinishRenderer != null)
+            floorFinishRenderer.ClearAllFinishes();
 
         PlacedBuilding[] placedBuildings =
             FindObjectsByType<PlacedBuilding>(
@@ -321,7 +328,11 @@ public class AirportWorldResetController : MonoBehaviour
             // Save original placement rectangles so prefab visuals
             // can be reconstructed with the same junction and merge rules.
             taxiwayAreas =
-                taxiwayPrefabRuleManager.GetPlacementAreasForSave()
+                taxiwayPrefabRuleManager.GetPlacementAreasForSave(),
+
+            floorFinishCells = floorFinishRenderer != null
+                ? floorFinishRenderer.GetSaveData()
+                : new List<FloorFinishCellSaveData>()
         };
 
         PlacedBuilding[] buildings =
@@ -986,6 +997,18 @@ public class AirportWorldResetController : MonoBehaviour
 
         if (tarmacTilemapController != null)
             tarmacTilemapController.RefreshFromGridSurface();
+
+        if (floorFinishRenderer == null)
+            floorFinishRenderer = FindFirstObjectByType<FloorFinishRenderer>();
+
+        if (floorFinishRenderer != null)
+            floorFinishRenderer.RestoreSaveData(data.floorFinishCells);
+        else if (data.floorFinishCells.Count > 0)
+        {
+            Debug.LogWarning(
+                "AirportWorldResetController: Save contains floor finishes, " +
+                "but FloorFinishRenderer is missing. Those finishes were not restored.");
+        }
 
         // 4. Refresh room detection and restore room-purpose assignments
         // after the saved foundations and boundaries are back in place.
