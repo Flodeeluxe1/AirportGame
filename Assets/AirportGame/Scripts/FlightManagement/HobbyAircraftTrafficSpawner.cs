@@ -33,6 +33,8 @@ public class HobbyAircraftTrafficSpawner : MonoBehaviour
     [Min(1f)]
     [SerializeField] private float testSpawnIntervalSeconds = 10f;
 
+    public GameObject HobbyAircraftPrefab => hobbyAircraftPrefab;
+
     private float nextTestSpawnTime;
 
     [Header("Daily Demand")]
@@ -556,6 +558,11 @@ public class HobbyAircraftTrafficSpawner : MonoBehaviour
             spawnPoint.position,
             spawnPoint.rotation
         );
+
+        AircraftAirportFees airportFees =
+            aircraft.GetComponent<AircraftAirportFees>();
+        if (airportFees != null)
+            airportFees.SetFeeCategory(AirportFeeCategory.Hobby);
 
         AircraftFlightIdentity identity =
             aircraft.GetComponent<AircraftFlightIdentity>();
