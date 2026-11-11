@@ -59,6 +59,7 @@ public class SightseeingAircraftSpawner : MonoBehaviour
     private bool waitingMessageLogged;
     private bool subscribedToGameTime;
 
+    public GameObject SightseeingAircraftPrefab => sightseeingAircraftPrefab;
     public bool FlightPending => flightPending;
     public bool HourlyScheduleEnabled => hourlyScheduleEnabled;
     public string ScheduleStatus => scheduleStatus;
@@ -421,6 +422,11 @@ public class SightseeingAircraftSpawner : MonoBehaviour
 
             return SpawnAttemptResult.RetryableFailure;
         }
+
+        AircraftAirportFees airportFees =
+            aircraft.GetComponent<AircraftAirportFees>();
+        if (airportFees != null)
+            airportFees.SetFeeCategory(AirportFeeCategory.Sightseeing);
 
         // Reserve parking before allowing the aircraft to operate.
         if (!spot.TryReserve(aircraft))
