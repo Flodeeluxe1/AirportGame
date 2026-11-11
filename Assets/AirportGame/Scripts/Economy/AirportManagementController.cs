@@ -39,6 +39,8 @@ public class AirportManagementController : MonoBehaviour
         public AircraftFeeProfile cargo = new AircraftFeeProfile();
         public AircraftFeeProfile passenger = new AircraftFeeProfile();
 
+        [Min(0)] public int fuelServiceFee;
+
         [Min(0)] public int cleaningFeeUpTo10Passengers = 100;
         [Min(0)] public int cleaningFeeUpTo50Passengers = 200;
         [Min(0)] public int cleaningFeeUpTo100Passengers = 350;
@@ -397,6 +399,13 @@ public class AirportManagementController : MonoBehaviour
             Mathf.Max(1, profile.parkingIntervalMinutes);
 
         return true;
+    }
+
+    public int GetActiveFuelServiceFee()
+    {
+        return CanAdjustFees && customFeeSettings != null
+            ? Mathf.Max(0, customFeeSettings.fuelServiceFee)
+            : 0;
     }
 
     public bool TryGetActiveCleaningFee(
