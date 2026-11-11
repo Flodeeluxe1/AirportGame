@@ -7,6 +7,7 @@ public enum AirportFeeCategory
 {
     None,
     Hobby,
+    FlightSchool,
     Sightseeing,
     Cargo,
     Passenger
@@ -34,6 +35,7 @@ public class AirportManagementController : MonoBehaviour
     public class FeeSettings
     {
         public AircraftFeeProfile hobby = new AircraftFeeProfile();
+        public AircraftFeeProfile flightSchool = new AircraftFeeProfile();
         public AircraftFeeProfile sightseeing = new AircraftFeeProfile();
         public AircraftFeeProfile cargo = new AircraftFeeProfile();
         public AircraftFeeProfile passenger = new AircraftFeeProfile();
@@ -232,6 +234,12 @@ public class AirportManagementController : MonoBehaviour
                 parkingFee = 5,
                 parkingIntervalMinutes = 10
             },
+            flightSchool = new AircraftFeeProfile
+            {
+                landingFee = 20,
+                parkingFee = 5,
+                parkingIntervalMinutes = 10
+            },
             sightseeing = new AircraftFeeProfile
             {
                 landingFee = 250,
@@ -256,6 +264,13 @@ public class AirportManagementController : MonoBehaviour
             FindFirstObjectByType<HobbyAircraftTrafficSpawner>();
         if (hobbySpawner != null)
             CopyPrefabDefaults(hobbySpawner.HobbyAircraftPrefab, defaultFeeSettings.hobby);
+
+        FlightSchoolManager flightSchoolManager =
+            FindFirstObjectByType<FlightSchoolManager>();
+        if (flightSchoolManager != null)
+            CopyPrefabDefaults(
+                flightSchoolManager.TrainingAircraftPrefab,
+                defaultFeeSettings.flightSchool);
 
         SightseeingAircraftSpawner sightseeingSpawner =
             FindFirstObjectByType<SightseeingAircraftSpawner>();
@@ -374,20 +389,21 @@ public class AirportManagementController : MonoBehaviour
         if (!CanAdjustFees || settings == null)
             return false;
 
-        customFeeSettings = SanitizeFeeSettings(settings);
+        FeeSettings candidate = SanitizeFeeSettings(settings);
 
         try
         {
             FeeSettingsSaveData saveData = new FeeSettingsSaveData
             {
                 version = 1,
-                settings = customFeeSettings
+                settings = candidate
             };
 
             File.WriteAllText(
                 FeeSettingsFilePath,
                 JsonUtility.ToJson(saveData, true));
 
+            customFeeSettings = candidate;
             StateChanged?.Invoke();
             return true;
         }
@@ -454,6 +470,8 @@ public class AirportManagementController : MonoBehaviour
         {
             case AirportFeeCategory.Hobby:
                 return settings.hobby;
+            case AirportFeeCategory.FlightSchool:
+                return settings.flightSchool;
             case AirportFeeCategory.Sightseeing:
                 return settings.sightseeing;
             case AirportFeeCategory.Cargo:
@@ -497,6 +515,7 @@ public class AirportManagementController : MonoBehaviour
         FeeSettings result = CloneFeeSettings(source);
 
         result.hobby ??= new AircraftFeeProfile();
+        result.flightSchool ??= new AircraftFeeProfile();
         result.sightseeing ??= new AircraftFeeProfile();
         result.cargo ??= new AircraftFeeProfile();
         result.passenger ??= new AircraftFeeProfile();
