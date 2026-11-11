@@ -521,6 +521,7 @@ public class AirportManagementController : MonoBehaviour
         result.passenger ??= new AircraftFeeProfile();
 
         SanitizeProfile(result.hobby);
+        SanitizeProfile(result.flightSchool);
         SanitizeProfile(result.sightseeing);
         SanitizeProfile(result.cargo);
         SanitizeProfile(result.passenger);
