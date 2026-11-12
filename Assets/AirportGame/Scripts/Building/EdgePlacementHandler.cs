@@ -374,14 +374,22 @@ public class EdgePlacementHandler : IPlacementHandler
                 edge
             );
 
-            PlacementPreview previewComponent =
-                preview.GetComponent<PlacementPreview>();
-
-            if (previewComponent != null)
+            // The first preview is the original BuildController preview.
+            // Use its stored component reference directly so its red hover-marker
+            // state is always replaced by the current drag-path validity.
+            if (i == 0)
             {
-                previewComponent.SetValid(
-                    allValid
-                );
+                placementPreview.SetValid(allValid);
+            }
+            else
+            {
+                PlacementPreview previewComponent =
+                    preview.GetComponent<PlacementPreview>();
+
+                if (previewComponent != null)
+                {
+                    previewComponent.SetValid(allValid);
+                }
             }
         }
     }
