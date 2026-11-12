@@ -337,10 +337,6 @@ Shader "Airport/Wall Finish Texture Array"
                     GetNormalizedScreenSpaceUV(input.positionCS);
                 inputData.shadowMask = half4(1,1,1,1);
 
-                // Stage 3 exposes the baked-GI value before PBR lighting.
-                if (_WallFinishDebugStage > 2.5 && _WallFinishDebugStage < 3.5)
-                    return half4(inputData.bakedGI, 1.0h);
-
                 SurfaceData surfaceData = (SurfaceData)0;
                 surfaceData.albedo = baseSample.rgb;
                 surfaceData.metallic = metallic;
@@ -353,11 +349,46 @@ Shader "Airport/Wall Finish Texture Array"
                 surfaceData.clearCoatMask = 0;
                 surfaceData.clearCoatSmoothness = 0;
 
+                // Stage 3: baked GI before PBR, sampled at the actual wall normal.
+                if (_WallFinishDebugStage > 2.5 && _WallFinishDebugStage < 3.5)
+                    return half4(inputData.bakedGI, 1.0h);
+
+                BRDFData brdfData;
+                InitializeBRDFData(surfaceData, brdfData);
+
+                Light mainLight = GetMainLight(
+                    inputData.shadowCoord,
+                    inputData.positionWS,
+                    inputData.shadowMask);
+
+                // Stage 4: main directional light's physically based contribution,
+                // including its N.L term, distance attenuation and shadow attenuation.
+                if (_WallFinishDebugStage > 3.5 && _WallFinishDebugStage < 4.5)
+                {
+                    half3 mainLightContribution = LightingPhysicallyBased(
+                        brdfData,
+                        mainLight,
+                        inputData.normalWS,
+                        inputData.viewDirectionWS);
+                    return half4(mainLightContribution, 1.0h);
+                }
+
+                // Stage 5: complete URP PBR calculation with baked GI removed.
+                if (_WallFinishDebugStage > 4.5 && _WallFinishDebugStage < 5.5)
+                {
+                    InputData directOnlyInputData = inputData;
+                    directOnlyInputData.bakedGI = half3(0,0,0);
+                    half4 directOnlyColor =
+                        UniversalFragmentPBR(directOnlyInputData, surfaceData);
+                    directOnlyColor.rgb =
+                        MixFog(directOnlyColor.rgb, input.fogFactor);
+                    return directOnlyColor;
+                }
+
+                // Stage 6: normal complete PBR output, including baked GI.
                 half4 color =
                     UniversalFragmentPBR(inputData, surfaceData);
                 color.rgb = MixFog(color.rgb, input.fogFactor);
-
-                // Stage 4 exposes the final shaded wall colour.
                 return color;
             }
             ENDHLSL
