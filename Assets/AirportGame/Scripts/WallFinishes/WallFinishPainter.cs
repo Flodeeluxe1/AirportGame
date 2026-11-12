@@ -314,7 +314,9 @@ public class WallFinishPainter : MonoBehaviour
             if (building == null ||
                 building.Definition == null ||
                 building.Definition.category != BuildCategory.Wall ||
-                !building.IsEdgeBuilding)
+                !building.IsEdgeBuilding ||
+                (clickedWall != null &&
+                 building.EdgeDirection != clickedWall.EdgeDirection))
             {
                 continue;
             }
@@ -345,36 +347,18 @@ public class WallFinishPainter : MonoBehaviour
             Vector2Int edgeCell = building.Origin;
 
             if (building.EdgeDirection == EdgeDirection.Horizontal)
-            {
                 edgeCell.x += i;
-
-                if (IsCellInsideSelection(
-                        edgeCell.x, edgeCell.y,
-                        minX, maxX, minZ, maxZ))
-                    return true;
-
-                Vector2Int oppositeSide = edgeCell + Vector2Int.down;
-
-                if (IsCellInsideSelection(
-                        oppositeSide.x, oppositeSide.y,
-                        minX, maxX, minZ, maxZ))
-                    return true;
-            }
             else
-            {
                 edgeCell.y += i;
 
-                if (IsCellInsideSelection(
-                        edgeCell.x, edgeCell.y,
-                        minX, maxX, minZ, maxZ))
-                    return true;
-
-                Vector2Int oppositeSide = edgeCell + Vector2Int.left;
-
-                if (IsCellInsideSelection(
-                        oppositeSide.x, oppositeSide.y,
-                        minX, maxX, minZ, maxZ))
-                    return true;
+            // Match the wall edge itself, not either cell beside it.
+            // Including both adjacent cells also selected perpendicular
+            // walls meeting the painted wall at its corners.
+            if (IsCellInsideSelection(
+                    edgeCell.x, edgeCell.y,
+                    minX, maxX, minZ, maxZ))
+            {
+                return true;
             }
         }
 
