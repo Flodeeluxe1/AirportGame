@@ -317,6 +317,11 @@ Shader "Airport/Wall Finish Texture Array"
                     GetNormalizedScreenSpaceUV(input.positionCS);
                 inputData.shadowMask = half4(1,1,1,1);
 
+                // TEMPORARY DIAGNOSTIC: display the baked-GI value directly.
+                // This bypasses the PBR/BRDF calculation so we can determine
+                // whether the darkening is already present in the GI input.
+                return half4(inputData.bakedGI, 1.0h);
+
                 SurfaceData surfaceData = (SurfaceData)0;
                 surfaceData.albedo = baseSample.rgb;
                 surfaceData.metallic = metallic;
