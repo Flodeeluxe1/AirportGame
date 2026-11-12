@@ -173,7 +173,8 @@ Shader "Airport/Wall Finish Texture Array"
                         finishUV,
                         finishIndex);
 
-                    normalTS = UnpackNormalScale(normalSample, maskSample.b);
+                    // Diagnostic: use a flat tangent-space normal to isolate wall lighting.
+                    normalTS = half3(0,0,1);
                     metallic = maskSample.r;
                     occlusion = maskSample.g;
                     smoothness = maskSample.a;
