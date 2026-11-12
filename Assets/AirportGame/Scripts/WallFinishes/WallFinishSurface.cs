@@ -23,6 +23,7 @@ public class WallFinishSurface : MonoBehaviour
     private static readonly int PreviewModeId = Shader.PropertyToID("_PreviewMode");
     private static readonly int PreviewSideSignId = Shader.PropertyToID("_PreviewSideSign");
     private static readonly int PreviewFinishIndexId = Shader.PropertyToID("_PreviewFinishIndex");
+    private static readonly int BrightnessDebugStageId = Shader.PropertyToID("_WallFinishDebugStage");
 
     private readonly List<RendererState> rendererStates =
         new List<RendererState>();
@@ -179,6 +180,20 @@ public class WallFinishSurface : MonoBehaviour
         previewFinishIndex = -1;
         ApplyFinishProperties();
         RestoreOriginalMaterialsIfUnused();
+    }
+
+    public void SetBrightnessDebugStage(int stage)
+    {
+        foreach (RendererState state in rendererStates)
+        {
+            if (state.renderer == null)
+                continue;
+
+            MaterialPropertyBlock block = new MaterialPropertyBlock();
+            state.renderer.GetPropertyBlock(block);
+            block.SetFloat(BrightnessDebugStageId, Mathf.Clamp(stage, 0, 4));
+            state.renderer.SetPropertyBlock(block);
+        }
     }
 
     public bool IsInnerFace(int faceSign)
