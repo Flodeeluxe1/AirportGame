@@ -9,9 +9,13 @@ public class FloorFinishCatalogue : ScriptableObject
 {
     [SerializeField] private FloorFinishDefinition[] finishes;
 
+    [Header("Shared Chunk Rendering")]
+    [SerializeField] private Material sharedRenderMaterial;
+
     private Dictionary<string, int> indicesById;
 
     public IReadOnlyList<FloorFinishDefinition> Finishes => finishes;
+    public Material SharedRenderMaterial => sharedRenderMaterial;
 
     public int Count => finishes != null ? finishes.Length : 0;
 
