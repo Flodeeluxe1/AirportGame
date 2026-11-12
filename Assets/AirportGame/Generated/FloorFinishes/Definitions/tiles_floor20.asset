@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 81a6c3d9e4b742f0a5d1c8e7b3f90621, type: 3}
+  m_Name: tiles_floor20
+  m_EditorClassIdentifier: Assembly-CSharp::FloorFinishDefinition
+  id: floor.tiles_floor20
+  displayName: Tiles floor 20
+  material: {fileID: 2100000, guid: e79da7eacf6ee654e8f795c96e7f614b, type: 2}
+  icon: {fileID: 2800000, guid: d2beb66c107472d4986df55063729884, type: 3}

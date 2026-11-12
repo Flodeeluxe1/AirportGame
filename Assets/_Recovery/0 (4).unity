@@ -243,6 +243,7 @@ MonoBehaviour:
   gridSurface: {fileID: 728659360}
   buildController: {fileID: 88094025}
   moveController: {fileID: 88094028}
+  floorFinishPainter: {fileID: 0}
   foundationTilemapController: {fileID: 0}
   roadNetwork: {fileID: 0}
   roadTilemapController: {fileID: 0}
@@ -1118,6 +1119,75 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &555229055
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 555229056}
+  - component: {fileID: 555229058}
+  - component: {fileID: 555229057}
+  m_Layer: 0
+  m_Name: Floor Finish System
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &555229056
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 555229055}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 125.84617, y: -570.8132, z: 666.8327}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &555229057
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 555229055}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a3c8e5f106d947b2c7f3e0a9d5b12843, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FloorFinishRenderer
+  gridManager: {fileID: 0}
+  gridSurface: {fileID: 0}
+  edgeOccupancy: {fileID: 0}
+  catalogue: {fileID: 11400000, guid: ea2804e6da8724b4380e6eb475a1100c, type: 2}
+  chunkSize: 32
+  surfaceOffset: 0.015
+--- !u!114 &555229058
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 555229055}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4d9f60117ea48c3d8a4f1b0e6c23954, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FloorFinishPainter
+  mainCamera: {fileID: 0}
+  gridManager: {fileID: 0}
+  gridSurface: {fileID: 0}
+  floorFinishRenderer: {fileID: 0}
+  buildController: {fileID: 0}
+  uiDocument: {fileID: 762824360}
 --- !u!1001 &598322431
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2511,6 +2581,7 @@ MonoBehaviour:
   taxiwayTilemapController: {fileID: 405670567}
   taxiwayPrefabRuleManager: {fileID: 0}
   foundationTilemapController: {fileID: 1832935780}
+  floorFinishRenderer: {fileID: 0}
   tarmacTilemapController: {fileID: 1502454836}
   gameTimeManager: {fileID: 449210932}
   economyManager: {fileID: 1048131944}
@@ -2760,6 +2831,7 @@ GameObject:
   - component: {fileID: 1478484330}
   - component: {fileID: 1478484331}
   - component: {fileID: 1478484332}
+  - component: {fileID: 1478484333}
   m_Layer: 0
   m_Name: AirportUI
   m_TagString: Untagged
@@ -3008,6 +3080,21 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FinanceManagementUIController
   uiDocument: {fileID: 762824360}
   airportManagementController: {fileID: 1390174456}
+--- !u!114 &1478484333
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1478484321}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3cf174899f7254d0a5e6237a9b4c81d2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FloorFinishMenuController
+  uiDocument: {fileID: 0}
+  catalogue: {fileID: 11400000, guid: ea2804e6da8724b4380e6eb475a1100c, type: 2}
+  painter: {fileID: 0}
 --- !u!1 &1502454834
 GameObject:
   m_ObjectHideFlags: 0
@@ -4730,6 +4817,7 @@ SceneRoots:
   - {fileID: 410087041}
   - {fileID: 832575519}
   - {fileID: 728659358}
+  - {fileID: 555229056}
   - {fileID: 1681732909}
   - {fileID: 88094026}
   - {fileID: 1399790237}
