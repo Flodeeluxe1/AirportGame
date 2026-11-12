@@ -44,3 +44,4 @@ MonoBehaviour:
   - {fileID: 11400000, guid: b41a49936bd649d4a9a32ca294944c01, type: 2}
   - {fileID: 11400000, guid: 9b13197ddb9ce33488e16073b0aa00a0, type: 2}
   - {fileID: 11400000, guid: bc8f7b6956544ab4d86f754a94f67a71, type: 2}
+  sharedRenderMaterial: {fileID: 2100000, guid: 9eaf935fd72e61f4395b881f689095e3, type: 2}
