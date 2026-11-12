@@ -356,6 +356,10 @@ half4 color =
         // Preserve the original wall's ability to cast shadows after its
         // material is replaced by this custom shader.
         UsePass "Universal Render Pipeline/Lit/ShadowCaster"
+        // Supply the normals pass used by URP screen-space ambient occlusion
+        // and other depth-normal consumers. Without it, replacing a Lit
+        // material can change SSAO on both faces of the wall.
+        UsePass "Universal Render Pipeline/Lit/DepthNormals"
     }
 
     FallBack Off
