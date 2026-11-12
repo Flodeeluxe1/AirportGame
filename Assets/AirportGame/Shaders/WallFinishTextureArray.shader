@@ -214,9 +214,19 @@ Shader "Airport/Wall Finish Texture Array"
                         finishUV,
                         finishIndex);
 
+                    if (_WallFinishDebugStage > 8.5 && _WallFinishDebugStage < 9.5)
+                        return half4(normalSample.rgb, 1.0h);
+
                     normalTS = UnpackNormalScale(
                         normalSample,
                         maskSample.b);
+
+                    if (_WallFinishDebugStage > 9.5 && _WallFinishDebugStage < 10.5)
+                        return half4(normalTS * 0.5h + 0.5h, 1.0h);
+
+                    if (_WallFinishDebugStage > 10.5 && _WallFinishDebugStage < 11.5)
+                        return half4(maskSample.rgb, 1.0h);
+
                     metallic = maskSample.r;
                     occlusion = maskSample.g;
                     smoothness = maskSample.a;
@@ -282,6 +292,12 @@ Shader "Airport/Wall Finish Texture Array"
                     tangentWS * normalTS.x +
                     bitangentWS * normalTS.y +
                     geometricNormal * normalTS.z);
+
+                if (_WallFinishDebugStage > 11.5 && _WallFinishDebugStage < 12.5)
+                    return half4(geometricNormal * 0.5h + 0.5h, 1.0h);
+
+                if (_WallFinishDebugStage > 12.5 && _WallFinishDebugStage < 13.5)
+                    return half4(normalWS * 0.5h + 0.5h, 1.0h);
 
                 InputData inputData = (InputData)0;
                 inputData.positionWS = input.positionWS;
@@ -349,6 +365,15 @@ Shader "Airport/Wall Finish Texture Array"
                 surfaceData.clearCoatMask = 0;
                 surfaceData.clearCoatSmoothness = 0;
 
+                if (_WallFinishDebugStage > 13.5 && _WallFinishDebugStage < 14.5)
+                    return half4(surfaceData.albedo, 1.0h);
+                if (_WallFinishDebugStage > 14.5 && _WallFinishDebugStage < 15.5)
+                    return half4(surfaceData.metallic, surfaceData.metallic, surfaceData.metallic, 1.0h);
+                if (_WallFinishDebugStage > 15.5 && _WallFinishDebugStage < 16.5)
+                    return half4(surfaceData.smoothness, surfaceData.smoothness, surfaceData.smoothness, 1.0h);
+                if (_WallFinishDebugStage > 16.5 && _WallFinishDebugStage < 17.5)
+                    return half4(surfaceData.occlusion, surfaceData.occlusion, surfaceData.occlusion, 1.0h);
+
                 // Stage 3: baked GI before PBR, sampled at the actual wall normal.
                 if (_WallFinishDebugStage > 2.5 && _WallFinishDebugStage < 3.5)
                     return half4(inputData.bakedGI, 1.0h);
@@ -360,6 +385,39 @@ Shader "Airport/Wall Finish Texture Array"
                     inputData.shadowCoord,
                     inputData.positionWS,
                     inputData.shadowMask);
+
+                if (_WallFinishDebugStage > 16.5 && _WallFinishDebugStage < 17.5)
+                    return half4(mainLight.color, 1.0h);
+
+                if (_WallFinishDebugStage > 17.5 && _WallFinishDebugStage < 18.5)
+                    return half4(mainLight.distanceAttenuation,
+                        mainLight.distanceAttenuation,
+                        mainLight.distanceAttenuation, 1.0h);
+
+                half3 directBRDF = DirectBRDF(
+                    brdfData,
+                    inputData.normalWS,
+                    mainLight.direction,
+                    inputData.viewDirectionWS);
+                half3 mainLightRadiance =
+                    mainLight.color *
+                    (mainLight.distanceAttenuation * mainLight.shadowAttenuation);
+
+                if (_WallFinishDebugStage > 18.5 && _WallFinishDebugStage < 19.5)
+                    return half4(directBRDF, 1.0h);
+
+                if (_WallFinishDebugStage > 19.5 && _WallFinishDebugStage < 20.5)
+                    return half4(mainLightRadiance, 1.0h);
+
+                if (_WallFinishDebugStage > 20.5 && _WallFinishDebugStage < 21.5)
+                {
+                    half ndotlForContribution = saturate(dot(
+                        normalize(inputData.normalWS),
+                        normalize(mainLight.direction)));
+                    half3 calculatedDirectContribution =
+                        directBRDF * mainLightRadiance * ndotlForContribution;
+                    return half4(calculatedDirectContribution, 1.0h);
+                }
 
                 // Stage 7: direct-light angle factor. Black means the face
                 // points away from the main directional light.
