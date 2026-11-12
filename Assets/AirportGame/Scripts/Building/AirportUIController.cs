@@ -18,7 +18,9 @@ public class AirportUIController : MonoBehaviour
     private ScrollView buildableList;
     private ScrollView airportSubcategoryList;
     private ScrollView floorSubcategoryList;
+    private ScrollView wallSubcategoryList;
     private Button floorFoundationButton;
+    private Button wallBuildingButton;
     private TextField buildSearchField;
     private string buildSearchQuery = string.Empty;
 
@@ -88,7 +90,9 @@ public class AirportUIController : MonoBehaviour
         buildableList = root.Q<ScrollView>("buildable-list");
         airportSubcategoryList = root.Q<ScrollView>("airport-subcategory-list");
         floorSubcategoryList = root.Q<ScrollView>("floor-subcategory-list");
+        wallSubcategoryList = root.Q<ScrollView>("wall-subcategory-list");
         floorFoundationButton = root.Q<Button>("category-foundation");
+        wallBuildingButton = root.Q<Button>("category-wall-building");
         buildSearchField = root.Q<TextField>("build-search-field");
 
         if (buildSearchField != null)
@@ -164,6 +168,9 @@ public class AirportUIController : MonoBehaviour
         if (floorSubcategoryList == null)
             Debug.LogError("AirportUIController: 'floor-subcategory-list' was not found.");
 
+        if (wallSubcategoryList == null)
+            Debug.LogError("AirportUIController: 'wall-subcategory-list' was not found.");
+
         if (buildButton == null)
             Debug.LogError("AirportUIController: 'build-button' was not found.");
 
@@ -232,7 +239,9 @@ public class AirportUIController : MonoBehaviour
 
         foreach (KeyValuePair<BuildCategory, Button> pair in categoryButtons)
         {
-            if (pair.Value == null || pair.Key == BuildCategory.Floor)
+            if (pair.Value == null ||
+                pair.Key == BuildCategory.Floor ||
+                pair.Key == BuildCategory.Wall)
                 continue;
 
             BuildCategory category = pair.Key;
@@ -248,6 +257,12 @@ public class AirportUIController : MonoBehaviour
 
         if (floorFoundationButton != null)
             floorFoundationButton.clicked += () => SelectCategory(BuildCategory.Floor);
+
+        if (categoryButtons[BuildCategory.Wall] != null)
+            categoryButtons[BuildCategory.Wall].clicked += ToggleWallSubcategories;
+
+        if (wallBuildingButton != null)
+            wallBuildingButton.clicked += () => SelectCategory(BuildCategory.Wall);
     }
 
     private void ToggleBuildWindow()
@@ -306,6 +321,20 @@ public class AirportUIController : MonoBehaviour
         }
     }
 
+    private void ToggleWallSubcategories()
+    {
+        bool shouldShow = wallSubcategoryList != null &&
+                          wallSubcategoryList.resolvedStyle.display == DisplayStyle.None;
+
+        SelectCategory(BuildCategory.Wall);
+
+        if (wallSubcategoryList != null)
+        {
+            wallSubcategoryList.style.display =
+                shouldShow ? DisplayStyle.Flex : DisplayStyle.None;
+        }
+    }
+
     private void SelectCategory(BuildCategory category)
     {
         currentCategory = category;
@@ -344,6 +373,14 @@ public class AirportUIController : MonoBehaviour
                     : DisplayStyle.None;
         }
 
+        if (wallSubcategoryList != null)
+        {
+            wallSubcategoryList.style.display =
+                category == BuildCategory.Wall
+                    ? DisplayStyle.Flex
+                    : DisplayStyle.None;
+        }
+
         UpdateCategoryButtonStates();
         UpdateAirportSubcategoryButtonStates();
         PopulateBuildableList();
@@ -356,6 +393,9 @@ public class AirportUIController : MonoBehaviour
 
         if (floorSubcategoryList != null)
             floorSubcategoryList.style.display = DisplayStyle.None;
+
+        if (wallSubcategoryList != null)
+            wallSubcategoryList.style.display = DisplayStyle.None;
 
         if (airportSubcategoryList != null)
             airportSubcategoryList.style.display = DisplayStyle.Flex;
