@@ -522,12 +522,22 @@ public class WallFinishPainter : MonoBehaviour
             "Main-light distance attenuation",
             "Direct BRDF response",
             "Main-light radiance after attenuation",
-            "Reconstructed direct-light contribution"
+            "Reconstructed direct-light contribution",
+            "URP raw main-light position (XYZ encoded, W in alpha)",
+            "URP raw main-light colour",
+            "GetMainLight direction (XYZ encoded)",
+            "GetMainLight() distance attenuation",
+            "GetMainLight(shadowCoord) distance attenuation",
+            "Current GetMainLight(...) distance attenuation",
+            "GetMainLight() shadow attenuation",
+            "GetMainLight(shadowCoord) shadow attenuation"
         };
 
         try
         {
-            for (int stage = 1; stage <= 22; stage++)
+            LogSceneDirectionalLights(wall);
+
+            for (int stage = 1; stage <= 30; stage++)
             {
                 surface.SetBrightnessDebugStage(stage);
                 yield return new WaitForEndOfFrame();
@@ -557,6 +567,45 @@ public class WallFinishPainter : MonoBehaviour
         Debug.Log(
             "Wall finish lighting diagnostic complete. Values are screen-captured RGB (0-1), so post-processing/display transforms may affect them.",
             wall);
+    }
+
+    private void LogSceneDirectionalLights(PlacedBuilding wall)
+    {
+        Light sun = RenderSettings.sun;
+
+        Debug.Log(
+            $"WALL FINISH LIGHT SETUP [RenderSettings.sun] " +
+            $"{(sun != null ? sun.name : "None")}",
+            wall);
+
+        Light[] lights = FindObjectsByType<Light>(FindObjectsSortMode.None);
+        int directionalCount = 0;
+
+        foreach (Light sceneLight in lights)
+        {
+            if (sceneLight == null || sceneLight.type != LightType.Directional)
+                continue;
+
+            directionalCount++;
+
+            Vector3 forward = sceneLight.transform.forward;
+            Debug.Log(
+                $"WALL FINISH LIGHT SETUP [Directional {directionalCount}] " +
+                $"Name={sceneLight.name}, " +
+                $"Enabled={sceneLight.enabled && sceneLight.gameObject.activeInHierarchy}, " +
+                $"Intensity={sceneLight.intensity:F3}, " +
+                $"Color={sceneLight.color}, " +
+                $"ColorTemperatureEnabled={sceneLight.useColorTemperature}, " +
+                $"Temperature={sceneLight.colorTemperature:F0}, " +
+                $"Shadows={sceneLight.shadows}, " +
+                $"ShadowStrength={sceneLight.shadowStrength:F3}, " +
+                $"Forward=({forward.x:F3},{forward.y:F3},{forward.z:F3}), " +
+                $"IsRenderSettingsSun={sceneLight == sun}",
+                sceneLight);
+        }
+
+        if (directionalCount == 0)
+            Debug.LogWarning("WALL FINISH LIGHT SETUP: No directional Light components found.", wall);
     }
 
     private bool IsPointerOverBuildUI()
