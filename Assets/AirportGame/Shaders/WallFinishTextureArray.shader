@@ -418,6 +418,38 @@ Shader "Airport/Wall Finish Texture Array"
                         mainLightWithShadowCoord.shadowAttenuation,
                         mainLightWithShadowCoord.shadowAttenuation, 1.0h);
 
+                // URP's GetMainLight() attenuation source depends on the
+                // clustered-light-loop and mixed-lightmap compile/runtime path.
+                #if USE_CLUSTER_LIGHT_LOOP
+                if (_WallFinishDebugStage > 30.5 && _WallFinishDebugStage < 31.5)
+                    return half4(1,1,1,1);
+                #else
+                if (_WallFinishDebugStage > 30.5 && _WallFinishDebugStage < 31.5)
+                    return half4(0,0,0,1);
+                #endif
+
+                if (_WallFinishDebugStage > 31.5 && _WallFinishDebugStage < 32.5)
+                {
+                    half value = LightmapAvailable() ? 1.0h : 0.0h;
+                    return half4(value,value,value,1.0h);
+                }
+
+                if (_WallFinishDebugStage > 32.5 && _WallFinishDebugStage < 33.5)
+                {
+                    half value = LightmapShadowMixingAvailable() ? 1.0h : 0.0h;
+                    return half4(value,value,value,1.0h);
+                }
+
+                if (_WallFinishDebugStage > 33.5 && _WallFinishDebugStage < 34.5)
+                    return half4(_MainLightColor.a,
+                        _MainLightColor.a,
+                        _MainLightColor.a, 1.0h);
+
+                if (_WallFinishDebugStage > 34.5 && _WallFinishDebugStage < 35.5)
+                    return half4(unity_LightData.z,
+                        unity_LightData.z,
+                        unity_LightData.z, 1.0h);
+
                 if (_WallFinishDebugStage > 17.5 && _WallFinishDebugStage < 18.5)
                     return half4(mainLight.color, 1.0h);
 
