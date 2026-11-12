@@ -411,18 +411,25 @@ public class EdgePlacementHandler : IPlacementHandler
         if (direction ==
             EdgeDirection.Horizontal)
         {
-            int step =
-                end.x >= start.x
-                    ? 1
-                    : -1;
+            float dragX =
+                lastHitPoint.x - dragStartWorldPosition.x;
 
-            // A horizontal edge extends from its cell toward +X.
-            // When dragging west from the locked start vertex,
-            // begin with the edge immediately west of that vertex.
+            int step =
+                end.x != start.x
+                    ? (end.x > start.x ? 1 : -1)
+                    : (dragX >= 0f ? 1 : -1);
+
+            // Horizontal edges extend toward +X. A westward drag
+            // starts with the segment immediately west of the marker.
             int firstX =
                 step < 0
                     ? start.x - 1
                     : start.x;
+
+            int lastX =
+                step < 0
+                    ? (end.x < start.x ? end.x : start.x - 1)
+                    : (end.x > start.x ? end.x : start.x);
 
             for (
                 int x = firstX;
@@ -439,24 +446,31 @@ public class EdgePlacementHandler : IPlacementHandler
                     )
                 );
 
-                if (x == end.x)
+                if (x == lastX)
                     break;
             }
         }
         else
         {
-            int step =
-                end.y >= start.y
-                    ? 1
-                    : -1;
+            float dragZ =
+                lastHitPoint.z - dragStartWorldPosition.z;
 
-            // A vertical edge extends from its cell toward +Z.
-            // When dragging south from the locked start vertex,
-            // begin with the edge immediately south of that vertex.
+            int step =
+                end.y != start.y
+                    ? (end.y > start.y ? 1 : -1)
+                    : (dragZ >= 0f ? 1 : -1);
+
+            // Vertical edges extend toward +Z. A southward drag
+            // starts with the segment immediately south of the marker.
             int firstZ =
                 step < 0
                     ? start.y - 1
                     : start.y;
+
+            int lastZ =
+                step < 0
+                    ? (end.y < start.y ? end.y : start.y - 1)
+                    : (end.y > start.y ? end.y : start.y);
 
             for (
                 int z = firstZ;
@@ -473,7 +487,7 @@ public class EdgePlacementHandler : IPlacementHandler
                     )
                 );
 
-                if (z == end.y)
+                if (z == lastZ)
                     break;
             }
         }
