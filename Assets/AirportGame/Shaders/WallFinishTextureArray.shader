@@ -7,6 +7,8 @@ Shader "Airport/Wall Finish Texture Array"
         [NoScaleOffset] _MaskArray ("Metallic AO Smoothness Array", 2DArray) = "" {}
         _BaseMap ("Original Wall Texture", 2D) = "white" {}
         _BaseColor ("Original Wall Color", Color) = (1,1,1,1)
+        [Normal] _OriginalNormalMap ("Original Wall Normal Map", 2D) = "bump" {}
+        _OriginalNormalScale ("Original Wall Normal Scale", Float) = 1
         _InnerFinishIndex ("Inner Finish Index", Float) = -1
         _OuterFinishIndex ("Outer Finish Index", Float) = -1
         _InnerSideSign ("Inner Side Sign", Float) = 1
@@ -60,9 +62,12 @@ Shader "Airport/Wall Finish Texture Array"
             TEXTURE2D_ARRAY(_NormalArray); SAMPLER(sampler_NormalArray);
             TEXTURE2D_ARRAY(_MaskArray); SAMPLER(sampler_MaskArray);
             TEXTURE2D(_BaseMap); SAMPLER(sampler_BaseMap);
+            TEXTURE2D(_OriginalNormalMap); SAMPLER(sampler_OriginalNormalMap);
 
             CBUFFER_START(UnityPerMaterial)
                 float4 _BaseMap_ST;
+                float4 _OriginalNormalMap_ST;
+                float _OriginalNormalScale;
                 half4 _BaseColor;
                 float _InnerFinishIndex;
                 float _OuterFinishIndex;
@@ -184,7 +189,14 @@ Shader "Airport/Wall Finish Texture Array"
                     sampler_BaseMap,
                     input.uv * _BaseMap_ST.xy + _BaseMap_ST.zw) * _BaseColor;
 
-                half3 normalTS = half3(0,0,1);
+                half4 originalNormalSample = SAMPLE_TEXTURE2D(
+                    _OriginalNormalMap,
+                    sampler_OriginalNormalMap,
+                    input.uv * _OriginalNormalMap_ST.xy +
+                    _OriginalNormalMap_ST.zw);
+                half3 normalTS = UnpackNormalScale(
+                    originalNormalSample,
+                    _OriginalNormalScale);
                 half metallic = _OriginalMetallic;
                 half smoothness = _OriginalSmoothness;
                 half occlusion = 1.0h;
