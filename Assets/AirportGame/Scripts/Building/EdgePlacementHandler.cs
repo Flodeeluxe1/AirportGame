@@ -284,11 +284,14 @@ public class EdgePlacementHandler : IPlacementHandler
         previewObject.transform.position = markerPosition;
         previewObject.transform.localScale = HoverPreviewScale;
 
-        // This is only a neutral start-position marker, not a wall
-        // segment being proposed for placement. Its hidden prefab rotation
-        // can point at an already occupied edge while the marker itself is
-        // still a valid place to begin a connected wall.
-        placementPreview.SetValid(true);
+        // The marker is not a proposed wall segment, so ignore edge
+        // occupancy (its hidden orientation may overlap an existing wall).
+        // Still validate the grid bounds and required surface at this point.
+        bool validStartPosition =
+            IsEdgeInsideGrid(markerEdge) &&
+            HasRequiredFoundation(markerEdge);
+
+        placementPreview.SetValid(validStartPosition);
 
         ClearAdditionalPreviews();
     }
