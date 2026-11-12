@@ -68,7 +68,9 @@ Shader "Airport/Floor Finish Texture Array"
                 float2 normalUV : TEXCOORD4;
                 float2 maskUV : TEXCOORD5;
                 float finishSlice : TEXCOORD6;
+                #if defined(REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR)
                 float4 shadowCoord : TEXCOORD7;
+                #endif
                 half fogFactor : TEXCOORD8;
                 UNITY_VERTEX_INPUT_INSTANCE_ID
             };
@@ -95,7 +97,9 @@ Shader "Airport/Floor Finish Texture Array"
                 output.normalUV = input.normalUV;
                 output.maskUV = input.maskUV;
                 output.finishSlice = input.finishSlice.x;
+                #if defined(REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR)
                 output.shadowCoord = GetShadowCoord(positionInputs);
+                #endif
                 output.fogFactor = ComputeFogFactor(positionInputs.positionCS.z);
 
                 return output;
@@ -139,7 +143,13 @@ Shader "Airport/Floor Finish Texture Array"
                 inputData.normalWS = normalWS;
                 inputData.viewDirectionWS =
                     GetWorldSpaceNormalizeViewDir(input.positionWS);
+                #if defined(REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR)
                 inputData.shadowCoord = input.shadowCoord;
+                #elif defined(MAIN_LIGHT_CALCULATE_SHADOWS)
+                inputData.shadowCoord = TransformWorldToShadowCoord(input.positionWS);
+                #else
+                inputData.shadowCoord = float4(0.0, 0.0, 0.0, 0.0);
+                #endif
                 inputData.bakedGI = SampleSH(normalWS);
                 inputData.normalizedScreenSpaceUV =
                     GetNormalizedScreenSpaceUV(input.positionCS);
