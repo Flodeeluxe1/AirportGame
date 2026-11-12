@@ -508,12 +508,26 @@ public class WallFinishPainter : MonoBehaviour
             "PBR direct lighting only",
             "Final PBR output with GI",
             "Main-light N dot L",
-            "Main-light shadow attenuation"
+            "Main-light shadow attenuation",
+            "Sampled normal texture",
+            "Decoded tangent-space normal",
+            "Packed mask RGB (metallic / AO / normal strength)",
+            "Geometric world normal",
+            "World normal passed to PBR",
+            "Albedo passed to PBR",
+            "Metallic passed to PBR",
+            "Smoothness passed to PBR",
+            "Occlusion passed to PBR",
+            "Main-light colour",
+            "Main-light distance attenuation",
+            "Direct BRDF response",
+            "Main-light radiance after attenuation",
+            "Reconstructed direct-light contribution"
         };
 
         try
         {
-            for (int stage = 1; stage <= 8; stage++)
+            for (int stage = 1; stage <= 21; stage++)
             {
                 surface.SetBrightnessDebugStage(stage);
                 yield return new WaitForEndOfFrame();
