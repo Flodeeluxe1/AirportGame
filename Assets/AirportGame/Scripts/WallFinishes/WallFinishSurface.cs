@@ -7,6 +7,7 @@ public class WallFinishSurface : MonoBehaviour
     {
         public Renderer renderer;
         public Material[] originalMaterials;
+        public MaterialPropertyBlock originalPropertyBlock;
     }
 
     private static readonly int BaseMapId = Shader.PropertyToID("_BaseMap");
@@ -67,10 +68,15 @@ public class WallFinishSurface : MonoBehaviour
                 if (originals == null || originals.Length == 0)
                     originals = new[] { targetRenderer.sharedMaterial };
 
+                MaterialPropertyBlock originalBlock =
+                    new MaterialPropertyBlock();
+                targetRenderer.GetPropertyBlock(originalBlock);
+
                 RendererState state = new RendererState
                 {
                     renderer = targetRenderer,
-                    originalMaterials = originals
+                    originalMaterials = originals,
+                    originalPropertyBlock = originalBlock
                 };
                 rendererStates.Add(state);
 
@@ -126,6 +132,7 @@ public class WallFinishSurface : MonoBehaviour
         }
 
         ApplyFinishProperties();
+        RestoreOriginalMaterialsIfUnused();
     }
 
     public void SetFinish(bool innerSide, WallFinishDefinition finish)
@@ -141,6 +148,7 @@ public class WallFinishSurface : MonoBehaviour
             outerFinishId = finishId;
 
         ApplyFinishProperties();
+        RestoreOriginalMaterialsIfUnused();
     }
 
     public void SetFinishIds(string innerId, string outerId)
@@ -148,6 +156,7 @@ public class WallFinishSurface : MonoBehaviour
         innerFinishId = innerId ?? "";
         outerFinishId = outerId ?? "";
         ApplyFinishProperties();
+        RestoreOriginalMaterialsIfUnused();
     }
 
     public void ShowPreview(
@@ -170,11 +179,31 @@ public class WallFinishSurface : MonoBehaviour
         previewMode = 0;
         previewFinishIndex = -1;
         ApplyFinishProperties();
+        RestoreOriginalMaterialsIfUnused();
     }
 
     public bool IsInnerFace(int faceSign)
     {
         return (faceSign >= 0 ? 1 : -1) == innerSideSign;
+    }
+
+
+    private void RestoreOriginalMaterialsIfUnused()
+    {
+        if (!isInitialized || HasAnyFinish || previewMode != 0)
+            return;
+
+        foreach (RendererState state in rendererStates)
+        {
+            if (state.renderer == null)
+                continue;
+
+            state.renderer.sharedMaterials = state.originalMaterials;
+            state.renderer.SetPropertyBlock(state.originalPropertyBlock);
+        }
+
+        rendererStates.Clear();
+        isInitialized = false;
     }
 
     private void ApplyFinishProperties()
