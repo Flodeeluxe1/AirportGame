@@ -182,9 +182,27 @@ public class EdgePlacementHandler : IPlacementHandler
                         ? EdgeDirection.Horizontal
                         : EdgeDirection.Vertical;
 
+                Vector2Int firstEdgeCell =
+                    startEdge.cell;
+
+                // GridEdge.cell is the start endpoint of the segment.
+                // When dragging in the negative axis direction, the
+                // first segment must be placed on the negative side
+                // of the marker rather than extending east/north.
+                if (selectedDirection == EdgeDirection.Horizontal &&
+                    dragDelta.x < 0f)
+                {
+                    firstEdgeCell += Vector2Int.left;
+                }
+                else if (selectedDirection == EdgeDirection.Vertical &&
+                         dragDelta.z < 0f)
+                {
+                    firstEdgeCell += Vector2Int.down;
+                }
+
                 startEdge =
                     new GridEdge(
-                        startEdge.cell,
+                        firstEdgeCell,
                         selectedDirection
                     );
 
