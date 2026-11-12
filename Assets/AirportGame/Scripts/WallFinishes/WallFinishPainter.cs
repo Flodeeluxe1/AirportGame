@@ -93,17 +93,19 @@ public class WallFinishPainter : MonoBehaviour
             if (IsPointerOverBuildUI())
                 return;
 
-            if (!TryGetGridCell(mouse.position.ReadValue(), out dragStartCell))
-                return;
-
-            dragCurrentCell = dragStartCell;
             clickedWall = FindWallUnderPointer(
                 mouse.position.ReadValue(),
                 out RaycastHit clickedHit);
 
-            clickedFaceSign = clickedWall != null
-                ? GetFaceSignFromHit(clickedWall, clickedHit)
-                : 1;
+            // Start from the actual wall segment under the pointer.
+            // Do not project the cursor onto the floor grid: that makes
+            // clicks halfway up a wall behave as if they started at its base.
+            if (clickedWall == null)
+                return;
+
+            dragStartCell = clickedWall.Origin;
+            dragCurrentCell = dragStartCell;
+            clickedFaceSign = GetFaceSignFromHit(clickedWall, clickedHit);
 
             isDragging = true;
             UpdateDragPreview();
@@ -111,10 +113,14 @@ public class WallFinishPainter : MonoBehaviour
 
         if (isDragging && mouse.leftButton.isPressed)
         {
-            if (!IsPointerOverBuildUI() &&
-                TryGetGridCell(mouse.position.ReadValue(), out Vector2Int currentCell))
+            if (!IsPointerOverBuildUI())
             {
-                dragCurrentCell = currentCell;
+                PlacedBuilding wallUnderPointer = FindWallUnderPointer(
+                    mouse.position.ReadValue(),
+                    out _);
+
+                if (wallUnderPointer != null)
+                    dragCurrentCell = wallUnderPointer.Origin;
             }
 
             UpdateDragPreview();
@@ -122,12 +128,18 @@ public class WallFinishPainter : MonoBehaviour
 
         if (mouse.leftButton.wasReleasedThisFrame && isDragging)
         {
-            if (!IsPointerOverBuildUI() &&
-                TryGetGridCell(mouse.position.ReadValue(), out Vector2Int releaseCell))
+            if (!IsPointerOverBuildUI())
             {
-                dragCurrentCell = releaseCell;
-                UpdateDragPreview();
-                ApplyCurrentSelection();
+                PlacedBuilding wallUnderPointer = FindWallUnderPointer(
+                    mouse.position.ReadValue(),
+                    out _);
+
+                if (wallUnderPointer != null)
+                {
+                    dragCurrentCell = wallUnderPointer.Origin;
+                    UpdateDragPreview();
+                    ApplyCurrentSelection();
+                }
             }
 
             HideAllPreviews();
@@ -432,29 +444,6 @@ public class WallFinishPainter : MonoBehaviour
         }
 
         return sideDot >= 0f ? 1 : -1;
-    }
-
-    private bool TryGetGridCell(
-        Vector2 screenPosition,
-        out Vector2Int cell)
-    {
-        cell = default;
-
-        if (mainCamera == null || gridManager == null)
-            return false;
-
-        Ray ray = mainCamera.ScreenPointToRay(screenPosition);
-        Plane gridPlane = new Plane(
-            Vector3.up,
-            new Vector3(0f, gridManager.transform.position.y, 0f));
-
-        if (!gridPlane.Raycast(ray, out float distance))
-            return false;
-
-        Vector3 hitPoint = ray.GetPoint(distance);
-        cell = gridManager.WorldToGrid(hitPoint);
-
-        return gridManager.IsInsideGrid(cell);
     }
 
     private void HideAllPreviews()
