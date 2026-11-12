@@ -40,8 +40,10 @@ public class FloorFinishMenuController : MonoBehaviour
         categoryList = root.Q<ScrollView>("category-list");
         buildableList = root.Q<ScrollView>("buildable-list");
 
+        floorFinishesButton = root.Q<Button>("category-floor-finishes");
+
         if (buildWindow == null || categoryPanel == null ||
-            categoryList == null || buildableList == null)
+            categoryList == null || buildableList == null || floorFinishesButton == null)
         {
             Debug.LogError("FloorFinishMenuController: Build menu elements are missing.", this);
             enabled = false;
@@ -72,15 +74,12 @@ public class FloorFinishMenuController : MonoBehaviour
     private void CreateMenuControls()
     {
         foreach (Button existingButton in categoryList.Query<Button>().ToList())
-            existingButton.clicked += ReturnToBuildMenu;
-
-        floorFinishesButton = new Button
         {
-            text = "Floor Finishes"
-        };
-        floorFinishesButton.AddToClassList("category-button");
+            if (existingButton != floorFinishesButton)
+                existingButton.clicked += ReturnToBuildMenu;
+        }
+
         floorFinishesButton.clicked += ShowFloorFinishes;
-        categoryList.Add(floorFinishesButton);
 
         eraseButton = new Button
         {
