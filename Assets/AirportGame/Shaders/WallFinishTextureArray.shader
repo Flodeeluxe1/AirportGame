@@ -19,6 +19,7 @@ Shader "Airport/Wall Finish Texture Array"
         _PreviewMode ("Preview Mode", Float) = 0
         _PreviewSideSign ("Preview Side Sign", Float) = 1
         _PreviewFinishIndex ("Preview Finish Index", Float) = -1
+        _PreviewTextureST ("Preview Texture Scale Offset", Vector) = (1,1,0,0)
         _PreviewColor ("Preview Color", Color) = (1,0.08,0.02,0.35)
     }
 
@@ -82,6 +83,7 @@ Shader "Airport/Wall Finish Texture Array"
                 float _PreviewMode;
                 float _PreviewSideSign;
                 float _PreviewFinishIndex;
+                float4 _PreviewTextureST;
                 half4 _PreviewColor;
             CBUFFER_END
 
@@ -280,7 +282,10 @@ Shader "Airport/Wall Finish Texture Array"
                     faceSign == _PreviewSideSign;
 
                 if (previewThisFace && _PreviewMode < 1.5)
+                {
                     finishIndex = _PreviewFinishIndex;
+                    finishST = _PreviewTextureST;
+                }
 
                 half4 baseSample = SAMPLE_TEXTURE2D(
                     _BaseMap,
