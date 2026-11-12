@@ -428,17 +428,23 @@ Shader "Airport/Wall Finish Texture Array"
                     return half4(0,0,0,1);
                 #endif
 
+                // Use compile-time URP variant keywords here. These helper
+                // functions are not exposed by every URP 17.6 shader variant.
+                #if defined(LIGHTMAP_ON) || defined(DYNAMICLIGHTMAP_ON)
                 if (_WallFinishDebugStage > 31.5 && _WallFinishDebugStage < 32.5)
-                {
-                    half value = LightmapAvailable() ? 1.0h : 0.0h;
-                    return half4(value,value,value,1.0h);
-                }
+                    return half4(1,1,1,1);
+                #else
+                if (_WallFinishDebugStage > 31.5 && _WallFinishDebugStage < 32.5)
+                    return half4(0,0,0,1);
+                #endif
 
+                #if defined(LIGHTMAP_SHADOW_MIXING) || defined(SHADOWS_SHADOWMASK)
                 if (_WallFinishDebugStage > 32.5 && _WallFinishDebugStage < 33.5)
-                {
-                    half value = LightmapShadowMixingAvailable() ? 1.0h : 0.0h;
-                    return half4(value,value,value,1.0h);
-                }
+                    return half4(1,1,1,1);
+                #else
+                if (_WallFinishDebugStage > 32.5 && _WallFinishDebugStage < 33.5)
+                    return half4(0,0,0,1);
+                #endif
 
                 if (_WallFinishDebugStage > 33.5 && _WallFinishDebugStage < 34.5)
                     return half4(_MainLightColor.a,
