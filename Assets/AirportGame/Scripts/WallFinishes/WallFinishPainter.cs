@@ -62,6 +62,8 @@ public class WallFinishPainter : MonoBehaviour
 
     private void Update()
     {
+        Keyboard keyboard = Keyboard.current;
+
         if (!isActive)
             return;
 
