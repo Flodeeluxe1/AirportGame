@@ -53,6 +53,8 @@ Shader "Airport/Floor Finish Texture Array"
                 float4 tangentOS : TANGENT;
                 float2 uv : TEXCOORD0;
                 float2 finishSlice : TEXCOORD1;
+                float2 normalUV : TEXCOORD2;
+                float2 maskUV : TEXCOORD3;
                 UNITY_VERTEX_INPUT_INSTANCE_ID
             };
 
@@ -63,9 +65,11 @@ Shader "Airport/Floor Finish Texture Array"
                 half3 normalWS : TEXCOORD1;
                 half4 tangentWS : TEXCOORD2;
                 float2 uv : TEXCOORD3;
-                nointerpolation float finishSlice : TEXCOORD4;
-                float4 shadowCoord : TEXCOORD5;
-                half fogFactor : TEXCOORD6;
+                float2 normalUV : TEXCOORD4;
+                float2 maskUV : TEXCOORD5;
+                nointerpolation float finishSlice : TEXCOORD6;
+                float4 shadowCoord : TEXCOORD7;
+                half fogFactor : TEXCOORD8;
                 UNITY_VERTEX_INPUT_INSTANCE_ID
             };
 
@@ -88,6 +92,8 @@ Shader "Airport/Floor Finish Texture Array"
                     normalInputs.tangentWS,
                     input.tangentOS.w * GetOddNegativeScale());
                 output.uv = input.uv;
+                output.normalUV = input.normalUV;
+                output.maskUV = input.maskUV;
                 output.finishSlice = input.finishSlice.x;
                 output.shadowCoord =
                     TransformWorldToShadowCoord(positionInputs.positionWS);
@@ -109,13 +115,13 @@ Shader "Airport/Floor Finish Texture Array"
                 half4 maskSample = SAMPLE_TEXTURE2D_ARRAY(
                     _MaskArray,
                     sampler_MaskArray,
-                    input.uv,
+                    input.maskUV,
                     input.finishSlice);
 
                 half4 normalSample = SAMPLE_TEXTURE2D_ARRAY(
                     _NormalArray,
                     sampler_NormalArray,
-                    input.uv,
+                    input.normalUV,
                     input.finishSlice);
 
                 half3 normalTS = UnpackNormalScale(normalSample, maskSample.b);
