@@ -386,6 +386,38 @@ Shader "Airport/Wall Finish Texture Array"
                     inputData.positionWS,
                     inputData.shadowMask);
 
+                // Compare URP's raw main-light globals and each GetMainLight overload.
+                Light mainLightNoShadow = GetMainLight();
+                Light mainLightWithShadowCoord = GetMainLight(inputData.shadowCoord);
+
+                if (_WallFinishDebugStage > 22.5 && _WallFinishDebugStage < 23.5)
+                    return half4(_MainLightPosition.xyz * 0.5h + 0.5h,
+                        saturate(_MainLightPosition.w));
+                if (_WallFinishDebugStage > 23.5 && _WallFinishDebugStage < 24.5)
+                    return half4(_MainLightColor.rgb, 1.0h);
+                if (_WallFinishDebugStage > 24.5 && _WallFinishDebugStage < 25.5)
+                    return half4(mainLight.direction * 0.5h + 0.5h, 1.0h);
+                if (_WallFinishDebugStage > 25.5 && _WallFinishDebugStage < 26.5)
+                    return half4(mainLightNoShadow.distanceAttenuation,
+                        mainLightNoShadow.distanceAttenuation,
+                        mainLightNoShadow.distanceAttenuation, 1.0h);
+                if (_WallFinishDebugStage > 26.5 && _WallFinishDebugStage < 27.5)
+                    return half4(mainLightWithShadowCoord.distanceAttenuation,
+                        mainLightWithShadowCoord.distanceAttenuation,
+                        mainLightWithShadowCoord.distanceAttenuation, 1.0h);
+                if (_WallFinishDebugStage > 27.5 && _WallFinishDebugStage < 28.5)
+                    return half4(mainLight.distanceAttenuation,
+                        mainLight.distanceAttenuation,
+                        mainLight.distanceAttenuation, 1.0h);
+                if (_WallFinishDebugStage > 28.5 && _WallFinishDebugStage < 29.5)
+                    return half4(mainLightNoShadow.shadowAttenuation,
+                        mainLightNoShadow.shadowAttenuation,
+                        mainLightNoShadow.shadowAttenuation, 1.0h);
+                if (_WallFinishDebugStage > 29.5 && _WallFinishDebugStage < 30.5)
+                    return half4(mainLightWithShadowCoord.shadowAttenuation,
+                        mainLightWithShadowCoord.shadowAttenuation,
+                        mainLightWithShadowCoord.shadowAttenuation, 1.0h);
+
                 if (_WallFinishDebugStage > 17.5 && _WallFinishDebugStage < 18.5)
                     return half4(mainLight.color, 1.0h);
 
