@@ -92,6 +92,8 @@ public class PlacedBuildingSaveData
     public bool isSurfacePlaced;
     public string instanceId = "";
     public string supportingSurfaceInstanceId = "";
+    public string wallInnerFinishId = "";
+    public string wallOuterFinishId = "";
 
     public int originX;
     public int originZ;
