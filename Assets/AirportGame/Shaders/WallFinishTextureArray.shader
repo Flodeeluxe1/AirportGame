@@ -235,7 +235,7 @@ Shader "Airport/Wall Finish Texture Array"
                     inputData.normalWS);
                 inputData.shadowMask =
                     SAMPLE_SHADOWMASK(input.staticLightmapUV);
-                #elif !defined(LIGHTMAP_ON) && \\
+                #elif !defined(LIGHTMAP_ON) && \
                     (defined(PROBE_VOLUMES_L1) || defined(PROBE_VOLUMES_L2))
                 inputData.bakedGI = SAMPLE_GI(
                     input.vertexSH,
