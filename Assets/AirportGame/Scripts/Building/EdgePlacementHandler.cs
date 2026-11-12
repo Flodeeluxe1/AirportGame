@@ -106,10 +106,10 @@ public class EdgePlacementHandler : IPlacementHandler
             gridZ - cellZ;
 
         float distanceToVertical =
-            Mathf.Abs(localX);
+            Mathf.Min(localX, 1f - localX);
 
         float distanceToHorizontal =
-            Mathf.Abs(localZ);
+            Mathf.Min(localZ, 1f - localZ);
 
         EdgeDirection nearestDirection;
 
@@ -129,7 +129,7 @@ public class EdgePlacementHandler : IPlacementHandler
             nearestDirection;
 
         Vector2Int selectedCell =
-            new Vector2Int(cellX, cellZ);
+            GetEdgeCell(gridX, gridZ, selectedDirection);
 
         if (!isDragging)
         {
@@ -182,32 +182,20 @@ public class EdgePlacementHandler : IPlacementHandler
                         ? EdgeDirection.Horizontal
                         : EdgeDirection.Vertical;
 
-                Vector2Int firstEdgeCell =
-                    startEdge.cell;
-
-                // GridEdge.cell is the start endpoint of the segment.
-                // When dragging in the negative axis direction, the
-                // first segment must be placed on the negative side
-                // of the marker rather than extending east/north.
-                if (selectedDirection == EdgeDirection.Horizontal &&
-                    dragDelta.x < 0f)
-                {
-                    firstEdgeCell += Vector2Int.left;
-                }
-                else if (selectedDirection == EdgeDirection.Vertical &&
-                         dragDelta.z < 0f)
-                {
-                    firstEdgeCell += Vector2Int.down;
-                }
-
+                // Keep the locked start vertex unchanged. The path
+                // builder handles negative directions by selecting the
+                // segment immediately before this vertex.
                 startEdge =
                     new GridEdge(
-                        firstEdgeCell,
+                        startEdge.cell,
                         selectedDirection
                     );
 
                 hasConfirmedDragDirection = true;
             }
+
+            selectedCell =
+                GetEdgeCell(gridX, gridZ, selectedDirection);
 
             if (!hasLockedCornerDirection &&
                 selectedDirection != startEdge.direction)
@@ -250,6 +238,25 @@ public class EdgePlacementHandler : IPlacementHandler
         {
             UpdateSinglePreview();
         }
+    }
+
+    private Vector2Int GetEdgeCell(
+        float gridX,
+        float gridZ,
+        EdgeDirection direction)
+    {
+        if (direction == EdgeDirection.Horizontal)
+        {
+            return new Vector2Int(
+                Mathf.FloorToInt(gridX),
+                Mathf.RoundToInt(gridZ)
+            );
+        }
+
+        return new Vector2Int(
+            Mathf.RoundToInt(gridX),
+            Mathf.FloorToInt(gridZ)
+        );
     }
 
     private void UpdateSinglePreview()
@@ -428,8 +435,8 @@ public class EdgePlacementHandler : IPlacementHandler
 
             int lastX =
                 step < 0
-                    ? (end.x < start.x ? end.x : start.x - 1)
-                    : (end.x > start.x ? end.x : start.x);
+                    ? Mathf.Min(end.x, start.x - 1)
+                    : Mathf.Max(end.x, start.x);
 
             for (
                 int x = firstX;
@@ -469,8 +476,8 @@ public class EdgePlacementHandler : IPlacementHandler
 
             int lastZ =
                 step < 0
-                    ? (end.y < start.y ? end.y : start.y - 1)
-                    : (end.y > start.y ? end.y : start.y);
+                    ? Mathf.Min(end.y, start.y - 1)
+                    : Mathf.Max(end.y, start.y);
 
             for (
                 int z = firstZ;
@@ -536,7 +543,7 @@ public class EdgePlacementHandler : IPlacementHandler
             else
             {
                 for (
-                    int x = start.x;
+                    int x = start.x - 1;
                     x >= corner.x;
                     x--)
                 {
@@ -618,7 +625,7 @@ public class EdgePlacementHandler : IPlacementHandler
             else
             {
                 for (
-                    int z = start.y;
+                    int z = start.y - 1;
                     z >= corner.y;
                     z--)
                 {
