@@ -28,6 +28,7 @@ public class FloorFinishRenderer : MonoBehaviour
     private GameObject previewObject;
     private Mesh previewMesh;
     private MeshRenderer previewRenderer;
+    private Material erasePreviewMaterial;
 
     private int GridWidth => gridManager != null ? gridManager.Width : 0;
     private int GridHeight => gridManager != null ? gridManager.Height : 0;
@@ -48,6 +49,9 @@ public class FloorFinishRenderer : MonoBehaviour
     {
         if (previewMesh != null)
             Destroy(previewMesh);
+
+        if (erasePreviewMaterial != null)
+            Destroy(erasePreviewMaterial);
 
         if (previewObject != null)
             Destroy(previewObject);
@@ -133,7 +137,40 @@ public class FloorFinishRenderer : MonoBehaviour
         Vector2Int to,
         FloorFinishDefinition finish)
     {
-        if (finish == null || finish.material == null ||
+        if (finish == null || finish.material == null)
+        {
+            HidePreviewArea();
+            return;
+        }
+
+        ShowPreviewAreaWithMaterial(from, to, finish.material);
+    }
+
+    public void ShowErasePreviewArea(Vector2Int from, Vector2Int to)
+    {
+        if (gridManager == null || gridSurface == null)
+        {
+            HidePreviewArea();
+            return;
+        }
+
+        EnsureErasePreviewMaterial();
+
+        if (erasePreviewMaterial == null)
+        {
+            HidePreviewArea();
+            return;
+        }
+
+        ShowPreviewAreaWithMaterial(from, to, erasePreviewMaterial);
+    }
+
+    private void ShowPreviewAreaWithMaterial(
+        Vector2Int from,
+        Vector2Int to,
+        Material previewMaterial)
+    {
+        if (previewMaterial == null ||
             gridManager == null || gridSurface == null)
         {
             HidePreviewArea();
@@ -206,8 +243,58 @@ public class FloorFinishRenderer : MonoBehaviour
 
         previewObject.transform.position =
             gridManager.GridToWorld(new Vector2Int(minX, minZ));
-        previewRenderer.sharedMaterial = finish.material;
+        previewRenderer.sharedMaterial = previewMaterial;
         previewObject.SetActive(true);
+    }
+
+    private void EnsureErasePreviewMaterial()
+    {
+        if (erasePreviewMaterial != null)
+            return;
+
+        Shader shader = Shader.Find("Universal Render Pipeline/Unlit");
+
+        if (shader == null)
+            shader = Shader.Find("Unlit/Color");
+
+        if (shader == null)
+        {
+            Debug.LogWarning(
+                "FloorFinishRenderer: Could not find a shader for the eraser preview.",
+                this);
+            return;
+        }
+
+        erasePreviewMaterial = new Material(shader)
+        {
+            name = "Floor Finish Eraser Preview",
+            color = new Color(1f, 0.12f, 0.04f, 0.32f)
+        };
+
+        if (erasePreviewMaterial.HasProperty("_Surface"))
+            erasePreviewMaterial.SetFloat("_Surface", 1f);
+
+        if (erasePreviewMaterial.HasProperty("_Blend"))
+            erasePreviewMaterial.SetFloat("_Blend", 0f);
+
+        if (erasePreviewMaterial.HasProperty("_BaseColor"))
+            erasePreviewMaterial.SetColor(
+                "_BaseColor",
+                new Color(1f, 0.12f, 0.04f, 0.32f));
+
+        if (erasePreviewMaterial.HasProperty("_ZWrite"))
+            erasePreviewMaterial.SetFloat("_ZWrite", 0f);
+
+        erasePreviewMaterial.SetOverrideTag("RenderType", "Transparent");
+        erasePreviewMaterial.SetInt(
+            "_SrcBlend",
+            (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+        erasePreviewMaterial.SetInt(
+            "_DstBlend",
+            (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+        erasePreviewMaterial.renderQueue =
+            (int)UnityEngine.Rendering.RenderQueue.Transparent;
+        erasePreviewMaterial.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
     }
 
     private float GetWallInset(GridEdge edge, float cellSize)
