@@ -173,13 +173,12 @@ Shader "Airport/Wall Finish Texture Array"
                         finishUV,
                         finishIndex);
 
-                    // Diagnostic: use a flat tangent-space normal to isolate wall lighting.
-                    normalTS = half3(0,0,1);
-                    // Diagnostic: bypass packed material-mask values while
-                    // keeping the full PBR lighting calculation active.
-                    metallic = 0.0h;
-                    occlusion = 1.0h;
-                    smoothness = 0.5h;
+                    normalTS = UnpackNormalScale(
+                        normalSample,
+                        maskSample.b);
+                    metallic = maskSample.r;
+                    occlusion = maskSample.g;
+                    smoothness = maskSample.a;
                 }
 
                 if (previewThisFace && _PreviewMode > 1.5)
@@ -241,11 +240,13 @@ Shader "Airport/Wall Finish Texture Array"
                 inputData.shadowCoord = float4(0,0,0,0);
                 #endif
 
-                // Diagnostic: force full ambient GI on finished wall faces
-                // while retaining direct lighting, shadows and the PBR BRDF.
+                // Use the same upward-facing ambient probe as the floor
+                // finishes for painted wall faces. The room's ambient probe
+                // can return very little light for horizontal wall normals,
+                // making the same finish appear substantially darker.
                 inputData.bakedGI =
                     isWallSide && finishIndex >= 0.0
-                        ? half3(1.0h, 1.0h, 1.0h)
+                        ? SampleSH(half3(0.0h, 1.0h, 0.0h))
                         : SampleSH(normalWS);
                 inputData.normalizedScreenSpaceUV =
                     GetNormalizedScreenSpaceUV(input.positionCS);
