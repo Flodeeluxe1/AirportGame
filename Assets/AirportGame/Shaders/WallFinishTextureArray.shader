@@ -339,6 +339,10 @@ half4 color =
             }
             ENDHLSL
         }
+
+        // Preserve the original wall's ability to cast shadows after its
+        // material is replaced by this custom shader.
+        UsePass "Universal Render Pipeline/Lit/ShadowCaster"
     }
 
     FallBack Off
