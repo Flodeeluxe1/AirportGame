@@ -18,7 +18,6 @@ Shader "Airport/Wall Finish Texture Array"
         _PreviewSideSign ("Preview Side Sign", Float) = 1
         _PreviewFinishIndex ("Preview Finish Index", Float) = -1
         _PreviewColor ("Preview Color", Color) = (1,0.08,0.02,0.35)
-        [HideInInspector] _WallFinishDebugStage ("Brightness Diagnostic Stage", Float) = 0
     }
 
     SubShader
@@ -76,7 +75,6 @@ Shader "Airport/Wall Finish Texture Array"
                 float _PreviewSideSign;
                 float _PreviewFinishIndex;
                 half4 _PreviewColor;
-                float _WallFinishDebugStage;
             CBUFFER_END
 
             struct Attributes
@@ -185,7 +183,6 @@ Shader "Airport/Wall Finish Texture Array"
                     _BaseMap,
                     sampler_BaseMap,
                     input.uv * _BaseMap_ST.xy + _BaseMap_ST.zw) * _BaseColor;
-                half4 originalBaseSample = baseSample;
 
                 half3 normalTS = half3(0,0,1);
                 half metallic = _OriginalMetallic;
@@ -215,33 +212,19 @@ Shader "Airport/Wall Finish Texture Array"
                         finishUV,
                         finishIndex);
 
-                    if (_WallFinishDebugStage > 8.5 && _WallFinishDebugStage < 9.5)
-                        return half4(normalSample.rgb, 1.0h);
+                    
 
                     normalTS = UnpackNormalScale(
                         normalSample,
                         maskSample.b);
 
-                    if (_WallFinishDebugStage > 9.5 && _WallFinishDebugStage < 10.5)
-                        return half4(normalTS * 0.5h + 0.5h, 1.0h);
+                    
 
-                    if (_WallFinishDebugStage > 10.5 && _WallFinishDebugStage < 11.5)
-                        return half4(maskSample.rgb, 1.0h);
+                    
 
                     metallic = maskSample.r;
                     occlusion = maskSample.g;
                     smoothness = maskSample.a;
-                }
-
-                // TEMPORARY DIAGNOSTIC: retain the real base texture and
-                // GI, but neutralize normal mapping and material-mask inputs.
-                // This isolates the PBR calculation from those material inputs.
-                if (isWallSide && finishIndex >= 0.0)
-                {
-                    normalTS = half3(0,0,1);
-                    metallic = 0.0h;
-                    smoothness = 0.5h;
-                    occlusion = 1.0h;
                 }
 
                 if (previewThisFace && _PreviewMode > 1.5)
@@ -253,10 +236,8 @@ Shader "Airport/Wall Finish Texture Array"
                 }
 
                 // Stages 1 and 2 expose the source and selected finish albedo.
-                if (_WallFinishDebugStage > 0.5 && _WallFinishDebugStage < 1.5)
-                    return originalBaseSample;
-                if (_WallFinishDebugStage > 1.5 && _WallFinishDebugStage < 2.5)
-                    return baseSample;
+                
+                
 
                 // Build the tangent basis from the actual wall surface position
                 // and UV derivatives. This avoids relying on imported mesh tangents,
@@ -294,11 +275,9 @@ Shader "Airport/Wall Finish Texture Array"
                     bitangentWS * normalTS.y +
                     geometricNormal * normalTS.z);
 
-                if (_WallFinishDebugStage > 11.5 && _WallFinishDebugStage < 12.5)
-                    return half4(geometricNormal * 0.5h + 0.5h, 1.0h);
+                
 
-                if (_WallFinishDebugStage > 12.5 && _WallFinishDebugStage < 13.5)
-                    return half4(normalWS * 0.5h + 0.5h, 1.0h);
+                
 
                 InputData inputData = (InputData)0;
                 inputData.positionWS = input.positionWS;
@@ -352,7 +331,6 @@ Shader "Airport/Wall Finish Texture Array"
 
                 inputData.normalizedScreenSpaceUV =
                     GetNormalizedScreenSpaceUV(input.positionCS);
-                inputData.shadowMask = half4(1,1,1,1);
 
                 SurfaceData surfaceData = (SurfaceData)0;
                 surfaceData.albedo = baseSample.rgb;
@@ -366,172 +344,14 @@ Shader "Airport/Wall Finish Texture Array"
                 surfaceData.clearCoatMask = 0;
                 surfaceData.clearCoatSmoothness = 0;
 
-                if (_WallFinishDebugStage > 13.5 && _WallFinishDebugStage < 14.5)
-                    return half4(surfaceData.albedo, 1.0h);
-                if (_WallFinishDebugStage > 14.5 && _WallFinishDebugStage < 15.5)
-                    return half4(surfaceData.metallic, surfaceData.metallic, surfaceData.metallic, 1.0h);
-                if (_WallFinishDebugStage > 15.5 && _WallFinishDebugStage < 16.5)
-                    return half4(surfaceData.smoothness, surfaceData.smoothness, surfaceData.smoothness, 1.0h);
-                if (_WallFinishDebugStage > 16.5 && _WallFinishDebugStage < 17.5)
-                    return half4(surfaceData.occlusion, surfaceData.occlusion, surfaceData.occlusion, 1.0h);
+                
+                
+                
+                
 
                 // Stage 3: baked GI before PBR, sampled at the actual wall normal.
-                if (_WallFinishDebugStage > 2.5 && _WallFinishDebugStage < 3.5)
-                    return half4(inputData.bakedGI, 1.0h);
+                
 
-                BRDFData brdfData;
-                InitializeBRDFData(surfaceData, brdfData);
-
-                Light mainLight = GetMainLight(
-                    inputData.shadowCoord,
-                    inputData.positionWS,
-                    inputData.shadowMask);
-
-                // Compare URP's raw main-light globals and each GetMainLight overload.
-                Light mainLightNoShadow = GetMainLight();
-                Light mainLightWithShadowCoord = GetMainLight(inputData.shadowCoord);
-
-                if (_WallFinishDebugStage > 22.5 && _WallFinishDebugStage < 23.5)
-                    return half4(_MainLightPosition.xyz * 0.5h + 0.5h,
-                        saturate(_MainLightPosition.w));
-                if (_WallFinishDebugStage > 23.5 && _WallFinishDebugStage < 24.5)
-                    return half4(_MainLightColor.rgb, 1.0h);
-                if (_WallFinishDebugStage > 24.5 && _WallFinishDebugStage < 25.5)
-                    return half4(mainLight.direction * 0.5h + 0.5h, 1.0h);
-                if (_WallFinishDebugStage > 25.5 && _WallFinishDebugStage < 26.5)
-                    return half4(mainLightNoShadow.distanceAttenuation,
-                        mainLightNoShadow.distanceAttenuation,
-                        mainLightNoShadow.distanceAttenuation, 1.0h);
-                if (_WallFinishDebugStage > 26.5 && _WallFinishDebugStage < 27.5)
-                    return half4(mainLightWithShadowCoord.distanceAttenuation,
-                        mainLightWithShadowCoord.distanceAttenuation,
-                        mainLightWithShadowCoord.distanceAttenuation, 1.0h);
-                if (_WallFinishDebugStage > 27.5 && _WallFinishDebugStage < 28.5)
-                    return half4(mainLight.distanceAttenuation,
-                        mainLight.distanceAttenuation,
-                        mainLight.distanceAttenuation, 1.0h);
-                if (_WallFinishDebugStage > 28.5 && _WallFinishDebugStage < 29.5)
-                    return half4(mainLightNoShadow.shadowAttenuation,
-                        mainLightNoShadow.shadowAttenuation,
-                        mainLightNoShadow.shadowAttenuation, 1.0h);
-                if (_WallFinishDebugStage > 29.5 && _WallFinishDebugStage < 30.5)
-                    return half4(mainLightWithShadowCoord.shadowAttenuation,
-                        mainLightWithShadowCoord.shadowAttenuation,
-                        mainLightWithShadowCoord.shadowAttenuation, 1.0h);
-
-                // URP's GetMainLight() attenuation source depends on the
-                // clustered-light-loop and mixed-lightmap compile/runtime path.
-                #if USE_CLUSTER_LIGHT_LOOP
-                if (_WallFinishDebugStage > 30.5 && _WallFinishDebugStage < 31.5)
-                    return half4(1,1,1,1);
-                #else
-                if (_WallFinishDebugStage > 30.5 && _WallFinishDebugStage < 31.5)
-                    return half4(0,0,0,1);
-                #endif
-
-                // Use compile-time URP variant keywords here. These helper
-                // functions are not exposed by every URP 17.6 shader variant.
-                #if defined(LIGHTMAP_ON) || defined(DYNAMICLIGHTMAP_ON)
-                if (_WallFinishDebugStage > 31.5 && _WallFinishDebugStage < 32.5)
-                    return half4(1,1,1,1);
-                #else
-                if (_WallFinishDebugStage > 31.5 && _WallFinishDebugStage < 32.5)
-                    return half4(0,0,0,1);
-                #endif
-
-                #if defined(LIGHTMAP_SHADOW_MIXING) || defined(SHADOWS_SHADOWMASK)
-                if (_WallFinishDebugStage > 32.5 && _WallFinishDebugStage < 33.5)
-                    return half4(1,1,1,1);
-                #else
-                if (_WallFinishDebugStage > 32.5 && _WallFinishDebugStage < 33.5)
-                    return half4(0,0,0,1);
-                #endif
-
-                if (_WallFinishDebugStage > 33.5 && _WallFinishDebugStage < 34.5)
-                    return half4(_MainLightColor.a,
-                        _MainLightColor.a,
-                        _MainLightColor.a, 1.0h);
-
-                if (_WallFinishDebugStage > 34.5 && _WallFinishDebugStage < 35.5)
-                    return half4(unity_LightData.z,
-                        unity_LightData.z,
-                        unity_LightData.z, 1.0h);
-
-                if (_WallFinishDebugStage > 17.5 && _WallFinishDebugStage < 18.5)
-                    return half4(mainLight.color, 1.0h);
-
-                if (_WallFinishDebugStage > 18.5 && _WallFinishDebugStage < 19.5)
-                    return half4(mainLight.distanceAttenuation,
-                        mainLight.distanceAttenuation,
-                        mainLight.distanceAttenuation, 1.0h);
-
-                half3 directBRDF = DirectBRDF(
-                    brdfData,
-                    inputData.normalWS,
-                    mainLight.direction,
-                    inputData.viewDirectionWS);
-                half3 mainLightRadiance =
-                    mainLight.color *
-                    (mainLight.distanceAttenuation * mainLight.shadowAttenuation);
-
-                if (_WallFinishDebugStage > 19.5 && _WallFinishDebugStage < 20.5)
-                    return half4(directBRDF, 1.0h);
-
-                if (_WallFinishDebugStage > 20.5 && _WallFinishDebugStage < 21.5)
-                    return half4(mainLightRadiance, 1.0h);
-
-                if (_WallFinishDebugStage > 21.5 && _WallFinishDebugStage < 22.5)
-                {
-                    half ndotlForContribution = saturate(dot(
-                        normalize(inputData.normalWS),
-                        normalize(mainLight.direction)));
-                    half3 calculatedDirectContribution =
-                        directBRDF * mainLightRadiance * ndotlForContribution;
-                    return half4(calculatedDirectContribution, 1.0h);
-                }
-
-                // Stage 7: direct-light angle factor. Black means the face
-                // points away from the main directional light.
-                if (_WallFinishDebugStage > 6.5 && _WallFinishDebugStage < 7.5)
-                {
-                    half ndotl = saturate(dot(
-                        normalize(inputData.normalWS),
-                        normalize(mainLight.direction)));
-                    return half4(ndotl, ndotl, ndotl, 1.0h);
-                }
-
-                // Stage 8: main-light shadow attenuation. Black means fully shadowed.
-                if (_WallFinishDebugStage > 7.5 && _WallFinishDebugStage < 8.5)
-                {
-                    half shadow = mainLight.shadowAttenuation;
-                    return half4(shadow, shadow, shadow, 1.0h);
-                }
-
-                // Stage 4: main directional light's physically based contribution,
-                // including its N.L term, distance attenuation and shadow attenuation.
-                if (_WallFinishDebugStage > 3.5 && _WallFinishDebugStage < 4.5)
-                {
-                    half3 mainLightContribution = LightingPhysicallyBased(
-                        brdfData,
-                        mainLight,
-                        inputData.normalWS,
-                        inputData.viewDirectionWS);
-                    return half4(mainLightContribution, 1.0h);
-                }
-
-                // Stage 5: complete URP PBR calculation with baked GI removed.
-                if (_WallFinishDebugStage > 4.5 && _WallFinishDebugStage < 5.5)
-                {
-                    InputData directOnlyInputData = inputData;
-                    directOnlyInputData.bakedGI = half3(0,0,0);
-                    half4 directOnlyColor =
-                        UniversalFragmentPBR(directOnlyInputData, surfaceData);
-                    directOnlyColor.rgb =
-                        MixFog(directOnlyColor.rgb, input.fogFactor);
-                    return directOnlyColor;
-                }
-
-                // Stage 6: normal complete PBR output, including baked GI.
                 half4 color =
                     UniversalFragmentPBR(inputData, surfaceData);
                 color.rgb = MixFog(color.rgb, input.fogFactor);
