@@ -79,6 +79,7 @@ public class BuildingSelectionController : MonoBehaviour
     private bool mouseDownOnCellBuilding;
     private bool deleteSelectionMode;
     private bool floorFinishInputSuppressed;
+    private bool buildInputSuppressed;
 
     private Vector2 dragStartScreenPosition;
     private Vector2 dragCurrentScreenPosition;
@@ -193,8 +194,35 @@ public class BuildingSelectionController : MonoBehaviour
         if (keyboard == null || mouse == null)
             return;
 
+        // Do not let a mouse drag that began during build mode become a
+        // selection drag on the frame wall/build placement is cancelled.
         if (buildController != null && buildController.IsBuilding)
+        {
+            if (!buildInputSuppressed)
+            {
+                isDragging = false;
+                hasValidDragStart = false;
+                mouseDownOnCellBuilding = false;
+                buildInputSuppressed = true;
+            }
+
             return;
+        }
+
+        if (buildInputSuppressed)
+        {
+            // Wait for the left button to be released before re-enabling
+            // selection. This prevents the cancelled wall gesture from
+            // carrying over into building selection.
+            if (mouse.leftButton.isPressed)
+                return;
+
+            buildInputSuppressed = false;
+            isDragging = false;
+            hasValidDragStart = false;
+            mouseDownOnCellBuilding = false;
+            return;
+        }
 
         if (mouse.leftButton.wasPressedThisFrame)
         {
@@ -290,7 +318,6 @@ public class BuildingSelectionController : MonoBehaviour
             }
 
             isDragging = false;
-            HideSelectionVisuals();
         }
 
         if (keyboard.deleteKey.wasPressedThisFrame ||
