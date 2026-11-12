@@ -13,6 +13,10 @@
 
         <ui:ScrollView name="category-list" mode="Vertical" class="category-list">
           <ui:Button name="category-floor" text="Floor" class="category-button"/>
+          <ui:ScrollView name="floor-subcategory-list" mode="Vertical" class="floor-subcategory-list">
+            <ui:Button name="category-foundation" text="Foundation" class="airport-subcategory-button"/>
+            <ui:Button name="category-floor-finishes" text="Floor Finishes" class="airport-subcategory-button"/>
+          </ui:ScrollView>
           <ui:Button name="category-wall" text="Wall" class="category-button"/>
           <ui:Button name="category-door" text="Door" class="category-button"/>
           <ui:Button name="category-airport" text="Airport" class="category-button"/>
