@@ -336,6 +336,9 @@ Shader "Airport/Wall Finish Texture Array"
                 InitializeWallInputData(input, normalWS, inputData);
                 InitializeWallBakedGIData(input, inputData);
 
+                // TEMPORARY DIAGNOSTIC: display baked GI directly, bypassing
+                // the PBR/direct-light calculation to compare both wall faces.
+                return half4(max(inputData.bakedGI, half3(0, 0, 0)), 1.0h);
 
                 SurfaceData surfaceData = (SurfaceData)0;
                 surfaceData.albedo = baseSample.rgb;
