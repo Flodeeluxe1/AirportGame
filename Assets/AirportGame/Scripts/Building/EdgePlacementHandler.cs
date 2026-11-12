@@ -230,6 +230,10 @@ public class EdgePlacementHandler : IPlacementHandler
             }
         }
 
+        // Recalculate the edge cell using the final selected direction.
+        // This matters when hover hysteresis keeps the previous orientation.
+        selectedCell = GetEdgeCell(gridX, gridZ, selectedDirection);
+
         currentEdge =
             new GridEdge(
                 selectedCell,
@@ -290,8 +294,7 @@ public class EdgePlacementHandler : IPlacementHandler
         // occupancy (its hidden orientation may overlap an existing wall).
         // Still validate the grid bounds and required surface at this point.
         bool validStartPosition =
-            IsEdgeInsideGrid(markerEdge) &&
-            HasRequiredFoundation(markerEdge);
+            HasAnyValidStartEdge(markerEdge.cell);
 
         placementPreview.SetValid(validStartPosition);
         LogMarkerDiagnostic(markerEdge, validStartPosition);
@@ -862,6 +865,30 @@ public class EdgePlacementHandler : IPlacementHandler
     }
 
 
+
+    private bool HasAnyValidStartEdge(Vector2Int vertex)
+    {
+        // The neutral marker represents a grid vertex, not one hidden
+        // horizontal/vertical wall orientation. It is valid if at least
+        // one of the four wall segments meeting this vertex can use the
+        // required surface. Occupancy is intentionally ignored here.
+        GridEdge[] incidentEdges =
+        {
+            new GridEdge(vertex, EdgeDirection.Horizontal),
+            new GridEdge(vertex + Vector2Int.left, EdgeDirection.Horizontal),
+            new GridEdge(vertex, EdgeDirection.Vertical),
+            new GridEdge(vertex + Vector2Int.down, EdgeDirection.Vertical)
+        };
+
+        foreach (GridEdge edge in incidentEdges)
+        {
+            if (IsEdgeInsideGrid(edge) && HasRequiredFoundation(edge))
+                return true;
+        }
+
+        return false;
+    }
+
     private void LogMarkerDiagnostic(GridEdge edge, bool valid)
     {
         Vector2Int firstCell = edge.cell;
@@ -874,9 +901,10 @@ public class EdgePlacementHandler : IPlacementHandler
         bool occupied = edgeOccupancy == null || edgeOccupancy.IsOccupied(edge);
 
         string diagnostic =
-            $"Wall start marker: edge=({edge.cell.x},{edge.cell.y}) {edge.direction}, " +
-            $"requiredSurface={definition.requiredSurface}, insideGrid={inside}, " +
-            $"surfaceValid={hasSurface}, occupied={occupied}, valid={valid}, " +
+            $"Wall start marker: vertex=({edge.cell.x},{edge.cell.y}), " +
+            $"orientation={edge.direction}, requiredSurface={definition.requiredSurface}, " +
+            $"insideGrid={inside}, orientedSurfaceValid={hasSurface}, occupied={occupied}, " +
+            $"vertexHasAnyValidStartEdge={valid}, " +
             $"adjacentSurfaces=[{firstCell}:{GetSurfaceName(firstCell)}, " +
             $"{secondCell}:{GetSurfaceName(secondCell)}]";
 
