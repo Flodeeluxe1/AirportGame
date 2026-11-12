@@ -506,12 +506,14 @@ public class WallFinishPainter : MonoBehaviour
             "Baked GI",
             "Main directional light contribution",
             "PBR direct lighting only",
-            "Final PBR output with GI"
+            "Final PBR output with GI",
+            "Main-light N dot L",
+            "Main-light shadow attenuation"
         };
 
         try
         {
-            for (int stage = 1; stage <= 6; stage++)
+            for (int stage = 1; stage <= 8; stage++)
             {
                 surface.SetBrightnessDebugStage(stage);
                 yield return new WaitForEndOfFrame();
