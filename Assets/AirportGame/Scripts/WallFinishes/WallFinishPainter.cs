@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -16,6 +17,7 @@ public class WallFinishPainter : MonoBehaviour
     private WallFinishDefinition selectedFinish;
     private bool isActive;
     private bool isDragging;
+    private bool isCapturingBrightness;
 
     private Vector2Int dragStartCell;
     private Vector2Int dragCurrentCell;
@@ -62,6 +64,14 @@ public class WallFinishPainter : MonoBehaviour
 
     private void Update()
     {
+        Keyboard keyboard = Keyboard.current;
+        if (keyboard != null &&
+            keyboard.f8Key.wasPressedThisFrame &&
+            !isCapturingBrightness)
+        {
+            StartCoroutine(CaptureBrightnessAtPointer());
+        }
+
         if (!isActive)
             return;
 
@@ -73,7 +83,6 @@ public class WallFinishPainter : MonoBehaviour
         }
 
         Mouse mouse = Mouse.current;
-        Keyboard keyboard = Keyboard.current;
 
         if (mouse == null || keyboard == null)
             return;
@@ -462,6 +471,74 @@ public class WallFinishPainter : MonoBehaviour
         HideAllPreviews();
         currentWalls.Clear();
         previewSideSigns.Clear();
+    }
+
+    private IEnumerator CaptureBrightnessAtPointer()
+    {
+        if (mainCamera == null || Mouse.current == null)
+        {
+            Debug.LogWarning("Wall finish brightness diagnostic: camera or mouse is unavailable.", this);
+            yield break;
+        }
+
+        Vector2 pointer = Mouse.current.position.ReadValue();
+        PlacedBuilding wall = FindWallUnderPointer(pointer, out _);
+        WallFinishSurface surface =
+            wall != null ? wall.GetComponent<WallFinishSurface>() : null;
+
+        if (surface == null || !surface.HasAnyFinish)
+        {
+            Debug.LogWarning(
+                "Wall finish brightness diagnostic: point the mouse at a wall that already has a finish applied, then press F8.",
+                this);
+            yield break;
+        }
+
+        int pixelX = Mathf.Clamp(Mathf.RoundToInt(pointer.x), 0, Screen.width - 1);
+        int pixelY = Mathf.Clamp(Mathf.RoundToInt(pointer.y), 0, Screen.height - 1);
+        Texture2D pixelReader = new Texture2D(1, 1, TextureFormat.RGBA32, false);
+        isCapturingBrightness = true;
+
+        string[] stageNames =
+        {
+            "Original wall base texture",
+            "Wall finish texture-array sample",
+            "Baked GI",
+            "Final PBR output"
+        };
+
+        try
+        {
+            for (int stage = 1; stage <= 4; stage++)
+            {
+                surface.SetBrightnessDebugStage(stage);
+                yield return new WaitForEndOfFrame();
+
+                pixelReader.ReadPixels(
+                    new Rect(pixelX, pixelY, 1, 1),
+                    0,
+                    0,
+                    false);
+                pixelReader.Apply(false, false);
+
+                Color value = pixelReader.GetPixel(0, 0);
+                Debug.Log(
+                    $"WALL FINISH BRIGHTNESS [{stageNames[stage - 1]}] " +
+                    $"R={value.r:F3}, G={value.g:F3}, B={value.b:F3}, " +
+                    $"Average={(value.r + value.g + value.b) / 3f:F3}",
+                    wall);
+            }
+        }
+        finally
+        {
+            surface.SetBrightnessDebugStage(0);
+            Destroy(pixelReader);
+            isCapturingBrightness = false;
+        }
+
+        Debug.Log(
+            "Wall finish brightness diagnostic complete. Values are screen-captured RGB (0-1), so post-processing/display transforms may affect them.",
+            wall);
     }
 
     private bool IsPointerOverBuildUI()
