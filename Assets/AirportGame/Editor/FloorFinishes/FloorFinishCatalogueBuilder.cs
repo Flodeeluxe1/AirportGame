@@ -17,6 +17,26 @@ public static class FloorFinishCatalogueBuilder
     private const string MaterialsFolder =
         GeneratedRoot + "/Materials";
 
+    private const string TextureArrayFolder =
+        GeneratedRoot + "/TextureArrays";
+
+    private const string BaseColorArrayPath =
+        TextureArrayFolder + "/FloorFinishBaseColorArray.asset";
+
+    private const string NormalArrayPath =
+        TextureArrayFolder + "/FloorFinishNormalArray.asset";
+
+    private const string MaskArrayPath =
+        TextureArrayFolder + "/FloorFinishMaskArray.asset";
+
+    private const string SharedMaterialPath =
+        MaterialsFolder + "/FloorFinishShared.mat";
+
+    private const string SharedShaderName =
+        "Airport/Floor Finish Texture Array";
+
+    private const int TextureArrayResolution = 512;
+
     private const string CatalogueFolder =
         "Assets/AirportGame/ScriptableObjects/FloorFinishes";
 
@@ -37,6 +57,7 @@ public static class FloorFinishCatalogueBuilder
         EnsureFolder(GeneratedRoot);
         EnsureFolder(DefinitionsFolder);
         EnsureFolder(MaterialsFolder);
+        EnsureFolder(TextureArrayFolder);
         EnsureFolder("Assets/AirportGame/ScriptableObjects");
         EnsureFolder(CatalogueFolder);
 
@@ -108,6 +129,25 @@ public static class FloorFinishCatalogueBuilder
             .OrderBy(x => x.displayName, StringComparer.OrdinalIgnoreCase)
             .ToList();
 
+        if (definitions.Count == 0)
+        {
+            Debug.LogError(
+                "FloorFinishCatalogueBuilder: No floor finish definitions were found. " +
+                "The existing catalogue was left unchanged.");
+            return;
+        }
+
+        Texture2DArray baseColorArray = BuildBaseColorArray(definitions);
+        Texture2DArray normalArray = BuildNormalArray(definitions);
+        Texture2DArray maskArray = BuildMaskArray(definitions);
+        Material sharedRenderMaterial = CreateSharedRenderMaterial(
+            baseColorArray,
+            normalArray,
+            maskArray);
+
+        if (sharedRenderMaterial == null)
+            return;
+
         FloorFinishCatalogue catalogue =
             AssetDatabase.LoadAssetAtPath<FloorFinishCatalogue>(CataloguePath);
 
@@ -120,8 +160,11 @@ public static class FloorFinishCatalogueBuilder
         SerializedObject serializedCatalogue = new SerializedObject(catalogue);
         SerializedProperty finishes =
             serializedCatalogue.FindProperty("finishes");
+        SerializedProperty sharedMaterialProperty =
+            serializedCatalogue.FindProperty("sharedRenderMaterial");
 
         finishes.arraySize = definitions.Count;
+        sharedMaterialProperty.objectReferenceValue = sharedRenderMaterial;
 
         for (int i = 0; i < definitions.Count; i++)
             finishes.GetArrayElementAtIndex(i).objectReferenceValue = definitions[i];
@@ -135,6 +178,263 @@ public static class FloorFinishCatalogueBuilder
         Debug.Log(
             $"FloorFinishCatalogueBuilder: Created/updated {definitions.Count} " +
             $"floor finishes. Catalogue: {CataloguePath}");
+    }
+
+    private static Texture2DArray BuildBaseColorArray(
+        List<FloorFinishDefinition> definitions)
+    {
+        return CreateTextureArrayAsset(
+            BaseColorArrayPath,
+            definitions.Count,
+            false,
+            index =>
+            {
+                Material material = definitions[index].material;
+                Texture texture = GetTexture(material, "_BaseMap", "_MainTex");
+                Color[] pixels = ReadTexturePixels(
+                    texture,
+                    TextureArrayResolution,
+                    false,
+                    Color.white);
+
+                Color tint = material != null &&
+                    material.HasProperty("_BaseColor")
+                    ? material.GetColor("_BaseColor")
+                    : Color.white;
+
+                for (int i = 0; i < pixels.Length; i++)
+                    pixels[i] *= tint;
+
+                return pixels;
+            });
+    }
+
+    private static Texture2DArray BuildNormalArray(
+        List<FloorFinishDefinition> definitions)
+    {
+        return CreateTextureArrayAsset(
+            NormalArrayPath,
+            definitions.Count,
+            true,
+            index =>
+            {
+                Material material = definitions[index].material;
+                Texture texture = GetTexture(material, "_BumpMap");
+
+                return ReadTexturePixels(
+                    texture,
+                    TextureArrayResolution,
+                    true,
+                    new Color(0.5f, 0.5f, 1f, 1f));
+            });
+    }
+
+    private static Texture2DArray BuildMaskArray(
+        List<FloorFinishDefinition> definitions)
+    {
+        return CreateTextureArrayAsset(
+            MaskArrayPath,
+            definitions.Count,
+            true,
+            index =>
+            {
+                Material material = definitions[index].material;
+                Texture metallicTexture =
+                    GetTexture(material, "_MetallicGlossMap", "_MetallicMap");
+                Texture occlusionTexture =
+                    GetTexture(material, "_OcclusionMap");
+
+                Color[] metallicPixels = ReadTexturePixels(
+                    metallicTexture,
+                    TextureArrayResolution,
+                    true,
+                    Color.white);
+                Color[] occlusionPixels = ReadTexturePixels(
+                    occlusionTexture,
+                    TextureArrayResolution,
+                    true,
+                    Color.white);
+
+                bool hasMetallicMap = metallicTexture != null;
+                bool hasOcclusionMap = occlusionTexture != null;
+
+                float metallicValue = GetMaterialFloat(
+                    material, "_Metallic", 0f);
+                float smoothnessValue = GetMaterialFloat(
+                    material, "_Smoothness", 0.5f);
+                float bumpScale = GetMaterialFloat(
+                    material, "_BumpScale", 1f);
+
+                Color[] maskPixels = new Color[metallicPixels.Length];
+
+                for (int i = 0; i < maskPixels.Length; i++)
+                {
+                    float metallic = hasMetallicMap
+                        ? metallicPixels[i].r
+                        : metallicValue;
+
+                    float smoothness = hasMetallicMap
+                        ? metallicPixels[i].a
+                        : smoothnessValue;
+
+                    float occlusion = hasOcclusionMap
+                        ? occlusionPixels[i].g
+                        : 1f;
+
+                    // R = metallic, G = occlusion, B = normal strength,
+                    // A = smoothness.
+                    maskPixels[i] = new Color(
+                        metallic,
+                        occlusion,
+                        bumpScale,
+                        smoothness);
+                }
+
+                return maskPixels;
+            });
+    }
+
+    private static Texture2DArray CreateTextureArrayAsset(
+        string assetPath,
+        int depth,
+        bool linear,
+        Func<int, Color[]> getSlicePixels)
+    {
+        // Rebuild the generated array from the source materials each time.
+        // The shared material is rebound to the new assets below.
+        if (AssetDatabase.LoadAssetAtPath<Texture2DArray>(assetPath) != null)
+            AssetDatabase.DeleteAsset(assetPath);
+
+        Texture2DArray array = new Texture2DArray(
+            TextureArrayResolution,
+            TextureArrayResolution,
+            depth,
+            TextureFormat.RGBA32,
+            true,
+            linear)
+        {
+            name = Path.GetFileNameWithoutExtension(assetPath),
+            wrapMode = TextureWrapMode.Repeat,
+            filterMode = FilterMode.Trilinear,
+            anisoLevel = 8
+        };
+
+        for (int slice = 0; slice < depth; slice++)
+        {
+            Color[] pixels = getSlicePixels(slice);
+            array.SetPixels(pixels, slice, 0);
+        }
+
+        array.Apply(true, false);
+        AssetDatabase.CreateAsset(array, assetPath);
+        EditorUtility.SetDirty(array);
+
+        return array;
+    }
+
+    private static Color[] ReadTexturePixels(
+        Texture source,
+        int resolution,
+        bool linear,
+        Color fallback)
+    {
+        if (source == null)
+        {
+            Color[] fallbackPixels =
+                new Color[resolution * resolution];
+
+            for (int i = 0; i < fallbackPixels.Length; i++)
+                fallbackPixels[i] = fallback;
+
+            return fallbackPixels;
+        }
+
+        RenderTextureReadWrite readWrite = linear
+            ? RenderTextureReadWrite.Linear
+            : RenderTextureReadWrite.Default;
+
+        RenderTexture renderTexture = RenderTexture.GetTemporary(
+            resolution,
+            resolution,
+            0,
+            RenderTextureFormat.ARGB32,
+            readWrite);
+
+        RenderTexture previousActive = RenderTexture.active;
+        Texture2D readableTexture = new Texture2D(
+            resolution,
+            resolution,
+            TextureFormat.RGBA32,
+            false,
+            linear);
+
+        try
+        {
+            Graphics.Blit(source, renderTexture);
+            RenderTexture.active = renderTexture;
+            readableTexture.ReadPixels(
+                new Rect(0, 0, resolution, resolution),
+                0,
+                0);
+            readableTexture.Apply(false, false);
+            return readableTexture.GetPixels();
+        }
+        finally
+        {
+            RenderTexture.active = previousActive;
+            RenderTexture.ReleaseTemporary(renderTexture);
+            UnityEngine.Object.DestroyImmediate(readableTexture);
+        }
+    }
+
+    private static Material CreateSharedRenderMaterial(
+        Texture2DArray baseColorArray,
+        Texture2DArray normalArray,
+        Texture2DArray maskArray)
+    {
+        Shader shader = Shader.Find(SharedShaderName);
+
+        if (shader == null)
+        {
+            Debug.LogError(
+                $"FloorFinishCatalogueBuilder: Shader '{SharedShaderName}' " +
+                "was not found. Check the shader compile errors.");
+            return null;
+        }
+
+        Material material =
+            AssetDatabase.LoadAssetAtPath<Material>(SharedMaterialPath);
+
+        if (material == null)
+        {
+            material = new Material(shader)
+            {
+                name = "Floor Finish Shared"
+            };
+            AssetDatabase.CreateAsset(material, SharedMaterialPath);
+        }
+        else
+        {
+            material.shader = shader;
+        }
+
+        material.SetTexture("_BaseColorArray", baseColorArray);
+        material.SetTexture("_NormalArray", normalArray);
+        material.SetTexture("_MaskArray", maskArray);
+        material.enableInstancing = true;
+
+        EditorUtility.SetDirty(material);
+        return material;
+    }
+
+    private static float GetMaterialFloat(
+        Material material,
+        string property,
+        float fallback)
+    {
+        return material != null && material.HasProperty(property)
+            ? material.GetFloat(property)
+            : fallback;
     }
 
     private static Material CreateOrUpdateUrpMaterial(Material source)
