@@ -180,6 +180,23 @@ public class FloorFinishPainter : MonoBehaviour
             return;
         }
 
+        // Do not project the floor preview onto cells when the cursor is
+        // actually pointing at a wall above the floor.
+        RaycastHit[] obstructionHits = Physics.RaycastAll(ray, distance);
+        foreach (RaycastHit obstructionHit in obstructionHits)
+        {
+            PlacedBuilding building =
+                obstructionHit.collider.GetComponentInParent<PlacedBuilding>();
+
+            if (building != null &&
+                building.Definition != null &&
+                building.Definition.category == BuildCategory.Wall)
+            {
+                floorFinishRenderer.HidePreviewArea();
+                return;
+            }
+        }
+
         Vector3 hitPoint = ray.GetPoint(distance);
         Vector2Int cell = gridManager.WorldToGrid(hitPoint);
 
