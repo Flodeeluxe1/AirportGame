@@ -192,6 +192,10 @@ public class EdgePlacementHandler : IPlacementHandler
                     );
 
                 hasConfirmedDragDirection = true;
+
+                // The first preview object is also used as the hover marker.
+                // Restore its prefab scale once the drag direction is known.
+                previewObject.transform.localScale = originalPreviewScale;
             }
 
             selectedCell =
