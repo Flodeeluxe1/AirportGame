@@ -38,11 +38,6 @@ Shader "Airport/Wall Finish Texture Array"
             #pragma vertex Vert
             #pragma fragment Frag
             #pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE _MAIN_LIGHT_SHADOWS_SCREEN
-            #pragma multi_compile _ LIGHTMAP_ON
-            #pragma multi_compile _ DYNAMICLIGHTMAP_ON
-            #pragma multi_compile _ DIRLIGHTMAP_COMBINED
-            #pragma multi_compile _ LIGHTMAP_SHADOW_MIXING
-            #pragma multi_compile _ SHADOWS_SHADOWMASK
             #pragma multi_compile _ _ADDITIONAL_LIGHTS
             #pragma multi_compile _ _ADDITIONAL_LIGHT_SHADOWS
             #pragma multi_compile_fragment _ _SHADOWS_SOFT
@@ -78,8 +73,6 @@ Shader "Airport/Wall Finish Texture Array"
                 float3 normalOS : NORMAL;
                 float4 tangentOS : TANGENT;
                 float2 uv : TEXCOORD0;
-                float2 staticLightmapUV : TEXCOORD1;
-                float2 dynamicLightmapUV : TEXCOORD2;
                 UNITY_VERTEX_INPUT_INSTANCE_ID
             };
 
@@ -95,10 +88,6 @@ Shader "Airport/Wall Finish Texture Array"
                 float4 shadowCoord : TEXCOORD5;
                 #endif
                 half fogFactor : TEXCOORD6;
-                DECLARE_LIGHTMAP_OR_SH(lightmapUV, vertexSH, 7);
-                #if defined(DYNAMICLIGHTMAP_ON)
-                float2 dynamicLightmapUV : TEXCOORD8;
-                #endif
                 UNITY_VERTEX_INPUT_INSTANCE_ID
             };
 
@@ -120,11 +109,6 @@ Shader "Airport/Wall Finish Texture Array"
                     normalInputs.tangentWS,
                     input.tangentOS.w * GetOddNegativeScale());
                 output.uv = input.uv;
-                OUTPUT_LIGHTMAP_UV(input.staticLightmapUV, unity_LightmapST, output.lightmapUV);
-                OUTPUT_SH(output.normalWS, output.vertexSH);
-                #if defined(DYNAMICLIGHTMAP_ON)
-                output.dynamicLightmapUV = input.dynamicLightmapUV * unity_DynamicLightmapST.xy + unity_DynamicLightmapST.zw;
-                #endif
                 output.wallForwardWS =
                     TransformObjectToWorldDir(float3(0,0,1));
 
@@ -236,11 +220,7 @@ Shader "Airport/Wall Finish Texture Array"
                 inputData.shadowCoord = float4(0,0,0,0);
                 #endif
 
-                #if defined(DYNAMICLIGHTMAP_ON)
-                inputData.bakedGI = SAMPLE_GI(input.lightmapUV, input.dynamicLightmapUV, input.vertexSH, normalWS);
-                #else
-                inputData.bakedGI = SAMPLE_GI(input.lightmapUV, input.vertexSH, normalWS);
-                #endif
+                inputData.bakedGI = SampleSH(normalWS);
                 inputData.normalizedScreenSpaceUV =
                     GetNormalizedScreenSpaceUV(input.positionCS);
                 inputData.shadowMask = half4(1,1,1,1);
