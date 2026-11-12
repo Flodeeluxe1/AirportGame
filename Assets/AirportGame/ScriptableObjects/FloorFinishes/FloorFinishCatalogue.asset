@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: FloorFinishCatalogue
   m_EditorClassIdentifier: Assembly-CSharp::FloorFinishCatalogue
   finishes:
+  - {fileID: 11400000, guid: 4eed0c19509bc6943a1e7d608e1c8a15, type: 2}
   - {fileID: 11400000, guid: 563aa168a387fab4eaa60b080cc17c8f, type: 2}
   - {fileID: 11400000, guid: 2ba11de38238f3c4eb8e35fec93f05ba, type: 2}
   - {fileID: 11400000, guid: ab37dafa78b69f749ba0c09500c3aea7, type: 2}

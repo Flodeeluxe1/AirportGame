@@ -27,6 +27,10 @@ Material:
         m_Texture: {fileID: 18700000, guid: 37c759088f557cb4eb59c1ae7d0e095d, type: 2}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
+    - _BaseMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - _MaskArray:
         m_Texture: {fileID: 18700000, guid: 3620d5a9bdc436449a008b96d32aa012, type: 2}
         m_Scale: {x: 1, y: 1}
@@ -36,7 +40,19 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     m_Ints: []
-    m_Floats: []
-    m_Colors: []
+    m_Floats:
+    - _InnerFinishIndex: -1
+    - _InnerSideSign: 1
+    - _OriginalMetallic: 0
+    - _OriginalSmoothness: 0.2
+    - _OuterFinishIndex: -1
+    - _PreviewFinishIndex: -1
+    - _PreviewMode: 0
+    - _PreviewSideSign: 1
+    m_Colors:
+    - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
+    - _InnerTextureST: {r: 1, g: 1, b: 0, a: 0}
+    - _OuterTextureST: {r: 1, g: 1, b: 0, a: 0}
+    - _PreviewColor: {r: 1, g: 0.079999976, b: 0.02, a: 0.35}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

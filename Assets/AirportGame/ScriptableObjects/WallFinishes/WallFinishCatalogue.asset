@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c2f84a9b7d3146e0a5c8f1b2d3e4a502, type: 3}
+  m_Name: WallFinishCatalogue
+  m_EditorClassIdentifier: Assembly-CSharp::WallFinishCatalogue
+  finishes:
+  - {fileID: 11400000, guid: f11c2c30012cc234abc52b445a37ab8e, type: 2}
+  - {fileID: 11400000, guid: 548193510ec90b547a22953cb35bd0cc, type: 2}
+  - {fileID: 11400000, guid: ea37998100a2e8743a0846168ae30ec2, type: 2}
+  - {fileID: 11400000, guid: d299483e205ecd046a81a353fb716543, type: 2}
+  - {fileID: 11400000, guid: 6776c1b988db3b445ae676a782e1e9b1, type: 2}
+  - {fileID: 11400000, guid: a2c5ec293de00724fa2d9cf7e6c438e4, type: 2}
+  - {fileID: 11400000, guid: cdbebfd998cfc87409c1a64abedb7795, type: 2}
+  - {fileID: 11400000, guid: e22deaaf6cc1ebd40b05995e545aabd9, type: 2}
+  - {fileID: 11400000, guid: a8b722710da815640a327fcd57199819, type: 2}
+  - {fileID: 11400000, guid: 1b7d007189305d742b1f08cf41784ea6, type: 2}
+  sharedRenderMaterial: {fileID: 2100000, guid: 736ad942044a3ba45a66a6d9cec656f6, type: 2}

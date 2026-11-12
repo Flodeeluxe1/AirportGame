@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c2f84a9b7d3146e0a5c8f1b2d3e4a501, type: 3}
+  m_Name: tlbathroomwall002
+  m_EditorClassIdentifier: Assembly-CSharp::WallFinishDefinition
+  id: wall.tlbathroomwall002
+  displayName: TLBathroomWall002
+  material: {fileID: 2100000, guid: d4d4dddfc6d251a4abe9510f8c03a5c5, type: 2}
+  icon: {fileID: 2800000, guid: 69a4bfe13424b448e8394f8d38e26dc2, type: 3}

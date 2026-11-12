@@ -244,6 +244,7 @@ MonoBehaviour:
   buildController: {fileID: 88094025}
   moveController: {fileID: 88094028}
   floorFinishPainter: {fileID: 0}
+  wallFinishPainter: {fileID: 0}
   foundationTilemapController: {fileID: 0}
   roadNetwork: {fileID: 0}
   roadTilemapController: {fileID: 0}
@@ -1130,8 +1131,10 @@ GameObject:
   - component: {fileID: 555229056}
   - component: {fileID: 555229058}
   - component: {fileID: 555229057}
+  - component: {fileID: 555229059}
+  - component: {fileID: 555229060}
   m_Layer: 0
-  m_Name: Floor Finish System
+  m_Name: Painting System
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1188,6 +1191,37 @@ MonoBehaviour:
   floorFinishRenderer: {fileID: 0}
   buildController: {fileID: 0}
   uiDocument: {fileID: 762824360}
+--- !u!114 &555229059
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 555229055}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c2f84a9b7d3146e0a5c8f1b2d3e4a507, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::WallFinishPainter
+  mainCamera: {fileID: 0}
+  gridManager: {fileID: 0}
+  wallFinishRenderer: {fileID: 0}
+  buildController: {fileID: 0}
+  uiDocument: {fileID: 762824360}
+--- !u!114 &555229060
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 555229055}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c2f84a9b7d3146e0a5c8f1b2d3e4a506, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::WallFinishRenderer
+  catalogue: {fileID: 11400000, guid: 49bd0928823c6994c83f15b59a0cf454, type: 2}
+  gridSurface: {fileID: 0}
 --- !u!1001 &598322431
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2582,6 +2616,7 @@ MonoBehaviour:
   taxiwayPrefabRuleManager: {fileID: 0}
   foundationTilemapController: {fileID: 1832935780}
   floorFinishRenderer: {fileID: 0}
+  wallFinishRenderer: {fileID: 0}
   tarmacTilemapController: {fileID: 1502454836}
   gameTimeManager: {fileID: 449210932}
   economyManager: {fileID: 1048131944}
@@ -2832,6 +2867,7 @@ GameObject:
   - component: {fileID: 1478484331}
   - component: {fileID: 1478484332}
   - component: {fileID: 1478484333}
+  - component: {fileID: 1478484334}
   m_Layer: 0
   m_Name: AirportUI
   m_TagString: Untagged
@@ -3092,9 +3128,25 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3cf174899f7254d0a5e6237a9b4c81d2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FloorFinishMenuController
-  uiDocument: {fileID: 0}
+  uiDocument: {fileID: 762824360}
   catalogue: {fileID: 11400000, guid: ea2804e6da8724b4380e6eb475a1100c, type: 2}
-  painter: {fileID: 0}
+  painter: {fileID: 555229058}
+--- !u!114 &1478484334
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1478484321}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c2f84a9b7d3146e0a5c8f1b2d3e4a508, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::WallFinishMenuController
+  uiDocument: {fileID: 762824360}
+  catalogue: {fileID: 11400000, guid: 49bd0928823c6994c83f15b59a0cf454, type: 2}
+  painter: {fileID: 555229059}
+  floorPainter: {fileID: 555229058}
 --- !u!1 &1502454834
 GameObject:
   m_ObjectHideFlags: 0

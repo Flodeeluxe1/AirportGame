@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c2f84a9b7d3146e0a5c8f1b2d3e4a501, type: 3}
+  m_Name: tlmosaic003_backsplash
+  m_EditorClassIdentifier: Assembly-CSharp::WallFinishDefinition
+  id: wall.tlmosaic003_backsplash
+  displayName: TLMosaic003 Backsplash
+  material: {fileID: 2100000, guid: 3fc928529108fd54380fc877cf5732af, type: 2}
+  icon: {fileID: 2800000, guid: 58f3add7278ba4fedba7a1bde9a0c272, type: 3}
