@@ -7,6 +7,7 @@ public class FloorFinishRenderer : MonoBehaviour
     [Header("References")]
     [SerializeField] private GridManager gridManager;
     [SerializeField] private GridSurface gridSurface;
+    [SerializeField] private EdgeOccupancy edgeOccupancy;
     [SerializeField] private FloorFinishCatalogue catalogue;
 
     [Header("Chunk Rendering")]
@@ -72,6 +73,9 @@ public class FloorFinishRenderer : MonoBehaviour
 
         if (gridSurface == null && gridManager != null)
             gridSurface = gridManager.GetComponent<GridSurface>();
+
+        if (edgeOccupancy == null)
+            edgeOccupancy = FindFirstObjectByType<EdgeOccupancy>();
     }
 
     private void InitializeCellData()
@@ -158,12 +162,21 @@ public class FloorFinishRenderer : MonoBehaviour
 
                 float localX = (x - minX) * cellSize;
                 float localZ = (z - minZ) * cellSize;
+
+                // Inset the floor preview beside wall edges so it does not
+                // overlap the vertical wall mesh.
+                float inset = Mathf.Min(0.025f, cellSize * 0.05f);
+                float left = HasWallAtEdge(new GridEdge(cell, EdgeDirection.Vertical)) ? inset : 0f;
+                float right = HasWallAtEdge(new GridEdge(cell + Vector2Int.right, EdgeDirection.Vertical)) ? inset : 0f;
+                float bottom = HasWallAtEdge(new GridEdge(cell, EdgeDirection.Horizontal)) ? inset : 0f;
+                float top = HasWallAtEdge(new GridEdge(cell + Vector2Int.up, EdgeDirection.Horizontal)) ? inset : 0f;
+
                 int vertexStart = vertices.Count;
 
-                vertices.Add(new Vector3(localX, surfaceOffset + 0.005f, localZ));
-                vertices.Add(new Vector3(localX, surfaceOffset + 0.005f, localZ + cellSize));
-                vertices.Add(new Vector3(localX + cellSize, surfaceOffset + 0.005f, localZ + cellSize));
-                vertices.Add(new Vector3(localX + cellSize, surfaceOffset + 0.005f, localZ));
+                vertices.Add(new Vector3(localX + left, surfaceOffset + 0.005f, localZ + bottom));
+                vertices.Add(new Vector3(localX + left, surfaceOffset + 0.005f, localZ + cellSize - top));
+                vertices.Add(new Vector3(localX + cellSize - right, surfaceOffset + 0.005f, localZ + cellSize - top));
+                vertices.Add(new Vector3(localX + cellSize - right, surfaceOffset + 0.005f, localZ + bottom));
 
                 uvs.Add(new Vector2(0f, 0f));
                 uvs.Add(new Vector2(0f, 1f));
@@ -199,6 +212,19 @@ public class FloorFinishRenderer : MonoBehaviour
         previewObject.SetActive(true);
     }
 
+    private bool HasWallAtEdge(GridEdge edge)
+    {
+        if (edgeOccupancy == null ||
+            !edgeOccupancy.TryGetOccupant(edge, out GameObject occupant) ||
+            occupant == null)
+        {
+            return false;
+        }
+
+        PlacedBuilding building = occupant.GetComponent<PlacedBuilding>();
+        return building != null && building.Definition != null &&
+               building.Definition.category == BuildCategory.Wall;
+    }
     public void HidePreviewArea()
     {
         if (previewObject != null)
