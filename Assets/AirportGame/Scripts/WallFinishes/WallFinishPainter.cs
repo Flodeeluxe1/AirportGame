@@ -504,12 +504,14 @@ public class WallFinishPainter : MonoBehaviour
             "Original wall base texture",
             "Wall finish texture-array sample",
             "Baked GI",
-            "Final PBR output"
+            "Main directional light contribution",
+            "PBR direct lighting only",
+            "Final PBR output with GI"
         };
 
         try
         {
-            for (int stage = 1; stage <= 4; stage++)
+            for (int stage = 1; stage <= 6; stage++)
             {
                 surface.SetBrightnessDebugStage(stage);
                 yield return new WaitForEndOfFrame();
@@ -537,7 +539,7 @@ public class WallFinishPainter : MonoBehaviour
         }
 
         Debug.Log(
-            "Wall finish brightness diagnostic complete. Values are screen-captured RGB (0-1), so post-processing/display transforms may affect them.",
+            "Wall finish lighting diagnostic complete. Values are screen-captured RGB (0-1), so post-processing/display transforms may affect them.",
             wall);
     }
 
