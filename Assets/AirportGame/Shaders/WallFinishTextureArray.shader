@@ -99,7 +99,7 @@ Shader "Airport/Wall Finish Texture Array"
                     GetVertexPositionInputs(input.positionOS.xyz);
                 output.positionCS = positionInputs.positionCS;
                 output.positionWS = positionInputs.positionWS;
-                output.normalWS = normalInputs.normalWS;
+                output.normalWS = TransformObjectToWorldNormal(input.normalOS);
                 output.uv = input.uv;
                 output.wallForwardWS =
                     TransformObjectToWorldDir(float3(0,0,1));
