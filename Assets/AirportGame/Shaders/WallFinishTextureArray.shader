@@ -219,6 +219,17 @@ Shader "Airport/Wall Finish Texture Array"
                     smoothness = maskSample.a;
                 }
 
+                // TEMPORARY DIAGNOSTIC: retain the real base texture and
+                // GI, but neutralize normal mapping and material-mask inputs.
+                // This isolates the PBR calculation from those material inputs.
+                if (isWallSide && finishIndex >= 0.0)
+                {
+                    normalTS = half3(0,0,1);
+                    metallic = 0.0h;
+                    smoothness = 0.5h;
+                    occlusion = 1.0h;
+                }
+
                 if (previewThisFace && _PreviewMode > 1.5)
                 {
                     baseSample.rgb = lerp(
@@ -316,11 +327,6 @@ Shader "Airport/Wall Finish Texture Array"
                 inputData.normalizedScreenSpaceUV =
                     GetNormalizedScreenSpaceUV(input.positionCS);
                 inputData.shadowMask = half4(1,1,1,1);
-
-                // TEMPORARY DIAGNOSTIC: display the baked-GI value directly.
-                // This bypasses the PBR/BRDF calculation so we can determine
-                // whether the darkening is already present in the GI input.
-                return half4(inputData.bakedGI, 1.0h);
 
                 SurfaceData surfaceData = (SurfaceData)0;
                 surfaceData.albedo = baseSample.rgb;
