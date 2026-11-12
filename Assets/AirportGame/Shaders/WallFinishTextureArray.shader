@@ -189,14 +189,9 @@ Shader "Airport/Wall Finish Texture Array"
                     sampler_BaseMap,
                     input.uv * _BaseMap_ST.xy + _BaseMap_ST.zw) * _BaseColor;
 
-                half4 originalNormalSample = SAMPLE_TEXTURE2D(
-                    _OriginalNormalMap,
-                    sampler_OriginalNormalMap,
-                    input.uv * _OriginalNormalMap_ST.xy +
-                    _OriginalNormalMap_ST.zw);
-                half3 normalTS = UnpackNormalScale(
-                    originalNormalSample,
-                    _OriginalNormalScale);
+                // TEMPORARY DIAGNOSTIC:
+                // Disable both original and finish normal maps on every wall face.
+                half3 normalTS = half3(0.0h, 0.0h, 1.0h);
                 half metallic = _OriginalMetallic;
                 half smoothness = _OriginalSmoothness;
                 half occlusion = 1.0h;
