@@ -4,6 +4,8 @@ using UnityEngine;
 public class EdgePlacementHandler : IPlacementHandler
 {
     private const float PreviewOrientationHysteresis = 0.15f;
+    private static readonly Vector3 HoverPreviewScale =
+        new Vector3(0.1f, 2.5f, 0.1f);
 
     private BuildController controller;
     private GridManager gridManager;
@@ -20,6 +22,7 @@ public class EdgePlacementHandler : IPlacementHandler
     private bool isDragging;
     private bool hasLockedCornerDirection;
     private bool hasHoverOrientation;
+    private Vector3 originalPreviewScale;
 
     private readonly List<GridEdge> previewEdges =
         new List<GridEdge>();
@@ -49,6 +52,7 @@ public class EdgePlacementHandler : IPlacementHandler
         this.definition = definition;
         this.previewObject = previewObject;
         this.placementPreview = placementPreview;
+        originalPreviewScale = previewObject.transform.localScale;
 
         currentEdge =
             new GridEdge(
@@ -188,10 +192,14 @@ public class EdgePlacementHandler : IPlacementHandler
 
     private void UpdateSinglePreview()
     {
+        previewObject.transform.localScale = originalPreviewScale;
+
         ApplyEdgeTransform(
             previewObject,
             currentEdge
         );
+
+        previewObject.transform.localScale = HoverPreviewScale;
 
         placementPreview.SetValid(
             IsEdgeValid(currentEdge)
@@ -207,6 +215,8 @@ public class EdgePlacementHandler : IPlacementHandler
 
         startEdge =
             currentEdge;
+
+        previewObject.transform.localScale = originalPreviewScale;
 
         isDragging = true;
         hasLockedCornerDirection = false;
@@ -240,14 +250,7 @@ public class EdgePlacementHandler : IPlacementHandler
 
         ClearAdditionalPreviews();
 
-        ApplyEdgeTransform(
-            previewObject,
-            currentEdge
-        );
-
-        placementPreview.SetValid(
-            IsEdgeValid(currentEdge)
-        );
+        UpdateSinglePreview();
     }
 
     private void UpdateWallPreview()
@@ -963,6 +966,7 @@ public class EdgePlacementHandler : IPlacementHandler
         isDragging = false;
         hasLockedCornerDirection = false;
         hasHoverOrientation = false;
+        originalPreviewScale = Vector3.one;
 
         previewEdges.Clear();
     }
