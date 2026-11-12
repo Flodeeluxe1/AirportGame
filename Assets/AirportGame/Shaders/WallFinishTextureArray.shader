@@ -386,10 +386,10 @@ Shader "Airport/Wall Finish Texture Array"
                     inputData.positionWS,
                     inputData.shadowMask);
 
-                if (_WallFinishDebugStage > 16.5 && _WallFinishDebugStage < 17.5)
+                if (_WallFinishDebugStage > 17.5 && _WallFinishDebugStage < 18.5)
                     return half4(mainLight.color, 1.0h);
 
-                if (_WallFinishDebugStage > 17.5 && _WallFinishDebugStage < 18.5)
+                if (_WallFinishDebugStage > 18.5 && _WallFinishDebugStage < 19.5)
                     return half4(mainLight.distanceAttenuation,
                         mainLight.distanceAttenuation,
                         mainLight.distanceAttenuation, 1.0h);
@@ -403,13 +403,13 @@ Shader "Airport/Wall Finish Texture Array"
                     mainLight.color *
                     (mainLight.distanceAttenuation * mainLight.shadowAttenuation);
 
-                if (_WallFinishDebugStage > 18.5 && _WallFinishDebugStage < 19.5)
+                if (_WallFinishDebugStage > 19.5 && _WallFinishDebugStage < 20.5)
                     return half4(directBRDF, 1.0h);
 
-                if (_WallFinishDebugStage > 19.5 && _WallFinishDebugStage < 20.5)
+                if (_WallFinishDebugStage > 20.5 && _WallFinishDebugStage < 21.5)
                     return half4(mainLightRadiance, 1.0h);
 
-                if (_WallFinishDebugStage > 20.5 && _WallFinishDebugStage < 21.5)
+                if (_WallFinishDebugStage > 21.5 && _WallFinishDebugStage < 22.5)
                 {
                     half ndotlForContribution = saturate(dot(
                         normalize(inputData.normalWS),
