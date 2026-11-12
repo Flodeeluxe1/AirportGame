@@ -11,9 +11,6 @@ public static class FloorFinishCatalogueBuilder
     private const string GeneratedRoot =
         "Assets/AirportGame/Generated/FloorFinishes";
 
-    private const string DefinitionsFolder =
-        GeneratedRoot + "/Definitions";
-
     private const string MaterialsFolder =
         GeneratedRoot + "/Materials";
 
@@ -43,38 +40,24 @@ public static class FloorFinishCatalogueBuilder
     private const string CataloguePath =
         CatalogueFolder + "/FloorFinishCatalogue.asset";
 
-    private static readonly string[] SearchRoots =
-    {
-        "Assets/Floor materials pack",
-        "Assets/Texture_and_materials/Tiles_floor",
-        "Assets/Texture_and_materials/Paving_stone"
-    };
+    private const string FinishMaterialsRoot =
+        "Assets/AirportGame/FloorFinishes";
 
     [MenuItem("Airport/Floor Finishes/Build Catalogue From Project Materials")]
     public static void BuildCatalogue()
     {
         EnsureFolder("Assets/AirportGame/Generated");
         EnsureFolder(GeneratedRoot);
-        EnsureFolder(DefinitionsFolder);
         EnsureFolder(MaterialsFolder);
         EnsureFolder(TextureArrayFolder);
         EnsureFolder("Assets/AirportGame/ScriptableObjects");
         EnsureFolder(CatalogueFolder);
 
-        List<string> materialGuids = new List<string>();
+        EnsureFolder(FinishMaterialsRoot);
 
-        foreach (string root in SearchRoots)
-        {
-            if (!AssetDatabase.IsValidFolder(root))
-            {
-                Debug.LogWarning(
-                    $"FloorFinishCatalogueBuilder: Search folder not found: {root}");
-                continue;
-            }
-
-            materialGuids.AddRange(
-                AssetDatabase.FindAssets("t:Material", new[] { root }));
-        }
+        List<string> materialGuids = AssetDatabase.FindAssets(
+            "t:Material",
+            new[] { FinishMaterialsRoot }).ToList();
 
         List<FloorFinishDefinition> definitions =
             new List<FloorFinishDefinition>();
@@ -87,7 +70,7 @@ public static class FloorFinishCatalogueBuilder
             string sourcePath = AssetDatabase.GUIDToAssetPath(guid);
             Material source = AssetDatabase.LoadAssetAtPath<Material>(sourcePath);
 
-            if (source == null || !IsFloorMaterial(source.name))
+            if (source == null)
                 continue;
 
             if (!processedNames.Add(source.name))
@@ -103,8 +86,21 @@ public static class FloorFinishCatalogueBuilder
                 continue;
 
             string id = "floor." + Sanitize(source.name);
+            string sourceDirectory =
+                Path.GetDirectoryName(sourcePath)?.Replace("\\", "/");
+
+            string finishFolder = sourceDirectory;
+            if (string.Equals(
+                Path.GetFileName(sourceDirectory),
+                "Material",
+                StringComparison.OrdinalIgnoreCase))
+            {
+                finishFolder =
+                    Path.GetDirectoryName(sourceDirectory)?.Replace("\\", "/");
+            }
+
             string definitionPath =
-                DefinitionsFolder + "/" + Sanitize(source.name) + ".asset";
+                finishFolder + "/" + Sanitize(source.name) + ".asset";
 
             FloorFinishDefinition definition =
                 AssetDatabase.LoadAssetAtPath<FloorFinishDefinition>(
@@ -622,13 +618,6 @@ public static class FloorFinishCatalogueBuilder
     {
         Texture texture = GetTexture(material, "_BaseMap", "_MainTex");
         return texture as Texture2D;
-    }
-
-    private static bool IsFloorMaterial(string materialName)
-    {
-        return materialName.StartsWith("Floor_", StringComparison.OrdinalIgnoreCase) ||
-               materialName.StartsWith("Tiles_floor", StringComparison.OrdinalIgnoreCase) ||
-               materialName.StartsWith("Paving_stone", StringComparison.OrdinalIgnoreCase);
     }
 
     private static string MakeDisplayName(string value)
