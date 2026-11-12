@@ -139,6 +139,16 @@ public class WallFinishPainter : MonoBehaviour
 
     public void BeginPainting(WallFinishDefinition finish)
     {
+        if (wallFinishRenderer == null ||
+            wallFinishRenderer.Catalogue == null ||
+            wallFinishRenderer.Catalogue.SharedRenderMaterial == null)
+        {
+            Debug.LogError(
+                "WallFinishPainter: Add a WallFinishRenderer to the scene and assign its generated WallFinishCatalogue.",
+                this);
+            return;
+        }
+
         if (finish == null || finish.material == null)
         {
             Debug.LogWarning(
@@ -158,6 +168,16 @@ public class WallFinishPainter : MonoBehaviour
 
     public void BeginErasing()
     {
+        if (wallFinishRenderer == null ||
+            wallFinishRenderer.Catalogue == null ||
+            wallFinishRenderer.Catalogue.SharedRenderMaterial == null)
+        {
+            Debug.LogError(
+                "WallFinishPainter: Add a WallFinishRenderer to the scene and assign its generated WallFinishCatalogue.",
+                this);
+            return;
+        }
+
         if (buildController != null && buildController.IsBuilding)
             buildController.CancelBuilding();
 
