@@ -195,7 +195,9 @@ public static class FloorFinishCatalogueBuilder
                     texture,
                     TextureArrayResolution,
                     false,
-                    Color.white);
+                    Color.white,
+                    Vector2.one,
+                    Vector2.zero);
 
                 Color tint = material != null &&
                     material.HasProperty("_BaseColor")
@@ -221,11 +223,18 @@ public static class FloorFinishCatalogueBuilder
                 Material material = definitions[index].material;
                 Texture texture = GetTexture(material, "_BumpMap");
 
+                Vector2 scale = GetMaterialTextureScale(
+                    material, "_BumpMap");
+                Vector2 offset = GetMaterialTextureOffset(
+                    material, "_BumpMap");
+
                 return ReadTexturePixels(
                     texture,
                     TextureArrayResolution,
                     true,
-                    new Color(0.5f, 0.5f, 1f, 1f));
+                    new Color(0.5f, 0.5f, 1f, 1f),
+                    scale,
+                    offset);
             });
     }
 
@@ -244,16 +253,29 @@ public static class FloorFinishCatalogueBuilder
                 Texture occlusionTexture =
                     GetTexture(material, "_OcclusionMap");
 
+                Vector2 metallicScale = GetMaterialTextureScale(
+                    material, "_MetallicGlossMap", "_MetallicMap");
+                Vector2 metallicOffset = GetMaterialTextureOffset(
+                    material, "_MetallicGlossMap", "_MetallicMap");
+                Vector2 occlusionScale = GetMaterialTextureScale(
+                    material, "_OcclusionMap");
+                Vector2 occlusionOffset = GetMaterialTextureOffset(
+                    material, "_OcclusionMap");
+
                 Color[] metallicPixels = ReadTexturePixels(
                     metallicTexture,
                     TextureArrayResolution,
                     true,
-                    Color.white);
+                    Color.white,
+                    metallicScale,
+                    metallicOffset);
                 Color[] occlusionPixels = ReadTexturePixels(
                     occlusionTexture,
                     TextureArrayResolution,
                     true,
-                    Color.white);
+                    Color.white,
+                    occlusionScale,
+                    occlusionOffset);
 
                 bool hasMetallicMap = metallicTexture != null;
                 bool hasOcclusionMap = occlusionTexture != null;
@@ -350,7 +372,9 @@ public static class FloorFinishCatalogueBuilder
         Texture source,
         int resolution,
         bool linear,
-        Color fallback)
+        Color fallback,
+        Vector2 scale,
+        Vector2 offset)
     {
         if (source == null)
         {
@@ -384,7 +408,7 @@ public static class FloorFinishCatalogueBuilder
 
         try
         {
-            Graphics.Blit(source, renderTexture);
+            Graphics.Blit(source, renderTexture, scale, offset);
             RenderTexture.active = renderTexture;
             readableTexture.ReadPixels(
                 new Rect(0, 0, resolution, resolution),
@@ -439,6 +463,38 @@ public static class FloorFinishCatalogueBuilder
 
         EditorUtility.SetDirty(material);
         return material;
+    }
+
+    private static Vector2 GetMaterialTextureScale(
+        Material material,
+        params string[] properties)
+    {
+        if (material == null)
+            return Vector2.one;
+
+        foreach (string property in properties)
+        {
+            if (material.HasProperty(property))
+                return material.GetTextureScale(property);
+        }
+
+        return Vector2.one;
+    }
+
+    private static Vector2 GetMaterialTextureOffset(
+        Material material,
+        params string[] properties)
+    {
+        if (material == null)
+            return Vector2.zero;
+
+        foreach (string property in properties)
+        {
+            if (material.HasProperty(property))
+                return material.GetTextureOffset(property);
+        }
+
+        return Vector2.zero;
     }
 
     private static float GetMaterialFloat(
