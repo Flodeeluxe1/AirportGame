@@ -163,13 +163,11 @@ public class FloorFinishRenderer : MonoBehaviour
                 float localX = (x - minX) * cellSize;
                 float localZ = (z - minZ) * cellSize;
 
-                // Inset the floor preview beside wall edges so it does not
-                // overlap the vertical wall mesh.
-                float inset = Mathf.Min(0.025f, cellSize * 0.05f);
-                float left = HasWallAtEdge(new GridEdge(cell, EdgeDirection.Vertical)) ? inset : 0f;
-                float right = HasWallAtEdge(new GridEdge(cell + Vector2Int.right, EdgeDirection.Vertical)) ? inset : 0f;
-                float bottom = HasWallAtEdge(new GridEdge(cell, EdgeDirection.Horizontal)) ? inset : 0f;
-                float top = HasWallAtEdge(new GridEdge(cell + Vector2Int.up, EdgeDirection.Horizontal)) ? inset : 0f;
+                // Clip the floor-only preview past the actual wall thickness.
+                float left = GetWallInset(new GridEdge(cell, EdgeDirection.Vertical), cellSize);
+                float right = GetWallInset(new GridEdge(cell + Vector2Int.right, EdgeDirection.Vertical), cellSize);
+                float bottom = GetWallInset(new GridEdge(cell, EdgeDirection.Horizontal), cellSize);
+                float top = GetWallInset(new GridEdge(cell + Vector2Int.up, EdgeDirection.Horizontal), cellSize);
 
                 int vertexStart = vertices.Count;
 
@@ -212,18 +210,41 @@ public class FloorFinishRenderer : MonoBehaviour
         previewObject.SetActive(true);
     }
 
-    private bool HasWallAtEdge(GridEdge edge)
+    private float GetWallInset(GridEdge edge, float cellSize)
     {
         if (edgeOccupancy == null ||
             !edgeOccupancy.TryGetOccupant(edge, out GameObject occupant) ||
             occupant == null)
         {
-            return false;
+            return 0f;
         }
 
         PlacedBuilding building = occupant.GetComponent<PlacedBuilding>();
-        return building != null && building.Definition != null &&
-               building.Definition.category == BuildCategory.Wall;
+        if (building == null || building.Definition == null ||
+            building.Definition.category != BuildCategory.Wall)
+        {
+            return 0f;
+        }
+
+        Renderer[] wallRenderers = occupant.GetComponentsInChildren<Renderer>(true);
+        float wallThickness = 0f;
+
+        foreach (Renderer wallRenderer in wallRenderers)
+        {
+            if (wallRenderer == null)
+                continue;
+
+            float thickness = edge.direction == EdgeDirection.Horizontal
+                ? wallRenderer.bounds.size.z
+                : wallRenderer.bounds.size.x;
+
+            wallThickness = Mathf.Max(wallThickness, thickness);
+        }
+
+        if (wallThickness <= 0f)
+            wallThickness = cellSize * 0.1f;
+
+        return Mathf.Min(cellSize * 0.45f, wallThickness * 0.5f + 0.02f);
     }
     public void HidePreviewArea()
     {
