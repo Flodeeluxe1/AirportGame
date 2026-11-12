@@ -584,6 +584,8 @@ public class FloorFinishRenderer : MonoBehaviour
 
         List<Vector3> vertices = new List<Vector3>();
         List<Vector2> uvs = new List<Vector2>();
+        List<Vector2> normalUvs = new List<Vector2>();
+        List<Vector2> maskUvs = new List<Vector2>();
         List<Vector2> finishSlices = new List<Vector2>();
         List<int> triangles = new List<int>();
 
@@ -621,6 +623,18 @@ public class FloorFinishRenderer : MonoBehaviour
                 uvs.Add(textureOffset + textureScale);
                 uvs.Add(textureOffset + new Vector2(textureScale.x, 0f));
 
+                // Normal and packed mask texture transforms are baked into
+                // their texture-array slices by the editor catalogue builder.
+                normalUvs.Add(new Vector2(0f, 0f));
+                normalUvs.Add(new Vector2(0f, 1f));
+                normalUvs.Add(new Vector2(1f, 1f));
+                normalUvs.Add(new Vector2(1f, 0f));
+
+                maskUvs.Add(new Vector2(0f, 0f));
+                maskUvs.Add(new Vector2(0f, 1f));
+                maskUvs.Add(new Vector2(1f, 1f));
+                maskUvs.Add(new Vector2(1f, 0f));
+
                 Vector2 slice = new Vector2(finishIndex, 0f);
                 finishSlices.Add(slice);
                 finishSlices.Add(slice);
@@ -651,6 +665,8 @@ public class FloorFinishRenderer : MonoBehaviour
         mesh.SetVertices(vertices);
         mesh.SetUVs(0, uvs);
         mesh.SetUVs(1, finishSlices);
+        mesh.SetUVs(2, normalUvs);
+        mesh.SetUVs(3, maskUvs);
         mesh.subMeshCount = 1;
         mesh.SetTriangles(triangles, 0, false);
         mesh.RecalculateNormals();
