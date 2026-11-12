@@ -212,15 +212,9 @@ Shader "Airport/Wall Finish Texture Array"
                         finishUV,
                         finishIndex);
 
-                    
-
                     normalTS = UnpackNormalScale(
                         normalSample,
                         maskSample.b);
-
-                    
-
-                    
 
                     metallic = maskSample.r;
                     occlusion = maskSample.g;
@@ -235,11 +229,7 @@ Shader "Airport/Wall Finish Texture Array"
                         _PreviewColor.a);
                 }
 
-                // Stages 1 and 2 expose the source and selected finish albedo.
-                
-                
-
-                // Build the tangent basis from the actual wall surface position
+// Build the tangent basis from the actual wall surface position
                 // and UV derivatives. This avoids relying on imported mesh tangents,
                 // which can be missing or inconsistent between wall prefabs.
                 float3 positionDx = ddx(input.positionWS);
@@ -274,10 +264,6 @@ Shader "Airport/Wall Finish Texture Array"
                     tangentWS * normalTS.x +
                     bitangentWS * normalTS.y +
                     geometricNormal * normalTS.z);
-
-                
-
-                
 
                 InputData inputData = (InputData)0;
                 inputData.positionWS = input.positionWS;
@@ -344,15 +330,7 @@ Shader "Airport/Wall Finish Texture Array"
                 surfaceData.clearCoatMask = 0;
                 surfaceData.clearCoatSmoothness = 0;
 
-                
-                
-                
-                
-
-                // Stage 3: baked GI before PBR, sampled at the actual wall normal.
-                
-
-                half4 color =
+half4 color =
                     UniversalFragmentPBR(inputData, surfaceData);
                 color.rgb = MixFog(color.rgb, input.fogFactor);
                 return color;
