@@ -211,7 +211,7 @@ public class FloorFinishPainter : MonoBehaviour
             if (selectedFinish != null)
                 floorFinishRenderer.ShowPreviewArea(cell, cell, selectedFinish);
             else
-                floorFinishRenderer.HidePreviewArea();
+                floorFinishRenderer.ShowErasePreviewArea(cell, cell);
 
             return;
         }
@@ -228,9 +228,8 @@ public class FloorFinishPainter : MonoBehaviour
         }
         else
         {
-            // Eraser mode still needs the drag rectangle endpoints,
-            // but does not render a material preview.
-            floorFinishRenderer.HidePreviewArea();
+            floorFinishRenderer.ShowErasePreviewArea(
+                dragStartCell, previewEndCell);
         }
     }
 
