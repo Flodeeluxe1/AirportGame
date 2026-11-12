@@ -184,6 +184,19 @@ Shader "Airport/Wall Finish Texture Array"
                 if (previewThisFace && _PreviewMode < 1.5)
                     finishIndex = _PreviewFinishIndex;
 
+                // TEMPORARY DIAGNOSTIC: paint preview displays the shader's
+                // face classification directly. Green is the selected face;
+                // blue is the opposite face. This bypasses finish textures
+                // and lighting so we can isolate side-selection errors.
+                if (_PreviewMode > 2.5 && isWallSide)
+                {
+                    half3 diagnosticColor =
+                        faceSign == _PreviewSideSign
+                            ? half3(0.1h, 1.0h, 0.1h)
+                            : half3(0.1h, 0.35h, 1.0h);
+                    return half4(diagnosticColor, 1.0h);
+                }
+
                 half4 baseSample = SAMPLE_TEXTURE2D(
                     _BaseMap,
                     sampler_BaseMap,
