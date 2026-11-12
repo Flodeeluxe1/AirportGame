@@ -26,7 +26,6 @@ public class WallFinishSurface : MonoBehaviour
     private static readonly int PreviewModeId = Shader.PropertyToID("_PreviewMode");
     private static readonly int PreviewSideSignId = Shader.PropertyToID("_PreviewSideSign");
     private static readonly int PreviewFinishIndexId = Shader.PropertyToID("_PreviewFinishIndex");
-    private static readonly int PreviewTextureStId = Shader.PropertyToID("_PreviewTextureST");
 
     private readonly List<RendererState> rendererStates =
         new List<RendererState>();
@@ -39,7 +38,6 @@ public class WallFinishSurface : MonoBehaviour
     private int previewMode;
     private int previewSideSign = 1;
     private int previewFinishIndex = -1;
-    private Vector4 previewTextureSt = new Vector4(1f, 1f, 0f, 0f);
 
     public string InnerFinishId => innerFinishId;
     public string OuterFinishId => outerFinishId;
@@ -197,7 +195,6 @@ public class WallFinishSurface : MonoBehaviour
             finish != null && catalogue != null
                 ? catalogue.GetIndex(finish)
                 : -1;
-        previewTextureSt = GetFinishTextureSt(finish);
 
         ApplyFinishProperties();
     }
@@ -273,7 +270,6 @@ public class WallFinishSurface : MonoBehaviour
             block.SetFloat(PreviewModeId, previewMode);
             block.SetFloat(PreviewSideSignId, previewSideSign);
             block.SetFloat(PreviewFinishIndexId, previewFinishIndex);
-            block.SetVector(PreviewTextureStId, previewTextureSt);
 
             state.renderer.SetPropertyBlock(block);
         }
@@ -282,22 +278,9 @@ public class WallFinishSurface : MonoBehaviour
     private static Vector4 GetFinishTextureSt(
         WallFinishDefinition finish)
     {
-        if (finish == null || finish.material == null)
-            return new Vector4(1f, 1f, 0f, 0f);
-
-        Vector2 scale =
-            finish.material.GetTextureScale("_BaseMap");
-        Vector2 offset =
-            finish.material.GetTextureOffset("_BaseMap");
-
-        if (scale == Vector2.zero)
-            scale = Vector2.one;
-
-        return new Vector4(
-            scale.x,
-            scale.y,
-            offset.x,
-            offset.y);
+        // Wall finish texture arrays are authored at their intended base scale.
+        // Keep the applied finish at unit tiling to match the original preview.
+        return new Vector4(1f, 1f, 0f, 0f);
     }
 
     private static Texture GetTexture(
