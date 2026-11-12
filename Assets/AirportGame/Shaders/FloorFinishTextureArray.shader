@@ -95,8 +95,7 @@ Shader "Airport/Floor Finish Texture Array"
                 output.normalUV = input.normalUV;
                 output.maskUV = input.maskUV;
                 output.finishSlice = input.finishSlice.x;
-                output.shadowCoord =
-                    TransformWorldToShadowCoord(positionInputs.positionWS);
+                output.shadowCoord = GetShadowCoord(positionInputs);
                 output.fogFactor = ComputeFogFactor(positionInputs.positionCS.z);
 
                 return output;
