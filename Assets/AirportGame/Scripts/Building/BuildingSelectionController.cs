@@ -13,6 +13,7 @@ public class BuildingSelectionController : MonoBehaviour
     [SerializeField] private GridSurface gridSurface;
     [SerializeField] private BuildController buildController;
     [SerializeField] private CellBuildingMoveController moveController;
+    [SerializeField] private FloorFinishPainter floorFinishPainter;
 
     [Header("Foundation Selection")]
     [SerializeField] private FoundationTilemapController foundationTilemapController;
@@ -76,6 +77,7 @@ public class BuildingSelectionController : MonoBehaviour
     private bool hasValidDragStart;
     private bool mouseDownOnCellBuilding;
     private bool deleteSelectionMode;
+    private bool floorFinishInputSuppressed;
 
     private Vector2 dragStartScreenPosition;
     private Vector2 dragCurrentScreenPosition;
@@ -100,6 +102,9 @@ public class BuildingSelectionController : MonoBehaviour
 
         if (moveController == null)
             moveController = FindFirstObjectByType<CellBuildingMoveController>();
+
+        if (floorFinishPainter == null)
+            floorFinishPainter = FindFirstObjectByType<FloorFinishPainter>();
 
         if (foundationTilemapController == null)
         {
@@ -156,6 +161,24 @@ public class BuildingSelectionController : MonoBehaviour
 
     private void Update()
     {
+        // Floor painting uses the same mouse drag as building selection.
+        // Suppress selection input and remove any existing wall tint while painting.
+        if (floorFinishPainter != null && floorFinishPainter.IsActive)
+        {
+            if (!floorFinishInputSuppressed)
+            {
+                ClearSelection();
+                HideSelectionVisuals();
+                isDragging = false;
+                hasValidDragStart = false;
+                mouseDownOnCellBuilding = false;
+                floorFinishInputSuppressed = true;
+            }
+
+            return;
+        }
+
+        floorFinishInputSuppressed = false;
         Keyboard keyboard = Keyboard.current;
         Mouse mouse = Mouse.current;
 
