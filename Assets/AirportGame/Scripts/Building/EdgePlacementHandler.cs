@@ -22,7 +22,10 @@ public class EdgePlacementHandler : IPlacementHandler
     private bool isDragging;
     private bool hasLockedCornerDirection;
     private bool hasHoverOrientation;
+    private bool hasConfirmedDragDirection;
     private Vector3 originalPreviewScale;
+    private Vector3 lastHitPoint;
+    private Vector3 dragStartWorldPosition;
 
     private readonly List<GridEdge> previewEdges =
         new List<GridEdge>();
@@ -66,12 +69,17 @@ public class EdgePlacementHandler : IPlacementHandler
         isDragging = false;
         hasLockedCornerDirection = false;
         hasHoverOrientation = false;
+        hasConfirmedDragDirection = false;
+        lastHitPoint = gridManager.GridToWorld(Vector2Int.zero);
+        dragStartWorldPosition = lastHitPoint;
 
         ClearAdditionalPreviews();
     }
 
     public void UpdatePlacement(Vector3 hitPoint)
     {
+        lastHitPoint = hitPoint;
+
         Vector3 localPosition =
             hitPoint -
             gridManager.transform.position;
@@ -151,6 +159,38 @@ public class EdgePlacementHandler : IPlacementHandler
         }
         else
         {
+            if (!hasConfirmedDragDirection)
+            {
+                Vector3 dragDelta =
+                    hitPoint - dragStartWorldPosition;
+
+                dragDelta.y = 0f;
+
+                float directionThreshold =
+                    cellSize * 0.15f;
+
+                if (Mathf.Abs(dragDelta.x) < directionThreshold &&
+                    Mathf.Abs(dragDelta.z) < directionThreshold)
+                {
+                    currentEdge = startEdge;
+                    UpdateStartingMarker(startEdge);
+                    return;
+                }
+
+                selectedDirection =
+                    Mathf.Abs(dragDelta.x) >= Mathf.Abs(dragDelta.z)
+                        ? EdgeDirection.Horizontal
+                        : EdgeDirection.Vertical;
+
+                startEdge =
+                    new GridEdge(
+                        startEdge.cell,
+                        selectedDirection
+                    );
+
+                hasConfirmedDragDirection = true;
+            }
+
             if (!hasLockedCornerDirection &&
                 selectedDirection != startEdge.direction)
             {
@@ -172,6 +212,10 @@ public class EdgePlacementHandler : IPlacementHandler
                         ? EdgeDirection.Vertical
                         : EdgeDirection.Horizontal;
             }
+            else
+            {
+                selectedDirection = startEdge.direction;
+            }
         }
 
         currentEdge =
@@ -192,22 +236,27 @@ public class EdgePlacementHandler : IPlacementHandler
 
     private void UpdateSinglePreview()
     {
+        UpdateStartingMarker(currentEdge);
+    }
+
+    private void UpdateStartingMarker(GridEdge markerEdge)
+    {
         previewObject.transform.localScale = originalPreviewScale;
 
         ApplyEdgeTransform(
             previewObject,
-            currentEdge
+            markerEdge
         );
 
         Vector3 markerPosition =
-            gridManager.GridToWorld(currentEdge.cell);
+            gridManager.GridToWorld(markerEdge.cell);
 
         markerPosition.y = previewObject.transform.position.y;
         previewObject.transform.position = markerPosition;
         previewObject.transform.localScale = HoverPreviewScale;
 
         placementPreview.SetValid(
-            IsEdgeValid(currentEdge)
+            IsEdgeValid(markerEdge)
         );
 
         ClearAdditionalPreviews();
@@ -221,18 +270,28 @@ public class EdgePlacementHandler : IPlacementHandler
         startEdge =
             currentEdge;
 
-        previewObject.transform.localScale = originalPreviewScale;
+        dragStartWorldPosition = lastHitPoint;
+        hasConfirmedDragDirection = false;
 
         isDragging = true;
         hasLockedCornerDirection = false;
 
-        UpdateWallPreview();
+        UpdateStartingMarker(startEdge);
     }
 
     public void EndWall()
     {
         if (!isDragging)
             return;
+
+        if (!hasConfirmedDragDirection)
+        {
+            isDragging = false;
+            hasLockedCornerDirection = false;
+            ClearAdditionalPreviews();
+            UpdateSinglePreview();
+            return;
+        }
 
         UpdateWallPreview();
 
@@ -252,6 +311,7 @@ public class EdgePlacementHandler : IPlacementHandler
 
         isDragging = false;
         hasLockedCornerDirection = false;
+        hasConfirmedDragDirection = false;
 
         ClearAdditionalPreviews();
 
@@ -947,6 +1007,7 @@ public class EdgePlacementHandler : IPlacementHandler
     {
         isDragging = false;
         hasLockedCornerDirection = false;
+        hasConfirmedDragDirection = false;
 
         ClearAdditionalPreviews();
     }
@@ -971,7 +1032,10 @@ public class EdgePlacementHandler : IPlacementHandler
         isDragging = false;
         hasLockedCornerDirection = false;
         hasHoverOrientation = false;
+        hasConfirmedDragDirection = false;
         originalPreviewScale = Vector3.one;
+        lastHitPoint = Vector3.zero;
+        dragStartWorldPosition = Vector3.zero;
 
         previewEdges.Clear();
     }
