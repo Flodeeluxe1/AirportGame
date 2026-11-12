@@ -67,7 +67,7 @@ Shader "Airport/Floor Finish Texture Array"
                 float2 uv : TEXCOORD3;
                 float2 normalUV : TEXCOORD4;
                 float2 maskUV : TEXCOORD5;
-                nointerpolation float finishSlice : TEXCOORD6;
+                float finishSlice : TEXCOORD6;
                 float4 shadowCoord : TEXCOORD7;
                 half fogFactor : TEXCOORD8;
                 UNITY_VERTEX_INPUT_INSTANCE_ID
