@@ -240,13 +240,13 @@ Shader "Airport/Wall Finish Texture Array"
                 inputData.shadowCoord = float4(0,0,0,0);
                 #endif
 
-                // Use the same upward-facing ambient probe as the floor
-                // finishes for painted wall faces. The room's ambient probe
-                // can return very little light for horizontal wall normals,
-                // making the same finish appear substantially darker.
+                // Painted wall finishes use neutral full ambient GI.
+                // The scene's spherical-harmonic probes return too little
+                // ambient light for vertical wall faces, even when sampling
+                // the upward direction. Direct lighting and shadows remain active.
                 inputData.bakedGI =
                     isWallSide && finishIndex >= 0.0
-                        ? SampleSH(half3(0.0h, 1.0h, 0.0h))
+                        ? half3(1.0h, 1.0h, 1.0h)
                         : SampleSH(normalWS);
                 inputData.normalizedScreenSpaceUV =
                     GetNormalizedScreenSpaceUV(input.positionCS);
