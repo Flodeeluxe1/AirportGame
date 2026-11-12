@@ -189,9 +189,7 @@ public class WallFinishSurface : MonoBehaviour
         WallFinishDefinition finish,
         bool erase)
     {
-        // Mode 3 is a temporary diagnostic: show which wall face the
-        // shader classifies as selected versus opposite during paint preview.
-        previewMode = erase ? 2 : 3;
+        previewMode = erase ? 2 : 1;
         previewSideSign = faceSign >= 0 ? 1 : -1;
         previewFinishIndex =
             finish != null && catalogue != null
