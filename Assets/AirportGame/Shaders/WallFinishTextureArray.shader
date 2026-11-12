@@ -361,6 +361,23 @@ Shader "Airport/Wall Finish Texture Array"
                     inputData.positionWS,
                     inputData.shadowMask);
 
+                // Stage 7: direct-light angle factor. Black means the face
+                // points away from the main directional light.
+                if (_WallFinishDebugStage > 6.5 && _WallFinishDebugStage < 7.5)
+                {
+                    half ndotl = saturate(dot(
+                        normalize(inputData.normalWS),
+                        normalize(mainLight.direction)));
+                    return half4(ndotl, ndotl, ndotl, 1.0h);
+                }
+
+                // Stage 8: main-light shadow attenuation. Black means fully shadowed.
+                if (_WallFinishDebugStage > 7.5 && _WallFinishDebugStage < 8.5)
+                {
+                    half shadow = mainLight.shadowAttenuation;
+                    return half4(shadow, shadow, shadow, 1.0h);
+                }
+
                 // Stage 4: main directional light's physically based contribution,
                 // including its N.L term, distance attenuation and shadow attenuation.
                 if (_WallFinishDebugStage > 3.5 && _WallFinishDebugStage < 4.5)
