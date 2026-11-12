@@ -567,17 +567,25 @@ public class FloorFinishRenderer : MonoBehaviour
         if (catalogue == null || gridManager == null || finishIndices == null)
             return;
 
+        if (catalogue.SharedRenderMaterial == null)
+        {
+            Debug.LogError(
+                "FloorFinishRenderer: The floor finish catalogue has no shared " +
+                "texture-array material. Run Airport/Floor Finishes/Build Catalogue " +
+                "From Project Materials in the Unity Editor.",
+                this);
+            return;
+        }
+
         int startX = chunkCoordinate.x * Mathf.Max(8, chunkSize);
         int startZ = chunkCoordinate.y * Mathf.Max(8, chunkSize);
         int endX = Mathf.Min(startX + Mathf.Max(8, chunkSize), GridWidth);
         int endZ = Mathf.Min(startZ + Mathf.Max(8, chunkSize), GridHeight);
 
-        Dictionary<int, List<Vector3>> verticesByFinish =
-            new Dictionary<int, List<Vector3>>();
-        Dictionary<int, List<Vector2>> uvsByFinish =
-            new Dictionary<int, List<Vector2>>();
-        Dictionary<int, List<int>> trianglesByFinish =
-            new Dictionary<int, List<int>>();
+        List<Vector3> vertices = new List<Vector3>();
+        List<Vector2> uvs = new List<Vector2>();
+        List<Vector2> finishSlices = new List<Vector2>();
+        List<int> triangles = new List<int>();
 
         float cellSize = gridManager.CellSize;
 
@@ -591,16 +599,13 @@ public class FloorFinishRenderer : MonoBehaviour
                 if (finish == null || finish.material == null)
                     continue;
 
-                if (!verticesByFinish.TryGetValue(finishIndex, out List<Vector3> vertices))
-                {
-                    vertices = new List<Vector3>();
-                    verticesByFinish.Add(finishIndex, vertices);
-                    uvsByFinish.Add(finishIndex, new List<Vector2>());
-                    trianglesByFinish.Add(finishIndex, new List<int>());
-                }
+                Vector2 textureScale =
+                    finish.material.GetTextureScale("_BaseMap");
+                Vector2 textureOffset =
+                    finish.material.GetTextureOffset("_BaseMap");
 
-                List<Vector2> uvs = uvsByFinish[finishIndex];
-                List<int> triangles = trianglesByFinish[finishIndex];
+                if (textureScale == Vector2.zero)
+                    textureScale = Vector2.one;
 
                 float localX = (x - startX) * cellSize;
                 float localZ = (z - startZ) * cellSize;
@@ -611,10 +616,16 @@ public class FloorFinishRenderer : MonoBehaviour
                 vertices.Add(new Vector3(localX + cellSize, surfaceOffset, localZ + cellSize));
                 vertices.Add(new Vector3(localX + cellSize, surfaceOffset, localZ));
 
-                uvs.Add(new Vector2(0f, 0f));
-                uvs.Add(new Vector2(0f, 1f));
-                uvs.Add(new Vector2(1f, 1f));
-                uvs.Add(new Vector2(1f, 0f));
+                uvs.Add(textureOffset);
+                uvs.Add(textureOffset + new Vector2(0f, textureScale.y));
+                uvs.Add(textureOffset + textureScale);
+                uvs.Add(textureOffset + new Vector2(textureScale.x, 0f));
+
+                Vector2 slice = new Vector2(finishIndex, 0f);
+                finishSlices.Add(slice);
+                finishSlices.Add(slice);
+                finishSlices.Add(slice);
+                finishSlices.Add(slice);
 
                 triangles.Add(vertexStart);
                 triangles.Add(vertexStart + 1);
@@ -625,52 +636,25 @@ public class FloorFinishRenderer : MonoBehaviour
             }
         }
 
-        if (verticesByFinish.Count == 0)
+        if (vertices.Count == 0)
         {
             RemoveChunkVisual(chunkCoordinate);
             return;
         }
 
-        List<int> orderedFinishIndices =
-            new List<int>(verticesByFinish.Keys);
-        orderedFinishIndices.Sort();
-
-        List<Material> materials = new List<Material>();
-        List<List<int>> allSubmeshTriangles = new List<List<int>>();
-        List<Vector3> allVertices = new List<Vector3>();
-        List<Vector2> allUvs = new List<Vector2>();
         Mesh mesh = new Mesh
         {
             name = $"FloorFinishChunk_{chunkCoordinate.x}_{chunkCoordinate.y}",
             indexFormat = IndexFormat.UInt32
         };
 
-        foreach (int finishIndex in orderedFinishIndices)
-        {
-            FloorFinishDefinition finish = catalogue.GetAt(finishIndex);
-            List<Vector3> vertices = verticesByFinish[finishIndex];
-            List<Vector2> uvs = uvsByFinish[finishIndex];
-            List<int> triangles = trianglesByFinish[finishIndex];
-
-            int vertexOffset = allVertices.Count;
-            allVertices.AddRange(vertices);
-            allUvs.AddRange(uvs);
-
-            for (int i = 0; i < triangles.Count; i++)
-                triangles[i] += vertexOffset;
-
-            allSubmeshTriangles.Add(triangles);
-            materials.Add(finish.material);
-        }
-
-        mesh.SetVertices(allVertices);
-        mesh.SetUVs(0, allUvs);
-        mesh.subMeshCount = allSubmeshTriangles.Count;
-
-        for (int i = 0; i < allSubmeshTriangles.Count; i++)
-            mesh.SetTriangles(allSubmeshTriangles[i], i, false);
-
+        mesh.SetVertices(vertices);
+        mesh.SetUVs(0, uvs);
+        mesh.SetUVs(1, finishSlices);
+        mesh.subMeshCount = 1;
+        mesh.SetTriangles(triangles, 0, false);
         mesh.RecalculateNormals();
+        mesh.RecalculateTangents();
         mesh.RecalculateBounds();
 
         ChunkVisual visual = GetOrCreateChunkVisual(chunkCoordinate);
@@ -683,7 +667,7 @@ public class FloorFinishRenderer : MonoBehaviour
         MeshRenderer renderer = visual.gameObject.GetComponent<MeshRenderer>();
 
         filter.sharedMesh = mesh;
-        renderer.sharedMaterials = materials.ToArray();
+        renderer.sharedMaterial = catalogue.SharedRenderMaterial;
 
         Vector2Int chunkOrigin = new Vector2Int(startX, startZ);
         visual.gameObject.transform.position =
