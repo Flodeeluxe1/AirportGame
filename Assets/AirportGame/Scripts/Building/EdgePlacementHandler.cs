@@ -416,8 +416,16 @@ public class EdgePlacementHandler : IPlacementHandler
                     ? 1
                     : -1;
 
+            // A horizontal edge extends from its cell toward +X.
+            // When dragging west from the locked start vertex,
+            // begin with the edge immediately west of that vertex.
+            int firstX =
+                step < 0
+                    ? start.x - 1
+                    : start.x;
+
             for (
-                int x = start.x;
+                int x = firstX;
                 ;
                 x += step)
             {
@@ -442,8 +450,16 @@ public class EdgePlacementHandler : IPlacementHandler
                     ? 1
                     : -1;
 
+            // A vertical edge extends from its cell toward +Z.
+            // When dragging south from the locked start vertex,
+            // begin with the edge immediately south of that vertex.
+            int firstZ =
+                step < 0
+                    ? start.y - 1
+                    : start.y;
+
             for (
-                int z = start.y;
+                int z = firstZ;
                 ;
                 z += step)
             {
