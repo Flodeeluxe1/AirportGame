@@ -188,6 +188,10 @@ Shader "Airport/Wall Finish Texture Array"
                         _PreviewColor.a);
                 }
 
+                // Diagnostic: display the finish base colour without PBR lighting.
+                if (isWallSide && finishIndex >= 0.0)
+                    return half4(baseSample.rgb, baseSample.a);
+
                 // Build the tangent basis from the actual wall surface position
                 // and UV derivatives. This avoids relying on imported mesh tangents,
                 // which can be missing or inconsistent between wall prefabs.
