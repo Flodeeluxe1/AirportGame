@@ -167,7 +167,7 @@ Shader "Airport/Wall Finish Texture Array"
                         _BaseColorArray,
                         sampler_BaseColorArray,
                         finishUV,
-                        finishIndex) * _BaseColor;
+                        finishIndex);
 
                     half4 maskSample = SAMPLE_TEXTURE2D_ARRAY(
                         _MaskArray,
