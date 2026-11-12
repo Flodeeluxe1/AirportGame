@@ -154,8 +154,7 @@ public class FloorFinishPainter : MonoBehaviour
     private void UpdatePreviewUnderPointer(bool updateDragArea)
     {
         if (mainCamera == null || gridManager == null ||
-            gridSurface == null || floorFinishRenderer == null ||
-            selectedFinish == null)
+            gridSurface == null || floorFinishRenderer == null)
         {
             floorFinishRenderer?.HidePreviewArea();
             return;
@@ -209,7 +208,11 @@ public class FloorFinishPainter : MonoBehaviour
 
         if (!updateDragArea)
         {
-            floorFinishRenderer.ShowPreviewArea(cell, cell, selectedFinish);
+            if (selectedFinish != null)
+                floorFinishRenderer.ShowPreviewArea(cell, cell, selectedFinish);
+            else
+                floorFinishRenderer.HidePreviewArea();
+
             return;
         }
 
@@ -217,8 +220,18 @@ public class FloorFinishPainter : MonoBehaviour
             dragStartCell = cell;
 
         previewEndCell = cell;
-        floorFinishRenderer.ShowPreviewArea(
-            dragStartCell, previewEndCell, selectedFinish);
+
+        if (selectedFinish != null)
+        {
+            floorFinishRenderer.ShowPreviewArea(
+                dragStartCell, previewEndCell, selectedFinish);
+        }
+        else
+        {
+            // Eraser mode still needs the drag rectangle endpoints,
+            // but does not render a material preview.
+            floorFinishRenderer.HidePreviewArea();
+        }
     }
 
     private void PaintRectangle(Vector2Int from, Vector2Int to)
