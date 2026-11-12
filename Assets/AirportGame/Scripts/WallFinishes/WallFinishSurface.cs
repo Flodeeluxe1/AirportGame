@@ -132,7 +132,6 @@ public class WallFinishSurface : MonoBehaviour
         }
 
         ApplyFinishProperties();
-        RestoreOriginalMaterialsIfUnused();
     }
 
     public void SetFinish(bool innerSide, WallFinishDefinition finish)
