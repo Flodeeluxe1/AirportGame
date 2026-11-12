@@ -70,6 +70,9 @@ public class FloorFinishPainter : MonoBehaviour
             return;
         }
 
+        if (!isDragging)
+            UpdatePreviewUnderPointer(false);
+
         if (mouse.leftButton.wasPressedThisFrame)
         {
             if (IsPointerOverBuildUI())
@@ -79,15 +82,15 @@ public class FloorFinishPainter : MonoBehaviour
             dragStartCell = new Vector2Int(int.MinValue, int.MinValue);
             previewEndCell = new Vector2Int(int.MinValue, int.MinValue);
             floorFinishRenderer?.BeginStroke();
-            UpdatePreviewUnderPointer();
+            UpdatePreviewUnderPointer(true);
         }
 
         if (isDragging && mouse.leftButton.isPressed)
-            UpdatePreviewUnderPointer();
+            UpdatePreviewUnderPointer(true);
 
         if (mouse.leftButton.wasReleasedThisFrame && isDragging)
         {
-            UpdatePreviewUnderPointer();
+            UpdatePreviewUnderPointer(true);
 
             if (dragStartCell.x != int.MinValue &&
                 previewEndCell.x != int.MinValue)
@@ -148,11 +151,15 @@ public class FloorFinishPainter : MonoBehaviour
         previewEndCell = new Vector2Int(int.MinValue, int.MinValue);
     }
 
-    private void UpdatePreviewUnderPointer()
+    private void UpdatePreviewUnderPointer(bool updateDragArea)
     {
         if (mainCamera == null || gridManager == null ||
-            gridSurface == null || floorFinishRenderer == null)
+            gridSurface == null || floorFinishRenderer == null ||
+            selectedFinish == null)
+        {
+            floorFinishRenderer?.HidePreviewArea();
             return;
+        }
 
         if (IsPointerOverBuildUI())
         {
@@ -176,9 +183,16 @@ public class FloorFinishPainter : MonoBehaviour
         Vector3 hitPoint = ray.GetPoint(distance);
         Vector2Int cell = gridManager.WorldToGrid(hitPoint);
 
-        if (!gridManager.IsInsideGrid(cell))
+        if (!gridManager.IsInsideGrid(cell) ||
+            gridSurface.GetSurface(cell) != BuildSurface.Foundation)
         {
             floorFinishRenderer.HidePreviewArea();
+            return;
+        }
+
+        if (!updateDragArea)
+        {
+            floorFinishRenderer.ShowPreviewArea(cell, cell, selectedFinish);
             return;
         }
 
