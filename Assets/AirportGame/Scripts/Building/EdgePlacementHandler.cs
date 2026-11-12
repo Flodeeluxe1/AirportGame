@@ -26,6 +26,8 @@ public class EdgePlacementHandler : IPlacementHandler
     private Vector3 originalPreviewScale;
     private Vector3 lastHitPoint;
     private Vector3 dragStartWorldPosition;
+    private string lastMarkerDiagnostic;
+    private string lastPathDiagnostic;
 
     private readonly List<GridEdge> previewEdges =
         new List<GridEdge>();
@@ -292,6 +294,7 @@ public class EdgePlacementHandler : IPlacementHandler
             HasRequiredFoundation(markerEdge);
 
         placementPreview.SetValid(validStartPosition);
+        LogMarkerDiagnostic(markerEdge, validStartPosition);
 
         ClearAdditionalPreviews();
     }
@@ -362,6 +365,8 @@ public class EdgePlacementHandler : IPlacementHandler
 
         bool allValid =
             AreAllPreviewEdgesValid();
+
+        LogPreviewValidation(allValid);
 
         for (
             int i = 0;
@@ -856,6 +861,63 @@ public class EdgePlacementHandler : IPlacementHandler
         return bounds.size.y;
     }
 
+
+    private void LogMarkerDiagnostic(GridEdge edge, bool valid)
+    {
+        Vector2Int firstCell = edge.cell;
+        Vector2Int secondCell = edge.direction == EdgeDirection.Horizontal
+            ? edge.cell + Vector2Int.down
+            : edge.cell + Vector2Int.left;
+
+        bool inside = IsEdgeInsideGrid(edge);
+        bool hasSurface = HasRequiredFoundation(edge);
+        bool occupied = edgeOccupancy == null || edgeOccupancy.IsOccupied(edge);
+
+        string diagnostic =
+            $"Wall start marker: edge=({edge.cell.x},{edge.cell.y}) {edge.direction}, " +
+            $"requiredSurface={definition.requiredSurface}, insideGrid={inside}, " +
+            $"surfaceValid={hasSurface}, occupied={occupied}, valid={valid}, " +
+            $"adjacentSurfaces=[{firstCell}:{GetSurfaceName(firstCell)}, " +
+            $"{secondCell}:{GetSurfaceName(secondCell)}]";
+
+        if (diagnostic != lastMarkerDiagnostic)
+        {
+            Debug.Log(diagnostic);
+            lastMarkerDiagnostic = diagnostic;
+        }
+    }
+
+    private string GetSurfaceName(Vector2Int cell)
+    {
+        if (gridSurface == null)
+            return "GridSurfaceMissing";
+
+        return gridSurface.GetSurface(cell).ToString();
+    }
+
+    private void LogPreviewValidation(bool allValid)
+    {
+        string diagnostic = $"Wall drag preview: allValid={allValid}, segments={previewEdges.Count}";
+
+        for (int i = 0; i < previewEdges.Count; i++)
+        {
+            GridEdge edge = previewEdges[i];
+            bool inside = IsEdgeInsideGrid(edge);
+            bool occupied = edgeOccupancy == null || edgeOccupancy.IsOccupied(edge);
+            bool surface = HasRequiredFoundation(edge);
+
+            diagnostic +=
+                $" | {i}:({edge.cell.x},{edge.cell.y}) {edge.direction}" +
+                $" inside={inside} occupied={occupied} surface={surface}";
+        }
+
+        if (diagnostic != lastPathDiagnostic)
+        {
+            Debug.Log(diagnostic);
+            lastPathDiagnostic = diagnostic;
+        }
+    }
+
     private bool AreAllPreviewEdgesValid()
     {
         if (previewEdges.Count == 0)
@@ -1108,6 +1170,8 @@ public class EdgePlacementHandler : IPlacementHandler
         originalPreviewScale = Vector3.one;
         lastHitPoint = Vector3.zero;
         dragStartWorldPosition = Vector3.zero;
+        lastMarkerDiagnostic = null;
+        lastPathDiagnostic = null;
 
         previewEdges.Clear();
     }
