@@ -191,7 +191,7 @@ public class WallFinishSurface : MonoBehaviour
 
             MaterialPropertyBlock block = new MaterialPropertyBlock();
             state.renderer.GetPropertyBlock(block);
-            block.SetFloat(BrightnessDebugStageId, Mathf.Clamp(stage, 0, 30));
+            block.SetFloat(BrightnessDebugStageId, Mathf.Clamp(stage, 0, 35));
             state.renderer.SetPropertyBlock(block);
         }
     }
