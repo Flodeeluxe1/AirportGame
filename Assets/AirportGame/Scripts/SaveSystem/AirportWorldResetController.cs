@@ -298,6 +298,16 @@ public class AirportWorldResetController : MonoBehaviour
 
         ResolveRoomPurposeReferences();
 
+        if (floorFinishRenderer == null)
+            floorFinishRenderer = FindFirstObjectByType<FloorFinishRenderer>();
+
+        if (floorFinishRenderer == null)
+        {
+            Debug.LogWarning(
+                "AirportWorldResetController: FloorFinishRenderer was not found. " +
+                "The save will contain no floor finish data.");
+        }
+
         AirportManagementController airportManagementController =
             AirportManagementController.Instance != null
                 ? AirportManagementController.Instance
