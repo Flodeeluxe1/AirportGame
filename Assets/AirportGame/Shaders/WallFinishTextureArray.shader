@@ -18,6 +18,7 @@ Shader "Airport/Wall Finish Texture Array"
         _PreviewSideSign ("Preview Side Sign", Float) = 1
         _PreviewFinishIndex ("Preview Finish Index", Float) = -1
         _PreviewColor ("Preview Color", Color) = (1,0.08,0.02,0.35)
+        [HideInInspector] _WallFinishDebugStage ("Brightness Diagnostic Stage", Float) = 0
     }
 
     SubShader
@@ -74,6 +75,7 @@ Shader "Airport/Wall Finish Texture Array"
                 float _PreviewSideSign;
                 float _PreviewFinishIndex;
                 half4 _PreviewColor;
+                float _WallFinishDebugStage;
             CBUFFER_END
 
             struct Attributes
@@ -182,6 +184,7 @@ Shader "Airport/Wall Finish Texture Array"
                     _BaseMap,
                     sampler_BaseMap,
                     input.uv * _BaseMap_ST.xy + _BaseMap_ST.zw) * _BaseColor;
+                half4 originalBaseSample = baseSample;
 
                 half3 normalTS = half3(0,0,1);
                 half metallic = _OriginalMetallic;
@@ -237,6 +240,12 @@ Shader "Airport/Wall Finish Texture Array"
                         _PreviewColor.rgb,
                         _PreviewColor.a);
                 }
+
+                // Stages 1 and 2 expose the source and selected finish albedo.
+                if (_WallFinishDebugStage > 0.5 && _WallFinishDebugStage < 1.5)
+                    return originalBaseSample;
+                if (_WallFinishDebugStage > 1.5 && _WallFinishDebugStage < 2.5)
+                    return baseSample;
 
                 // Build the tangent basis from the actual wall surface position
                 // and UV derivatives. This avoids relying on imported mesh tangents,
@@ -328,6 +337,10 @@ Shader "Airport/Wall Finish Texture Array"
                     GetNormalizedScreenSpaceUV(input.positionCS);
                 inputData.shadowMask = half4(1,1,1,1);
 
+                // Stage 3 exposes the baked-GI value before PBR lighting.
+                if (_WallFinishDebugStage > 2.5 && _WallFinishDebugStage < 3.5)
+                    return half4(inputData.bakedGI, 1.0h);
+
                 SurfaceData surfaceData = (SurfaceData)0;
                 surfaceData.albedo = baseSample.rgb;
                 surfaceData.metallic = metallic;
@@ -343,6 +356,8 @@ Shader "Airport/Wall Finish Texture Array"
                 half4 color =
                     UniversalFragmentPBR(inputData, surfaceData);
                 color.rgb = MixFog(color.rgb, input.fogFactor);
+
+                // Stage 4 exposes the final shaded wall colour.
                 return color;
             }
             ENDHLSL
