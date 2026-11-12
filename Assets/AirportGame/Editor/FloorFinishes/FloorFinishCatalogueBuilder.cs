@@ -300,24 +300,39 @@ public static class FloorFinishCatalogueBuilder
         bool linear,
         Func<int, Color[]> getSlicePixels)
     {
-        // Rebuild the generated array from the source materials each time.
-        // The shared material is rebound to the new assets below.
-        if (AssetDatabase.LoadAssetAtPath<Texture2DArray>(assetPath) != null)
-            AssetDatabase.DeleteAsset(assetPath);
+        Texture2DArray array =
+            AssetDatabase.LoadAssetAtPath<Texture2DArray>(assetPath);
 
-        Texture2DArray array = new Texture2DArray(
-            TextureArrayResolution,
-            TextureArrayResolution,
-            depth,
-            TextureFormat.RGBA32,
-            true,
-            linear)
+        bool needsRecreation =
+            array == null ||
+            array.width != TextureArrayResolution ||
+            array.height != TextureArrayResolution ||
+            array.depth != depth ||
+            array.format != TextureFormat.RGBA32 ||
+            !array.isReadable;
+
+        if (needsRecreation)
         {
-            name = Path.GetFileNameWithoutExtension(assetPath),
-            wrapMode = TextureWrapMode.Repeat,
-            filterMode = FilterMode.Trilinear,
-            anisoLevel = 8
-        };
+            if (array != null)
+                AssetDatabase.DeleteAsset(assetPath);
+
+            array = new Texture2DArray(
+                TextureArrayResolution,
+                TextureArrayResolution,
+                depth,
+                TextureFormat.RGBA32,
+                true,
+                linear)
+            {
+                name = Path.GetFileNameWithoutExtension(assetPath)
+            };
+
+            AssetDatabase.CreateAsset(array, assetPath);
+        }
+
+        array.wrapMode = TextureWrapMode.Repeat;
+        array.filterMode = FilterMode.Trilinear;
+        array.anisoLevel = 8;
 
         for (int slice = 0; slice < depth; slice++)
         {
@@ -326,7 +341,6 @@ public static class FloorFinishCatalogueBuilder
         }
 
         array.Apply(true, false);
-        AssetDatabase.CreateAsset(array, assetPath);
         EditorUtility.SetDirty(array);
 
         return array;
