@@ -175,9 +175,11 @@ Shader "Airport/Wall Finish Texture Array"
 
                     // Diagnostic: use a flat tangent-space normal to isolate wall lighting.
                     normalTS = half3(0,0,1);
-                    metallic = maskSample.r;
-                    occlusion = maskSample.g;
-                    smoothness = maskSample.a;
+                    // Diagnostic: bypass packed material-mask values while
+                    // keeping the full PBR lighting calculation active.
+                    metallic = 0.0h;
+                    occlusion = 1.0h;
+                    smoothness = 0.5h;
                 }
 
                 if (previewThisFace && _PreviewMode > 1.5)
