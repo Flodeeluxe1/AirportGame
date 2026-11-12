@@ -39,11 +39,14 @@ Shader "Airport/Wall Finish Texture Array"
             #pragma require 2darray
             #pragma vertex Vert
             #pragma fragment Frag
+
+            // Keep the lighting variants used by URP/Lit, including vertex lights
+            // and the clustered-light path used by this project.
             #pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE _MAIN_LIGHT_SHADOWS_SCREEN
-            #pragma multi_compile _ _CLUSTER_LIGHT_LOOP
-            #pragma multi_compile _ _ADDITIONAL_LIGHTS
-            #pragma multi_compile _ _ADDITIONAL_LIGHT_SHADOWS
+            #pragma multi_compile _ _ADDITIONAL_LIGHTS_VERTEX _ADDITIONAL_LIGHTS
+            #pragma multi_compile_fragment _ _ADDITIONAL_LIGHT_SHADOWS
             #pragma multi_compile _ EVALUATE_SH_MIXED EVALUATE_SH_VERTEX
+            #pragma multi_compile _ _CLUSTER_LIGHT_LOOP
             #pragma multi_compile _ LIGHTMAP_SHADOW_MIXING
             #pragma multi_compile _ SHADOWS_SHADOWMASK
             #pragma multi_compile _ DIRLIGHTMAP_COMBINED
@@ -82,10 +85,12 @@ Shader "Airport/Wall Finish Texture Array"
                 half4 _PreviewColor;
             CBUFFER_END
 
+            // The vertex and probe data layout below follows URP 17.6 LitForwardPass.
             struct Attributes
             {
                 float4 positionOS : POSITION;
                 float3 normalOS : NORMAL;
+                float4 tangentOS : TANGENT;
                 float2 uv : TEXCOORD0;
                 float2 staticLightmapUV : TEXCOORD1;
                 float2 dynamicLightmapUV : TEXCOORD2;
@@ -94,41 +99,54 @@ Shader "Airport/Wall Finish Texture Array"
 
             struct Varyings
             {
-                float4 positionCS : SV_POSITION;
-                float3 positionWS : TEXCOORD0;
-                half3 normalWS : TEXCOORD1;
-                float2 uv : TEXCOORD2;
+                float2 uv : TEXCOORD0;
+                float3 positionWS : TEXCOORD1;
+                float3 normalWS : TEXCOORD2;
                 float3 wallForwardWS : TEXCOORD3;
-                #if defined(REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR)
-                float4 shadowCoord : TEXCOORD4;
-                #endif
+
+                #ifdef _ADDITIONAL_LIGHTS_VERTEX
+                half4 fogFactorAndVertexLight : TEXCOORD5;
+                #else
                 half fogFactor : TEXCOORD5;
+                #endif
 
-                DECLARE_LIGHTMAP_OR_SH(staticLightmapUV, vertexSH, 6);
+                #if defined(REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR)
+                float4 shadowCoord : TEXCOORD6;
+                #endif
+
+                DECLARE_LIGHTMAP_OR_SH(staticLightmapUV, vertexSH, 8);
                 #ifdef DYNAMICLIGHTMAP_ON
-                float2 dynamicLightmapUV : TEXCOORD7;
-                #endif
-                #ifdef USE_APV_PROBE_OCCLUSION
-                float4 probeOcclusion : TEXCOORD8;
+                float2 dynamicLightmapUV : TEXCOORD9;
                 #endif
 
+                #ifdef USE_APV_PROBE_OCCLUSION
+                float4 probeOcclusion : TEXCOORD10;
+                #endif
+
+                float4 positionCS : SV_POSITION;
                 UNITY_VERTEX_INPUT_INSTANCE_ID
             };
 
             Varyings Vert(Attributes input)
             {
                 Varyings output = (Varyings)0;
+
                 UNITY_SETUP_INSTANCE_ID(input);
                 UNITY_TRANSFER_INSTANCE_ID(input, output);
 
                 VertexPositionInputs positionInputs =
                     GetVertexPositionInputs(input.positionOS.xyz);
-                output.positionCS = positionInputs.positionCS;
-                output.positionWS = positionInputs.positionWS;
-                output.normalWS = TransformObjectToWorldNormal(input.normalOS);
+                VertexNormalInputs normalInputs =
+                    GetVertexNormalInputs(input.normalOS, input.tangentOS);
+
+                half3 vertexLight =
+                    VertexLighting(positionInputs.positionWS, normalInputs.normalWS);
+
                 output.uv = input.uv;
+                output.positionWS = positionInputs.positionWS;
+                output.normalWS = normalInputs.normalWS;
                 output.wallForwardWS =
-                    TransformObjectToWorldDir(float3(0,0,1));
+                    TransformObjectToWorldDir(float3(0, 0, 1));
 
                 OUTPUT_LIGHTMAP_UV(
                     input.staticLightmapUV,
@@ -143,22 +161,31 @@ Shader "Airport/Wall Finish Texture Array"
 
                 OUTPUT_SH4(
                     positionInputs.positionWS,
-                    output.normalWS.xyz,
+                    output.normalWS,
                     GetWorldSpaceNormalizeViewDir(positionInputs.positionWS),
                     output.vertexSH,
                     output.probeOcclusion);
+
+                half fogFactor = ComputeFogFactor(positionInputs.positionCS.z);
+                #ifdef _ADDITIONAL_LIGHTS_VERTEX
+                output.fogFactorAndVertexLight = half4(fogFactor, vertexLight);
+                #else
+                output.fogFactor = fogFactor;
+                #endif
 
                 #if defined(REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR)
                 output.shadowCoord = GetShadowCoord(positionInputs);
                 #endif
 
-                output.fogFactor =
-                    ComputeFogFactor(positionInputs.positionCS.z);
+                output.positionCS = positionInputs.positionCS;
                 return output;
             }
 
-            // Match the InputData setup used by URP/Lit's Forward pass.
-            void InitializeWallInputData(Varyings input, half3 normalWS, out InputData inputData)
+            // Mirrors URP/Lit's Forward-pass InputData setup.
+            void InitializeWallInputData(
+                Varyings input,
+                half3 normalWS,
+                out InputData inputData)
             {
                 inputData = (InputData)0;
                 inputData.positionWS = input.positionWS;
@@ -176,15 +203,22 @@ Shader "Airport/Wall Finish Texture Array"
                 inputData.shadowCoord = float4(0, 0, 0, 0);
                 #endif
 
+                #ifdef _ADDITIONAL_LIGHTS_VERTEX
+                inputData.fogCoord = InitializeInputDataFog(
+                    float4(input.positionWS, 1.0),
+                    input.fogFactorAndVertexLight.x);
+                inputData.vertexLighting = input.fogFactorAndVertexLight.yzw;
+                #else
                 inputData.fogCoord = InitializeInputDataFog(
                     float4(input.positionWS, 1.0),
                     input.fogFactor);
+                #endif
+
                 inputData.normalizedScreenSpaceUV =
                     GetNormalizedScreenSpaceUV(input.positionCS);
             }
 
-            // Match URP/Lit's baked-GI branch structure while retaining the
-            // screen-space irradiance variant used by this project.
+            // This is the URP 17.6 Lit baked-GI branch structure verbatim.
             void InitializeWallBakedGIData(
                 Varyings input,
                 inout InputData inputData)
@@ -192,8 +226,7 @@ Shader "Airport/Wall Finish Texture Array"
                 #if defined(_SCREEN_SPACE_IRRADIANCE)
                 inputData.bakedGI = SAMPLE_GI(
                     _ScreenSpaceIrradiance,
-                    input.positionCS.xy,
-                    inputData.normalWS);
+                    input.positionCS.xy);
                 #elif defined(DYNAMICLIGHTMAP_ON)
                 inputData.bakedGI = SAMPLE_GI(
                     input.staticLightmapUV,
@@ -202,7 +235,7 @@ Shader "Airport/Wall Finish Texture Array"
                     inputData.normalWS);
                 inputData.shadowMask =
                     SAMPLE_SHADOWMASK(input.staticLightmapUV);
-                #elif !defined(LIGHTMAP_ON) && \
+                #elif !defined(LIGHTMAP_ON) && \\
                     (defined(PROBE_VOLUMES_L1) || defined(PROBE_VOLUMES_L2))
                 inputData.bakedGI = SAMPLE_GI(
                     input.vertexSH,
@@ -226,7 +259,7 @@ Shader "Airport/Wall Finish Texture Array"
             {
                 UNITY_SETUP_INSTANCE_ID(input);
 
-                half3 geometricNormal = normalize(input.normalWS);
+                half3 geometricNormal = NormalizeNormalPerPixel(input.normalWS);
                 float sideDot = dot(
                     geometricNormal,
                     normalize(input.wallForwardWS));
@@ -254,8 +287,7 @@ Shader "Airport/Wall Finish Texture Array"
                     sampler_BaseMap,
                     input.uv * _BaseMap_ST.xy + _BaseMap_ST.zw) * _BaseColor;
 
-                // TEMPORARY DIAGNOSTIC:
-                // Disable both original and finish normal maps on every wall face.
+                // Keep normal maps disabled during this lighting comparison.
                 half3 normalTS = half3(0.0h, 0.0h, 1.0h);
                 half metallic = _OriginalMetallic;
                 half smoothness = _OriginalSmoothness;
@@ -278,11 +310,6 @@ Shader "Airport/Wall Finish Texture Array"
                         finishUV,
                         finishIndex);
 
-                    // TEMPORARY DIAGNOSTIC:
-                    // Keep finished wall faces geometrically flat to test whether
-                    // finish normal maps cause the opposite face to darken.
-                    normalTS = half3(0.0h, 0.0h, 1.0h);
-
                     metallic = maskSample.r;
                     occlusion = maskSample.g;
                     smoothness = maskSample.a;
@@ -296,59 +323,23 @@ Shader "Airport/Wall Finish Texture Array"
                         _PreviewColor.a);
                 }
 
-// Build the tangent basis from the actual wall surface position
-                // and UV derivatives. This avoids relying on imported mesh tangents,
-                // which can be missing or inconsistent between wall prefabs.
-                float3 positionDx = ddx(input.positionWS);
-                float3 positionDy = ddy(input.positionWS);
-                float2 uvDx = ddx(input.uv);
-                float2 uvDy = ddy(input.uv);
-                float uvDeterminant = uvDx.x * uvDy.y - uvDx.y * uvDy.x;
-                float inverseUvDeterminant =
-                    abs(uvDeterminant) > 1e-8
-                        ? rcp(uvDeterminant)
-                        : 0.0;
-
-                float3 tangentWS =
-                    (positionDx * uvDy.y - positionDy * uvDx.y) *
-                    inverseUvDeterminant;
-                float3 bitangentWS =
-                    (-positionDx * uvDy.x + positionDy * uvDx.x) *
-                    inverseUvDeterminant;
-
-                tangentWS = normalize(
-                    tangentWS - geometricNormal *
-                    dot(geometricNormal, tangentWS));
-
-                float tangentHandedness =
-                    dot(cross(geometricNormal, tangentWS), bitangentWS) < 0.0
-                        ? -1.0
-                        : 1.0;
-                bitangentWS = normalize(
-                    cross(geometricNormal, tangentWS) * tangentHandedness);
-
-                half3 normalWS = normalize(
-                    tangentWS * normalTS.x +
-                    bitangentWS * normalTS.y +
-                    geometricNormal * normalTS.z);
-
                 InputData inputData;
-                InitializeWallInputData(input, normalWS, inputData);
+                InitializeWallInputData(input, geometricNormal, inputData);
                 InitializeWallBakedGIData(input, inputData);
 
                 SurfaceData surfaceData = (SurfaceData)0;
                 surfaceData.albedo = baseSample.rgb;
                 surfaceData.metallic = metallic;
-                surfaceData.specular = half3(0.04h,0.04h,0.04h);
+                surfaceData.specular = half3(0.04h, 0.04h, 0.04h);
                 surfaceData.smoothness = smoothness;
                 surfaceData.normalTS = normalTS;
                 surfaceData.occlusion = occlusion;
-                surfaceData.emission = half3(0,0,0);
+                surfaceData.emission = half3(0, 0, 0);
                 surfaceData.alpha = baseSample.a;
                 surfaceData.clearCoatMask = 0;
                 surfaceData.clearCoatSmoothness = 0;
 
-half4 color =
+                half4 color =
                     UniversalFragmentPBR(inputData, surfaceData);
                 color.rgb = MixFog(color.rgb, inputData.fogCoord);
                 return color;
