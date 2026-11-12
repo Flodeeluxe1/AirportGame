@@ -218,15 +218,10 @@ Shader "Airport/Wall Finish Texture Array"
                         finishUV,
                         finishIndex);
 
-                    half4 normalSample = SAMPLE_TEXTURE2D_ARRAY(
-                        _NormalArray,
-                        sampler_NormalArray,
-                        finishUV,
-                        finishIndex);
-
-                    normalTS = UnpackNormalScale(
-                        normalSample,
-                        maskSample.b);
+                    // TEMPORARY DIAGNOSTIC:
+                    // Keep finished wall faces geometrically flat to test whether
+                    // finish normal maps cause the opposite face to darken.
+                    normalTS = half3(0.0h, 0.0h, 1.0h);
 
                     metallic = maskSample.r;
                     occlusion = maskSample.g;
