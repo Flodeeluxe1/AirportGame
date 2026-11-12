@@ -214,29 +214,44 @@ public class AirportCameraController : MonoBehaviour
             input.x -= 1f;
 
 
-        // Right mouse drag: direct movement with no acceleration.
+        // Right mouse drag: grab the ground and move it with the cursor.
         Mouse mouse = Mouse.current;
 
         if (mouse != null && mouse.rightButton.isPressed)
         {
-            Vector2 mouseDelta = mouse.delta.ReadValue();
+            Vector2 mousePosition = mouse.position.ReadValue();
+            Vector2 previousMousePosition =
+                mousePosition - mouse.delta.ReadValue();
 
-            // Reverse the input so the camera follows the drag direction.
-            Vector3 dragForward = controlledCamera.transform.forward;
-            Vector3 dragRight = controlledCamera.transform.right;
+            // Use the horizontal plane through the camera rig as the ground plane.
+            // Moving the rig by the difference between the two hit points makes
+            // the ground follow the cursor consistently at every zoom distance.
+            Plane groundPlane = new Plane(
+                Vector3.up,
+                new Vector3(0f, transform.position.y, 0f)
+            );
 
-            dragForward.y = 0f;
-            dragRight.y = 0f;
+            Ray currentRay = controlledCamera.ScreenPointToRay(mousePosition);
+            Ray previousRay = controlledCamera.ScreenPointToRay(previousMousePosition);
 
-            dragForward.Normalize();
-            dragRight.Normalize();
+            if (groundPlane.Raycast(currentRay, out float currentDistance) &&
+                groundPlane.Raycast(previousRay, out float previousDistance))
+            {
+                Vector3 currentGroundPoint =
+                    currentRay.GetPoint(currentDistance);
 
-            Vector3 dragMovement =
-                dragRight * -mouseDelta.x +
-                dragForward * -mouseDelta.y;
+                Vector3 previousGroundPoint =
+                    previousRay.GetPoint(previousDistance);
 
-            transform.position +=
-                dragMovement * rightMouseDragSensitivity;
+                // Keep the existing Inspector sensitivity setting, with 0.05
+                // representing the natural one-to-one ground-grab movement.
+                float sensitivityMultiplier =
+                    rightMouseDragSensitivity / 0.05f;
+
+                transform.position +=
+                    (previousGroundPoint - currentGroundPoint) *
+                    sensitivityMultiplier;
+            }
         }
 
 
