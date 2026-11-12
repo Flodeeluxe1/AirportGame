@@ -1,9 +1,10 @@
-
 using System.Collections.Generic;
 using UnityEngine;
 
 public class EdgePlacementHandler : IPlacementHandler
 {
+    private const float PreviewOrientationHysteresis = 0.15f;
+
     private BuildController controller;
     private GridManager gridManager;
     private EdgeOccupancy edgeOccupancy;
@@ -18,6 +19,7 @@ public class EdgePlacementHandler : IPlacementHandler
 
     private bool isDragging;
     private bool hasLockedCornerDirection;
+    private bool hasHoverOrientation;
 
     private readonly List<GridEdge> previewEdges =
         new List<GridEdge>();
@@ -59,6 +61,7 @@ public class EdgePlacementHandler : IPlacementHandler
 
         isDragging = false;
         hasLockedCornerDirection = false;
+        hasHoverOrientation = false;
 
         ClearAdditionalPreviews();
     }
@@ -96,24 +99,53 @@ public class EdgePlacementHandler : IPlacementHandler
         float distanceToHorizontal =
             Mathf.Abs(localZ);
 
-        EdgeDirection selectedDirection;
+        EdgeDirection nearestDirection;
 
         if (distanceToVertical <
             distanceToHorizontal)
         {
-            selectedDirection =
+            nearestDirection =
                 EdgeDirection.Vertical;
         }
         else
         {
-            selectedDirection =
+            nearestDirection =
                 EdgeDirection.Horizontal;
         }
+
+        EdgeDirection selectedDirection =
+            nearestDirection;
 
         Vector2Int selectedCell =
             new Vector2Int(cellX, cellZ);
 
-        if (isDragging)
+        if (!isDragging)
+        {
+            if (!hasHoverOrientation)
+            {
+                hasHoverOrientation = true;
+            }
+            else if (nearestDirection != currentEdge.direction)
+            {
+                float currentDirectionDistance =
+                    currentEdge.direction == EdgeDirection.Vertical
+                        ? distanceToVertical
+                        : distanceToHorizontal;
+
+                float candidateDirectionDistance =
+                    nearestDirection == EdgeDirection.Vertical
+                        ? distanceToVertical
+                        : distanceToHorizontal;
+
+                if (candidateDirectionDistance +
+                    PreviewOrientationHysteresis >=
+                    currentDirectionDistance)
+                {
+                    selectedDirection = currentEdge.direction;
+                }
+            }
+        }
+        else
         {
             if (!hasLockedCornerDirection &&
                 selectedDirection != startEdge.direction)
@@ -930,6 +962,7 @@ public class EdgePlacementHandler : IPlacementHandler
 
         isDragging = false;
         hasLockedCornerDirection = false;
+        hasHoverOrientation = false;
 
         previewEdges.Clear();
     }
