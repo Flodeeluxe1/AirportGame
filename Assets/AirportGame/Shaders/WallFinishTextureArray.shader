@@ -71,7 +71,6 @@ Shader "Airport/Wall Finish Texture Array"
             {
                 float4 positionOS : POSITION;
                 float3 normalOS : NORMAL;
-                float4 tangentOS : TANGENT;
                 float2 uv : TEXCOORD0;
                 UNITY_VERTEX_INPUT_INSTANCE_ID
             };
@@ -81,13 +80,12 @@ Shader "Airport/Wall Finish Texture Array"
                 float4 positionCS : SV_POSITION;
                 float3 positionWS : TEXCOORD0;
                 half3 normalWS : TEXCOORD1;
-                half4 tangentWS : TEXCOORD2;
-                float2 uv : TEXCOORD3;
-                float3 wallForwardWS : TEXCOORD4;
+                float2 uv : TEXCOORD2;
+                float3 wallForwardWS : TEXCOORD3;
                 #if defined(REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR)
-                float4 shadowCoord : TEXCOORD5;
+                float4 shadowCoord : TEXCOORD4;
                 #endif
-                half fogFactor : TEXCOORD6;
+                half fogFactor : TEXCOORD5;
                 UNITY_VERTEX_INPUT_INSTANCE_ID
             };
 
@@ -99,15 +97,9 @@ Shader "Airport/Wall Finish Texture Array"
 
                 VertexPositionInputs positionInputs =
                     GetVertexPositionInputs(input.positionOS.xyz);
-                VertexNormalInputs normalInputs =
-                    GetVertexNormalInputs(input.normalOS, input.tangentOS);
-
                 output.positionCS = positionInputs.positionCS;
                 output.positionWS = positionInputs.positionWS;
                 output.normalWS = normalInputs.normalWS;
-                output.tangentWS = half4(
-                    normalInputs.tangentWS,
-                    input.tangentOS.w * GetOddNegativeScale());
                 output.uv = input.uv;
                 output.wallForwardWS =
                     TransformObjectToWorldDir(float3(0,0,1));
@@ -195,10 +187,36 @@ Shader "Airport/Wall Finish Texture Array"
                         _PreviewColor.a);
                 }
 
-                half3 tangentWS = normalize(input.tangentWS.xyz);
-                half3 bitangentWS = normalize(
-                    cross(geometricNormal, tangentWS) *
-                    input.tangentWS.w);
+                // Build the tangent basis from the actual wall surface position
+                // and UV derivatives. This avoids relying on imported mesh tangents,
+                // which can be missing or inconsistent between wall prefabs.
+                float3 positionDx = ddx(input.positionWS);
+                float3 positionDy = ddy(input.positionWS);
+                float2 uvDx = ddx(input.uv);
+                float2 uvDy = ddy(input.uv);
+                float uvDeterminant = uvDx.x * uvDy.y - uvDx.y * uvDy.x;
+                float inverseUvDeterminant =
+                    abs(uvDeterminant) > 1e-8
+                        ? rcp(uvDeterminant)
+                        : 0.0;
+
+                float3 tangentWS =
+                    (positionDx * uvDy.y - positionDy * uvDx.y) *
+                    inverseUvDeterminant;
+                float3 bitangentWS =
+                    (-positionDx * uvDy.x + positionDy * uvDx.x) *
+                    inverseUvDeterminant;
+
+                tangentWS = normalize(
+                    tangentWS - geometricNormal *
+                    dot(geometricNormal, tangentWS));
+
+                float tangentHandedness =
+                    dot(cross(geometricNormal, tangentWS), bitangentWS) < 0.0
+                        ? -1.0
+                        : 1.0;
+                bitangentWS = normalize(
+                    cross(geometricNormal, tangentWS) * tangentHandedness);
 
                 half3 normalWS = normalize(
                     tangentWS * normalTS.x +
