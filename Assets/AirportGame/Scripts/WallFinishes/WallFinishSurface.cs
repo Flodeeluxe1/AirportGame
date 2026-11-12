@@ -26,6 +26,7 @@ public class WallFinishSurface : MonoBehaviour
     private static readonly int PreviewModeId = Shader.PropertyToID("_PreviewMode");
     private static readonly int PreviewSideSignId = Shader.PropertyToID("_PreviewSideSign");
     private static readonly int PreviewFinishIndexId = Shader.PropertyToID("_PreviewFinishIndex");
+    private static readonly int PreviewTextureStId = Shader.PropertyToID("_PreviewTextureST");
 
     private readonly List<RendererState> rendererStates =
         new List<RendererState>();
@@ -38,6 +39,7 @@ public class WallFinishSurface : MonoBehaviour
     private int previewMode;
     private int previewSideSign = 1;
     private int previewFinishIndex = -1;
+    private Vector4 previewTextureSt = new Vector4(1f, 1f, 0f, 0f);
 
     public string InnerFinishId => innerFinishId;
     public string OuterFinishId => outerFinishId;
@@ -195,6 +197,7 @@ public class WallFinishSurface : MonoBehaviour
             finish != null && catalogue != null
                 ? catalogue.GetIndex(finish)
                 : -1;
+        previewTextureSt = GetFinishTextureSt(finish);
 
         ApplyFinishProperties();
     }
@@ -270,6 +273,7 @@ public class WallFinishSurface : MonoBehaviour
             block.SetFloat(PreviewModeId, previewMode);
             block.SetFloat(PreviewSideSignId, previewSideSign);
             block.SetFloat(PreviewFinishIndexId, previewFinishIndex);
+            block.SetVector(PreviewTextureStId, previewTextureSt);
 
             state.renderer.SetPropertyBlock(block);
         }
