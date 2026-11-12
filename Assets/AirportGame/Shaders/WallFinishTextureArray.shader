@@ -40,8 +40,17 @@ Shader "Airport/Wall Finish Texture Array"
             #pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE _MAIN_LIGHT_SHADOWS_SCREEN
             #pragma multi_compile _ _ADDITIONAL_LIGHTS
             #pragma multi_compile _ _ADDITIONAL_LIGHT_SHADOWS
-            #pragma multi_compile_fragment _ _SHADOWS_SOFT
+            #pragma multi_compile _ EVALUATE_SH_MIXED EVALUATE_SH_VERTEX
+            #pragma multi_compile _ LIGHTMAP_SHADOW_MIXING
+            #pragma multi_compile _ SHADOWS_SHADOWMASK
+            #pragma multi_compile _ DIRLIGHTMAP_COMBINED
+            #pragma multi_compile _ LIGHTMAP_ON
+            #pragma multi_compile _ DYNAMICLIGHTMAP_ON
+            #pragma multi_compile_fragment _ LIGHTMAP_BICUBIC_SAMPLING
+            #pragma multi_compile_fragment _ _SCREEN_SPACE_IRRADIANCE
+            #pragma multi_compile _ USE_LEGACY_LIGHTMAPS
             #pragma multi_compile_fog
+            #include_with_pragmas "Packages/com.unity.render-pipelines.universal/ShaderLibrary/ProbeVolumeVariants.hlsl"
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
@@ -72,6 +81,8 @@ Shader "Airport/Wall Finish Texture Array"
                 float4 positionOS : POSITION;
                 float3 normalOS : NORMAL;
                 float2 uv : TEXCOORD0;
+                float2 staticLightmapUV : TEXCOORD1;
+                float2 dynamicLightmapUV : TEXCOORD2;
                 UNITY_VERTEX_INPUT_INSTANCE_ID
             };
 
@@ -86,6 +97,15 @@ Shader "Airport/Wall Finish Texture Array"
                 float4 shadowCoord : TEXCOORD4;
                 #endif
                 half fogFactor : TEXCOORD5;
+
+                DECLARE_LIGHTMAP_OR_SH(staticLightmapUV, vertexSH, 6);
+                #ifdef DYNAMICLIGHTMAP_ON
+                float2 dynamicLightmapUV : TEXCOORD7;
+                #endif
+                #ifdef USE_APV_PROBE_OCCLUSION
+                float4 probeOcclusion : TEXCOORD8;
+                #endif
+
                 UNITY_VERTEX_INPUT_INSTANCE_ID
             };
 
@@ -103,6 +123,24 @@ Shader "Airport/Wall Finish Texture Array"
                 output.uv = input.uv;
                 output.wallForwardWS =
                     TransformObjectToWorldDir(float3(0,0,1));
+
+                OUTPUT_LIGHTMAP_UV(
+                    input.staticLightmapUV,
+                    unity_LightmapST,
+                    output.staticLightmapUV);
+
+                #ifdef DYNAMICLIGHTMAP_ON
+                output.dynamicLightmapUV =
+                    input.dynamicLightmapUV.xy * unity_DynamicLightmapST.xy +
+                    unity_DynamicLightmapST.zw;
+                #endif
+
+                OUTPUT_SH4(
+                    positionInputs.positionWS,
+                    output.normalWS.xyz,
+                    GetWorldSpaceNormalizeViewDir(positionInputs.positionWS),
+                    output.vertexSH,
+                    output.probeOcclusion);
 
                 #if defined(REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR)
                 output.shadowCoord = GetShadowCoord(positionInputs);
@@ -240,14 +278,41 @@ Shader "Airport/Wall Finish Texture Array"
                 inputData.shadowCoord = float4(0,0,0,0);
                 #endif
 
-                // Painted wall finishes use neutral full ambient GI.
-                // The scene's spherical-harmonic probes return too little
-                // ambient light for vertical wall faces, even when sampling
-                // the upward direction. Direct lighting and shadows remain active.
-                inputData.bakedGI =
-                    isWallSide && finishIndex >= 0.0
-                        ? half3(1.0h, 1.0h, 1.0h)
-                        : SampleSH(normalWS);
+                // Use URP 17.6 Lit's baked-GI path. This supplies the
+                // renderer's interpolated light-probe SH data, static/dynamic
+                // lightmaps when present, and the matching shadow mask.
+                #if defined(_SCREEN_SPACE_IRRADIANCE)
+                inputData.bakedGI = SAMPLE_GI(
+                    _ScreenSpaceIrradiance,
+                    input.positionCS.xy,
+                    inputData.normalWS);
+                #elif defined(DYNAMICLIGHTMAP_ON)
+                inputData.bakedGI = SAMPLE_GI(
+                    input.staticLightmapUV,
+                    input.dynamicLightmapUV,
+                    input.vertexSH,
+                    inputData.normalWS);
+                inputData.shadowMask =
+                    SAMPLE_SHADOWMASK(input.staticLightmapUV);
+                #elif !defined(LIGHTMAP_ON) && \
+                    (defined(PROBE_VOLUMES_L1) || defined(PROBE_VOLUMES_L2))
+                inputData.bakedGI = SAMPLE_GI(
+                    input.vertexSH,
+                    GetAbsolutePositionWS(inputData.positionWS),
+                    inputData.normalWS,
+                    inputData.viewDirectionWS,
+                    input.positionCS.xy,
+                    input.probeOcclusion,
+                    inputData.shadowMask);
+                #else
+                inputData.bakedGI = SAMPLE_GI(
+                    input.staticLightmapUV,
+                    input.vertexSH,
+                    inputData.normalWS);
+                inputData.shadowMask =
+                    SAMPLE_SHADOWMASK(input.staticLightmapUV);
+                #endif
+
                 inputData.normalizedScreenSpaceUV =
                     GetNormalizedScreenSpaceUV(input.positionCS);
                 inputData.shadowMask = half4(1,1,1,1);
