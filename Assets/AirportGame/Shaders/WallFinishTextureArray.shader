@@ -157,6 +157,71 @@ Shader "Airport/Wall Finish Texture Array"
                 return output;
             }
 
+            // Match the InputData setup used by URP/Lit's Forward pass.
+            void InitializeWallInputData(Varyings input, half3 normalWS, out InputData inputData)
+            {
+                inputData = (InputData)0;
+                inputData.positionWS = input.positionWS;
+                inputData.positionCS = input.positionCS;
+                inputData.normalWS = NormalizeNormalPerPixel(normalWS);
+                inputData.viewDirectionWS =
+                    GetWorldSpaceNormalizeViewDir(input.positionWS);
+
+                #if defined(REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR)
+                inputData.shadowCoord = input.shadowCoord;
+                #elif defined(MAIN_LIGHT_CALCULATE_SHADOWS)
+                inputData.shadowCoord =
+                    TransformWorldToShadowCoord(inputData.positionWS);
+                #else
+                inputData.shadowCoord = float4(0, 0, 0, 0);
+                #endif
+
+                inputData.fogCoord = InitializeInputDataFog(
+                    float4(input.positionWS, 1.0),
+                    input.fogFactor);
+                inputData.normalizedScreenSpaceUV =
+                    GetNormalizedScreenSpaceUV(input.positionCS);
+            }
+
+            // Match URP/Lit's baked-GI branch structure while retaining the
+            // screen-space irradiance variant used by this project.
+            void InitializeWallBakedGIData(
+                Varyings input,
+                inout InputData inputData)
+            {
+                #if defined(_SCREEN_SPACE_IRRADIANCE)
+                inputData.bakedGI = SAMPLE_GI(
+                    _ScreenSpaceIrradiance,
+                    input.positionCS.xy,
+                    inputData.normalWS);
+                #elif defined(DYNAMICLIGHTMAP_ON)
+                inputData.bakedGI = SAMPLE_GI(
+                    input.staticLightmapUV,
+                    input.dynamicLightmapUV,
+                    input.vertexSH,
+                    inputData.normalWS);
+                inputData.shadowMask =
+                    SAMPLE_SHADOWMASK(input.staticLightmapUV);
+                #elif !defined(LIGHTMAP_ON) && \
+                    (defined(PROBE_VOLUMES_L1) || defined(PROBE_VOLUMES_L2))
+                inputData.bakedGI = SAMPLE_GI(
+                    input.vertexSH,
+                    GetAbsolutePositionWS(inputData.positionWS),
+                    inputData.normalWS,
+                    inputData.viewDirectionWS,
+                    input.positionCS.xy,
+                    input.probeOcclusion,
+                    inputData.shadowMask);
+                #else
+                inputData.bakedGI = SAMPLE_GI(
+                    input.staticLightmapUV,
+                    input.vertexSH,
+                    inputData.normalWS);
+                inputData.shadowMask =
+                    SAMPLE_SHADOWMASK(input.staticLightmapUV);
+                #endif
+            }
+
             half4 Frag(Varyings input) : SV_Target
             {
                 UNITY_SETUP_INSTANCE_ID(input);
@@ -267,58 +332,10 @@ Shader "Airport/Wall Finish Texture Array"
                     bitangentWS * normalTS.y +
                     geometricNormal * normalTS.z);
 
-                InputData inputData = (InputData)0;
-                inputData.positionWS = input.positionWS;
-                inputData.normalWS = normalWS;
-                inputData.viewDirectionWS =
-                    GetWorldSpaceNormalizeViewDir(input.positionWS);
+                InputData inputData;
+                InitializeWallInputData(input, normalWS, inputData);
+                InitializeWallBakedGIData(input, inputData);
 
-                #if defined(REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR)
-                inputData.shadowCoord = input.shadowCoord;
-                #elif defined(MAIN_LIGHT_CALCULATE_SHADOWS)
-                inputData.shadowCoord =
-                    TransformWorldToShadowCoord(input.positionWS);
-                #else
-                inputData.shadowCoord = float4(0,0,0,0);
-                #endif
-
-                // Use URP 17.6 Lit's baked-GI path. This supplies the
-                // renderer's interpolated light-probe SH data, static/dynamic
-                // lightmaps when present, and the matching shadow mask.
-                #if defined(_SCREEN_SPACE_IRRADIANCE)
-                inputData.bakedGI = SAMPLE_GI(
-                    _ScreenSpaceIrradiance,
-                    input.positionCS.xy,
-                    inputData.normalWS);
-                #elif defined(DYNAMICLIGHTMAP_ON)
-                inputData.bakedGI = SAMPLE_GI(
-                    input.staticLightmapUV,
-                    input.dynamicLightmapUV,
-                    input.vertexSH,
-                    inputData.normalWS);
-                inputData.shadowMask =
-                    SAMPLE_SHADOWMASK(input.staticLightmapUV);
-                #elif !defined(LIGHTMAP_ON) && \
-                    (defined(PROBE_VOLUMES_L1) || defined(PROBE_VOLUMES_L2))
-                inputData.bakedGI = SAMPLE_GI(
-                    input.vertexSH,
-                    GetAbsolutePositionWS(inputData.positionWS),
-                    inputData.normalWS,
-                    inputData.viewDirectionWS,
-                    input.positionCS.xy,
-                    input.probeOcclusion,
-                    inputData.shadowMask);
-                #else
-                inputData.bakedGI = SAMPLE_GI(
-                    input.staticLightmapUV,
-                    input.vertexSH,
-                    inputData.normalWS);
-                inputData.shadowMask =
-                    SAMPLE_SHADOWMASK(input.staticLightmapUV);
-                #endif
-
-                inputData.normalizedScreenSpaceUV =
-                    GetNormalizedScreenSpaceUV(input.positionCS);
 
                 SurfaceData surfaceData = (SurfaceData)0;
                 surfaceData.albedo = baseSample.rgb;
@@ -334,7 +351,7 @@ Shader "Airport/Wall Finish Texture Array"
 
 half4 color =
                     UniversalFragmentPBR(inputData, surfaceData);
-                color.rgb = MixFog(color.rgb, input.fogFactor);
+                color.rgb = MixFog(color.rgb, inputData.fogCoord);
                 return color;
             }
             ENDHLSL
