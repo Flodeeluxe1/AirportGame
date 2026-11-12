@@ -241,7 +241,12 @@ Shader "Airport/Wall Finish Texture Array"
                 inputData.shadowCoord = float4(0,0,0,0);
                 #endif
 
-                inputData.bakedGI = SampleSH(normalWS);
+                // Diagnostic: force full ambient GI on finished wall faces
+                // while retaining direct lighting, shadows and the PBR BRDF.
+                inputData.bakedGI =
+                    isWallSide && finishIndex >= 0.0
+                        ? half3(1.0h, 1.0h, 1.0h)
+                        : SampleSH(normalWS);
                 inputData.normalizedScreenSpaceUV =
                     GetNormalizedScreenSpaceUV(input.positionCS);
                 inputData.shadowMask = half4(1,1,1,1);
