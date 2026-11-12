@@ -527,7 +527,7 @@ public class WallFinishPainter : MonoBehaviour
 
         try
         {
-            for (int stage = 1; stage <= 21; stage++)
+            for (int stage = 1; stage <= 22; stage++)
             {
                 surface.SetBrightnessDebugStage(stage);
                 yield return new WaitForEndOfFrame();
