@@ -13,6 +13,9 @@ public class WallFinishSurface : MonoBehaviour
     private static readonly int BaseMapId = Shader.PropertyToID("_BaseMap");
     private static readonly int BaseMapStId = Shader.PropertyToID("_BaseMap_ST");
     private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
+    private static readonly int OriginalNormalMapId = Shader.PropertyToID("_OriginalNormalMap");
+    private static readonly int OriginalNormalMapStId = Shader.PropertyToID("_OriginalNormalMap_ST");
+    private static readonly int OriginalNormalScaleId = Shader.PropertyToID("_OriginalNormalScale");
     private static readonly int InnerFinishIndexId = Shader.PropertyToID("_InnerFinishIndex");
     private static readonly int OuterFinishIndexId = Shader.PropertyToID("_OuterFinishIndex");
     private static readonly int InnerSideSignId = Shader.PropertyToID("_InnerSideSign");
@@ -100,6 +103,13 @@ public class WallFinishSurface : MonoBehaviour
                 Vector2 originalOffset = GetTextureOffset(
                     original, "_BaseMap", "_MainTex");
 
+                Texture originalNormalTexture = GetTexture(
+                    original, "_BumpMap", "_NormalMap");
+                Vector2 originalNormalScale = GetTextureScale(
+                    original, "_BumpMap", "_NormalMap");
+                Vector2 originalNormalOffset = GetTextureOffset(
+                    original, "_BumpMap", "_NormalMap");
+
                 block.SetTexture(
                     BaseMapId,
                     originalTexture != null
@@ -108,6 +118,22 @@ public class WallFinishSurface : MonoBehaviour
 
                 if (!block.HasColor(BaseColorId))
                     block.SetColor(BaseColorId, GetBaseColor(original));
+
+                block.SetTexture(
+                    OriginalNormalMapId,
+                    originalNormalTexture != null
+                        ? originalNormalTexture
+                        : Texture2D.normalTexture);
+                block.SetVector(
+                    OriginalNormalMapStId,
+                    new Vector4(
+                        originalNormalScale.x,
+                        originalNormalScale.y,
+                        originalNormalOffset.x,
+                        originalNormalOffset.y));
+                block.SetFloat(
+                    OriginalNormalScaleId,
+                    GetFloat(original, "_BumpScale", 1f));
 
                 block.SetVector(
                     BaseMapStId,
