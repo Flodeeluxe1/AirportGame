@@ -1,4 +1,3 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -17,7 +16,6 @@ public class WallFinishPainter : MonoBehaviour
     private WallFinishDefinition selectedFinish;
     private bool isActive;
     private bool isDragging;
-    private bool isCapturingBrightness;
 
     private Vector2Int dragStartCell;
     private Vector2Int dragCurrentCell;
@@ -64,14 +62,6 @@ public class WallFinishPainter : MonoBehaviour
 
     private void Update()
     {
-        Keyboard keyboard = Keyboard.current;
-        if (keyboard != null &&
-            keyboard.f8Key.wasPressedThisFrame &&
-            !isCapturingBrightness)
-        {
-            StartCoroutine(CaptureBrightnessAtPointer());
-        }
-
         if (!isActive)
             return;
 
@@ -471,146 +461,6 @@ public class WallFinishPainter : MonoBehaviour
         HideAllPreviews();
         currentWalls.Clear();
         previewSideSigns.Clear();
-    }
-
-    private IEnumerator CaptureBrightnessAtPointer()
-    {
-        if (mainCamera == null || Mouse.current == null)
-        {
-            Debug.LogWarning("Wall finish brightness diagnostic: camera or mouse is unavailable.", this);
-            yield break;
-        }
-
-        Vector2 pointer = Mouse.current.position.ReadValue();
-        PlacedBuilding wall = FindWallUnderPointer(pointer, out _);
-        WallFinishSurface surface =
-            wall != null ? wall.GetComponent<WallFinishSurface>() : null;
-
-        if (surface == null || !surface.HasAnyFinish)
-        {
-            Debug.LogWarning(
-                "Wall finish brightness diagnostic: point the mouse at a wall that already has a finish applied, then press F8.",
-                this);
-            yield break;
-        }
-
-        int pixelX = Mathf.Clamp(Mathf.RoundToInt(pointer.x), 0, Screen.width - 1);
-        int pixelY = Mathf.Clamp(Mathf.RoundToInt(pointer.y), 0, Screen.height - 1);
-        Texture2D pixelReader = new Texture2D(1, 1, TextureFormat.RGBA32, false);
-        isCapturingBrightness = true;
-
-        string[] stageNames =
-        {
-            "Original wall base texture",
-            "Wall finish texture-array sample",
-            "Baked GI",
-            "Main directional light contribution",
-            "PBR direct lighting only",
-            "Final PBR output with GI",
-            "Main-light N dot L",
-            "Main-light shadow attenuation",
-            "Sampled normal texture",
-            "Decoded tangent-space normal",
-            "Packed mask RGB (metallic / AO / normal strength)",
-            "Geometric world normal",
-            "World normal passed to PBR",
-            "Albedo passed to PBR",
-            "Metallic passed to PBR",
-            "Smoothness passed to PBR",
-            "Occlusion passed to PBR",
-            "Main-light colour",
-            "Main-light distance attenuation",
-            "Direct BRDF response",
-            "Main-light radiance after attenuation",
-            "Reconstructed direct-light contribution",
-            "URP raw main-light position (XYZ encoded, W in alpha)",
-            "URP raw main-light colour",
-            "GetMainLight direction (XYZ encoded)",
-            "GetMainLight() distance attenuation",
-            "GetMainLight(shadowCoord) distance attenuation",
-            "Current GetMainLight(...) distance attenuation",
-            "GetMainLight() shadow attenuation",
-            "GetMainLight(shadowCoord) shadow attenuation",
-            "USE_CLUSTER_LIGHT_LOOP active",
-            "LightmapAvailable active",
-            "LightmapShadowMixingAvailable active",
-            "Raw _MainLightColor alpha",
-            "Raw unity_LightData.z"
-        };
-
-        try
-        {
-            LogSceneDirectionalLights(wall);
-
-            for (int stage = 1; stage <= 35; stage++)
-            {
-                surface.SetBrightnessDebugStage(stage);
-                yield return new WaitForEndOfFrame();
-
-                pixelReader.ReadPixels(
-                    new Rect(pixelX, pixelY, 1, 1),
-                    0,
-                    0,
-                    false);
-                pixelReader.Apply(false, false);
-
-                Color value = pixelReader.GetPixel(0, 0);
-                Debug.Log(
-                    $"WALL FINISH BRIGHTNESS [{stageNames[stage - 1]}] " +
-                    $"R={value.r:F3}, G={value.g:F3}, B={value.b:F3}, " +
-                    $"Average={(value.r + value.g + value.b) / 3f:F3}",
-                    wall);
-            }
-        }
-        finally
-        {
-            surface.SetBrightnessDebugStage(0);
-            Destroy(pixelReader);
-            isCapturingBrightness = false;
-        }
-
-        Debug.Log(
-            "Wall finish lighting diagnostic complete. Values are screen-captured RGB (0-1), so post-processing/display transforms may affect them.",
-            wall);
-    }
-
-    private void LogSceneDirectionalLights(PlacedBuilding wall)
-    {
-        Light sun = RenderSettings.sun;
-
-        Debug.Log(
-            $"WALL FINISH LIGHT SETUP [RenderSettings.sun] " +
-            $"{(sun != null ? sun.name : "None")}",
-            wall);
-
-        Light[] lights = FindObjectsByType<Light>(FindObjectsSortMode.None);
-        int directionalCount = 0;
-
-        foreach (Light sceneLight in lights)
-        {
-            if (sceneLight == null || sceneLight.type != LightType.Directional)
-                continue;
-
-            directionalCount++;
-
-            Vector3 forward = sceneLight.transform.forward;
-            Debug.Log(
-                $"WALL FINISH LIGHT SETUP [Directional {directionalCount}] " +
-                $"Name={sceneLight.name}, " +
-                $"Enabled={sceneLight.enabled && sceneLight.gameObject.activeInHierarchy}, " +
-                $"Intensity={sceneLight.intensity:F3}, " +
-                $"Color={sceneLight.color}, " +
-                $"ColorTemperatureEnabled={sceneLight.useColorTemperature}, " +
-                $"Temperature={sceneLight.colorTemperature:F0}, " +
-                $"Shadows={sceneLight.shadows}, " +
-                $"ShadowStrength={sceneLight.shadowStrength:F3}, " +
-                $"Forward=({forward.x:F3},{forward.y:F3},{forward.z:F3}), " +
-                $"IsRenderSettingsSun={sceneLight == sun}",
-                sceneLight);
-        }
-
-        if (directionalCount == 0)
-            Debug.LogWarning("WALL FINISH LIGHT SETUP: No directional Light components found.", wall);
     }
 
     private bool IsPointerOverBuildUI()
