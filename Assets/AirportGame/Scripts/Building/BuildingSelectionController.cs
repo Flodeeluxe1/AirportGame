@@ -14,6 +14,7 @@ public class BuildingSelectionController : MonoBehaviour
     [SerializeField] private BuildController buildController;
     [SerializeField] private CellBuildingMoveController moveController;
     [SerializeField] private FloorFinishPainter floorFinishPainter;
+    [SerializeField] private WallFinishPainter wallFinishPainter;
 
     [Header("Foundation Selection")]
     [SerializeField] private FoundationTilemapController foundationTilemapController;
@@ -106,6 +107,9 @@ public class BuildingSelectionController : MonoBehaviour
         if (floorFinishPainter == null)
             floorFinishPainter = FindFirstObjectByType<FloorFinishPainter>();
 
+        if (wallFinishPainter == null)
+            wallFinishPainter = FindFirstObjectByType<WallFinishPainter>();
+
         if (foundationTilemapController == null)
         {
             foundationTilemapController =
@@ -161,9 +165,13 @@ public class BuildingSelectionController : MonoBehaviour
 
     private void Update()
     {
-        // Floor painting uses the same mouse drag as building selection.
+        // Floor and wall painting use the same mouse drag as building selection.
         // Suppress selection input and remove any existing wall tint while painting.
-        if (floorFinishPainter != null && floorFinishPainter.IsActive)
+        bool finishPaintingActive =
+            (floorFinishPainter != null && floorFinishPainter.IsActive) ||
+            (wallFinishPainter != null && wallFinishPainter.IsActive);
+
+        if (finishPaintingActive)
         {
             if (!floorFinishInputSuppressed)
             {
