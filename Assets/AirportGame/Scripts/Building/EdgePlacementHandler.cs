@@ -199,6 +199,11 @@ public class EdgePlacementHandler : IPlacementHandler
             currentEdge
         );
 
+        Vector3 markerPosition =
+            gridManager.GridToWorld(currentEdge.cell);
+
+        markerPosition.y = previewObject.transform.position.y;
+        previewObject.transform.position = markerPosition;
         previewObject.transform.localScale = HoverPreviewScale;
 
         placementPreview.SetValid(
