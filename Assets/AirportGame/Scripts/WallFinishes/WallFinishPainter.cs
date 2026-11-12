@@ -530,14 +530,19 @@ public class WallFinishPainter : MonoBehaviour
             "GetMainLight(shadowCoord) distance attenuation",
             "Current GetMainLight(...) distance attenuation",
             "GetMainLight() shadow attenuation",
-            "GetMainLight(shadowCoord) shadow attenuation"
+            "GetMainLight(shadowCoord) shadow attenuation",
+            "USE_CLUSTER_LIGHT_LOOP active",
+            "LightmapAvailable active",
+            "LightmapShadowMixingAvailable active",
+            "Raw _MainLightColor alpha",
+            "Raw unity_LightData.z"
         };
 
         try
         {
             LogSceneDirectionalLights(wall);
 
-            for (int stage = 1; stage <= 30; stage++)
+            for (int stage = 1; stage <= 35; stage++)
             {
                 surface.SetBrightnessDebugStage(stage);
                 yield return new WaitForEndOfFrame();
