@@ -23,6 +23,7 @@ public class AirportWorldResetController : MonoBehaviour
     [Header("Foundation")]
     [SerializeField] private FoundationTilemapController foundationTilemapController;
     [SerializeField] private FloorFinishRenderer floorFinishRenderer;
+    [SerializeField] private WallFinishRenderer wallFinishRenderer;
 
     [Header("Tarmac")]
     [SerializeField] private TarmacTilemapController tarmacTilemapController;
@@ -371,6 +372,12 @@ public class AirportWorldResetController : MonoBehaviour
                 definitionId = definitionId,
                 isSurfacePlaced = building.IsSurfacePlaced,
                 instanceId = building.InstanceId,
+                wallInnerFinishId = building.GetComponent<WallFinishSurface>() != null
+                    ? building.GetComponent<WallFinishSurface>().InnerFinishId
+                    : "",
+                wallOuterFinishId = building.GetComponent<WallFinishSurface>() != null
+                    ? building.GetComponent<WallFinishSurface>().OuterFinishId
+                    : "",
                 supportingSurfaceInstanceId =
                     building.SupportingSurface != null
                         ? building.SupportingSurface.InstanceId
@@ -610,6 +617,9 @@ public class AirportWorldResetController : MonoBehaviour
         List<KeyValuePair<PlacedBuilding, string>> pendingSurfaceParents =
             new List<KeyValuePair<PlacedBuilding, string>>();
 
+        List<KeyValuePair<PlacedBuilding, PlacedBuildingSaveData>> pendingWallFinishes =
+            new List<KeyValuePair<PlacedBuilding, PlacedBuildingSaveData>>();
+
         // 1. Restore placed objects and logical grid/edge occupancy.
         foreach (PlacedBuildingSaveData saved in data.placedBuildings)
         {
@@ -702,6 +712,15 @@ public class AirportWorldResetController : MonoBehaviour
 
             if (!string.IsNullOrWhiteSpace(placedBuilding.InstanceId))
                 restoredBuildingsById[placedBuilding.InstanceId] = placedBuilding;
+
+            if (!string.IsNullOrWhiteSpace(saved.wallInnerFinishId) ||
+                !string.IsNullOrWhiteSpace(saved.wallOuterFinishId))
+            {
+                pendingWallFinishes.Add(
+                    new KeyValuePair<PlacedBuilding, PlacedBuildingSaveData>(
+                        placedBuilding,
+                        saved));
+            }
 
             if (saved.isSurfacePlaced &&
                 !string.IsNullOrWhiteSpace(saved.supportingSurfaceInstanceId))
@@ -851,6 +870,32 @@ public class AirportWorldResetController : MonoBehaviour
             }
 
             restoredBuildings++;
+        }
+
+        // Restore wall finishes after all foundation cells exist, so the
+        // renderer can identify the inner face from adjacent foundation cells.
+        if (wallFinishRenderer == null)
+            wallFinishRenderer = FindFirstObjectByType<WallFinishRenderer>();
+
+        if (wallFinishRenderer != null)
+        {
+            foreach (KeyValuePair<PlacedBuilding, PlacedBuildingSaveData> entry
+                     in pendingWallFinishes)
+            {
+                if (entry.Key == null || entry.Value == null)
+                    continue;
+
+                wallFinishRenderer.RestoreFinish(
+                    entry.Key,
+                    entry.Value.wallInnerFinishId,
+                    entry.Value.wallOuterFinishId);
+            }
+        }
+        else if (pendingWallFinishes.Count > 0)
+        {
+            Debug.LogWarning(
+                "AirportWorldResetController: Save contains wall finishes, " +
+                "but WallFinishRenderer is missing. Those finishes were not restored.");
         }
 
         // Resolve surface parents only after all placed objects exist.
