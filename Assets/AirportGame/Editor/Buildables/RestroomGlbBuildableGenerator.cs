@@ -107,7 +107,7 @@ public static class RestroomGlbBuildableGenerator
                 definition.displayName = item.displayName;
                 definition.prefab = prefab;
                 definition.placementType = PlacementType.Cell;
-                definition.requiredSurface = BuildSurface.Floor;
+                definition.requiredSurface = BuildSurface.Foundation;
                 definition.width = 1;
                 definition.depth = 1;
                 definition.edgeLength = 1;
