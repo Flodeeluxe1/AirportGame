@@ -293,6 +293,13 @@ public class AirportUIController : MonoBehaviour
 
         buildWindow.style.display = DisplayStyle.Flex;
         SelectCategory(currentCategory);
+
+        // Open the build menu with category submenus collapsed.
+        if (floorSubcategoryList != null)
+            floorSubcategoryList.style.display = DisplayStyle.None;
+
+        if (wallSubcategoryList != null)
+            wallSubcategoryList.style.display = DisplayStyle.None;
     }
 
     private void HideBuildWindow()
