@@ -1,4 +1,3 @@
-
 using UnityEngine;
 
 public class CellPlacementHandler : IPlacementHandler
@@ -6,6 +5,7 @@ public class CellPlacementHandler : IPlacementHandler
     private BuildController controller;
     private GridManager gridManager;
     private GridOccupancy gridOccupancy;
+    private EdgeOccupancy edgeOccupancy;
     private GridSurface gridSurface;
 
     private BuildableDefinition definition;
@@ -25,6 +25,7 @@ public class CellPlacementHandler : IPlacementHandler
         this.controller = controller;
         this.gridManager = gridManager;
         this.gridOccupancy = gridOccupancy;
+        this.edgeOccupancy = edgeOccupancy;
 
         gridSurface = gridManager.GetComponent<GridSurface>();
     }
@@ -110,15 +111,7 @@ public class CellPlacementHandler : IPlacementHandler
 
     private void UpdatePreviewValidity()
     {
-        int width = definition.width;
-        int depth = definition.depth;
-
-        if (currentRotation == 90 || currentRotation == 270)
-        {
-            int temp = width;
-            width = depth;
-            depth = temp;
-        }
+        GetFootprintDimensions(out int width, out int depth);
 
         bool inside = IsInsideGrid(currentGridPosition, width, depth);
 
@@ -134,7 +127,89 @@ public class CellPlacementHandler : IPlacementHandler
             depth
         );
 
-        placementPreview.SetValid(inside && free && correctSurface);
+        bool clearOfWalls = !HasWallCrossingFootprint(
+            currentGridPosition,
+            width,
+            depth
+        );
+
+        placementPreview.SetValid(
+            inside && free && correctSurface && clearOfWalls
+        );
+    }
+
+    private void GetFootprintDimensions(out int width, out int depth)
+    {
+        width = definition.width;
+        depth = definition.depth;
+
+        if (currentRotation == 90 || currentRotation == 270)
+        {
+            int temp = width;
+            width = depth;
+            depth = temp;
+        }
+    }
+
+    private bool HasWallCrossingFootprint(
+        Vector2Int origin,
+        int width,
+        int depth)
+    {
+        if (edgeOccupancy == null)
+            return false;
+
+        // Check internal vertical edges between adjacent X cells.
+        // Edges on the footprint's outer boundary are intentionally allowed.
+        for (int x = 0; x < width - 1; x++)
+        {
+            for (int z = 0; z < depth; z++)
+            {
+                GridEdge sharedEdge = new GridEdge(
+                    origin + new Vector2Int(x + 1, z),
+                    EdgeDirection.Vertical
+                );
+
+                if (IsWallOccupyingEdge(sharedEdge))
+                    return true;
+            }
+        }
+
+        // Check internal horizontal edges between adjacent Z cells.
+        for (int x = 0; x < width; x++)
+        {
+            for (int z = 0; z < depth - 1; z++)
+            {
+                GridEdge sharedEdge = new GridEdge(
+                    origin + new Vector2Int(x, z + 1),
+                    EdgeDirection.Horizontal
+                );
+
+                if (IsWallOccupyingEdge(sharedEdge))
+                    return true;
+            }
+        }
+
+        return false;
+    }
+
+    private bool IsWallOccupyingEdge(GridEdge edge)
+    {
+        if (!edgeOccupancy.TryGetOccupant(
+                edge,
+                out GameObject occupant) ||
+            occupant == null)
+        {
+            return false;
+        }
+
+        PlacedBuilding building =
+            occupant.GetComponent<PlacedBuilding>();
+
+        return building != null &&
+               building.Definition != null &&
+               building.Definition.category == BuildCategory.Wall &&
+               building.Definition.placementType == PlacementType.Edge;
     }
 
     private bool HasRequiredSurface(
@@ -197,15 +272,7 @@ public class CellPlacementHandler : IPlacementHandler
 
     public void TryPlace()
     {
-        int width = definition.width;
-        int depth = definition.depth;
-
-        if (currentRotation == 90 || currentRotation == 270)
-        {
-            int temp = width;
-            width = depth;
-            depth = temp;
-        }
+        GetFootprintDimensions(out int width, out int depth);
 
         if (!IsInsideGrid(currentGridPosition, width, depth))
         {
@@ -216,6 +283,15 @@ public class CellPlacementHandler : IPlacementHandler
         if (!gridOccupancy.CanOccupy(currentGridPosition, width, depth))
         {
             Debug.Log("Cannot place building: cells are occupied.");
+            return;
+        }
+
+        if (HasWallCrossingFootprint(currentGridPosition, width, depth))
+        {
+            Debug.Log(
+                $"Cannot place {definition.displayName}: " +
+                "its footprint crosses an existing wall."
+            );
             return;
         }
 
