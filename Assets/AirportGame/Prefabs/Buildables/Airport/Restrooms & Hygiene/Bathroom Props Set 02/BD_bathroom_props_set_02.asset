@@ -14,10 +14,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BuildableDefinition
   id: airport.restrooms.bathroom_props_set_02
   displayName: Bathroom Props Set 02
-  prefab: {fileID: 6869555909799224514, guid: 7e9544ecb8d786849856abd3d6c1feee, type: 3}
+  prefab: {fileID: 6022712818120890771, guid: 7e9544ecb8d786849856abd3d6c1feee, type: 3}
   placementType: 0
   requiredSurface: 1
-  width: 1
+  width: 2
   depth: 1
   edgeLength: 1
   requiresExistingWall: 0

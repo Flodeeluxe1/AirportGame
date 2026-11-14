@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BuildableDefinition
   id: airport.restrooms.drawer
   displayName: Drawer
-  prefab: {fileID: 8569514798937013506, guid: 712782758af1068469f5fd59210d220b, type: 3}
+  prefab: {fileID: 8803518709614952531, guid: 712782758af1068469f5fd59210d220b, type: 3}
   placementType: 0
   requiredSurface: 1
   width: 1

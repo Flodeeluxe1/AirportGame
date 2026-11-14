@@ -14,10 +14,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BuildableDefinition
   id: airport.restrooms.store_racks_modular
   displayName: Store Racks Modular
-  prefab: {fileID: 603455785786106742, guid: 41188905378f696498601caded28e963, type: 3}
+  prefab: {fileID: 332859582674263591, guid: 41188905378f696498601caded28e963, type: 3}
   placementType: 0
   requiredSurface: 1
-  width: 1
+  width: 4
   depth: 1
   edgeLength: 1
   requiresExistingWall: 0
