@@ -280,6 +280,7 @@ public class PedestrianPathfinder : MonoBehaviour
     {
         if (gridManager != null &&
             gridSurface != null &&
+            gridOccupancy != null &&
             edgeOccupancy != null)
         {
             return true;
