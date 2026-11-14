@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -17,6 +18,9 @@ public class PedestrianPathfinder : MonoBehaviour
 
     [Header("Path Settings")]
     [SerializeField, Min(0f)] private float pathHeightOffset = 0.05f;
+    [SerializeField, Range(0, 5)] private int randomStepPenalty = 2;
+
+    private static int pathSearchCounter;
 
     private static readonly Vector2Int[] NeighborOffsets =
     {
@@ -91,6 +95,24 @@ public class PedestrianPathfinder : MonoBehaviour
             new Dictionary<Vector2Int, int>();
         HashSet<Vector2Int> closedSet =
             new HashSet<Vector2Int>();
+        Dictionary<Vector2Int, int> randomCellPenalties =
+            new Dictionary<Vector2Int, int>();
+
+        // Use a private random generator so route variation does not consume
+        // Unity's global random sequence used by gameplay systems.
+        int seed = unchecked(Environment.TickCount ^ (++pathSearchCounter * 397));
+        System.Random routeRandom = new System.Random(seed);
+
+        // Shuffle neighbour evaluation order for this search. Combined with
+        // small per-cell costs, this gives equally good routes different shapes.
+        int[] neighborOrder = { 0, 1, 2, 3, 4, 5, 6, 7 };
+        for (int i = neighborOrder.Length - 1; i > 0; i--)
+        {
+            int swapIndex = routeRandom.Next(i + 1);
+            int temp = neighborOrder[i];
+            neighborOrder[i] = neighborOrder[swapIndex];
+            neighborOrder[swapIndex] = temp;
+        }
 
         int order = 0;
         gScore[start] = 0;
@@ -119,9 +141,9 @@ public class PedestrianPathfinder : MonoBehaviour
 
             closedSet.Add(current);
 
-            for (int i = 0; i < NeighborOffsets.Length; i++)
+            for (int i = 0; i < neighborOrder.Length; i++)
             {
-                Vector2Int next = current + NeighborOffsets[i];
+                Vector2Int next = current + NeighborOffsets[neighborOrder[i]];
 
                 if (closedSet.Contains(next) ||
                     !CanMoveBetween(current, next))
@@ -133,7 +155,17 @@ public class PedestrianPathfinder : MonoBehaviour
                 int moveCost = difference.x != 0 && difference.y != 0
                     ? DiagonalMoveCost
                     : StraightMoveCost;
-                int tentativeG = currentBestG + moveCost;
+                int randomPenalty = 0;
+                if (randomStepPenalty > 0)
+                {
+                    if (!randomCellPenalties.TryGetValue(next, out randomPenalty))
+                    {
+                        randomPenalty = routeRandom.Next(randomStepPenalty + 1);
+                        randomCellPenalties[next] = randomPenalty;
+                    }
+                }
+
+                int tentativeG = currentBestG + moveCost + randomPenalty;
 
                 if (gScore.TryGetValue(next, out int previousG) &&
                     tentativeG >= previousG)
