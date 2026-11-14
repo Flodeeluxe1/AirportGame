@@ -17,7 +17,7 @@ MonoBehaviour:
   prefab: {fileID: 535613585177336435, guid: b5aaa84df65a4b841a8dcbfa6dbf6181, type: 3}
   placementType: 0
   requiredSurface: 1
-  width: 2
+  width: 1
   depth: 1
   edgeLength: 1
   requiresExistingWall: 0
