@@ -16,7 +16,7 @@ MonoBehaviour:
   displayName: Park Chair
   prefab: {fileID: 142472, guid: 24a898469d9c2394bb863db56a74b3d6, type: 3}
   placementType: 0
-  requiredSurface: 1
+  requiredSurface: 0
   width: 2
   depth: 1
   edgeLength: 1
