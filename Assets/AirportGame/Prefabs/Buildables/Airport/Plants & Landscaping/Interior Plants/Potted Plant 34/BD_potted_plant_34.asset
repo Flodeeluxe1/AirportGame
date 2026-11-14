@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b707bf0339cdddd48ac715a8e271822e, type: 3}
+  m_Name: BD_potted_plant_34
+  m_EditorClassIdentifier: Assembly-CSharp::BuildableDefinition
+  id: airport.interior.potted_plant_34
+  displayName: Potted Plant 34
+  prefab: {fileID: 100100000, guid: 21d9742ca84215046819cb20232e48fc, type: 3}
+  placementType: 0
+  requiredSurface: 1
+  width: 1
+  depth: 1
+  edgeLength: 1
+  requiresExistingWall: 0
+  isWallMounted: 0
+  mountHeight: 2
+  canBePlacedOnSurface: 0
+  canSupportSurfaceObjects: 0
+  canRotate: 1
+  buildCost: 40
+  blocksPathfinding: 0
+  menuCategory: Interior Plants
+  category: 3
+  icon: {fileID: 0}
+  roomFurnitureRole: 0
