@@ -23,8 +23,15 @@ public class PedestrianPathfinder : MonoBehaviour
         new Vector2Int(1, 0),
         new Vector2Int(-1, 0),
         new Vector2Int(0, 1),
-        new Vector2Int(0, -1)
+        new Vector2Int(0, -1),
+        new Vector2Int(1, 1),
+        new Vector2Int(1, -1),
+        new Vector2Int(-1, 1),
+        new Vector2Int(-1, -1)
     };
+
+    private const int StraightMoveCost = 10;
+    private const int DiagonalMoveCost = 14;
 
     private void Awake()
     {
@@ -122,7 +129,11 @@ public class PedestrianPathfinder : MonoBehaviour
                     continue;
                 }
 
-                int tentativeG = currentBestG + 10;
+                Vector2Int difference = next - current;
+                int moveCost = difference.x != 0 && difference.y != 0
+                    ? DiagonalMoveCost
+                    : StraightMoveCost;
+                int tentativeG = currentBestG + moveCost;
 
                 if (gScore.TryGetValue(next, out int previousG) &&
                     tentativeG >= previousG)
@@ -226,6 +237,35 @@ public class PedestrianPathfinder : MonoBehaviour
 
         Vector2Int difference = to - from;
 
+        // Diagonal movement is allowed only when both adjacent cells are
+        // walkable and all four edges around the shared corner are clear.
+        // This prevents cutting through wall corners or squeezing between
+        // blocked cells.
+        if (difference.x != 0 && difference.y != 0)
+        {
+            Vector2Int horizontalCell =
+                from + new Vector2Int(difference.x, 0);
+            Vector2Int verticalCell =
+                from + new Vector2Int(0, difference.y);
+
+            if (!IsWalkable(horizontalCell) ||
+                !IsWalkable(verticalCell))
+            {
+                return false;
+            }
+
+            return CanMoveCardinal(from, horizontalCell) &&
+                   CanMoveCardinal(from, verticalCell) &&
+                   CanMoveCardinal(horizontalCell, to) &&
+                   CanMoveCardinal(verticalCell, to);
+        }
+
+        return CanMoveCardinal(from, to);
+    }
+
+    private bool CanMoveCardinal(Vector2Int from, Vector2Int to)
+    {
+        Vector2Int difference = to - from;
         GridEdge crossedEdge;
 
         if (difference == Vector2Int.right)
@@ -296,8 +336,13 @@ public class PedestrianPathfinder : MonoBehaviour
 
     private static int GetHeuristic(Vector2Int from, Vector2Int to)
     {
-        return (Mathf.Abs(from.x - to.x) +
-                Mathf.Abs(from.y - to.y)) * 10;
+        int deltaX = Mathf.Abs(from.x - to.x);
+        int deltaY = Mathf.Abs(from.y - to.y);
+        int diagonalSteps = Mathf.Min(deltaX, deltaY);
+        int straightSteps = Mathf.Max(deltaX, deltaY) - diagonalSteps;
+
+        return diagonalSteps * DiagonalMoveCost +
+               straightSteps * StraightMoveCost;
     }
 
     private static List<Vector2Int> ReconstructPath(
