@@ -12,6 +12,7 @@ public class PedestrianPathfinder : MonoBehaviour
     [Header("Grid References")]
     [SerializeField] private GridManager gridManager;
     [SerializeField] private GridSurface gridSurface;
+    [SerializeField] private GridOccupancy gridOccupancy;
     [SerializeField] private EdgeOccupancy edgeOccupancy;
 
     [Header("Path Settings")]
@@ -43,12 +44,18 @@ public class PedestrianPathfinder : MonoBehaviour
             if (gridSurface == null)
                 gridSurface = gridManager.GetComponent<GridSurface>();
 
+            if (gridOccupancy == null)
+                gridOccupancy = gridManager.GetComponent<GridOccupancy>();
+
             if (edgeOccupancy == null)
                 edgeOccupancy = gridManager.GetComponent<EdgeOccupancy>();
         }
 
         if (gridSurface == null)
             gridSurface = FindFirstObjectByType<GridSurface>();
+
+        if (gridOccupancy == null)
+            gridOccupancy = FindFirstObjectByType<GridOccupancy>();
 
         if (edgeOccupancy == null)
             edgeOccupancy = FindFirstObjectByType<EdgeOccupancy>();
@@ -189,7 +196,27 @@ public class PedestrianPathfinder : MonoBehaviour
             return false;
         }
 
-        return !gridSurface.IsObstacle(cell);
+        if (gridSurface.IsObstacle(cell))
+            return false;
+
+        // Check the occupancy registry directly as well as the obstacle map.
+        // This also covers buildings restored from a save before their obstacle
+        // registration component has had an update to synchronize.
+        if (gridOccupancy != null &&
+            gridOccupancy.TryGetOccupant(cell, out GameObject occupant) &&
+            occupant != null)
+        {
+            PlacedBuilding building = occupant.GetComponent<PlacedBuilding>();
+
+            if (building != null &&
+                building.Definition != null &&
+                building.Definition.blocksPathfinding)
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private bool CanMoveBetween(Vector2Int from, Vector2Int to)
@@ -262,6 +289,7 @@ public class PedestrianPathfinder : MonoBehaviour
 
         return gridManager != null &&
                gridSurface != null &&
+               gridOccupancy != null &&
                edgeOccupancy != null;
     }
 
