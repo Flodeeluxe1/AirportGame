@@ -17,8 +17,11 @@ public class WallMountedPlacementHandler : IPlacementHandler
 
     private int currentRotation;
     private bool hasValidWallHit;
+    private bool currentHeightValid;
+    private float currentWallHitHeight;
 
     private const float WALL_GAP = 0.01f;
+    private const float WALL_HEIGHT_SNAP = 0.5f;
 
     public void Initialize(
         BuildController controller,
@@ -51,6 +54,8 @@ public class WallMountedPlacementHandler : IPlacementHandler
         currentWallNormal = Vector3.forward;
         currentRotation = 0;
         hasValidWallHit = false;
+        currentHeightValid = false;
+        currentWallHitHeight = 0f;
 
         placementPreview.SetValid(false);
     }
@@ -117,6 +122,7 @@ public class WallMountedPlacementHandler : IPlacementHandler
             }
 
             currentEdge = hitEdge;
+            currentWallHitHeight = hit.point.y;
 
             currentWallNormal =
                 GetWallFaceNormal(
@@ -134,7 +140,7 @@ public class WallMountedPlacementHandler : IPlacementHandler
             UpdatePreviewTransform();
 
             placementPreview.SetValid(
-                IsEdgeValid(currentEdge)
+                IsEdgeValid(currentEdge) && currentHeightValid
             );
         }
         else
@@ -298,46 +304,130 @@ public class WallMountedPlacementHandler : IPlacementHandler
         Vector3 position =
             gridManager.GridToWorld(currentEdge.cell);
 
-        position.y = definition.mountHeight;
-
         if (currentEdge.direction ==
             EdgeDirection.Horizontal)
         {
-            position.x +=
-                gridManager.CellSize * 0.5f;
+            position.x += gridManager.CellSize * 0.5f;
         }
         else
         {
-            position.z +=
-                gridManager.CellSize * 0.5f;
+            position.z += gridManager.CellSize * 0.5f;
         }
 
-        float wallOffset =
-            GetWallMountedOffset(
-                target,
-                currentWallNormal
-            );
-
-        position +=
-            currentWallNormal * wallOffset;
-
-        target.transform.position = position;
-
-        Quaternion sideRotation =
-            Quaternion.LookRotation(
-                currentWallNormal,
-                Vector3.up
-            );
-
         target.transform.rotation =
-            sideRotation *
-            Quaternion.Euler(
-                0f,
-                currentRotation,
-                0f
-            );
+            Quaternion.LookRotation(currentWallNormal, Vector3.up) *
+            Quaternion.Euler(0f, currentRotation, 0f);
+
+        currentHeightValid =
+            TryGetSnappedWallHeight(target, out float snappedHeight);
+
+        position.y = snappedHeight;
+
+        float wallOffset =
+            GetWallMountedOffset(target, currentWallNormal);
+
+        position += currentWallNormal * wallOffset;
+        target.transform.position = position;
     }
 
+    private bool TryGetSnappedWallHeight(
+        GameObject target,
+        out float snappedHeight)
+    {
+        snappedHeight = currentWallHitHeight;
+
+        if (edgeOccupancy == null ||
+            !edgeOccupancy.TryGetOccupant(currentEdge, out GameObject wallObject) ||
+            wallObject == null ||
+            !TryGetCombinedBounds(wallObject, out Bounds wallBounds) ||
+            !TryGetCombinedBounds(target, out Bounds objectBounds))
+        {
+            return false;
+        }
+
+        float wallBottom = wallBounds.min.y;
+        float wallTop = wallBounds.max.y;
+
+        float objectBottomOffset =
+            objectBounds.min.y - target.transform.position.y;
+        float objectTopOffset =
+            objectBounds.max.y - target.transform.position.y;
+
+        int minimumStep = Mathf.Max(
+            1,
+            Mathf.CeilToInt(-objectBottomOffset / WALL_HEIGHT_SNAP)
+        );
+
+        int maximumStep = Mathf.FloorToInt(
+            (wallTop - wallBottom - objectTopOffset) / WALL_HEIGHT_SNAP
+        );
+
+        if (maximumStep < minimumStep)
+            return false;
+
+        int requestedStep = Mathf.RoundToInt(
+            (currentWallHitHeight - wallBottom) / WALL_HEIGHT_SNAP
+        );
+
+        int snappedStep = Mathf.Clamp(
+            requestedStep,
+            minimumStep,
+            maximumStep
+        );
+
+        snappedHeight = wallBottom + snappedStep * WALL_HEIGHT_SNAP;
+        return true;
+    }
+
+    private bool TryGetCombinedBounds(
+        GameObject target,
+        out Bounds combinedBounds)
+    {
+        combinedBounds = default;
+        if (target == null)
+            return false;
+
+        Renderer[] renderers = target.GetComponentsInChildren<Renderer>(true);
+        bool hasBounds = false;
+
+        foreach (Renderer renderer in renderers)
+        {
+            if (renderer == null)
+                continue;
+
+            if (!hasBounds)
+            {
+                combinedBounds = renderer.bounds;
+                hasBounds = true;
+            }
+            else
+            {
+                combinedBounds.Encapsulate(renderer.bounds);
+            }
+        }
+
+        if (hasBounds)
+            return true;
+
+        Collider[] colliders = target.GetComponentsInChildren<Collider>(true);
+        foreach (Collider targetCollider in colliders)
+        {
+            if (targetCollider == null)
+                continue;
+
+            if (!hasBounds)
+            {
+                combinedBounds = targetCollider.bounds;
+                hasBounds = true;
+            }
+            else
+            {
+                combinedBounds.Encapsulate(targetCollider.bounds);
+            }
+        }
+
+        return hasBounds;
+    }
 
     private float GetWallMountedOffset(
         GameObject target,
@@ -497,7 +587,7 @@ public class WallMountedPlacementHandler : IPlacementHandler
 
     public void TryPlace()
     {
-        if (!hasValidWallHit || !IsEdgeValid(currentEdge))
+        if (!hasValidWallHit || !IsEdgeValid(currentEdge) || !currentHeightValid)
         {
             Debug.Log(
                 "Cannot place display: aim directly at a valid wall."
@@ -538,6 +628,7 @@ public class WallMountedPlacementHandler : IPlacementHandler
     public void Cancel()
     {
         hasValidWallHit = false;
+        currentHeightValid = false;
     }
 
     public void Reset()
@@ -554,5 +645,7 @@ public class WallMountedPlacementHandler : IPlacementHandler
         currentWallNormal = Vector3.forward;
         currentRotation = 0;
         hasValidWallHit = false;
+        currentHeightValid = false;
+        currentWallHitHeight = 0f;
     }
 }
