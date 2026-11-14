@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b707bf0339cdddd48ac715a8e271822e, type: 3}
+  m_Name: BD_Door
+  m_EditorClassIdentifier: Assembly-CSharp::BuildableDefinition
+  id: airport.facilities.door
+  displayName: Door
+  prefab: {fileID: 1931403444797532563, guid: 0afd69b5b86b13b4db61d58f91c02066, type: 3}
+  placementType: 0
+  requiredSurface: 1
+  width: 1
+  depth: 1
+  edgeLength: 1
+  requiresExistingWall: 0
+  isWallMounted: 0
+  canBePlacedOnSurface: 0
+  canSupportSurfaceObjects: 0
+  canRotate: 1
+  buildCost: 100
+  blocksPathfinding: 0
+  menuCategory: Facilities & Maintenance
+  category: 3
+  icon: {fileID: 0}
+  roomFurnitureRole: 0
