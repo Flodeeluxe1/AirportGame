@@ -4,11 +4,14 @@ using UnityEngine;
 
 /// <summary>
 /// Moves a pedestrian along routes produced by the shared PedestrianPathfinder.
-/// Attach this component to pedestrian character prefabs.
+/// Also applies lightweight local separation from other active pedestrians.
 /// </summary>
 [DisallowMultipleComponent]
 public class PedestrianMovementController : MonoBehaviour
 {
+    private static readonly HashSet<PedestrianMovementController> ActivePedestrians =
+        new HashSet<PedestrianMovementController>();
+
     [Header("Pathfinding")]
     [SerializeField] private PedestrianPathfinder pathfinder;
 
@@ -19,6 +22,13 @@ public class PedestrianMovementController : MonoBehaviour
     [SerializeField] private float rotationSpeed = 540f;
     [Min(0.01f)]
     [SerializeField] private float waypointArrivalDistance = 0.08f;
+
+    [Header("Pedestrian Avoidance")]
+    [SerializeField] private bool avoidOtherPedestrians = true;
+    [Min(0f)]
+    [SerializeField] private float avoidanceRadius = 0.8f;
+    [Range(0f, 3f)]
+    [SerializeField] private float avoidanceStrength = 1.25f;
 
     [Header("Runtime")]
     [SerializeField] private bool isMoving;
@@ -41,6 +51,16 @@ public class PedestrianMovementController : MonoBehaviour
 
     public event Action Arrived;
     public event Action PathFailed;
+
+    private void OnEnable()
+    {
+        ActivePedestrians.Add(this);
+    }
+
+    private void OnDisable()
+    {
+        ActivePedestrians.Remove(this);
+    }
 
     private void Awake()
     {
@@ -179,23 +199,88 @@ public class PedestrianMovementController : MonoBehaviour
             return;
         }
 
-        Vector3 direction = toTarget.normalized;
+        Vector3 desiredDirection = toTarget.normalized;
+        Vector3 movementDirection = GetAvoidanceDirection(desiredDirection);
 
-        transform.position = Vector3.MoveTowards(
-            transform.position,
-            target,
-            movementSpeed * Time.deltaTime);
+        transform.position += movementDirection * movementSpeed * Time.deltaTime;
 
-        if (direction.sqrMagnitude > 0.0001f)
+        if (movementDirection.sqrMagnitude > 0.0001f)
         {
             Quaternion targetRotation =
-                Quaternion.LookRotation(direction, Vector3.up);
+                Quaternion.LookRotation(movementDirection, Vector3.up);
 
             transform.rotation = Quaternion.RotateTowards(
                 transform.rotation,
                 targetRotation,
                 rotationSpeed * Time.deltaTime);
         }
+    }
+
+    /// <summary>
+    /// Adds a small sideways steering force when another pedestrian is nearby.
+    /// The forward component is preserved so pedestrians continue progressing
+    /// along their planned route instead of being pushed backwards.
+    /// </summary>
+    private Vector3 GetAvoidanceDirection(Vector3 desiredDirection)
+    {
+        if (!avoidOtherPedestrians ||
+            avoidanceRadius <= 0f ||
+            avoidanceStrength <= 0f ||
+            ActivePedestrians.Count <= 1)
+        {
+            return desiredDirection;
+        }
+
+        Vector3 separation = Vector3.zero;
+        Vector3 ownPosition = transform.position;
+        ownPosition.y = 0f;
+
+        foreach (PedestrianMovementController other in ActivePedestrians)
+        {
+            if (other == null || other == this || !other.isActiveAndEnabled)
+                continue;
+
+            Vector3 offset = ownPosition - other.transform.position;
+            offset.y = 0f;
+
+            float distance = offset.magnitude;
+            if (distance >= avoidanceRadius)
+                continue;
+
+            Vector3 awayDirection;
+
+            if (distance > 0.001f)
+            {
+                awayDirection = offset / distance;
+            }
+            else
+            {
+                // If two pedestrians spawn at exactly the same position,
+                // make them choose opposite sideways directions.
+                float side = GetInstanceID() < other.GetInstanceID() ? 1f : -1f;
+                awayDirection = Vector3.Cross(
+                    Vector3.up,
+                    desiredDirection) * side;
+            }
+
+            float influence = 1f - Mathf.Clamp01(distance / avoidanceRadius);
+            separation += awayDirection * influence;
+        }
+
+        if (separation.sqrMagnitude <= 0.0001f)
+            return desiredDirection;
+
+        // Prefer sidestepping rather than moving backwards off the route.
+        Vector3 lateralSeparation =
+            separation - Vector3.Dot(separation, desiredDirection) * desiredDirection;
+
+        if (lateralSeparation.sqrMagnitude <= 0.0001f)
+            return desiredDirection;
+
+        Vector3 steeredDirection =
+            desiredDirection + lateralSeparation.normalized * avoidanceStrength;
+
+        return steeredDirection.normalized;
     }
 
     private void SkipReachedWaypoints()
@@ -240,5 +325,7 @@ public class PedestrianMovementController : MonoBehaviour
         rotationSpeed = Mathf.Max(1f, rotationSpeed);
         waypointArrivalDistance =
             Mathf.Max(0.01f, waypointArrivalDistance);
+        avoidanceRadius = Mathf.Max(0f, avoidanceRadius);
+        avoidanceStrength = Mathf.Clamp(avoidanceStrength, 0f, 3f);
     }
 }
