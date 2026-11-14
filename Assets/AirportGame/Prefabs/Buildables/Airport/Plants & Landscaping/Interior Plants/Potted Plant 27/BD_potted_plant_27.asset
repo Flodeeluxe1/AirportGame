@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BuildableDefinition
   id: airport.interior.potted_plant_27
   displayName: Potted Plant 27
-  prefab: {fileID: 100100000, guid: 5f9cbba42de928b4c9a2b9d5783930ea, type: 3}
+  prefab: {fileID: 6487741420486073511, guid: 5f9cbba42de928b4c9a2b9d5783930ea, type: 3}
   placementType: 0
   requiredSurface: 1
   width: 1
