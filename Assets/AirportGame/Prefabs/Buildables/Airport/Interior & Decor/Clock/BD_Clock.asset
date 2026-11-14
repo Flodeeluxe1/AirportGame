@@ -25,7 +25,7 @@ MonoBehaviour:
   mountHeight: 2
   canBePlacedOnSurface: 0
   canSupportSurfaceObjects: 0
-  canRotate: 0
+  canRotate: 1
   buildCost: 20
   blocksPathfinding: 0
   menuCategory: Interior & Decor

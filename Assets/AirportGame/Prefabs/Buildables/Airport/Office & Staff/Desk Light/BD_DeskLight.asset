@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BuildableDefinition
   id: airport.office.desk_light
   displayName: Desk Light
-  prefab: {fileID: 1729308599406165851, guid: e0a309163f5d1ef4e81367371dba0804, type: 3}
+  prefab: {fileID: 5951373164338049982, guid: e0a309163f5d1ef4e81367371dba0804, type: 3}
   placementType: 0
   requiredSurface: 1
   width: 1
@@ -22,7 +22,6 @@ MonoBehaviour:
   edgeLength: 1
   requiresExistingWall: 0
   isWallMounted: 0
-  mountHeight: 2
   canBePlacedOnSurface: 1
   canSupportSurfaceObjects: 0
   canRotate: 1
