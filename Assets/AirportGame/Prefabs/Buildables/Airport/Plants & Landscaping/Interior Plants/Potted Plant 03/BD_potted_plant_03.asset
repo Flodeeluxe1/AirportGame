@@ -28,7 +28,7 @@ MonoBehaviour:
   canRotate: 1
   buildCost: 40
   blocksPathfinding: 0
-  menuCategory: Interior Plants
+  menuCategory: Plants & Landscaping
   category: 3
   icon: {fileID: 0}
   roomFurnitureRole: 0
