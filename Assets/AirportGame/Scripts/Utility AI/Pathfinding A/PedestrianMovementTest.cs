@@ -1,10 +1,5 @@
 using UnityEngine;
 
-/// <summary>
-/// Temporary in-scene test helper for checking pedestrian pathfinding and movement.
-/// Add it to a pedestrian instance, assign a destination Transform, enter Play Mode,
-/// then use the component context menu to start or stop the test.
-</summary>
 [DisallowMultipleComponent]
 public class PedestrianMovementTest : MonoBehaviour
 {
