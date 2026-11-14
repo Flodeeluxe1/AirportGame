@@ -56,8 +56,6 @@ public class BuildableDefinition : ScriptableObject
     [Header("Wall Mounted")]
     public bool isWallMounted = false;
 
-    [Min(0f)]
-    public float mountHeight = 2f;
 
     [Header("Surface Placement")]
     [Tooltip("Allows this object to be placed freely on a supporting placed object instead of occupying floor grid cells.")]
