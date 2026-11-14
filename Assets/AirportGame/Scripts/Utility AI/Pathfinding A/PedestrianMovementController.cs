@@ -257,7 +257,7 @@ public class PedestrianMovementController : MonoBehaviour
             {
                 // If two pedestrians spawn at exactly the same position,
                 // make them choose opposite sideways directions.
-                float side = GetInstanceID() < other.GetInstanceID() ? 1f : -1f;
+                float side = GetEntityId() < other.GetEntityId() ? 1f : -1f;
                 awayDirection = Vector3.Cross(
                     Vector3.up,
                     desiredDirection) * side;
