@@ -1,0 +1,244 @@
+using System;
+using System.Collections.Generic;
+using UnityEngine;
+
+/// <summary>
+/// Moves a pedestrian along routes produced by the shared PedestrianPathfinder.
+/// Attach this component to pedestrian character prefabs.
+/// </summary>
+[DisallowMultipleComponent]
+public class PedestrianMovementController : MonoBehaviour
+{
+    [Header("Pathfinding")]
+    [SerializeField] private PedestrianPathfinder pathfinder;
+
+    [Header("Movement")]
+    [Min(0.1f)]
+    [SerializeField] private float movementSpeed = 1.5f;
+    [Min(1f)]
+    [SerializeField] private float rotationSpeed = 540f;
+    [Min(0.01f)]
+    [SerializeField] private float waypointArrivalDistance = 0.08f;
+
+    [Header("Runtime")]
+    [SerializeField] private bool isMoving;
+    [SerializeField] private string movementStatus = "Idle";
+    [SerializeField] private int currentWaypointIndex;
+    [SerializeField] private int waypointCount;
+
+    private readonly List<Vector3> movementPath = new List<Vector3>();
+    private Vector3 destination;
+    private float movementHeight;
+
+    public bool IsMoving => isMoving;
+    public bool HasPath => movementPath.Count > 0;
+    public bool HasArrived => movementStatus == "Arrived";
+    public string MovementStatus => movementStatus;
+    public Vector3 Destination => destination;
+    public int CurrentWaypointIndex => currentWaypointIndex;
+    public int WaypointCount => waypointCount;
+    public IReadOnlyList<Vector3> MovementPath => movementPath;
+
+    public event Action Arrived;
+    public event Action PathFailed;
+
+    private void Awake()
+    {
+        ResolvePathfinder();
+        movementHeight = transform.position.y;
+    }
+
+    private void Update()
+    {
+        if (isMoving)
+            UpdateMovement();
+    }
+
+    /// <summary>
+    /// Requests a route to a world-space destination.
+    /// Returns false if the shared pathfinder cannot find a route.
+    /// </summary>
+    public bool MoveTo(Vector3 worldDestination)
+    {
+        StopInternal("Calculating route");
+
+        if (pathfinder == null)
+            ResolvePathfinder();
+
+        if (pathfinder == null)
+        {
+            movementStatus = "Pathfinder missing";
+            PathFailed?.Invoke();
+            return false;
+        }
+
+        destination = worldDestination;
+        movementHeight = transform.position.y;
+        destination.y = movementHeight;
+
+        List<Vector3> calculatedPath =
+            pathfinder.FindWorldPath(transform.position, destination);
+
+        if (calculatedPath == null || calculatedPath.Count == 0)
+        {
+            movementStatus = "No path found";
+            PathFailed?.Invoke();
+            return false;
+        }
+
+        for (int i = 0; i < calculatedPath.Count; i++)
+        {
+            Vector3 waypoint = calculatedPath[i];
+            waypoint.y = movementHeight;
+
+            if (movementPath.Count == 0 ||
+                HorizontalDistance(
+                    movementPath[movementPath.Count - 1],
+                    waypoint) > 0.001f)
+            {
+                movementPath.Add(waypoint);
+            }
+        }
+
+        if (movementPath.Count == 0 ||
+            HorizontalDistance(
+                movementPath[movementPath.Count - 1],
+                destination) > waypointArrivalDistance)
+        {
+            movementPath.Add(destination);
+        }
+
+        currentWaypointIndex = 0;
+        waypointCount = movementPath.Count;
+
+        SkipReachedWaypoints();
+
+        isMoving = currentWaypointIndex < movementPath.Count;
+
+        if (!isMoving)
+        {
+            CompleteMovement();
+            return true;
+        }
+
+        movementStatus = "Moving";
+        return true;
+    }
+
+    /// <summary>
+    /// Stops movement and discards the current route.
+    /// </summary>
+    public void Stop()
+    {
+        StopInternal("Stopped");
+    }
+
+    /// <summary>
+    /// Recalculates the route to the current destination from the current position.
+    /// </summary>
+    public bool RecalculatePath()
+    {
+        if (movementStatus == "Idle" ||
+            movementStatus == "Stopped" ||
+            movementStatus == "Arrived")
+        {
+            return false;
+        }
+
+        return MoveTo(destination);
+    }
+
+    private void ResolvePathfinder()
+    {
+        if (pathfinder == null)
+            pathfinder = FindFirstObjectByType<PedestrianPathfinder>();
+    }
+
+    private void UpdateMovement()
+    {
+        if (currentWaypointIndex >= movementPath.Count)
+        {
+            CompleteMovement();
+            return;
+        }
+
+        Vector3 target = movementPath[currentWaypointIndex];
+        target.y = movementHeight;
+
+        Vector3 toTarget = target - transform.position;
+        toTarget.y = 0f;
+
+        if (toTarget.magnitude <= waypointArrivalDistance)
+        {
+            currentWaypointIndex++;
+            SkipReachedWaypoints();
+
+            if (currentWaypointIndex >= movementPath.Count)
+                CompleteMovement();
+
+            return;
+        }
+
+        Vector3 direction = toTarget.normalized;
+
+        transform.position = Vector3.MoveTowards(
+            transform.position,
+            target,
+            movementSpeed * Time.deltaTime);
+
+        if (direction.sqrMagnitude > 0.0001f)
+        {
+            Quaternion targetRotation =
+                Quaternion.LookRotation(direction, Vector3.up);
+
+            transform.rotation = Quaternion.RotateTowards(
+                transform.rotation,
+                targetRotation,
+                rotationSpeed * Time.deltaTime);
+        }
+    }
+
+    private void SkipReachedWaypoints()
+    {
+        while (currentWaypointIndex < movementPath.Count &&
+               HorizontalDistance(
+                   transform.position,
+                   movementPath[currentWaypointIndex]) <=
+               waypointArrivalDistance)
+        {
+            currentWaypointIndex++;
+        }
+    }
+
+    private void CompleteMovement()
+    {
+        isMoving = false;
+        currentWaypointIndex = movementPath.Count;
+        movementStatus = "Arrived";
+        Arrived?.Invoke();
+    }
+
+    private void StopInternal(string status)
+    {
+        isMoving = false;
+        movementPath.Clear();
+        currentWaypointIndex = 0;
+        waypointCount = 0;
+        movementStatus = status;
+    }
+
+    private static float HorizontalDistance(Vector3 a, Vector3 b)
+    {
+        a.y = 0f;
+        b.y = 0f;
+        return Vector3.Distance(a, b);
+    }
+
+    private void OnValidate()
+    {
+        movementSpeed = Mathf.Max(0.1f, movementSpeed);
+        rotationSpeed = Mathf.Max(1f, rotationSpeed);
+        waypointArrivalDistance =
+            Mathf.Max(0.01f, waypointArrivalDistance);
+    }
+}
