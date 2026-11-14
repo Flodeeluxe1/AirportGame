@@ -11,13 +11,6 @@ public class GridOccupancy : MonoBehaviour
         return occupiedCells.ContainsKey(position);
     }
 
-    public bool TryGetOccupant(
-        Vector2Int position,
-        out GameObject occupant)
-    {
-        return occupiedCells.TryGetValue(position, out occupant);
-    }
-
     public bool IsOccupied(Vector2Int position, GameObject ignoredObject)
     {
         if (!occupiedCells.TryGetValue(position, out GameObject occupant))
