@@ -142,18 +142,16 @@ public class PedestrianPathfinder : MonoBehaviour
     /// </summary>
     public List<Vector3> FindWorldPath(Vector3 startWorld, Vector3 targetWorld)
     {
-        List<Vector2Int> gridPath = FindPath(
-            gridManager != null
-                ? gridManager.WorldToGrid(startWorld)
-                : Vector2Int.zero,
-            gridManager != null
-                ? gridManager.WorldToGrid(targetWorld)
-                : Vector2Int.zero);
+        List<Vector3> worldPath = new List<Vector3>();
 
-        List<Vector3> worldPath = new List<Vector3>(gridPath.Count);
-
-        if (gridManager == null)
+        if (!HasValidReferences())
             return worldPath;
+
+        List<Vector2Int> gridPath = FindPath(
+            gridManager.WorldToGrid(startWorld),
+            gridManager.WorldToGrid(targetWorld));
+
+        worldPath.Capacity = gridPath.Count;
 
         foreach (Vector2Int cell in gridPath)
         {
