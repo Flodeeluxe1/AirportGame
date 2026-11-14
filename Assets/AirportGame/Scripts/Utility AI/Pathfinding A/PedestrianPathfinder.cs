@@ -18,7 +18,7 @@ public class PedestrianPathfinder : MonoBehaviour
 
     [Header("Path Settings")]
     [SerializeField, Min(0f)] private float pathHeightOffset = 0.05f;
-    [SerializeField, Range(0, 5)] private int randomStepPenalty = 2;
+    [SerializeField, Range(0, 5)] private int randomStepPenalty = 3;
 
     private static int pathSearchCounter;
 
