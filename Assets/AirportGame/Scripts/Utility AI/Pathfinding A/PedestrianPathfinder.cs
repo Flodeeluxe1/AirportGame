@@ -20,6 +20,9 @@ public class PedestrianPathfinder : MonoBehaviour
     [SerializeField, Min(0f)] private float pathHeightOffset = 0.05f;
     [SerializeField, Range(0, 5)] private int randomStepPenalty = 3;
 
+    [Header("Path Smoothing")]
+    [SerializeField, Range(1, 6)] private int smoothingLookAheadCells = 3;
+
     private static int pathSearchCounter;
 
     private static readonly Vector2Int[] NeighborOffsets =
@@ -201,6 +204,7 @@ public class PedestrianPathfinder : MonoBehaviour
             gridManager.WorldToGrid(startWorld),
             gridManager.WorldToGrid(targetWorld));
 
+        gridPath = SmoothPath(gridPath);
         worldPath.Capacity = gridPath.Count;
 
         foreach (Vector2Int cell in gridPath)
@@ -211,6 +215,88 @@ public class PedestrianPathfinder : MonoBehaviour
         }
 
         return worldPath;
+    }
+
+    /// <summary>
+    /// Removes unnecessary intermediate grid waypoints when a short,
+    /// collision-safe straight segment can connect the remaining cells.
+    /// A limited look-ahead preserves the overall shape of randomized routes.
+    /// </summary>
+    private List<Vector2Int> SmoothPath(List<Vector2Int> path)
+    {
+        if (path == null || path.Count <= 2 || smoothingLookAheadCells <= 1)
+            return path;
+
+        List<Vector2Int> smoothedPath = new List<Vector2Int>();
+        int anchorIndex = 0;
+        smoothedPath.Add(path[0]);
+
+        while (anchorIndex < path.Count - 1)
+        {
+            int furthestCandidate = Mathf.Min(
+                path.Count - 1,
+                anchorIndex + smoothingLookAheadCells);
+
+            int chosenIndex = anchorIndex + 1;
+
+            for (int candidateIndex = furthestCandidate;
+                 candidateIndex > anchorIndex + 1;
+                 candidateIndex--)
+            {
+                if (HasClearLineOfSight(
+                    path[anchorIndex],
+                    path[candidateIndex]))
+                {
+                    chosenIndex = candidateIndex;
+                    break;
+                }
+            }
+
+            smoothedPath.Add(path[chosenIndex]);
+            anchorIndex = chosenIndex;
+        }
+
+        return smoothedPath;
+    }
+
+    /// <summary>
+    /// Uses a grid traversal between cell centres and validates every
+    /// crossed step with the same walkability, wall and corner rules as A*.
+    /// </summary>
+    private bool HasClearLineOfSight(Vector2Int from, Vector2Int to)
+    {
+        int deltaX = Mathf.Abs(to.x - from.x);
+        int deltaY = Mathf.Abs(to.y - from.y);
+        int stepX = from.x < to.x ? 1 : -1;
+        int stepY = from.y < to.y ? 1 : -1;
+        int error = deltaX - deltaY;
+
+        Vector2Int current = from;
+
+        while (current != to)
+        {
+            int doubledError = error * 2;
+            Vector2Int next = current;
+
+            if (doubledError > -deltaY)
+            {
+                error -= deltaY;
+                next.x += stepX;
+            }
+
+            if (doubledError < deltaX)
+            {
+                error += deltaX;
+                next.y += stepY;
+            }
+
+            if (!CanMoveBetween(current, next))
+                return false;
+
+            current = next;
+        }
+
+        return true;
     }
 
     public bool TryFindPath(
