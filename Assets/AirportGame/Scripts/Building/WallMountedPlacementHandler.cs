@@ -574,10 +574,10 @@ public class WallMountedPlacementHandler : IPlacementHandler
 
     public void Rotate()
     {
-        currentRotation += 180;
+        currentRotation += 90;
 
         if (currentRotation >= 360)
-            currentRotation = 0;
+            currentRotation -= 360;
 
         if (hasValidWallHit)
             UpdatePreviewTransform();
