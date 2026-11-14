@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BuildableDefinition
   id: airport.exterior.tree_1
   displayName: Tree 1
-  prefab: {fileID: 100100000, guid: PREFAB_GUID_PLACEHOLDER, type: 3}
+  prefab: {fileID: 100100000, guid: 17de3c1426f928b4e97bb2feeeb4d11e, type: 3}
   placementType: 0
   requiredSurface: 1
   width: 2
