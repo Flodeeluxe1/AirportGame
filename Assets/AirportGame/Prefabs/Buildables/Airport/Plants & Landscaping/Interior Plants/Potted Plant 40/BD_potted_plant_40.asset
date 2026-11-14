@@ -30,5 +30,5 @@ MonoBehaviour:
   blocksPathfinding: 0
   menuCategory: Plants & Landscaping
   category: 3
-  icon: {fileID: 0}
+  icon: {fileID: 2800000, guid: 7ff56e5b88fae314488cfe1acf9e36f7, type: 3}
   roomFurnitureRole: 0
