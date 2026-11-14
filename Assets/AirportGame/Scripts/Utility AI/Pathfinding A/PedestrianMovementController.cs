@@ -26,9 +26,11 @@ public class PedestrianMovementController : MonoBehaviour
     [Header("Pedestrian Avoidance")]
     [SerializeField] private bool avoidOtherPedestrians = true;
     [Min(0f)]
-    [SerializeField] private float avoidanceRadius = 0.8f;
-    [Range(0f, 3f)]
-    [SerializeField] private float avoidanceStrength = 1.25f;
+    [SerializeField] private float avoidanceRadius = 0.65f;
+    [Range(0f, 1f)]
+    [SerializeField] private float avoidanceStrength = 0.25f;
+    [Min(0.1f)]
+    [SerializeField] private float avoidanceResponse = 3.5f;
 
     [Header("Runtime")]
     [SerializeField] private bool isMoving;
@@ -39,6 +41,7 @@ public class PedestrianMovementController : MonoBehaviour
     private readonly List<Vector3> movementPath = new List<Vector3>();
     private Vector3 destination;
     private float movementHeight;
+    private Vector3 currentAvoidanceOffset;
 
     public bool IsMoving => isMoving;
     public bool HasPath => movementPath.Count > 0;
@@ -200,9 +203,50 @@ public class PedestrianMovementController : MonoBehaviour
         }
 
         Vector3 desiredDirection = toTarget.normalized;
-        Vector3 movementDirection = GetAvoidanceDirection(desiredDirection);
+        float deltaTime = Time.deltaTime;
+        Vector3 targetAvoidanceOffset = GetAvoidanceOffset(desiredDirection);
+        float avoidanceLerp = 1f - Mathf.Exp(-avoidanceResponse * deltaTime);
 
-        transform.position += movementDirection * movementSpeed * Time.deltaTime;
+        currentAvoidanceOffset = Vector3.Lerp(
+            currentAvoidanceOffset,
+            targetAvoidanceOffset,
+            avoidanceLerp);
+
+        // Keep the steering offset perpendicular to the route direction.
+        currentAvoidanceOffset -=
+            Vector3.Dot(currentAvoidanceOffset, desiredDirection) * desiredDirection;
+
+        Vector3 movementDirection =
+            (desiredDirection + currentAvoidanceOffset).normalized;
+        Vector3 nextPosition =
+            transform.position + movementDirection * movementSpeed * deltaTime;
+
+        // Local avoidance may only steer through cells and edges that the
+        // pedestrian pathfinder considers traversable. If the sidestep is
+        // blocked, fall back to the planned route direction.
+        if (pathfinder != null &&
+            !pathfinder.CanMoveBetweenWorldPositions(
+                transform.position,
+                nextPosition))
+        {
+            currentAvoidanceOffset = Vector3.Lerp(
+                currentAvoidanceOffset,
+                Vector3.zero,
+                avoidanceLerp);
+
+            movementDirection = desiredDirection;
+            nextPosition =
+                transform.position + movementDirection * movementSpeed * deltaTime;
+
+            if (!pathfinder.CanMoveBetweenWorldPositions(
+                    transform.position,
+                    nextPosition))
+            {
+                return;
+            }
+        }
+
+        transform.position = nextPosition;
 
         if (movementDirection.sqrMagnitude > 0.0001f)
         {
@@ -221,14 +265,14 @@ public class PedestrianMovementController : MonoBehaviour
     /// The forward component is preserved so pedestrians continue progressing
     /// along their planned route instead of being pushed backwards.
     /// </summary>
-    private Vector3 GetAvoidanceDirection(Vector3 desiredDirection)
+    private Vector3 GetAvoidanceOffset(Vector3 desiredDirection)
     {
         if (!avoidOtherPedestrians ||
             avoidanceRadius <= 0f ||
             avoidanceStrength <= 0f ||
             ActivePedestrians.Count <= 1)
         {
-            return desiredDirection;
+            return Vector3.zero;
         }
 
         Vector3 separation = Vector3.zero;
@@ -268,19 +312,17 @@ public class PedestrianMovementController : MonoBehaviour
         }
 
         if (separation.sqrMagnitude <= 0.0001f)
-            return desiredDirection;
+            return Vector3.zero;
 
         // Prefer sidestepping rather than moving backwards off the route.
         Vector3 lateralSeparation =
             separation - Vector3.Dot(separation, desiredDirection) * desiredDirection;
 
         if (lateralSeparation.sqrMagnitude <= 0.0001f)
-            return desiredDirection;
+            return Vector3.zero;
 
-        Vector3 steeredDirection =
-            desiredDirection + lateralSeparation.normalized * avoidanceStrength;
-
-        return steeredDirection.normalized;
+        float influence = Mathf.Clamp01(separation.magnitude);
+        return lateralSeparation.normalized * avoidanceStrength * influence;
     }
 
     private void SkipReachedWaypoints()
@@ -326,6 +368,7 @@ public class PedestrianMovementController : MonoBehaviour
         waypointArrivalDistance =
             Mathf.Max(0.01f, waypointArrivalDistance);
         avoidanceRadius = Mathf.Max(0f, avoidanceRadius);
-        avoidanceStrength = Mathf.Clamp(avoidanceStrength, 0f, 3f);
+        avoidanceStrength = Mathf.Clamp01(avoidanceStrength);
+        avoidanceResponse = Mathf.Max(0.1f, avoidanceResponse);
     }
 }
