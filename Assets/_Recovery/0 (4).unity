@@ -328,63 +328,6 @@ MonoBehaviour:
   gridManager: {fileID: 0}
   runwayToRelease: {fileID: 0}
   debugCurrentRunwayReservations: No runway reservations
---- !u!1001 &124456332
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 0}
-    m_Modifications:
-    - target: {fileID: 965483202004288150, guid: b49f0e9d6af340e4394758b8e14d7518, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 15.537158
-      objectReference: {fileID: 0}
-    - target: {fileID: 965483202004288150, guid: b49f0e9d6af340e4394758b8e14d7518, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0.5523722
-      objectReference: {fileID: 0}
-    - target: {fileID: 965483202004288150, guid: b49f0e9d6af340e4394758b8e14d7518, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 41.472614
-      objectReference: {fileID: 0}
-    - target: {fileID: 965483202004288150, guid: b49f0e9d6af340e4394758b8e14d7518, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 965483202004288150, guid: b49f0e9d6af340e4394758b8e14d7518, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 965483202004288150, guid: b49f0e9d6af340e4394758b8e14d7518, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 965483202004288150, guid: b49f0e9d6af340e4394758b8e14d7518, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 965483202004288150, guid: b49f0e9d6af340e4394758b8e14d7518, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 965483202004288150, guid: b49f0e9d6af340e4394758b8e14d7518, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 965483202004288150, guid: b49f0e9d6af340e4394758b8e14d7518, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6433370530536976996, guid: b49f0e9d6af340e4394758b8e14d7518, type: 3}
-      propertyPath: m_Name
-      value: Toilet
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: b49f0e9d6af340e4394758b8e14d7518, type: 3}
 --- !u!1 &133712789
 GameObject:
   m_ObjectHideFlags: 0
@@ -4836,4 +4779,3 @@ SceneRoots:
   - {fileID: 2206400020603114989}
   - {fileID: 2045430547}
   - {fileID: 309714797}
-  - {fileID: 124456332}

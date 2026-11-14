@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BuildableDefinition
   id: airport.exterior.bush_03
   displayName: Bush 03
-  prefab: {fileID: 100100000, guid: ff0b0a3d7ae7a9e4f8505795785ad853, type: 3}
+  prefab: {fileID: 6786704563919835699, guid: ff0b0a3d7ae7a9e4f8505795785ad853, type: 3}
   placementType: 0
   requiredSurface: 1
   width: 1
@@ -28,7 +28,7 @@ MonoBehaviour:
   canRotate: 1
   buildCost: 30
   blocksPathfinding: 0
-  menuCategory: Exterior Plants
+  menuCategory: Plants & Landscaping
   category: 3
   icon: {fileID: 0}
   roomFurnitureRole: 0

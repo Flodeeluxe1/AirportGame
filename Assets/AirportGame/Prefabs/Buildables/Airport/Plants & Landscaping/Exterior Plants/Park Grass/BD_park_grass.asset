@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BuildableDefinition
   id: airport.exterior.park_grass
   displayName: Park Grass
-  prefab: {fileID: 100100000, guid: 7692fca38ff1e2a41a1150cb803fe20c, type: 3}
+  prefab: {fileID: 169916, guid: 7692fca38ff1e2a41a1150cb803fe20c, type: 3}
   placementType: 0
   requiredSurface: 1
   width: 1
@@ -28,7 +28,7 @@ MonoBehaviour:
   canRotate: 1
   buildCost: 20
   blocksPathfinding: 0
-  menuCategory: Exterior Plants
+  menuCategory: Plants & Landscaping
   category: 3
   icon: {fileID: 0}
   roomFurnitureRole: 0
