@@ -162,6 +162,19 @@ public class PilotInteractionController : MonoBehaviour
             score += urgency * potentialSatisfaction / 100f;
         }
 
+        if (score <= 0f)
+            return 0f;
+
+        foreach (InteractionDefinition.NeedConflict conflict in definition.NeedConflicts)
+        {
+            if (conflict == null || conflict.penaltyAtMaximumUrgency <= 0f)
+                continue;
+
+            float conflictingUrgency = needs.GetUrgency(conflict.need) / 100f;
+            float penalty = conflictingUrgency * conflict.penaltyAtMaximumUrgency;
+            score *= 1f - Mathf.Clamp01(penalty);
+        }
+
         return score;
     }
 
