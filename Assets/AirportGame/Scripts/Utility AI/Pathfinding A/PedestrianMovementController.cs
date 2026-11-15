@@ -18,6 +18,13 @@ public class PedestrianMovementController : MonoBehaviour
     [Header("Movement")]
     [Min(0.1f)]
     [SerializeField] private float movementSpeed = 1.5f;
+    [SerializeField] private Vector2 individualSpeedMultiplierRange = new Vector2(0.9f, 1.1f);
+    [Min(0.1f)]
+    [SerializeField] private float acceleration = 2.5f;
+    [Min(0.1f)]
+    [SerializeField] private float deceleration = 4f;
+    [Min(0.1f)]
+    [SerializeField] private float slowdownDistance = 0.6f;
     [Min(1f)]
     [SerializeField] private float rotationSpeed = 540f;
     [Min(0.01f)]
@@ -41,6 +48,8 @@ public class PedestrianMovementController : MonoBehaviour
     private readonly List<Vector3> movementPath = new List<Vector3>();
     private Vector3 destination;
     private float movementHeight;
+    private float individualSpeedMultiplier = 1f;
+    private float currentSpeed;
     private Vector3 currentAvoidanceOffset;
 
     public bool IsMoving => isMoving;
@@ -58,6 +67,10 @@ public class PedestrianMovementController : MonoBehaviour
     private void OnEnable()
     {
         ActivePedestrians.Add(this);
+        individualSpeedMultiplier = UnityEngine.Random.Range(
+            individualSpeedMultiplierRange.x,
+            individualSpeedMultiplierRange.y);
+        currentSpeed = 0f;
     }
 
     private void OnDisable()
@@ -204,6 +217,25 @@ public class PedestrianMovementController : MonoBehaviour
 
         Vector3 desiredDirection = toTarget.normalized;
         float deltaTime = Time.deltaTime;
+
+        // Give each pedestrian a slightly different walking pace and ease
+        // into movement instead of starting at full speed immediately.
+        float targetSpeed = movementSpeed * individualSpeedMultiplier;
+        if (slowdownDistance > 0f && toTarget.magnitude < slowdownDistance)
+        {
+            float approachFactor = Mathf.Clamp01(toTarget.magnitude / slowdownDistance);
+            targetSpeed *= Mathf.Lerp(0.25f, 1f, approachFactor);
+        }
+
+        float speedChange = targetSpeed > currentSpeed ? acceleration : deceleration;
+        currentSpeed = Mathf.MoveTowards(
+            currentSpeed,
+            targetSpeed,
+            speedChange * deltaTime);
+
+        if (currentSpeed <= 0.001f)
+            return;
+
         Vector3 targetAvoidanceOffset = GetAvoidanceOffset(desiredDirection);
         float avoidanceLerp = 1f - Mathf.Exp(-avoidanceResponse * deltaTime);
 
@@ -219,7 +251,7 @@ public class PedestrianMovementController : MonoBehaviour
         Vector3 movementDirection =
             (desiredDirection + currentAvoidanceOffset).normalized;
         Vector3 nextPosition =
-            transform.position + movementDirection * movementSpeed * deltaTime;
+            transform.position + movementDirection * currentSpeed * deltaTime;
 
         // Local avoidance may only steer through cells and edges that the
         // pedestrian pathfinder considers traversable. If the sidestep is
@@ -236,7 +268,7 @@ public class PedestrianMovementController : MonoBehaviour
 
             movementDirection = desiredDirection;
             nextPosition =
-                transform.position + movementDirection * movementSpeed * deltaTime;
+                transform.position + movementDirection * currentSpeed * deltaTime;
 
             if (!pathfinder.CanMoveBetweenWorldPositions(
                     transform.position,
@@ -340,6 +372,8 @@ public class PedestrianMovementController : MonoBehaviour
     private void CompleteMovement()
     {
         isMoving = false;
+        currentSpeed = 0f;
+        currentAvoidanceOffset = Vector3.zero;
         currentWaypointIndex = movementPath.Count;
         movementStatus = "Arrived";
         Arrived?.Invoke();
@@ -348,6 +382,8 @@ public class PedestrianMovementController : MonoBehaviour
     private void StopInternal(string status)
     {
         isMoving = false;
+        currentSpeed = 0f;
+        currentAvoidanceOffset = Vector3.zero;
         movementPath.Clear();
         currentWaypointIndex = 0;
         waypointCount = 0;
@@ -364,6 +400,13 @@ public class PedestrianMovementController : MonoBehaviour
     private void OnValidate()
     {
         movementSpeed = Mathf.Max(0.1f, movementSpeed);
+        individualSpeedMultiplierRange.x = Mathf.Max(0.5f, individualSpeedMultiplierRange.x);
+        individualSpeedMultiplierRange.y = Mathf.Max(
+            individualSpeedMultiplierRange.x,
+            individualSpeedMultiplierRange.y);
+        acceleration = Mathf.Max(0.1f, acceleration);
+        deceleration = Mathf.Max(0.1f, deceleration);
+        slowdownDistance = Mathf.Max(0.1f, slowdownDistance);
         rotationSpeed = Mathf.Max(1f, rotationSpeed);
         waypointArrivalDistance =
             Mathf.Max(0.01f, waypointArrivalDistance);
