@@ -14,6 +14,7 @@ GameObject:
   - component: {fileID: 2338498571254170503}
   - component: {fileID: 9192837465012345678}
   - component: {fileID: 8273649182736450918}
+  - component: {fileID: 7462819304756128391}
   m_Layer: 0
   m_Name: HA_Pilot_1
   m_TagString: Untagged
@@ -174,3 +175,19 @@ MonoBehaviour:
   entertainment: 100
   comfort: 100
   curiosity: 100
+
+--- !u!114 &7462819304756128391
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1552182806160375558}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d4e7a1c93f5b4d2e8a6c0f1b3d5e7a92, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  decisionInterval: 2
+  currentStatus: Idle
+  currentInteractionName: 
