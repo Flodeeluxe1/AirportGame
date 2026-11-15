@@ -16,7 +16,6 @@ GameObject:
   - component: {fileID: 8273649182736450918}
   - component: {fileID: 7462819304756128391}
   - component: {fileID: 3894756102837465190}
-  - component: {fileID: 5947382019658473021}
   m_Layer: 0
   m_Name: HA_Pilot_1
   m_TagString: Untagged
@@ -209,7 +208,7 @@ MonoBehaviour:
   searchInterval: 2
   partnerSearchRadius: 8
   maximumSocialNeedValue: 80
-  conversationDurationGameSeconds: 30
+  conversationDurationGameSeconds: 600
   socialSatisfactionAmount: 30
   conversationDistance: 1.2
   travelTimeout: 30
@@ -217,25 +216,3 @@ MonoBehaviour:
   currentStatus: Idle
   currentPartnerName: 
 
---- !u!114 &5947382019658473021
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1552182806160375558}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c8f1a5d7392e4b60a7d3f9c1e5b28416, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  searchInterval: 3
-  searchRadius: 12
-  maximumSocialNeedValue: 80
-  socializingDurationGameSeconds: 45
-  socialSatisfactionAmount: 25
-  comfortSatisfactionAmount: 10
-  travelTimeout: 45
-  facingRotationSpeed: 540
-  currentStatus: Idle
-  currentPartnerName: 
