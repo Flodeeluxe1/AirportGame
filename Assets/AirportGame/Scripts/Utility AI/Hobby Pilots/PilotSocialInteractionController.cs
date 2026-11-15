@@ -25,8 +25,8 @@ public class PilotSocialInteractionController : MonoBehaviour
     [SerializeField] private float partnerSearchRadius = 8f;
     [Range(0f, 100f)]
     [SerializeField] private float maximumSocialNeedValue = 80f;
-    [Min(0.1f)]
-    [SerializeField] private float conversationDuration = 30f;
+    [Min(1)]
+    [SerializeField] private int conversationDurationGameSeconds = 30;
     [Min(0f)]
     [SerializeField] private float socialSatisfactionAmount = 30f;
     [Min(0.2f)]
@@ -43,13 +43,14 @@ public class PilotSocialInteractionController : MonoBehaviour
     private UtilityNeeds needs;
     private PedestrianMovementController movement;
     private PilotInteractionController interactionController;
+    private GameTimeManager gameTimeManager;
     private PilotSocialInteractionController partner;
     private SocialState state;
     private bool isConversationLeader;
     private bool hasArrived;
     private float nextSearchTime;
     private float travelElapsed;
-    private float conversationElapsed;
+    private long conversationStartGameSecond;
 
     public bool IsBusy => state != SocialState.Idle;
     public string CurrentStatus => currentStatus;
@@ -59,6 +60,7 @@ public class PilotSocialInteractionController : MonoBehaviour
         needs = GetComponent<UtilityNeeds>();
         movement = GetComponent<PedestrianMovementController>();
         interactionController = GetComponent<PilotInteractionController>();
+        gameTimeManager = FindFirstObjectByType<GameTimeManager>();
     }
 
     private void OnEnable()
@@ -72,6 +74,12 @@ public class PilotSocialInteractionController : MonoBehaviour
             movement.PathFailed += HandlePathFailed;
         }
 
+        if (gameTimeManager == null)
+            gameTimeManager = FindFirstObjectByType<GameTimeManager>();
+
+        if (gameTimeManager != null)
+            gameTimeManager.GameTimeAdvanced += HandleGameTimeAdvanced;
+
         nextSearchTime = Time.time + Random.Range(0f, searchInterval);
     }
 
@@ -82,6 +90,9 @@ public class PilotSocialInteractionController : MonoBehaviour
             movement.Arrived -= HandleMovementArrived;
             movement.PathFailed -= HandlePathFailed;
         }
+
+        if (gameTimeManager != null)
+            gameTimeManager.GameTimeAdvanced -= HandleGameTimeAdvanced;
 
         CancelConversation("Social interaction interrupted");
     }
@@ -106,14 +117,6 @@ public class PilotSocialInteractionController : MonoBehaviour
 
             case SocialState.Conversing:
                 FacePartner();
-
-                if (isConversationLeader)
-                {
-                    conversationElapsed += Time.deltaTime;
-
-                    if (conversationElapsed >= conversationDuration)
-                        CompleteConversation();
-                }
 
                 return;
         }
@@ -234,8 +237,8 @@ public class PilotSocialInteractionController : MonoBehaviour
         travelElapsed = 0f;
         other.travelElapsed = 0f;
 
-        conversationElapsed = 0f;
-        other.conversationElapsed = 0f;
+        conversationStartGameSecond = GetCurrentAbsoluteGameSecond();
+        other.conversationStartGameSecond = conversationStartGameSecond;
 
         currentPartnerName = other.gameObject.name;
         other.currentPartnerName = gameObject.name;
@@ -243,10 +246,16 @@ public class PilotSocialInteractionController : MonoBehaviour
         currentStatus = "Walking to conversation";
         other.currentStatus = "Walking to conversation";
 
-        bool ownPathStarted = movement.MoveTo(ownTarget);
-        bool partnerPathStarted = other.movement.MoveTo(partnerTarget);
+        if (!movement.MoveTo(ownTarget))
+        {
+            CancelConversation("Could not find a path to conversation");
+            return;
+        }
 
-        if (!ownPathStarted || !partnerPathStarted)
+        if (partner != other || other.partner != this)
+            return;
+
+        if (!other.movement.MoveTo(partnerTarget))
             CancelConversation("Could not find a path to conversation");
     }
 
@@ -281,14 +290,32 @@ public class PilotSocialInteractionController : MonoBehaviour
         currentStatus = "Talking to " + partner.gameObject.name;
         partner.currentStatus = "Talking to " + gameObject.name;
 
-        conversationElapsed = 0f;
-        partner.conversationElapsed = 0f;
+        conversationStartGameSecond = GetCurrentAbsoluteGameSecond();
+        partner.conversationStartGameSecond = conversationStartGameSecond;
 
         movement.Stop();
         partner.movement.Stop();
 
         FacePartner();
         partner.FacePartner();
+    }
+
+    private void HandleGameTimeAdvanced(long previousSecond, long currentSecond)
+    {
+        if (state != SocialState.Conversing || !isConversationLeader)
+            return;
+
+        if (currentSecond - conversationStartGameSecond >= conversationDurationGameSeconds)
+            CompleteConversation();
+    }
+
+    private long GetCurrentAbsoluteGameSecond()
+    {
+        if (gameTimeManager == null)
+            return 0;
+
+        return (gameTimeManager.CurrentDay - 1) * 86400L +
+               gameTimeManager.GetGameTimeSeconds();
     }
 
     private void FacePartner()
@@ -359,7 +386,7 @@ public class PilotSocialInteractionController : MonoBehaviour
         isConversationLeader = false;
         hasArrived = false;
         travelElapsed = 0f;
-        conversationElapsed = 0f;
+        conversationStartGameSecond = 0;
         currentPartnerName = string.Empty;
         currentStatus = status;
         nextSearchTime = Time.time + searchInterval;
@@ -370,7 +397,7 @@ public class PilotSocialInteractionController : MonoBehaviour
         searchInterval = Mathf.Max(0.1f, searchInterval);
         partnerSearchRadius = Mathf.Max(0.1f, partnerSearchRadius);
         maximumSocialNeedValue = Mathf.Clamp(maximumSocialNeedValue, 0f, 100f);
-        conversationDuration = Mathf.Max(0.1f, conversationDuration);
+        conversationDurationGameSeconds = Mathf.Max(1, conversationDurationGameSeconds);
         socialSatisfactionAmount = Mathf.Max(0f, socialSatisfactionAmount);
         conversationDistance = Mathf.Max(0.2f, conversationDistance);
         travelTimeout = Mathf.Max(1f, travelTimeout);
