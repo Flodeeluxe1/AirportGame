@@ -23,6 +23,12 @@ public class AircraftHobbyVisitController : MonoBehaviour
     [Min(0.1f)]
     [SerializeField] private float parkingSpotReleaseDistance = 2f;
 
+    [Header("Pilot Visit")]
+    [SerializeField] private GameObject pilotPrefab;
+    [Min(0f)]
+    [SerializeField] private float pilotSpawnDelayMinutes = 5f;
+    [SerializeField] private Vector3 pilotSpawnLocalOffset = new Vector3(2f, 0f, 0f);
+
     [Header("Runtime Status")]
     [SerializeField] private bool hasParked;
     [SerializeField] private bool departureRequested;
@@ -37,6 +43,7 @@ public class AircraftHobbyVisitController : MonoBehaviour
 
     private double parkedAtGameSeconds;
     private double departureAtGameSeconds;
+    private GameObject spawnedPilot;
 
     public bool DepartureRequested => departureRequested;
     public bool HasParked => hasParked;
@@ -81,10 +88,12 @@ public class AircraftHobbyVisitController : MonoBehaviour
 
         if (departureRequested)
         {
+            BoardPilotForDeparture();
             ReleaseSpotAfterLeaving();
             return;
         }
 
+        TrySpawnPilot();
         UpdateParkingVisit();
     }
 
@@ -161,6 +170,7 @@ public class AircraftHobbyVisitController : MonoBehaviour
         if (now >= departureAtGameSeconds)
         {
             departureRequested = true;
+            BoardPilotForDeparture();
 
             debugStatus = "Visit complete; requesting departure taxi";
 
@@ -176,6 +186,65 @@ public class AircraftHobbyVisitController : MonoBehaviour
 
         debugStatus =
             $"Parked; {visitMinutesRemaining:F0} in-game minutes remaining";
+    }
+
+    private void TrySpawnPilot()
+    {
+        if (spawnedPilot != null ||
+            pilotPrefab == null ||
+            gameTimeManager == null)
+        {
+            return;
+        }
+
+        double elapsedGameSeconds =
+            GetCurrentGameSeconds() - parkedAtGameSeconds;
+
+        if (elapsedGameSeconds < pilotSpawnDelayMinutes * 60.0)
+            return;
+
+        Vector3 spawnPosition =
+            transform.TransformPoint(pilotSpawnLocalOffset);
+
+        Vector3 directionToAircraft =
+            transform.position - spawnPosition;
+        directionToAircraft.y = 0f;
+
+        Quaternion spawnRotation =
+            directionToAircraft.sqrMagnitude > 0.0001f
+                ? Quaternion.LookRotation(directionToAircraft.normalized, Vector3.up)
+                : transform.rotation;
+
+        spawnedPilot = Instantiate(
+            pilotPrefab,
+            spawnPosition,
+            spawnRotation
+        );
+
+        UtilityNeeds needs = spawnedPilot.GetComponent<UtilityNeeds>();
+
+        if (needs != null)
+            needs.ResetForNewVisit();
+
+        Debug.Log(
+            $"{flightIdentity.FlightNumber}: pilot spawned " +
+            $"{pilotSpawnDelayMinutes:F1} in-game minutes after parking.",
+            spawnedPilot
+        );
+    }
+
+    private void BoardPilotForDeparture()
+    {
+        if (spawnedPilot == null)
+            return;
+
+        Debug.Log(
+            $"{flightIdentity.FlightNumber}: pilot boarded for departure.",
+            spawnedPilot
+        );
+
+        Destroy(spawnedPilot);
+        spawnedPilot = null;
     }
 
     private HobbyAircraftParkingSpot FindReservedParkingSpot()
@@ -224,6 +293,9 @@ public class AircraftHobbyVisitController : MonoBehaviour
 
     private void OnDestroy()
     {
+        if (spawnedPilot != null)
+            Destroy(spawnedPilot);
+
         if (reservedSpot != null)
             reservedSpot.Release(gameObject);
     }
