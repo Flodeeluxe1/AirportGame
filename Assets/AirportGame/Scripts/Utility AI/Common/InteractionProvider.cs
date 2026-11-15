@@ -14,9 +14,22 @@ public class InteractionProvider : MonoBehaviour
     [SerializeField] private Transform interactionPoint;
     [SerializeField] private bool interactionsEnabled = true;
 
+    private InteractionQueue interactionQueue;
+
     public IReadOnlyList<InteractionDefinition> Interactions => interactions;
+    public InteractionQueue Queue
+    {
+        get
+        {
+            if (interactionQueue == null)
+                interactionQueue = GetComponent<InteractionQueue>();
+
+            return interactionQueue;
+        }
+    }
+
     /// <summary>
-    /// World-space position where an agent should approach this object.
+    /// World-space position where the agent should approach this object.
     /// Uses the assigned point when present; otherwise one grid cell forward
     /// from the object's origin.
     /// </summary>
@@ -38,33 +51,47 @@ public class InteractionProvider : MonoBehaviour
             return transform.position + transform.forward * gridUnit;
         }
     }
+
     public bool InteractionsEnabled =>
         interactionsEnabled && isActiveAndEnabled && gameObject.activeInHierarchy;
 
     /// <summary>
-    /// Returns whether this provider offers the definition and has a free slot.
-    /// Range and agent-specific requirements are checked by the AI decision system.
+    /// Returns whether this provider offers the definition and either has
+    /// a free slot or room in its enabled queue.
     /// </summary>
     public bool CanOffer(InteractionDefinition definition)
     {
-        return InteractionsEnabled &&
-               definition != null &&
-               interactions != null &&
-               interactions.Contains(definition) &&
-               InteractionReservation.HasAvailableSlot(this, definition);
+        if (!InteractionsEnabled ||
+            definition == null ||
+            interactions == null ||
+            !interactions.Contains(definition))
+        {
+            return false;
+        }
+
+        if (Queue != null && Queue.QueueEnabled)
+            return Queue.CanAccept(definition);
+
+        return InteractionReservation.HasAvailableSlot(this, definition);
     }
 
     /// <summary>
     /// Claims one usage slot for the supplied agent.
-    /// The agent should release the reservation when the interaction ends or is cancelled.
     /// </summary>
     public bool TryReserve(
         MonoBehaviour agent,
         InteractionDefinition definition)
     {
-        if (agent == null || !CanOffer(definition))
+        if (agent == null || definition == null ||
+            !InteractionsEnabled ||
+            interactions == null ||
+            !interactions.Contains(definition))
+        {
             return false;
+        }
 
+        // Queue promotion must be able to reserve the active slot even when
+        // the waiting queue itself has reached its configured capacity.
         return InteractionReservation.TryReserve(this, definition, agent);
     }
 
