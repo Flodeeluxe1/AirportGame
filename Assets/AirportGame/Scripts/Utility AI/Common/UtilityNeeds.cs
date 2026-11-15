@@ -5,6 +5,7 @@ using UnityEngine;
 /// Reusable, visit-scoped needs for Utility AI agents.
 /// Values range from 0 (critical) to 100 (fully satisfied).
 /// Decay is driven by in-game time rather than frame time.
+/// Call ResetForNewVisit when an agent begins a fresh airport visit.
 /// </summary>
 [DisallowMultipleComponent]
 public class UtilityNeeds : MonoBehaviour
