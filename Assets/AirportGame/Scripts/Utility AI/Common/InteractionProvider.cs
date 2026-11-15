@@ -15,8 +15,26 @@ public class InteractionProvider : MonoBehaviour
     [SerializeField] private bool interactionsEnabled = true;
 
     public IReadOnlyList<InteractionDefinition> Interactions => interactions;
-    public Transform InteractionPoint =>
-        interactionPoint != null ? interactionPoint : transform;
+    /// <summary>
+    /// World-space position where an agent should approach this object.
+    /// Uses the assigned point when present; otherwise one grid cell forward
+    /// from the object's origin.
+    /// </summary>
+    public Vector3 InteractionPosition
+    {
+        get
+        {
+            if (interactionPoint != null)
+                return interactionPoint.position;
+
+            GridManager gridManager = FindFirstObjectByType<GridManager>();
+            float gridUnit = gridManager != null
+                ? gridManager.CellSize
+                : 1f;
+
+            return transform.position + transform.forward * gridUnit;
+        }
+    }
     public bool InteractionsEnabled =>
         interactionsEnabled && isActiveAndEnabled && gameObject.activeInHierarchy;
 
