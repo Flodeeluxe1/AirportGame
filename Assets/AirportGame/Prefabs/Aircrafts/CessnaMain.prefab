@@ -213,7 +213,7 @@ MonoBehaviour:
   parkingSpotReleaseDistance: 2
   pilotPrefab: {fileID: 100100000, guid: 2f98a93d7c7f20a4dbe1fa15e897c2d2, type: 3}
   pilotSpawnDelayMinutes: 5
-  pilotSpawnLocalOffset: {x: 2, y: 0, z: 0}
+  pilotSpawnLocalOffset: {x: 2, y: 0.36, z: 0}
   hasParked: 0
   departureRequested: 0
   visitMinutesRemaining: 0
