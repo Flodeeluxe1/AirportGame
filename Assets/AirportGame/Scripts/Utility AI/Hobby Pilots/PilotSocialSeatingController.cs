@@ -102,6 +102,13 @@ public class PilotSocialSeatingController : MonoBehaviour
         if (gameTimeManager == null)
             ResolveGameTimeManager();
 
+        if (state != SeatingState.Idle &&
+            (reservedArea == null || !reservedArea.isActiveAndEnabled))
+        {
+            CancelSocializing("Shared seating area became unavailable");
+            return;
+        }
+
         if (state != SeatingState.Idle && partner == null)
         {
             ResetOwnState("Conversation partner unavailable");
