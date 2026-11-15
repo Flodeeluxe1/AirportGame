@@ -36,6 +36,70 @@ public class UtilityNeeds : MonoBehaviour
     }
 
     [Serializable]
+    private class NeedInitialRanges
+    {
+        [Range(0f, 100f)] public float thirstMin = 70f;
+        [Range(0f, 100f)] public float thirstMax = 100f;
+        [Range(0f, 100f)] public float hungerMin = 70f;
+        [Range(0f, 100f)] public float hungerMax = 100f;
+        [Range(0f, 100f)] public float bladderMin = 70f;
+        [Range(0f, 100f)] public float bladderMax = 100f;
+        [Range(0f, 100f)] public float energyMin = 70f;
+        [Range(0f, 100f)] public float energyMax = 100f;
+        [Range(0f, 100f)] public float socialMin = 70f;
+        [Range(0f, 100f)] public float socialMax = 100f;
+        [Range(0f, 100f)] public float entertainmentMin = 70f;
+        [Range(0f, 100f)] public float entertainmentMax = 100f;
+        [Range(0f, 100f)] public float comfortMin = 70f;
+        [Range(0f, 100f)] public float comfortMax = 100f;
+        [Range(0f, 100f)] public float curiosityMin = 70f;
+        [Range(0f, 100f)] public float curiosityMax = 100f;
+
+        public float GetRandomValue(NeedType need)
+        {
+            float minimum;
+            float maximum;
+
+            switch (need)
+            {
+                case NeedType.Thirst: minimum = thirstMin; maximum = thirstMax; break;
+                case NeedType.Hunger: minimum = hungerMin; maximum = hungerMax; break;
+                case NeedType.Bladder: minimum = bladderMin; maximum = bladderMax; break;
+                case NeedType.Energy: minimum = energyMin; maximum = energyMax; break;
+                case NeedType.Social: minimum = socialMin; maximum = socialMax; break;
+                case NeedType.Entertainment: minimum = entertainmentMin; maximum = entertainmentMax; break;
+                case NeedType.Comfort: minimum = comfortMin; maximum = comfortMax; break;
+                case NeedType.Curiosity: minimum = curiosityMin; maximum = curiosityMax; break;
+                default: minimum = 70f; maximum = 100f; break;
+            }
+
+            minimum = Mathf.Clamp(minimum, 0f, 100f);
+            maximum = Mathf.Clamp(maximum, minimum, 100f);
+            return UnityEngine.Random.Range(minimum, maximum);
+        }
+
+        public void ClampRanges()
+        {
+            thirstMin = Mathf.Clamp(thirstMin, 0f, 100f);
+            thirstMax = Mathf.Clamp(thirstMax, thirstMin, 100f);
+            hungerMin = Mathf.Clamp(hungerMin, 0f, 100f);
+            hungerMax = Mathf.Clamp(hungerMax, hungerMin, 100f);
+            bladderMin = Mathf.Clamp(bladderMin, 0f, 100f);
+            bladderMax = Mathf.Clamp(bladderMax, bladderMin, 100f);
+            energyMin = Mathf.Clamp(energyMin, 0f, 100f);
+            energyMax = Mathf.Clamp(energyMax, energyMin, 100f);
+            socialMin = Mathf.Clamp(socialMin, 0f, 100f);
+            socialMax = Mathf.Clamp(socialMax, socialMin, 100f);
+            entertainmentMin = Mathf.Clamp(entertainmentMin, 0f, 100f);
+            entertainmentMax = Mathf.Clamp(entertainmentMax, entertainmentMin, 100f);
+            comfortMin = Mathf.Clamp(comfortMin, 0f, 100f);
+            comfortMax = Mathf.Clamp(comfortMax, comfortMin, 100f);
+            curiosityMin = Mathf.Clamp(curiosityMin, 0f, 100f);
+            curiosityMax = Mathf.Clamp(curiosityMax, curiosityMin, 100f);
+        }
+    }
+
+    [Serializable]
     private class NeedUrgencyCurves
     {
         private static AnimationCurve CreateCurve(float[] values)
@@ -116,6 +180,10 @@ public class UtilityNeeds : MonoBehaviour
     }
 
     [Header("Initial State")]
+    [Tooltip("When enabled, each need receives an independently randomised value when a new visit starts.")]
+    [SerializeField] private bool randomizeInitialNeeds = true;
+    [SerializeField] private NeedInitialRanges initialNeedRanges = new NeedInitialRanges();
+    [Tooltip("Used for every need when random initial values are disabled.")]
     [SerializeField, Range(0f, 100f)] private float initialNeedValue = 100f;
 
     [Header("Decay Per In-Game Minute")]
@@ -201,7 +269,16 @@ public class UtilityNeeds : MonoBehaviour
     /// </summary>
     public void ResetForNewVisit()
     {
-        SetAllNeeds(initialNeedValue);
+        if (randomizeInitialNeeds && initialNeedRanges != null)
+        {
+            foreach (NeedType need in Enum.GetValues(typeof(NeedType)))
+                SetValue(need, initialNeedRanges.GetRandomValue(need), false);
+        }
+        else
+        {
+            SetAllNeeds(initialNeedValue);
+        }
+
         RefreshGameTimeBaseline();
 
         foreach (NeedType need in Enum.GetValues(typeof(NeedType)))
@@ -346,6 +423,8 @@ public class UtilityNeeds : MonoBehaviour
     private void OnValidate()
     {
         initialNeedValue = Mathf.Clamp(initialNeedValue, 0f, 100f);
+        if (initialNeedRanges != null)
+            initialNeedRanges.ClampRanges();
 
         thirst = Mathf.Clamp(thirst, 0f, 100f);
         hunger = Mathf.Clamp(hunger, 0f, 100f);
