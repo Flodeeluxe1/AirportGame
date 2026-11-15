@@ -43,6 +43,7 @@ public class PilotInteractionController : MonoBehaviour
     private PedestrianMovementController movement;
     private PilotSocialInteractionController socialController;
     private PilotSocialSeatingController seatingController;
+    private PilotGroupConversationController groupController;
     private InteractionProvider reservedProvider;
     private InteractionDefinition reservedInteraction;
     private InteractionProvider queuedProvider;
@@ -59,6 +60,7 @@ public class PilotInteractionController : MonoBehaviour
         queuedProvider == null &&
         interactionRoutine == null &&
         (seatingController == null || !seatingController.IsBusy) &&
+        (groupController == null || !groupController.IsBusy) &&
         movement != null &&
         !movement.IsMoving;
 
@@ -68,6 +70,7 @@ public class PilotInteractionController : MonoBehaviour
         movement = GetComponent<PedestrianMovementController>();
         socialController = GetComponent<PilotSocialInteractionController>();
         seatingController = GetComponent<PilotSocialSeatingController>();
+        groupController = GetComponent<PilotGroupConversationController>();
     }
 
     private void OnEnable()
