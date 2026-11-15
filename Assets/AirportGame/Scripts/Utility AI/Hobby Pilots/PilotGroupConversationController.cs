@@ -161,7 +161,8 @@ public class PilotGroupConversationController : MonoBehaviour
         return isActiveAndEnabled && state == GroupState.Idle &&
                activeLeader == null && needs != null && movement != null &&
                !movement.IsMoving && interactionController != null &&
-               interactionController.CanPauseForSocial && gameTimeManager != null;
+               interactionController.CanPauseForSocial && gameTimeManager != null &&
+               needs.GetValue(UtilityNeeds.NeedType.Social) <= maximumSocialNeedValue;
     }
 
     /// <summary>Prevents two-person systems taking pilots when a group can form.</summary>
