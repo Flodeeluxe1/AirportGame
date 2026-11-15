@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1035232453069323744}
   - component: {fileID: 7496795622080011940}
+  - component: {fileID: 2237598517385221752}
   m_Layer: 0
   m_Name: Toilet Stall
   m_TagString: Untagged
@@ -31,6 +32,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 885866187350790143}
+  - {fileID: 5351167970057819148}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!65 &7496795622080011940
@@ -54,6 +56,53 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 6.74, y: 15, z: 13.8}
   m_Center: {x: 0, y: 7.03, z: 2.5}
+--- !u!114 &2237598517385221752
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2531902190596954344}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b82a5f9d3c0e4a1f9b7d2e4c6f809132, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::InteractionProvider
+  interactions:
+  - {fileID: 11400000, guid: e21b2c3d4e5f67890123456789abcdef, type: 2}
+  interactionPoint: {fileID: 0}
+  interactionsEnabled: 1
+--- !u!1 &8650940163423289991
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5351167970057819148}
+  m_Layer: 0
+  m_Name: interactionPoint
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5351167970057819148
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8650940163423289991}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 11.51}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1035232453069323744}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &854117477227498872
 PrefabInstance:
   m_ObjectHideFlags: 0

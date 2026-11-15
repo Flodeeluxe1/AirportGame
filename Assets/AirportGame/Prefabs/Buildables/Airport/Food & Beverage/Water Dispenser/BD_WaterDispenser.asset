@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BuildableDefinition
   id: airport.food.water_dispenser
   displayName: Water Dispenser
-  prefab: {fileID: 1645528516090194743, guid: 135f561a417209449aa3f0e15225613e, type: 3}
+  prefab: {fileID: 3281542857924279648, guid: 135f561a417209449aa3f0e15225613e, type: 3}
   placementType: 0
   requiredSurface: 1
   width: 1

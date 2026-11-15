@@ -31,6 +31,7 @@ Transform:
   m_ConstrainProportionsScale: 1
   m_Children:
   - {fileID: 6855937485944625868}
+  - {fileID: 7418572847913890646}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &5742739037522884298
@@ -45,7 +46,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b82a5f9d3c0e4a1f9b7d2e4c6f809132, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::InteractionProvider
-  interactions: []
+  interactions:
+  - {fileID: 11400000, guid: d10a1b2c3d4e5f67890123456789abcd, type: 2}
   interactionPoint: {fileID: 0}
   interactionsEnabled: 1
 --- !u!1 &1065376416521608090
@@ -161,3 +163,34 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1.010433, y: 0.95115435, z: 1.216188}
   m_Center: {x: 0.00000017881393, y: 0.47557712, z: 0.0028669536}
+--- !u!1 &3591926898544694822
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7418572847913890646}
+  m_Layer: 0
+  m_Name: interactionPoint
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7418572847913890646
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3591926898544694822}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 509778033759443458}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}

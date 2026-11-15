@@ -208,8 +208,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 55525b5280edd2940967179e57e81867, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AircraftHobbyVisitController
-  minimumStayMinutes: 5
-  maximumStayMinutes: 10
+  minimumStayMinutes: 30
+  maximumStayMinutes: 60
   parkingSpotReleaseDistance: 2
   pilotPrefab: {fileID: 1552182806160375558, guid: 2f98a93d7c7f20a4dbe1fa15e897c2d2, type: 3}
   pilotSpawnDelayMinutes: 5
