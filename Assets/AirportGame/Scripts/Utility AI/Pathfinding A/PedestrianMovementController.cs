@@ -321,8 +321,8 @@ public class PedestrianMovementController : MonoBehaviour
         if (lateralSeparation.sqrMagnitude <= 0.0001f)
             return Vector3.zero;
 
-        float influence = Mathf.Clamp01(separation.magnitude);
-        return lateralSeparation.normalized * avoidanceStrength * influence;
+        float combinedInfluence = Mathf.Clamp01(separation.magnitude);
+        return lateralSeparation.normalized * avoidanceStrength * combinedInfluence;
     }
 
     private void SkipReachedWaypoints()
