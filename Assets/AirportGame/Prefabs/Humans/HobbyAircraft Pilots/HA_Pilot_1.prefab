@@ -138,6 +138,7 @@ MonoBehaviour:
   currentWaypointIndex: 0
   waypointCount: 0
 
+# Shared Utility AI needs component
 --- !u!114 &82736491827364509182736491827364
 MonoBehaviour:
   m_ObjectHideFlags: 0
