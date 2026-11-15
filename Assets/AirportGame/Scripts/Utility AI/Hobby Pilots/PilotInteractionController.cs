@@ -110,7 +110,8 @@ public class PilotInteractionController : MonoBehaviour
             return;
 
         if ((socialController != null && socialController.IsBusy) ||
-            (seatingController != null && seatingController.IsBusy))
+            (seatingController != null && seatingController.IsBusy) ||
+            (groupController != null && groupController.IsBusy))
             return;
 
         if (queuedProvider != null)
