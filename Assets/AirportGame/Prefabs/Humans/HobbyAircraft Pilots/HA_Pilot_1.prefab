@@ -13,7 +13,6 @@ GameObject:
   - component: {fileID: 497652449320250805}
   - component: {fileID: 2338498571254170503}
   - component: {fileID: 9192837465012345678}
-  - component: {fileID: -7782590036035798485}
   m_Layer: 0
   m_Name: HA_Pilot_1
   m_TagString: Untagged
@@ -116,6 +115,7 @@ CapsuleCollider:
   m_Height: 2
   m_Direction: 1
   m_Center: {x: 0, y: 0, z: 0}
+
 --- !u!114 &9192837465012345678
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -136,18 +136,3 @@ MonoBehaviour:
   movementStatus: Idle
   currentWaypointIndex: 0
   waypointCount: 0
---- !u!114 &-7782590036035798485
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1552182806160375558}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b7d4e2a19c6f4380a5b7d1e9f2c6a843, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PedestrianMovementTest
-  movementController: {fileID: 0}
-  destination: {fileID: 0}
-  logResults: 1
