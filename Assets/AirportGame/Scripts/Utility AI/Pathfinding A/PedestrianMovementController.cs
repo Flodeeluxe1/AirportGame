@@ -20,11 +20,11 @@ public class PedestrianMovementController : MonoBehaviour
     [SerializeField] private float movementSpeed = 1.5f;
     [SerializeField] private Vector2 individualSpeedMultiplierRange = new Vector2(0.9f, 1.1f);
     [Min(0.1f)]
-    [SerializeField] private float acceleration = 2.5f;
+    [SerializeField] private float acceleration = 5f;
     [Min(0.1f)]
-    [SerializeField] private float deceleration = 4f;
+    [SerializeField] private float deceleration = 3f;
     [Min(0.1f)]
-    [SerializeField] private float slowdownDistance = 0.6f;
+    [SerializeField] private float slowdownDistance = 0.8f;
     [Min(1f)]
     [SerializeField] private float rotationSpeed = 540f;
     [Min(0.01f)]
@@ -192,6 +192,8 @@ public class PedestrianMovementController : MonoBehaviour
 
     private void UpdateMovement()
     {
+        SkipReachedWaypoints();
+
         if (currentWaypointIndex >= movementPath.Count)
         {
             CompleteMovement();
@@ -204,27 +206,21 @@ public class PedestrianMovementController : MonoBehaviour
         Vector3 toTarget = target - transform.position;
         toTarget.y = 0f;
 
-        if (toTarget.magnitude <= waypointArrivalDistance)
-        {
-            currentWaypointIndex++;
-            SkipReachedWaypoints();
-
-            if (currentWaypointIndex >= movementPath.Count)
-                CompleteMovement();
-
-            return;
-        }
-
         Vector3 desiredDirection = toTarget.normalized;
         float deltaTime = Time.deltaTime;
 
         // Give each pedestrian a slightly different walking pace and ease
         // into movement instead of starting at full speed immediately.
         float targetSpeed = movementSpeed * individualSpeedMultiplier;
-        if (slowdownDistance > 0f && toTarget.magnitude < slowdownDistance)
+        bool approachingFinalDestination =
+            currentWaypointIndex == movementPath.Count - 1;
+
+        if (approachingFinalDestination &&
+            slowdownDistance > 0f &&
+            toTarget.magnitude < slowdownDistance)
         {
             float approachFactor = Mathf.Clamp01(toTarget.magnitude / slowdownDistance);
-            targetSpeed *= Mathf.Lerp(0.25f, 1f, approachFactor);
+            targetSpeed *= Mathf.Lerp(0.65f, 1f, approachFactor);
         }
 
         float speedChange = targetSpeed > currentSpeed ? acceleration : deceleration;
