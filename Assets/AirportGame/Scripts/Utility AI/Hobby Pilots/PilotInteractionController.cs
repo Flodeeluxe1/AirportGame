@@ -137,6 +137,51 @@ public class PilotInteractionController : MonoBehaviour
         TryStartSelectedInteraction();
     }
 
+    /// <summary>
+    /// Returns true when at least one available interaction can improve a current need
+    /// and the pilot has a valid path to its provider.
+    /// </summary>
+    public bool HasSuitableAvailableInteraction()
+    {
+        if (needs == null || movement == null)
+            return false;
+
+        InteractionProvider[] providers =
+            FindObjectsByType<InteractionProvider>(FindObjectsSortMode.None);
+
+        foreach (InteractionProvider provider in providers)
+        {
+            if (provider == null || !provider.InteractionsEnabled)
+                continue;
+
+            foreach (InteractionDefinition definition in provider.Interactions)
+            {
+                if (definition == null || !provider.CanOffer(definition) ||
+                    CalculateUtility(definition) <= 0f)
+                    continue;
+
+                float travelTime =
+                    movement.EstimateTravelTime(provider.InteractionPosition);
+
+                if (!float.IsInfinity(travelTime) && !float.IsNaN(travelTime))
+                    return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// True while no utility interaction or social activity currently owns this pilot.
+    /// </summary>
+    public bool CanWander =>
+        reservedProvider == null &&
+        queuedProvider == null &&
+        interactionRoutine == null &&
+        (socialController == null || !socialController.IsBusy) &&
+        (seatingController == null || !seatingController.IsBusy) &&
+        (groupController == null || !groupController.IsBusy);
+
     private void TryStartSelectedInteraction()
     {
         shortlist.Clear();
