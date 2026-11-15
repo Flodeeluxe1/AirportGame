@@ -44,6 +44,7 @@ public class PilotSocialInteractionController : MonoBehaviour
     private PedestrianMovementController movement;
     private PilotInteractionController interactionController;
     private GameTimeManager gameTimeManager;
+    private bool subscribedToGameTime;
     private PilotSocialInteractionController partner;
     private SocialState state;
     private bool isConversationLeader;
@@ -60,7 +61,7 @@ public class PilotSocialInteractionController : MonoBehaviour
         needs = GetComponent<UtilityNeeds>();
         movement = GetComponent<PedestrianMovementController>();
         interactionController = GetComponent<PilotInteractionController>();
-        gameTimeManager = FindFirstObjectByType<GameTimeManager>();
+        ResolveGameTimeManager();
     }
 
     private void OnEnable()
@@ -74,11 +75,7 @@ public class PilotSocialInteractionController : MonoBehaviour
             movement.PathFailed += HandlePathFailed;
         }
 
-        if (gameTimeManager == null)
-            gameTimeManager = FindFirstObjectByType<GameTimeManager>();
-
-        if (gameTimeManager != null)
-            gameTimeManager.GameTimeAdvanced += HandleGameTimeAdvanced;
+        ResolveGameTimeManager();
 
         nextSearchTime = Time.time + Random.Range(0f, searchInterval);
     }
@@ -91,14 +88,19 @@ public class PilotSocialInteractionController : MonoBehaviour
             movement.PathFailed -= HandlePathFailed;
         }
 
-        if (gameTimeManager != null)
+        if (gameTimeManager != null && subscribedToGameTime)
             gameTimeManager.GameTimeAdvanced -= HandleGameTimeAdvanced;
+
+        subscribedToGameTime = false;
 
         CancelConversation("Social interaction interrupted");
     }
 
     private void Update()
     {
+        if (gameTimeManager == null)
+            ResolveGameTimeManager();
+
         if (state != SocialState.Idle && partner == null)
         {
             ResetOwnState("Conversation partner unavailable");
@@ -137,6 +139,7 @@ public class PilotSocialInteractionController : MonoBehaviour
                movement != null &&
                !movement.IsMoving &&
                interactionController != null &&
+               gameTimeManager != null &&
                interactionController.CanPauseForSocial &&
                needs.GetValue(UtilityNeeds.NeedType.Social) <= maximumSocialNeedValue;
     }
@@ -298,6 +301,18 @@ public class PilotSocialInteractionController : MonoBehaviour
 
         FacePartner();
         partner.FacePartner();
+    }
+
+    private void ResolveGameTimeManager()
+    {
+        if (gameTimeManager == null)
+            gameTimeManager = FindFirstObjectByType<GameTimeManager>();
+
+        if (gameTimeManager == null || subscribedToGameTime)
+            return;
+
+        gameTimeManager.GameTimeAdvanced += HandleGameTimeAdvanced;
+        subscribedToGameTime = true;
     }
 
     private void HandleGameTimeAdvanced(long previousSecond, long currentSecond)
