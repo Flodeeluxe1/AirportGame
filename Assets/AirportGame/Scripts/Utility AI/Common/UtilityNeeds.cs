@@ -60,9 +60,9 @@ public class UtilityNeeds : MonoBehaviour
         }
 
         // Values represent utility urgency at 0%, 25%, 50%, 75% and 100% need urgency.
-        public AnimationCurve thirst = CreateCurve(new[] { 0f, 0.02f, 0.10f, 0.45f, 1f });
-        public AnimationCurve hunger = CreateCurve(new[] { 0f, 0.01f, 0.08f, 0.40f, 1f });
-        public AnimationCurve bladder = CreateCurve(new[] { 0f, 0.08f, 0.35f, 0.80f, 1f });
+        public AnimationCurve thirst = CreateCurve(new[] { 0f, 0.08f, 0.28f, 0.68f, 1f });
+        public AnimationCurve hunger = CreateCurve(new[] { 0f, 0.01f, 0.06f, 0.32f, 1f });
+        public AnimationCurve bladder = CreateCurve(new[] { 0f, 0.04f, 0.18f, 0.55f, 1f });
         public AnimationCurve energy = CreateCurve(new[] { 0f, 0.03f, 0.18f, 0.60f, 1f });
         public AnimationCurve social = CreateCurve(new[] { 0.01f, 0.05f, 0.18f, 0.50f, 1f });
         public AnimationCurve entertainment = CreateCurve(new[] { 0.03f, 0.10f, 0.25f, 0.60f, 1f });
@@ -89,9 +89,9 @@ public class UtilityNeeds : MonoBehaviour
     [Serializable]
     private class NeedUtilityWeights
     {
-        [Min(0f)] public float thirst = 1f;
-        [Min(0f)] public float hunger = 1.1f;
-        [Min(0f)] public float bladder = 1.2f;
+        [Min(0f)] public float thirst = 1.4f;
+        [Min(0f)] public float hunger = 0.9f;
+        [Min(0f)] public float bladder = 1f;
         [Min(0f)] public float energy = 1f;
         [Min(0f)] public float social = 0.85f;
         [Min(0f)] public float entertainment = 0.75f;
