@@ -18,6 +18,15 @@ public class InteractionDefinition : ScriptableObject
         public float maximumNeedValueToConsider = 80f;
     }
 
+    [Serializable]
+    public class NeedConflict
+    {
+        public UtilityNeeds.NeedType need;
+        [Range(0f, 1f)]
+        [Tooltip("How strongly this need reduces the interaction's utility when it becomes critical. 0 = no penalty, 1 = up to 100% penalty.")]
+        public float penaltyAtMaximumUrgency = 1f;
+    }
+
     [Header("Identity")]
     [SerializeField] private string interactionId;
     [SerializeField] private string displayName = "New Interaction";
@@ -35,6 +44,9 @@ public class InteractionDefinition : ScriptableObject
     [Header("Need Effects")]
     [SerializeField] private List<NeedEffect> needEffects = new List<NeedEffect>();
 
+    [Header("Need Conflicts")]
+    [SerializeField] private List<NeedConflict> needConflicts = new List<NeedConflict>();
+
     public string InteractionId => interactionId;
     public string DisplayName => displayName;
     public string Description => description;
@@ -42,6 +54,7 @@ public class InteractionDefinition : ScriptableObject
     public int MaxConcurrentUsers => Mathf.Max(1, maxConcurrentUsers);
     public float InteractionRange => Mathf.Max(0f, interactionRange);
     public IReadOnlyList<NeedEffect> NeedEffects => needEffects;
+    public IReadOnlyList<NeedConflict> NeedConflicts => needConflicts;
 
     private void OnValidate()
     {
@@ -60,6 +73,16 @@ public class InteractionDefinition : ScriptableObject
                 effect.maximumNeedValueToConsider =
                     Mathf.Clamp(effect.maximumNeedValueToConsider, 0f, 100f);
             }
+        }
+
+        if (needConflicts == null)
+            needConflicts = new List<NeedConflict>();
+
+        foreach (NeedConflict conflict in needConflicts)
+        {
+            if (conflict != null)
+                conflict.penaltyAtMaximumUrgency =
+                    Mathf.Clamp01(conflict.penaltyAtMaximumUrgency);
         }
     }
 }
