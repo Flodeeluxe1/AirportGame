@@ -12,12 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a71f4e8c2b9d4f0e8a6c1d3b5e7f9021, type: 3}
   m_Name: Drink
   m_EditorClassIdentifier: Assembly-CSharp::InteractionDefinition
-  interactionId: drink
-  displayName: Drink
+  interactionId: 
+  displayName: New Interaction
   description: 
   durationSeconds: 5
   maxConcurrentUsers: 1
   interactionRange: 1.5
-  needEffects:
-  - need: 0
-    satisfactionAmount: 30
+  needEffects: []
