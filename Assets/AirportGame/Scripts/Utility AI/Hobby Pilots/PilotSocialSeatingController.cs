@@ -178,6 +178,59 @@ public class PilotSocialSeatingController : MonoBehaviour
                interactionController.CanPauseForSocial;
     }
 
+    /// <summary>
+    /// Returns true when these two pilots can both reach a pair of nearby,
+    /// currently available seats. Used to give seated conversations priority
+    /// over the standing-conversation fallback.
+    /// </summary>
+    public bool HasAvailableSeatPairWith(PilotSocialSeatingController other)
+    {
+        if (other == null || !CanInitiate() || !other.CanJoin())
+            return false;
+
+        if (Vector3.Distance(transform.position, other.transform.position) > searchRadius)
+            return false;
+
+        InteractionProvider[] providers =
+            FindObjectsByType<InteractionProvider>(FindObjectsSortMode.None);
+        List<SeatOption> availableSeats = GetAvailableSeats(providers);
+
+        for (int i = 0; i < availableSeats.Count; i++)
+        {
+            SeatOption firstSeat = availableSeats[i];
+
+            for (int j = i + 1; j < availableSeats.Count; j++)
+            {
+                SeatOption secondSeat = availableSeats[j];
+
+                if (firstSeat.Provider == secondSeat.Provider ||
+                    Vector3.Distance(firstSeat.Position, secondSeat.Position) >
+                    maximumDistanceBetweenSeats)
+                {
+                    continue;
+                }
+
+                float ownFirst = movement.EstimateTravelTime(firstSeat.Position);
+                float otherSecond = other.movement.EstimateTravelTime(secondSeat.Position);
+                float ownSecond = movement.EstimateTravelTime(secondSeat.Position);
+                float otherFirst = other.movement.EstimateTravelTime(firstSeat.Position);
+
+                bool firstAssignmentReachable =
+                    !float.IsInfinity(ownFirst) && !float.IsNaN(ownFirst) &&
+                    !float.IsInfinity(otherSecond) && !float.IsNaN(otherSecond);
+
+                bool secondAssignmentReachable =
+                    !float.IsInfinity(ownSecond) && !float.IsNaN(ownSecond) &&
+                    !float.IsInfinity(otherFirst) && !float.IsNaN(otherFirst);
+
+                if (firstAssignmentReachable || secondAssignmentReachable)
+                    return true;
+            }
+        }
+
+        return false;
+    }
+
     private void TryFindSeatingPartner()
     {
         if (!CanInitiate())
