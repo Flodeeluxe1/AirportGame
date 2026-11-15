@@ -23,6 +23,14 @@ public class PilotSocialSeatingArea : MonoBehaviour
         firstOccupant == null &&
         secondOccupant == null;
 
+    public Transform[] GetSeatPointSnapshot()
+    {
+        if (seatPoints == null)
+            return new Transform[0];
+
+        return (Transform[])seatPoints.Clone();
+    }
+
     public bool TryReservePair(
         PilotSocialSeatingController first,
         PilotSocialSeatingController second,
