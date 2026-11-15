@@ -152,6 +152,11 @@ public class PilotInteractionController : MonoBehaviour
             if (effect == null || effect.satisfactionAmount <= 0f)
                 continue;
 
+            float currentNeedValue = needs.GetValue(effect.need);
+
+            if (currentNeedValue >= effect.maximumNeedValueToConsider)
+                continue;
+
             float urgency = needs.GetUrgency(effect.need);
             float potentialSatisfaction = Mathf.Min(100f, effect.satisfactionAmount);
             score += urgency * potentialSatisfaction / 100f;
