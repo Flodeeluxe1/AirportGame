@@ -35,11 +35,52 @@ public class UtilityNeeds : MonoBehaviour
         [Min(0f)] public float curiosity = 0.05f;
     }
 
+    [Serializable]
+    private class NeedUrgencyCurves
+    {
+        private static AnimationCurve CreateDefaultCurve()
+        {
+            // Starts gently and becomes increasingly urgent near zero.
+            return new AnimationCurve(
+                new Keyframe(0f, 0f, 0f, 0f),
+                new Keyframe(1f, 1f, 2f, 2f));
+        }
+
+        public AnimationCurve thirst = CreateDefaultCurve();
+        public AnimationCurve hunger = CreateDefaultCurve();
+        public AnimationCurve bladder = CreateDefaultCurve();
+        public AnimationCurve energy = CreateDefaultCurve();
+        public AnimationCurve social = CreateDefaultCurve();
+        public AnimationCurve entertainment = CreateDefaultCurve();
+        public AnimationCurve comfort = CreateDefaultCurve();
+        public AnimationCurve curiosity = CreateDefaultCurve();
+
+        public AnimationCurve GetCurve(NeedType need)
+        {
+            return need switch
+            {
+                NeedType.Thirst => thirst,
+                NeedType.Hunger => hunger,
+                NeedType.Bladder => bladder,
+                NeedType.Energy => energy,
+                NeedType.Social => social,
+                NeedType.Entertainment => entertainment,
+                NeedType.Comfort => comfort,
+                NeedType.Curiosity => curiosity,
+                _ => thirst
+            };
+        }
+    }
+
     [Header("Initial State")]
     [SerializeField, Range(0f, 100f)] private float initialNeedValue = 100f;
 
     [Header("Decay Per In-Game Minute")]
     [SerializeField] private NeedDecayRates decayRates = new NeedDecayRates();
+
+    [Header("Urgency Curves")]
+    [Tooltip("Each curve maps normalized need urgency (0 = satisfied, 1 = critical) to utility urgency. Curves are evaluated independently for each need.")]
+    [SerializeField] private NeedUrgencyCurves urgencyCurves = new NeedUrgencyCurves();
 
     [Header("Current Needs")]
     [SerializeField, Range(0f, 100f)] private float thirst = 100f;
@@ -75,11 +116,14 @@ public class UtilityNeeds : MonoBehaviour
     }
 
     /// <summary>
-    /// Returns urgency from 0 (no urgency) to 100 (critical).
+    /// Returns curve-adjusted urgency from 0 (no urgency) to 100 (critical).
     /// </summary>
     public float GetUrgency(NeedType need)
     {
-        return 100f - GetValue(need);
+        float normalizedUrgency = Mathf.Clamp01((100f - GetValue(need)) / 100f);
+        AnimationCurve curve = urgencyCurves != null ? urgencyCurves.GetCurve(need) : null;
+        float curvedUrgency = curve != null ? curve.Evaluate(normalizedUrgency) : normalizedUrgency;
+        return Mathf.Clamp01(curvedUrgency) * 100f;
     }
 
     /// <summary>
