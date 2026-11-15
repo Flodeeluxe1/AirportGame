@@ -162,6 +162,7 @@ public class PilotSocialSeatingController : MonoBehaviour
                interactionController != null &&
                gameTimeManager != null &&
                interactionController.CanPauseForSocial &&
+               !PilotGroupConversationController.ShouldPreferGroup(this) &&
                needs.GetValue(UtilityNeeds.NeedType.Social) <= maximumSocialNeedValue;
     }
 
