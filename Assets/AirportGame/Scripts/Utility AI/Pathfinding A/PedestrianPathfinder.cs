@@ -299,6 +299,25 @@ public class PedestrianPathfinder : MonoBehaviour
         return true;
     }
 
+    /// <summary>
+    /// Checks whether a short world-space movement segment stays on walkable
+    /// cells and crosses only permitted grid edges. Used to keep local
+    /// pedestrian avoidance from steering through walls or blocked cells.
+    /// </summary>
+    public bool CanMoveBetweenWorldPositions(Vector3 fromWorld, Vector3 toWorld)
+    {
+        if (!HasValidReferences())
+            return false;
+
+        Vector2Int from = gridManager.WorldToGrid(fromWorld);
+        Vector2Int to = gridManager.WorldToGrid(toWorld);
+
+        if (from == to)
+            return IsWalkable(from);
+
+        return HasClearLineOfSight(from, to);
+    }
+
     public bool TryFindPath(
         Vector2Int start,
         Vector2Int target,
