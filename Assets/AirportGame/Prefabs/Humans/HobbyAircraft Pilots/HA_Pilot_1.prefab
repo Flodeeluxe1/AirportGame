@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 497652449320250805}
   - component: {fileID: 2338498571254170503}
   - component: {fileID: 9192837465012345678}
+  - component: {fileID: 82736491827364509182736491827364}
   m_Layer: 0
   m_Name: HA_Pilot_1
   m_TagString: Untagged
@@ -136,3 +137,34 @@ MonoBehaviour:
   movementStatus: Idle
   currentWaypointIndex: 0
   waypointCount: 0
+
+--- !u!114 &82736491827364509182736491827364
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1552182806160375558}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c39a5d7e1f824b0d9a6c3e7f5b2d8146, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  initialNeedValue: 100
+  decayRates:
+    thirst: 0.25
+    hunger: 0.15
+    bladder: 0.2
+    energy: 0.08
+    social: 0.06
+    entertainment: 0.08
+    comfort: 0.05
+    curiosity: 0.05
+  thirst: 100
+  hunger: 100
+  bladder: 100
+  energy: 100
+  social: 100
+  entertainment: 100
+  comfort: 100
+  curiosity: 100

@@ -103,6 +103,10 @@ public class UtilityNeeds : MonoBehaviour
     {
         SetAllNeeds(initialNeedValue);
         RefreshGameTimeBaseline();
+
+        foreach (NeedType need in Enum.GetValues(typeof(NeedType)))
+            NeedChanged?.Invoke(need, GetValue(need));
+
         NeedsChanged?.Invoke();
     }
 
@@ -194,7 +198,8 @@ public class UtilityNeeds : MonoBehaviour
         if (Mathf.Approximately(previousValue, nextValue))
             return false;
 
-        SetValue(need, nextValue);
+        SetValue(need, nextValue, false);
+        NeedChanged?.Invoke(need, nextValue);
         return true;
     }
 
@@ -211,7 +216,7 @@ public class UtilityNeeds : MonoBehaviour
         curiosity = clamped;
     }
 
-    private void SetValue(NeedType need, float value)
+    private void SetValue(NeedType need, float value, bool notify = true)
     {
         float clamped = Mathf.Clamp(value, 0f, 100f);
         float previousValue = GetValue(need);
@@ -231,8 +236,11 @@ public class UtilityNeeds : MonoBehaviour
             case NeedType.Curiosity: curiosity = clamped; break;
         }
 
-        NeedChanged?.Invoke(need, clamped);
-        NeedsChanged?.Invoke();
+        if (notify)
+        {
+            NeedChanged?.Invoke(need, clamped);
+            NeedsChanged?.Invoke();
+        }
     }
 
     private void OnValidate()
