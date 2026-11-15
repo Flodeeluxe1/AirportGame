@@ -210,6 +210,8 @@ public class UtilityNeeds : MonoBehaviour
     private GameTimeManager gameTimeManager;
     private long lastGameSecond;
     private bool subscribedToGameTime;
+    private readonly System.Collections.Generic.HashSet<NeedType> decayPausedNeeds =
+        new System.Collections.Generic.HashSet<NeedType>();
 
     public event Action<NeedType, float> NeedChanged;
     public event Action NeedsChanged;
@@ -258,6 +260,20 @@ public class UtilityNeeds : MonoBehaviour
         SetValue(need, GetValue(need) + amount);
     }
 
+    /// <summary>
+    /// Temporarily prevents one need from decaying while an interaction replenishes it.
+    /// Calls are idempotent; ResumeNeedDecay re-enables decay for that need.
+    /// </summary>
+    public void PauseNeedDecay(NeedType need)
+    {
+        decayPausedNeeds.Add(need);
+    }
+
+    public void ResumeNeedDecay(NeedType need)
+    {
+        decayPausedNeeds.Remove(need);
+    }
+
     public void SatisfyNeed(NeedType need, float amount)
     {
         ModifyNeed(need, Mathf.Abs(amount));
@@ -279,6 +295,7 @@ public class UtilityNeeds : MonoBehaviour
             SetAllNeeds(initialNeedValue);
         }
 
+        decayPausedNeeds.Clear();
         RefreshGameTimeBaseline();
 
         foreach (NeedType need in Enum.GetValues(typeof(NeedType)))
@@ -366,7 +383,7 @@ public class UtilityNeeds : MonoBehaviour
 
     private bool ApplyDecay(NeedType need, float ratePerMinute, float elapsedGameMinutes)
     {
-        if (ratePerMinute <= 0f || elapsedGameMinutes <= 0f)
+        if (decayPausedNeeds.Contains(need) || ratePerMinute <= 0f || elapsedGameMinutes <= 0f)
             return false;
 
         float previousValue = GetValue(need);
