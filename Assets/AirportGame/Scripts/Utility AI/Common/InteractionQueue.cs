@@ -40,6 +40,25 @@ public class InteractionQueue : MonoBehaviour
     private void Awake()
     {
         provider = GetComponent<InteractionProvider>();
+        ResolveQueuePosition();
+    }
+
+    private void ResolveQueuePosition()
+    {
+        if (firstQueuePosition != null)
+            return;
+
+        Transform[] childTransforms = GetComponentsInChildren<Transform>(true);
+
+        for (int i = 0; i < childTransforms.Length; i++)
+        {
+            if (childTransforms[i] != transform &&
+                childTransforms[i].name == "First Queue Position")
+            {
+                firstQueuePosition = childTransforms[i];
+                return;
+            }
+        }
     }
 
     private void Update()
@@ -144,12 +163,16 @@ public class InteractionQueue : MonoBehaviour
 
         direction.Normalize();
 
+        ResolveQueuePosition();
+
         if (firstQueuePosition != null)
         {
             return firstQueuePosition.position +
                    direction * queueSpacing * Mathf.Max(0, positionBehindFront);
         }
 
+        // Without a dedicated queue marker, place the first waiting agent
+        // one queue spacing beyond the provider's interaction point.
         return provider.InteractionPosition +
                direction * queueSpacing * (positionBehindFront + 1);
     }
