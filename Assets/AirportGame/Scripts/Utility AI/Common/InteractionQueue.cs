@@ -53,13 +53,31 @@ public class InteractionQueue : MonoBehaviour
     public bool CanAccept(InteractionDefinition definition)
     {
         if (!queueEnabled || !isActiveAndEnabled ||
-            definition == null || provider == null ||
-            !provider.Interactions.Contains(definition))
+            definition == null || provider == null)
         {
             return false;
         }
 
+        bool providerOffersDefinition = false;
+        IReadOnlyList<InteractionDefinition> offered = provider.Interactions;
+
+        for (int i = 0; i < offered.Count; i++)
+        {
+            if (offered[i] == definition)
+            {
+                providerOffersDefinition = true;
+                break;
+            }
+        }
+
+        if (!providerOffersDefinition)
+            return false;
+
         CleanupInvalidEntries();
+
+        if (activeEntry == null && entries.Count == 0)
+            return true;
+
         return WaitingCount < maximumWaitingAgents;
     }
 
