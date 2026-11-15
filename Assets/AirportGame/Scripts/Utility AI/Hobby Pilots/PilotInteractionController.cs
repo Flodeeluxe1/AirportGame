@@ -41,6 +41,7 @@ public class PilotInteractionController : MonoBehaviour
 
     private UtilityNeeds needs;
     private PedestrianMovementController movement;
+    private PilotSocialInteractionController socialController;
     private InteractionProvider reservedProvider;
     private InteractionDefinition reservedInteraction;
     private InteractionProvider queuedProvider;
@@ -52,10 +53,18 @@ public class PilotInteractionController : MonoBehaviour
 
     public string CurrentStatus => currentStatus;
 
+    public bool CanPauseForSocial =>
+        reservedProvider == null &&
+        queuedProvider == null &&
+        interactionRoutine == null &&
+        movement != null &&
+        !movement.IsMoving;
+
     private void Awake()
     {
         needs = GetComponent<UtilityNeeds>();
         movement = GetComponent<PedestrianMovementController>();
+        socialController = GetComponent<PilotSocialInteractionController>();
     }
 
     private void OnEnable()
@@ -92,6 +101,9 @@ public class PilotInteractionController : MonoBehaviour
     private void Update()
     {
         if (needs == null || movement == null)
+            return;
+
+        if (socialController != null && socialController.IsBusy)
             return;
 
         if (queuedProvider != null)
