@@ -38,22 +38,36 @@ public class UtilityNeeds : MonoBehaviour
     [Serializable]
     private class NeedUrgencyCurves
     {
-        private static AnimationCurve CreateDefaultCurve()
+        private static AnimationCurve CreateCurve(float[] values)
         {
-            // Starts gently and becomes increasingly urgent near zero.
-            return new AnimationCurve(
-                new Keyframe(0f, 0f, 0f, 0f),
-                new Keyframe(1f, 1f, 2f, 2f));
+            const int keyCount = 5;
+            Keyframe[] keys = new Keyframe[keyCount];
+
+            for (int i = 0; i < keyCount; i++)
+            {
+                float slope;
+                if (i == 0)
+                    slope = (values[1] - values[0]) * 4f;
+                else if (i == keyCount - 1)
+                    slope = (values[i] - values[i - 1]) * 4f;
+                else
+                    slope = (values[i + 1] - values[i - 1]) * 2f;
+
+                keys[i] = new Keyframe(i * 0.25f, values[i], slope, slope);
+            }
+
+            return new AnimationCurve(keys);
         }
 
-        public AnimationCurve thirst = CreateDefaultCurve();
-        public AnimationCurve hunger = CreateDefaultCurve();
-        public AnimationCurve bladder = CreateDefaultCurve();
-        public AnimationCurve energy = CreateDefaultCurve();
-        public AnimationCurve social = CreateDefaultCurve();
-        public AnimationCurve entertainment = CreateDefaultCurve();
-        public AnimationCurve comfort = CreateDefaultCurve();
-        public AnimationCurve curiosity = CreateDefaultCurve();
+        // Values represent utility urgency at 0%, 25%, 50%, 75% and 100% need urgency.
+        public AnimationCurve thirst = CreateCurve(new[] { 0f, 0.02f, 0.10f, 0.45f, 1f });
+        public AnimationCurve hunger = CreateCurve(new[] { 0f, 0.01f, 0.08f, 0.40f, 1f });
+        public AnimationCurve bladder = CreateCurve(new[] { 0f, 0.08f, 0.35f, 0.80f, 1f });
+        public AnimationCurve energy = CreateCurve(new[] { 0f, 0.03f, 0.18f, 0.60f, 1f });
+        public AnimationCurve social = CreateCurve(new[] { 0.01f, 0.05f, 0.18f, 0.50f, 1f });
+        public AnimationCurve entertainment = CreateCurve(new[] { 0.03f, 0.10f, 0.25f, 0.60f, 1f });
+        public AnimationCurve comfort = CreateCurve(new[] { 0f, 0.03f, 0.12f, 0.40f, 0.90f });
+        public AnimationCurve curiosity = CreateCurve(new[] { 0.03f, 0.08f, 0.20f, 0.45f, 0.85f });
 
         public AnimationCurve GetCurve(NeedType need)
         {
@@ -72,6 +86,35 @@ public class UtilityNeeds : MonoBehaviour
         }
     }
 
+    [Serializable]
+    private class NeedUtilityWeights
+    {
+        [Min(0f)] public float thirst = 1f;
+        [Min(0f)] public float hunger = 1.1f;
+        [Min(0f)] public float bladder = 1.2f;
+        [Min(0f)] public float energy = 1f;
+        [Min(0f)] public float social = 0.85f;
+        [Min(0f)] public float entertainment = 0.75f;
+        [Min(0f)] public float comfort = 0.85f;
+        [Min(0f)] public float curiosity = 0.7f;
+
+        public float GetWeight(NeedType need)
+        {
+            return need switch
+            {
+                NeedType.Thirst => thirst,
+                NeedType.Hunger => hunger,
+                NeedType.Bladder => bladder,
+                NeedType.Energy => energy,
+                NeedType.Social => social,
+                NeedType.Entertainment => entertainment,
+                NeedType.Comfort => comfort,
+                NeedType.Curiosity => curiosity,
+                _ => 1f
+            };
+        }
+    }
+
     [Header("Initial State")]
     [SerializeField, Range(0f, 100f)] private float initialNeedValue = 100f;
 
@@ -81,6 +124,10 @@ public class UtilityNeeds : MonoBehaviour
     [Header("Urgency Curves")]
     [Tooltip("Each curve maps normalized need urgency (0 = satisfied, 1 = critical) to utility urgency. Curves are evaluated independently for each need.")]
     [SerializeField] private NeedUrgencyCurves urgencyCurves = new NeedUrgencyCurves();
+
+    [Header("Need Utility Weights")]
+    [Tooltip("Scales each need's curve-adjusted urgency when comparing interactions. A higher weight makes that need more influential.")]
+    [SerializeField] private NeedUtilityWeights utilityWeights = new NeedUtilityWeights();
 
     [Header("Current Needs")]
     [SerializeField, Range(0f, 100f)] private float thirst = 100f;
@@ -124,6 +171,14 @@ public class UtilityNeeds : MonoBehaviour
         AnimationCurve curve = urgencyCurves != null ? urgencyCurves.GetCurve(need) : null;
         float curvedUrgency = curve != null ? curve.Evaluate(normalizedUrgency) : normalizedUrgency;
         return Mathf.Clamp01(curvedUrgency) * 100f;
+    }
+
+    /// <summary>
+    /// Returns the relative importance multiplier for a need.
+    /// </summary>
+    public float GetUtilityWeight(NeedType need)
+    {
+        return utilityWeights != null ? Mathf.Max(0f, utilityWeights.GetWeight(need)) : 1f;
     }
 
     /// <summary>
