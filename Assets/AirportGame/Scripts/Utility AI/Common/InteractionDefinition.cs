@@ -6,9 +6,6 @@ using UnityEngine;
 /// Reusable data describing an interaction that an AI agent can perform.
 /// Interaction behaviour is implemented by the agent/action system, not by this asset.
 /// </summary>
-[CreateAssetMenu(
-    fileName = "InteractionDefinition",
-    menuName = "Airport/Utility AI/Interaction Definition")]
 public class InteractionDefinition : ScriptableObject
 {
     [Serializable]
