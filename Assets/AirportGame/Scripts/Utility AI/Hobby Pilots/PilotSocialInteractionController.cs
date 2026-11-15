@@ -144,6 +144,19 @@ public class PilotSocialInteractionController : MonoBehaviour
                needs.GetValue(UtilityNeeds.NeedType.Social) <= maximumSocialNeedValue;
     }
 
+    private bool CanJoinConversation()
+    {
+        return isActiveAndEnabled &&
+               state == SocialState.Idle &&
+               partner == null &&
+               needs != null &&
+               movement != null &&
+               !movement.IsMoving &&
+               interactionController != null &&
+               gameTimeManager != null &&
+               interactionController.CanPauseForSocial;
+    }
+
     private void TryFindConversationPartner()
     {
         if (!CanStartConversation())
@@ -159,7 +172,7 @@ public class PilotSocialInteractionController : MonoBehaviour
         foreach (PilotSocialInteractionController candidate in pilots)
         {
             if (candidate == null || candidate == this ||
-                !candidate.CanStartConversation())
+                !candidate.CanJoinConversation())
             {
                 continue;
             }
@@ -205,7 +218,7 @@ public class PilotSocialInteractionController : MonoBehaviour
     {
         if (other == null ||
             !CanStartConversation() ||
-            !other.CanStartConversation())
+            !other.CanJoinConversation())
         {
             return;
         }
