@@ -33,7 +33,7 @@ public class InteractionQueue : MonoBehaviour
     private float activeStartTime;
     private float activeEstimatedTotalTime;
 
-    public bool QueueEnabled => queueEnabled;
+    public bool QueueEnabled => queueEnabled && isActiveAndEnabled;
     public int WaitingCount => Mathf.Max(0, entries.Count - (activeEntry != null ? 1 : 0));
     public int MaximumWaitingAgents => maximumWaitingAgents;
 
