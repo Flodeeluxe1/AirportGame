@@ -4,8 +4,8 @@ using UnityEngine;
 
 /// <summary>
 /// Selects available interactions according to the pilot's current needs,
-/// walks to the provider's interaction point, performs the interaction,
-/// applies its need effects and releases the reservation.
+/// joins provider queues when enabled, walks to the assigned position,
+/// performs the interaction and applies its need effects.
 /// </summary>
 [DisallowMultipleComponent]
 [RequireComponent(typeof(UtilityNeeds))]
@@ -17,6 +17,7 @@ public class PilotInteractionController : MonoBehaviour
         public InteractionProvider Provider;
         public InteractionDefinition Definition;
         public float Score;
+        public float TravelTime;
     }
 
     [Header("Decision")]
@@ -26,6 +27,10 @@ public class PilotInteractionController : MonoBehaviour
     [SerializeField] private int shortlistSize = 4;
     [Min(0f)]
     [SerializeField] private float timeCostPerSecond = 0.02f;
+
+    [Header("Queue")]
+    [Min(0.05f)]
+    [SerializeField] private float queuePositionRefreshInterval = 0.25f;
 
     [Header("Runtime")]
     [SerializeField] private string currentStatus = "Idle";
@@ -38,8 +43,12 @@ public class PilotInteractionController : MonoBehaviour
     private PedestrianMovementController movement;
     private InteractionProvider reservedProvider;
     private InteractionDefinition reservedInteraction;
+    private InteractionProvider queuedProvider;
+    private InteractionDefinition queuedInteraction;
     private Coroutine interactionRoutine;
     private float nextDecisionTime;
+    private float nextQueuePositionRefresh;
+    private Vector3 lastQueueDestination;
 
     public string CurrentStatus => currentStatus;
 
@@ -85,6 +94,12 @@ public class PilotInteractionController : MonoBehaviour
         if (needs == null || movement == null)
             return;
 
+        if (queuedProvider != null)
+        {
+            UpdateQueueState();
+            return;
+        }
+
         if (reservedProvider != null && !reservedProvider.isActiveAndEnabled)
         {
             CancelCurrentInteraction("Interaction provider became unavailable");
@@ -128,7 +143,14 @@ public class PilotInteractionController : MonoBehaviour
                 if (float.IsInfinity(travelTime) || float.IsNaN(travelTime))
                     continue;
 
-                float totalTime = travelTime + definition.DurationSeconds;
+                float waitingTime = provider.Queue != null &&
+                                    provider.Queue.QueueEnabled
+                    ? provider.Queue.GetEstimatedWaitTime()
+                    : 0f;
+
+                float totalTime =
+                    travelTime + waitingTime + definition.DurationSeconds;
+
                 float timeAdjustedScore =
                     utility / (1f + totalTime * timeCostPerSecond);
 
@@ -139,7 +161,8 @@ public class PilotInteractionController : MonoBehaviour
                 {
                     Provider = provider,
                     Definition = definition,
-                    Score = timeAdjustedScore
+                    Score = timeAdjustedScore,
+                    TravelTime = travelTime
                 });
             }
         }
@@ -152,9 +175,33 @@ public class PilotInteractionController : MonoBehaviour
 
         InteractionCandidate selected = SelectWeightedCandidate();
 
-        if (selected.Provider == null ||
-            selected.Definition == null ||
-            !selected.Provider.TryReserve(this, selected.Definition))
+        if (selected.Provider == null || selected.Definition == null)
+        {
+            currentStatus = "Selected interaction became unavailable";
+            return;
+        }
+
+        if (selected.Provider.Queue != null &&
+            selected.Provider.Queue.QueueEnabled)
+        {
+            if (!selected.Provider.Queue.TryJoin(
+                    this,
+                    selected.Definition,
+                    selected.TravelTime))
+            {
+                currentStatus = "Could not join interaction queue";
+                return;
+            }
+
+            queuedProvider = selected.Provider;
+            queuedInteraction = selected.Definition;
+            currentInteractionName = selected.Definition.DisplayName;
+            nextQueuePositionRefresh = 0f;
+            UpdateQueueState();
+            return;
+        }
+
+        if (!selected.Provider.TryReserve(this, selected.Definition))
         {
             currentStatus = "Interaction reservation unavailable";
             return;
@@ -164,9 +211,7 @@ public class PilotInteractionController : MonoBehaviour
         reservedInteraction = selected.Definition;
         currentInteractionName = selected.Definition.DisplayName;
 
-        Vector3 destination = selected.Provider.InteractionPosition;
-
-        if (!movement.MoveTo(destination))
+        if (!movement.MoveTo(selected.Provider.InteractionPosition))
         {
             CancelCurrentInteraction("Could not find a path to interaction");
             return;
@@ -254,8 +299,90 @@ public class PilotInteractionController : MonoBehaviour
         return score;
     }
 
+    private void UpdateQueueState()
+    {
+        if (queuedProvider == null || queuedInteraction == null ||
+            !queuedProvider.isActiveAndEnabled ||
+            queuedProvider.Queue == null ||
+            !queuedProvider.Queue.QueueEnabled ||
+            !queuedProvider.Queue.IsQueued(this))
+        {
+            CancelQueuedInteraction("Interaction queue became unavailable");
+            return;
+        }
+
+        InteractionQueue queue = queuedProvider.Queue;
+
+        if (queue.IsActive(this))
+        {
+            reservedProvider = queuedProvider;
+            reservedInteraction = queuedInteraction;
+
+            Vector3 interactionPosition = queuedProvider.InteractionPosition;
+            if (!movement.IsMoving &&
+                Vector3.Distance(transform.position, interactionPosition) > 0.12f &&
+                Time.time >= nextQueuePositionRefresh)
+            {
+                nextQueuePositionRefresh = Time.time + queuePositionRefreshInterval;
+                lastQueueDestination = interactionPosition;
+
+                if (!movement.MoveTo(interactionPosition))
+                    CancelQueuedInteraction("Could not reach interaction");
+                else
+                    currentStatus = "Walking to " + currentInteractionName;
+            }
+
+            return;
+        }
+
+        reservedProvider = null;
+        reservedInteraction = null;
+
+        if (Time.time < nextQueuePositionRefresh)
+            return;
+
+        nextQueuePositionRefresh = Time.time + queuePositionRefreshInterval;
+        Vector3 queuePosition = queue.GetQueuePosition(this);
+
+        bool destinationChanged =
+            Vector3.Distance(lastQueueDestination, queuePosition) > 0.15f;
+
+        if (!movement.IsMoving && destinationChanged)
+        {
+            lastQueueDestination = queuePosition;
+
+            if (!movement.MoveTo(queuePosition))
+            {
+                CancelQueuedInteraction("Could not reach queue position");
+                return;
+            }
+        }
+        else if (movement.IsMoving && destinationChanged &&
+                 Vector3.Distance(movement.Destination, queuePosition) > 0.15f)
+        {
+            lastQueueDestination = queuePosition;
+
+            if (!movement.MoveTo(queuePosition))
+            {
+                CancelQueuedInteraction("Could not reach updated queue position");
+                return;
+            }
+        }
+
+        currentStatus = "Waiting in queue for " + currentInteractionName;
+    }
+
     private void HandleMovementArrived()
     {
+        if (queuedProvider != null)
+        {
+            if (!queuedProvider.Queue.IsActive(this))
+                return;
+
+            reservedProvider = queuedProvider;
+            reservedInteraction = queuedInteraction;
+        }
+
         if (reservedProvider == null || reservedInteraction == null)
             return;
 
@@ -264,7 +391,11 @@ public class PilotInteractionController : MonoBehaviour
 
         if (distance > reservedInteraction.InteractionRange)
         {
-            CancelCurrentInteraction("Arrived outside interaction range");
+            if (queuedProvider != null)
+                CancelQueuedInteraction("Arrived outside interaction range");
+            else
+                CancelCurrentInteraction("Arrived outside interaction range");
+
             return;
         }
 
@@ -303,14 +434,53 @@ public class PilotInteractionController : MonoBehaviour
 
         currentStatus = "Completed " + completedInteraction.DisplayName;
         interactionRoutine = null;
-        ReleaseCurrentReservation();
+
+        if (queuedProvider != null && queuedProvider.Queue != null)
+        {
+            queuedProvider.Queue.Complete(this);
+            queuedProvider = null;
+            queuedInteraction = null;
+            reservedProvider = null;
+            reservedInteraction = null;
+            currentInteractionName = string.Empty;
+        }
+        else
+        {
+            ReleaseCurrentReservation();
+        }
+
         nextDecisionTime = Time.time + decisionInterval;
     }
 
     private void HandlePathFailed()
     {
-        if (reservedInteraction != null)
+        if (queuedProvider != null)
+            CancelQueuedInteraction("Path to queue position failed");
+        else if (reservedInteraction != null)
             CancelCurrentInteraction("Path to interaction failed");
+    }
+
+    private void CancelQueuedInteraction(string reason)
+    {
+        if (interactionRoutine != null)
+        {
+            StopCoroutine(interactionRoutine);
+            interactionRoutine = null;
+        }
+
+        if (movement != null && movement.IsMoving)
+            movement.Stop();
+
+        if (queuedProvider != null && queuedProvider.Queue != null)
+            queuedProvider.Queue.Leave(this);
+
+        queuedProvider = null;
+        queuedInteraction = null;
+        reservedProvider = null;
+        reservedInteraction = null;
+        currentInteractionName = string.Empty;
+        currentStatus = reason;
+        nextDecisionTime = Time.time + decisionInterval;
     }
 
     private void CancelCurrentInteraction(string reason)
@@ -331,9 +501,13 @@ public class PilotInteractionController : MonoBehaviour
 
     private void ReleaseCurrentReservation()
     {
-        if (reservedProvider != null && reservedInteraction != null)
+        if (queuedProvider != null && queuedProvider.Queue != null)
+            queuedProvider.Queue.Leave(this);
+        else if (reservedProvider != null && reservedInteraction != null)
             reservedProvider.ReleaseReservation(this, reservedInteraction);
 
+        queuedProvider = null;
+        queuedInteraction = null;
         reservedProvider = null;
         reservedInteraction = null;
         currentInteractionName = string.Empty;
@@ -344,5 +518,6 @@ public class PilotInteractionController : MonoBehaviour
         decisionInterval = Mathf.Max(0.1f, decisionInterval);
         shortlistSize = Mathf.Max(1, shortlistSize);
         timeCostPerSecond = Mathf.Max(0f, timeCostPerSecond);
+        queuePositionRefreshInterval = Mathf.Max(0.05f, queuePositionRefreshInterval);
     }
 }
