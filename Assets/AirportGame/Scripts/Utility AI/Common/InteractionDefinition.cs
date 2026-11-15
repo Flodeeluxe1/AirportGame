@@ -8,7 +8,7 @@ using UnityEngine;
 /// </summary>
 [CreateAssetMenu(
     fileName = "InteractionDefinition",
-    menuName = "Airport Game/Utility AI/Interaction Definition")]
+    menuName = "Airport/Utility AI/Interaction Definition")]
 public class InteractionDefinition : ScriptableObject
 {
     [Serializable]
