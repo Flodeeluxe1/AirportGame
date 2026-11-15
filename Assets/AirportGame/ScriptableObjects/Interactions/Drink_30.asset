@@ -21,3 +21,4 @@ MonoBehaviour:
   needEffects:
   - need: 0
     satisfactionAmount: 30
+    maximumNeedValueToConsider: 80
