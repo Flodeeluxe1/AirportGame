@@ -91,6 +91,55 @@ public class PedestrianMovementController : MonoBehaviour
     }
 
     /// <summary>
+    /// Estimates travel time using the same pathfinder and individual walking
+    /// speed used by actual movement. Returns PositiveInfinity when no route exists.
+    /// </summary>
+    public float EstimateTravelTime(Vector3 worldDestination)
+    {
+        if (pathfinder == null)
+            ResolvePathfinder();
+
+        if (pathfinder == null)
+            return float.PositiveInfinity;
+
+        Vector3 start = transform.position;
+        Vector3 target = worldDestination;
+        target.y = start.y;
+
+        List<Vector3> estimatedPath =
+            pathfinder.FindWorldPath(start, target);
+
+        if (estimatedPath == null || estimatedPath.Count == 0)
+            return float.PositiveInfinity;
+
+        float distance = 0f;
+        Vector3 previous = start;
+
+        foreach (Vector3 waypoint in estimatedPath)
+        {
+            distance += HorizontalDistance(previous, waypoint);
+            previous = waypoint;
+        }
+
+        distance += HorizontalDistance(previous, target);
+
+        float effectiveSpeed =
+            Mathf.Max(0.1f, movementSpeed * individualSpeedMultiplier);
+
+        float accelerationTime = effectiveSpeed / Mathf.Max(0.1f, acceleration);
+        float accelerationDistance = 0.5f * effectiveSpeed * accelerationTime;
+
+        if (distance <= accelerationDistance)
+        {
+            return Mathf.Sqrt(
+                2f * distance / Mathf.Max(0.1f, acceleration));
+        }
+
+        return accelerationTime +
+               (distance - accelerationDistance) / effectiveSpeed;
+    }
+
+    /// <summary>
     /// Requests a route to a world-space destination.
     /// Returns false if the shared pathfinder cannot find a route.
     /// </summary>
