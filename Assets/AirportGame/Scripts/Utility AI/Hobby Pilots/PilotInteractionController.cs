@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -11,13 +12,27 @@ using UnityEngine;
 [RequireComponent(typeof(PedestrianMovementController))]
 public class PilotInteractionController : MonoBehaviour
 {
+    private struct InteractionCandidate
+    {
+        public InteractionProvider Provider;
+        public InteractionDefinition Definition;
+        public float Score;
+    }
+
     [Header("Decision")]
     [Min(0.1f)]
     [SerializeField] private float decisionInterval = 2f;
+    [Min(1)]
+    [SerializeField] private int shortlistSize = 4;
+    [Min(0f)]
+    [SerializeField] private float timeCostPerSecond = 0.02f;
 
     [Header("Runtime")]
     [SerializeField] private string currentStatus = "Idle";
     [SerializeField] private string currentInteractionName;
+
+    private readonly List<InteractionCandidate> shortlist =
+        new List<InteractionCandidate>();
 
     private UtilityNeeds needs;
     private PedestrianMovementController movement;
@@ -83,17 +98,15 @@ public class PilotInteractionController : MonoBehaviour
             return;
 
         nextDecisionTime = Time.time + decisionInterval;
-        TryStartBestInteraction();
+        TryStartSelectedInteraction();
     }
 
-    private void TryStartBestInteraction()
+    private void TryStartSelectedInteraction()
     {
+        shortlist.Clear();
+
         InteractionProvider[] providers =
             FindObjectsByType<InteractionProvider>(FindObjectsSortMode.None);
-
-        InteractionProvider bestProvider = null;
-        InteractionDefinition bestInteraction = null;
-        float bestScore = 0f;
 
         foreach (InteractionProvider provider in providers)
         {
@@ -105,34 +118,53 @@ public class PilotInteractionController : MonoBehaviour
                 if (definition == null || !provider.CanOffer(definition))
                     continue;
 
-                float score = CalculateUtility(definition);
+                float utility = CalculateUtility(definition);
+                if (utility <= 0f)
+                    continue;
 
-                if (score > bestScore)
+                float travelTime =
+                    movement.EstimateTravelTime(provider.InteractionPosition);
+
+                if (float.IsInfinity(travelTime) || float.IsNaN(travelTime))
+                    continue;
+
+                float totalTime = travelTime + definition.DurationSeconds;
+                float timeAdjustedScore =
+                    utility / (1f + totalTime * timeCostPerSecond);
+
+                if (timeAdjustedScore <= 0f)
+                    continue;
+
+                AddToShortlist(new InteractionCandidate
                 {
-                    bestScore = score;
-                    bestProvider = provider;
-                    bestInteraction = definition;
-                }
+                    Provider = provider,
+                    Definition = definition,
+                    Score = timeAdjustedScore
+                });
             }
         }
 
-        if (bestProvider == null || bestInteraction == null)
+        if (shortlist.Count == 0)
         {
             currentStatus = "No suitable available interactions";
             return;
         }
 
-        if (!bestProvider.TryReserve(this, bestInteraction))
+        InteractionCandidate selected = SelectWeightedCandidate();
+
+        if (selected.Provider == null ||
+            selected.Definition == null ||
+            !selected.Provider.TryReserve(this, selected.Definition))
         {
             currentStatus = "Interaction reservation unavailable";
             return;
         }
 
-        reservedProvider = bestProvider;
-        reservedInteraction = bestInteraction;
-        currentInteractionName = bestInteraction.DisplayName;
+        reservedProvider = selected.Provider;
+        reservedInteraction = selected.Definition;
+        currentInteractionName = selected.Definition.DisplayName;
 
-        Vector3 destination = bestProvider.InteractionPosition;
+        Vector3 destination = selected.Provider.InteractionPosition;
 
         if (!movement.MoveTo(destination))
         {
@@ -141,6 +173,49 @@ public class PilotInteractionController : MonoBehaviour
         }
 
         currentStatus = "Walking to " + currentInteractionName;
+    }
+
+    private void AddToShortlist(InteractionCandidate candidate)
+    {
+        int insertIndex = shortlist.Count;
+
+        for (int i = 0; i < shortlist.Count; i++)
+        {
+            if (candidate.Score > shortlist[i].Score)
+            {
+                insertIndex = i;
+                break;
+            }
+        }
+
+        shortlist.Insert(insertIndex, candidate);
+
+        int maximumCandidates = Mathf.Max(1, shortlistSize);
+        if (shortlist.Count > maximumCandidates)
+            shortlist.RemoveAt(shortlist.Count - 1);
+    }
+
+    private InteractionCandidate SelectWeightedCandidate()
+    {
+        float totalWeight = 0f;
+
+        foreach (InteractionCandidate candidate in shortlist)
+            totalWeight += candidate.Score;
+
+        if (totalWeight <= 0f)
+            return shortlist[0];
+
+        float roll = Random.value * totalWeight;
+
+        foreach (InteractionCandidate candidate in shortlist)
+        {
+            roll -= candidate.Score;
+
+            if (roll <= 0f)
+                return candidate;
+        }
+
+        return shortlist[shortlist.Count - 1];
     }
 
     private float CalculateUtility(InteractionDefinition definition)
@@ -262,5 +337,12 @@ public class PilotInteractionController : MonoBehaviour
         reservedProvider = null;
         reservedInteraction = null;
         currentInteractionName = string.Empty;
+    }
+
+    private void OnValidate()
+    {
+        decisionInterval = Mathf.Max(0.1f, decisionInterval);
+        shortlistSize = Mathf.Max(1, shortlistSize);
+        timeCostPerSecond = Mathf.Max(0f, timeCostPerSecond);
     }
 }
