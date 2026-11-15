@@ -59,6 +59,7 @@ public class PilotInteractionController : MonoBehaviour
         reservedProvider == null &&
         queuedProvider == null &&
         interactionRoutine == null &&
+        (socialController == null || !socialController.IsBusy) &&
         (seatingController == null || !seatingController.IsBusy) &&
         (groupController == null || !groupController.IsBusy) &&
         movement != null &&
