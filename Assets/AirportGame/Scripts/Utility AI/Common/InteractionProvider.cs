@@ -24,6 +24,9 @@ public class InteractionProvider : MonoBehaviour
     {
         get
         {
+            if (interactionPoint == null)
+                interactionPoint = transform.Find("interactionPoint");
+
             if (interactionPoint != null)
                 return interactionPoint.position;
 
