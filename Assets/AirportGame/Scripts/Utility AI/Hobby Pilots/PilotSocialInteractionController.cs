@@ -26,9 +26,9 @@ public class PilotSocialInteractionController : MonoBehaviour
     [Range(0f, 100f)]
     [SerializeField] private float maximumSocialNeedValue = 80f;
     [Min(1)]
-    [SerializeField] private int conversationDurationGameSeconds = 30;
+    [SerializeField] private int conversationDurationGameSeconds = 240;
     [Min(0f)]
-    [SerializeField] private float socialSatisfactionAmount = 30f;
+    [SerializeField] private float socialSatisfactionAmount = 15f;
     [Min(0.2f)]
     [SerializeField] private float conversationDistance = 1.2f;
     [Min(1f)]
@@ -46,6 +46,7 @@ public class PilotSocialInteractionController : MonoBehaviour
     private GameTimeManager gameTimeManager;
     private bool subscribedToGameTime;
     private PilotSocialInteractionController partner;
+    private PilotSocialSeatingController seatingController;
     private SocialState state;
     private bool isConversationLeader;
     private bool hasArrived;
@@ -61,6 +62,7 @@ public class PilotSocialInteractionController : MonoBehaviour
         needs = GetComponent<UtilityNeeds>();
         movement = GetComponent<PedestrianMovementController>();
         interactionController = GetComponent<PilotInteractionController>();
+        seatingController = GetComponent<PilotSocialSeatingController>();
         ResolveGameTimeManager();
     }
 
@@ -173,6 +175,18 @@ public class PilotSocialInteractionController : MonoBehaviour
         {
             if (candidate == null || candidate == this ||
                 !candidate.CanJoinConversation())
+            {
+                continue;
+            }
+
+            // Prefer a seated conversation whenever this pair can reach two
+            // nearby available seats. Standing conversation is the fallback.
+            PilotSocialSeatingController candidateSeating =
+                candidate.GetComponent<PilotSocialSeatingController>();
+
+            if (seatingController != null &&
+                candidateSeating != null &&
+                seatingController.HasAvailableSeatPairWith(candidateSeating))
             {
                 continue;
             }
