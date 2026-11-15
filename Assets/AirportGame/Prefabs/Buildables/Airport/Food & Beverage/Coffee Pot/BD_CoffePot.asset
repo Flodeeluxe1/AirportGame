@@ -29,5 +29,5 @@ MonoBehaviour:
   blocksPathfinding: 0
   menuCategory: Food & Beverage
   category: 3
-  icon: {fileID: 0}
+  icon: {fileID: 2800000, guid: 6f2034b25ee715f4fa83bcd3246cc492, type: 3}
   roomFurnitureRole: 0

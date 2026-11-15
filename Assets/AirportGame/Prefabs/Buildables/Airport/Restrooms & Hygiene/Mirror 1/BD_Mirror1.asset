@@ -29,5 +29,5 @@ MonoBehaviour:
   blocksPathfinding: 0
   menuCategory: Restrooms & Hygiene
   category: 3
-  icon: {fileID: 0}
+  icon: {fileID: 2800000, guid: 7e63810e86f3d4a40ad1366234de149a, type: 3}
   roomFurnitureRole: 0

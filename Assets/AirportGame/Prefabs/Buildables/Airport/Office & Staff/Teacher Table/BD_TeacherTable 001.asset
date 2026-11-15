@@ -22,7 +22,6 @@ MonoBehaviour:
   edgeLength: 1
   requiresExistingWall: 0
   isWallMounted: 0
-  mountHeight: 2
   canBePlacedOnSurface: 0
   canSupportSurfaceObjects: 1
   canRotate: 1

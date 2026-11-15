@@ -29,5 +29,5 @@ MonoBehaviour:
   blocksPathfinding: 0
   menuCategory: Interior & Decor
   category: 3
-  icon: {fileID: 0}
+  icon: {fileID: 2800000, guid: fd8d6fb151984a140a1fa2527f644fe2, type: 3}
   roomFurnitureRole: 0

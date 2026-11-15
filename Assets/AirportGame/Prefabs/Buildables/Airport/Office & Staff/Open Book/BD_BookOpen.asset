@@ -29,5 +29,5 @@ MonoBehaviour:
   blocksPathfinding: 0
   menuCategory: Office & Staff
   category: 3
-  icon: {fileID: 0}
+  icon: {fileID: 2800000, guid: 071e0ebbf75562440a78143cce301d95, type: 3}
   roomFurnitureRole: 0
