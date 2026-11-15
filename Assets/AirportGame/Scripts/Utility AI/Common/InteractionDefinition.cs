@@ -13,6 +13,9 @@ public class InteractionDefinition : ScriptableObject
     {
         public UtilityNeeds.NeedType need;
         [Min(0f)] public float satisfactionAmount = 25f;
+        [Range(0f, 100f)]
+        [Tooltip("The interaction is only considered while this need is below the threshold.")]
+        public float maximumNeedValueToConsider = 80f;
     }
 
     [Header("Identity")]
@@ -52,7 +55,11 @@ public class InteractionDefinition : ScriptableObject
         foreach (NeedEffect effect in needEffects)
         {
             if (effect != null)
+            {
                 effect.satisfactionAmount = Mathf.Max(0f, effect.satisfactionAmount);
+                effect.maximumNeedValueToConsider =
+                    Mathf.Clamp(effect.maximumNeedValueToConsider, 0f, 100f);
+            }
         }
     }
 }
