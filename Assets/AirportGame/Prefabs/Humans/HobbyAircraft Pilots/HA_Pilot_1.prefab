@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 497652449320250805}
   - component: {fileID: 2338498571254170503}
   - component: {fileID: 9192837465012345678}
-  - component: {fileID: 82736491827364509182736491827364}
+  - component: {fileID: 8273649182736450918}
   m_Layer: 0
   m_Name: HA_Pilot_1
   m_TagString: Untagged
@@ -139,7 +139,7 @@ MonoBehaviour:
   waypointCount: 0
 
 # Shared Utility AI needs component
---- !u!114 &82736491827364509182736491827364
+--- !u!114 &8273649182736450918
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
