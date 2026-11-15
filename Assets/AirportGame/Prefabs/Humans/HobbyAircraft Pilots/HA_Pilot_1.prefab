@@ -31,7 +31,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 37.066, y: 0.323, z: 38.077}
-  m_LocalScale: {x: 0.18, y: 0.36, z: 0.2}
+  m_LocalScale: {x: 0.25, y: 0.76, z: 0.2}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -116,7 +116,6 @@ CapsuleCollider:
   m_Height: 2
   m_Direction: 1
   m_Center: {x: 0, y: 0, z: 0}
-
 --- !u!114 &9192837465012345678
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -131,14 +130,20 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   pathfinder: {fileID: 0}
   movementSpeed: 1.5
+  individualSpeedMultiplierRange: {x: 0.9, y: 1.1}
+  acceleration: 5
+  deceleration: 3
+  slowdownDistance: 0.8
   rotationSpeed: 540
   waypointArrivalDistance: 0.08
+  avoidOtherPedestrians: 1
+  avoidanceRadius: 0.65
+  avoidanceStrength: 0.25
+  avoidanceResponse: 3.5
   isMoving: 0
   movementStatus: Idle
   currentWaypointIndex: 0
   waypointCount: 0
-
-# Shared Utility AI needs component
 --- !u!114 &8273649182736450918
 MonoBehaviour:
   m_ObjectHideFlags: 0
