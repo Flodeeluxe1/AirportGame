@@ -25,3 +25,7 @@ MonoBehaviour:
   - need: 6
     satisfactionAmount: 15
     maximumNeedValueToConsider: 80
+  needConflicts:
+  - need: 2
+    penaltyAtMaximumUrgency: 1
+}
