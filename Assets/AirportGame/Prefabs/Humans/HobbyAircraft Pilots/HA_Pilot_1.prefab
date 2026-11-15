@@ -208,7 +208,7 @@ MonoBehaviour:
   searchInterval: 2
   partnerSearchRadius: 8
   maximumSocialNeedValue: 80
-  conversationDuration: 30
+  conversationDurationGameSeconds: 30
   socialSatisfactionAmount: 30
   conversationDistance: 1.2
   travelTimeout: 30
