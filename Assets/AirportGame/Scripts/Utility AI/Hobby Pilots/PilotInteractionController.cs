@@ -158,8 +158,9 @@ public class PilotInteractionController : MonoBehaviour
                 continue;
 
             float urgency = needs.GetUrgency(effect.need);
+            float utilityWeight = needs.GetUtilityWeight(effect.need);
             float potentialSatisfaction = Mathf.Min(100f, effect.satisfactionAmount);
-            score += urgency * potentialSatisfaction / 100f;
+            score += urgency * utilityWeight * potentialSatisfaction / 100f;
         }
 
         if (score <= 0f)
