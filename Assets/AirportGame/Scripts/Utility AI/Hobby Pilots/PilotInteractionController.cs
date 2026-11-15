@@ -52,6 +52,8 @@ public class PilotInteractionController : MonoBehaviour
     private float nextDecisionTime;
     private float nextQueuePositionRefresh;
     private Vector3 lastQueueDestination;
+    private readonly List<UtilityNeeds.NeedType> replenishingNeeds =
+        new List<UtilityNeeds.NeedType>();
 
     public string CurrentStatus => currentStatus;
 
@@ -101,6 +103,7 @@ public class PilotInteractionController : MonoBehaviour
             interactionRoutine = null;
         }
 
+        ResumeInteractionNeedDecay();
         ReleaseCurrentReservation();
         currentStatus = "Disabled";
     }
@@ -471,6 +474,7 @@ public class PilotInteractionController : MonoBehaviour
 
     private IEnumerator PerformInteraction()
     {
+        PauseInteractionNeedDecay();
         float duration = reservedInteraction.DurationSeconds;
         float elapsed = 0f;
 
@@ -489,6 +493,7 @@ public class PilotInteractionController : MonoBehaviour
         }
 
         InteractionDefinition completedInteraction = reservedInteraction;
+        ResumeInteractionNeedDecay();
 
         if (completedInteraction == null || needs == null)
         {
@@ -530,6 +535,41 @@ public class PilotInteractionController : MonoBehaviour
         nextDecisionTime = Time.time + decisionInterval;
     }
 
+    private void PauseInteractionNeedDecay()
+    {
+        ResumeInteractionNeedDecay();
+
+        if (needs == null || reservedInteraction == null)
+            return;
+
+        IReadOnlyList<InteractionDefinition.NeedEffect> effects =
+            reservedInteraction.NeedEffects;
+
+        if (effects == null)
+            return;
+
+        foreach (InteractionDefinition.NeedEffect effect in effects)
+        {
+            if (effect == null || effect.satisfactionAmount <= 0f ||
+                replenishingNeeds.Contains(effect.need))
+                continue;
+
+            needs.PauseNeedDecay(effect.need);
+            replenishingNeeds.Add(effect.need);
+        }
+    }
+
+    private void ResumeInteractionNeedDecay()
+    {
+        if (needs != null)
+        {
+            foreach (UtilityNeeds.NeedType need in replenishingNeeds)
+                needs.ResumeNeedDecay(need);
+        }
+
+        replenishingNeeds.Clear();
+    }
+
     private void HandlePathFailed()
     {
         if (queuedProvider != null)
@@ -540,6 +580,8 @@ public class PilotInteractionController : MonoBehaviour
 
     private void CancelQueuedInteraction(string reason)
     {
+        ResumeInteractionNeedDecay();
+
         if (interactionRoutine != null)
         {
             StopCoroutine(interactionRoutine);
@@ -563,6 +605,8 @@ public class PilotInteractionController : MonoBehaviour
 
     private void CancelCurrentInteraction(string reason)
     {
+        ResumeInteractionNeedDecay();
+
         if (interactionRoutine != null)
         {
             StopCoroutine(interactionRoutine);
