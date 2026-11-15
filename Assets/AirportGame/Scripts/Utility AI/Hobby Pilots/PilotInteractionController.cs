@@ -424,12 +424,24 @@ public class PilotInteractionController : MonoBehaviour
 
         InteractionDefinition completedInteraction = reservedInteraction;
 
-        foreach (InteractionDefinition.NeedEffect effect in completedInteraction.NeedEffects)
+        if (completedInteraction == null || needs == null)
         {
-            if (effect == null || effect.satisfactionAmount <= 0f)
-                continue;
+            CancelCurrentInteraction("Interaction data became unavailable");
+            yield break;
+        }
 
-            needs.SatisfyNeed(effect.need, effect.satisfactionAmount);
+        IReadOnlyList<InteractionDefinition.NeedEffect> needEffects =
+            completedInteraction.NeedEffects;
+
+        if (needEffects != null)
+        {
+            foreach (InteractionDefinition.NeedEffect effect in needEffects)
+            {
+                if (effect == null || effect.satisfactionAmount <= 0f)
+                    continue;
+
+                needs.SatisfyNeed(effect.need, effect.satisfactionAmount);
+            }
         }
 
         currentStatus = "Completed " + completedInteraction.DisplayName;
