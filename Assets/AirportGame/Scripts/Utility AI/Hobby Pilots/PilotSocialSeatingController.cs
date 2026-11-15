@@ -1,9 +1,10 @@
+using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// Coordinates two pilots socializing at a shared seating area.
-/// Pilots walk to reserved seat positions, face one another and wait together.
-/// They remain standing until sitting animations are added.
+/// Pairs two available ordinary seats advertised by InteractionProviders.
+/// Each pilot reserves one seat and walks to that provider's InteractionPosition.
 /// </summary>
 [DisallowMultipleComponent]
 [RequireComponent(typeof(UtilityNeeds))]
@@ -18,17 +19,26 @@ public class PilotSocialSeatingController : MonoBehaviour
         Socializing
     }
 
+    private struct SeatOption
+    {
+        public InteractionProvider Provider;
+        public InteractionDefinition Definition;
+        public Vector3 Position;
+    }
+
     [Header("Search")]
     [Min(0.1f)]
     [SerializeField] private float searchInterval = 3f;
     [Min(0.1f)]
     [SerializeField] private float searchRadius = 12f;
+    [Min(0.1f)]
+    [SerializeField] private float maximumDistanceBetweenSeats = 2.5f;
     [Range(0f, 100f)]
     [SerializeField] private float maximumSocialNeedValue = 80f;
 
     [Header("Socializing")]
     [Min(1)]
-    [SerializeField] private int socializingDurationGameSeconds = 45;
+    [SerializeField] private int socializingDurationGameSeconds = 600;
     [Min(0f)]
     [SerializeField] private float socialSatisfactionAmount = 25f;
     [Min(0f)]
@@ -48,7 +58,10 @@ public class PilotSocialSeatingController : MonoBehaviour
     private GameTimeManager gameTimeManager;
     private bool subscribedToGameTime;
     private PilotSocialSeatingController partner;
-    private PilotSocialSeatingArea reservedArea;
+    private InteractionProvider reservedSeatProvider;
+    private InteractionDefinition reservedSeatDefinition;
+    private InteractionProvider partnerSeatProvider;
+    private InteractionDefinition partnerSeatDefinition;
     private SeatingState state;
     private bool isLeader;
     private bool hasArrived;
@@ -79,7 +92,7 @@ public class PilotSocialSeatingController : MonoBehaviour
         }
 
         ResolveGameTimeManager();
-        nextSearchTime = Time.time + Random.Range(0f, searchInterval);
+        nextSearchTime = Time.time + UnityEngine.Random.Range(0f, searchInterval);
     }
 
     private void OnDisable()
@@ -94,7 +107,7 @@ public class PilotSocialSeatingController : MonoBehaviour
             gameTimeManager.GameTimeAdvanced -= HandleGameTimeAdvanced;
 
         subscribedToGameTime = false;
-        CancelSocializing("Seating social interaction interrupted");
+        CancelSocializing("Seated conversation interrupted");
     }
 
     private void Update()
@@ -103,9 +116,10 @@ public class PilotSocialSeatingController : MonoBehaviour
             ResolveGameTimeManager();
 
         if (state != SeatingState.Idle &&
-            (reservedArea == null || !reservedArea.isActiveAndEnabled))
+            (reservedSeatProvider == null || !reservedSeatProvider.InteractionsEnabled ||
+             partnerSeatProvider == null || !partnerSeatProvider.InteractionsEnabled))
         {
-            CancelSocializing("Shared seating area became unavailable");
+            CancelSocializing("A reserved seat became unavailable");
             return;
         }
 
@@ -119,7 +133,7 @@ public class PilotSocialSeatingController : MonoBehaviour
         {
             travelElapsed += Time.deltaTime;
             if (travelElapsed >= travelTimeout)
-                CancelSocializing("Could not reach seating positions");
+                CancelSocializing("Could not reach reserved seats");
 
             return;
         }
@@ -171,105 +185,138 @@ public class PilotSocialSeatingController : MonoBehaviour
 
         PilotSocialSeatingController[] pilots =
             FindObjectsByType<PilotSocialSeatingController>(FindObjectsSortMode.None);
+        InteractionProvider[] providers =
+            FindObjectsByType<InteractionProvider>(FindObjectsSortMode.None);
 
         PilotSocialSeatingController selectedPartner = null;
-        PilotSocialSeatingArea selectedArea = null;
-        Transform selectedOwnSeat = null;
-        Transform selectedPartnerSeat = null;
-        float closestDistance = searchRadius;
+        SeatOption selectedOwnSeat = default;
+        SeatOption selectedPartnerSeat = default;
+        float bestScore = float.PositiveInfinity;
 
-        PilotSocialSeatingArea[] areas =
-            FindObjectsByType<PilotSocialSeatingArea>(FindObjectsSortMode.None);
+        List<SeatOption> availableSeats = GetAvailableSeats(providers);
+        if (availableSeats.Count < 2)
+            return;
 
         foreach (PilotSocialSeatingController candidate in pilots)
         {
             if (candidate == null || candidate == this || !candidate.CanJoin())
                 continue;
 
-            float distance = Vector3.Distance(transform.position, candidate.transform.position);
-            if (distance >= closestDistance)
+            float pilotDistance = Vector3.Distance(transform.position, candidate.transform.position);
+            if (pilotDistance > searchRadius)
                 continue;
 
-            foreach (PilotSocialSeatingArea area in areas)
+            for (int i = 0; i < availableSeats.Count; i++)
             {
-                if (area == null || !area.IsAvailable)
-                    continue;
+                SeatOption firstSeat = availableSeats[i];
 
-                // The two pilots must both be able to reach their assigned seats.
-                // The actual reservation is made again immediately before pairing.
-                Transform[] seats = GetSeatPoints(area);
-                if (seats == null || seats.Length < 2 || seats[0] == null || seats[1] == null)
-                    continue;
-
-                float ownTravel = movement.EstimateTravelTime(seats[0].position);
-                float partnerTravel = candidate.movement.EstimateTravelTime(seats[1].position);
-
-                if (float.IsInfinity(ownTravel) || float.IsNaN(ownTravel) ||
-                    float.IsInfinity(partnerTravel) || float.IsNaN(partnerTravel))
+                for (int j = i + 1; j < availableSeats.Count; j++)
                 {
-                    // Try the opposite seat assignment before rejecting this area.
-                    ownTravel = movement.EstimateTravelTime(seats[1].position);
-                    partnerTravel = candidate.movement.EstimateTravelTime(seats[0].position);
-                    if (float.IsInfinity(ownTravel) || float.IsNaN(ownTravel) ||
-                        float.IsInfinity(partnerTravel) || float.IsNaN(partnerTravel))
+                    SeatOption secondSeat = availableSeats[j];
+
+                    float seatDistance = Vector3.Distance(firstSeat.Position, secondSeat.Position);
+                    if (seatDistance > maximumDistanceBetweenSeats)
                         continue;
 
-                    Transform swap = seats[0];
-                    seats[0] = seats[1];
-                    seats[1] = swap;
-                }
+                    float ownFirst = movement.EstimateTravelTime(firstSeat.Position);
+                    float partnerSecond = candidate.movement.EstimateTravelTime(secondSeat.Position);
+                    float ownSecond = movement.EstimateTravelTime(secondSeat.Position);
+                    float partnerFirst = candidate.movement.EstimateTravelTime(firstSeat.Position);
 
-                selectedPartner = candidate;
-                selectedArea = area;
-                selectedOwnSeat = seats[0];
-                selectedPartnerSeat = seats[1];
-                closestDistance = distance;
+                    float firstAssignment = ownFirst + partnerSecond;
+                    float secondAssignment = ownSecond + partnerFirst;
+                    bool swap = secondAssignment < firstAssignment;
+                    float totalTravel = Mathf.Min(firstAssignment, secondAssignment);
+
+                    if (float.IsInfinity(totalTravel) || float.IsNaN(totalTravel) ||
+                        totalTravel >= bestScore)
+                        continue;
+
+                    bestScore = totalTravel;
+                    selectedPartner = candidate;
+                    selectedOwnSeat = swap ? secondSeat : firstSeat;
+                    selectedPartnerSeat = swap ? firstSeat : secondSeat;
+                }
+            }
+        }
+
+        if (selectedPartner != null)
+        {
+            BeginSocializing(
+                selectedPartner,
+                selectedOwnSeat,
+                selectedPartnerSeat);
+        }
+    }
+
+    private static List<SeatOption> GetAvailableSeats(InteractionProvider[] providers)
+    {
+        List<SeatOption> seats = new List<SeatOption>();
+
+        foreach (InteractionProvider provider in providers)
+        {
+            if (provider == null || !provider.InteractionsEnabled)
+                continue;
+
+            IReadOnlyList<InteractionDefinition> definitions = provider.Interactions;
+            for (int i = 0; i < definitions.Count; i++)
+            {
+                InteractionDefinition definition = definitions[i];
+                if (!IsSeatInteraction(definition) || !provider.CanOffer(definition))
+                    continue;
+
+                seats.Add(new SeatOption
+                {
+                    Provider = provider,
+                    Definition = definition,
+                    Position = provider.InteractionPosition
+                });
                 break;
             }
         }
 
-        if (selectedPartner != null && selectedArea != null)
-            BeginSocializing(selectedPartner, selectedArea, selectedOwnSeat, selectedPartnerSeat);
+        return seats;
     }
 
-    // Returns a copy so seat-order swapping never changes the provider's serialized array.
-    private static Transform[] GetSeatPoints(PilotSocialSeatingArea area)
+    private static bool IsSeatInteraction(InteractionDefinition definition)
     {
-        return area.GetSeatPointSnapshot();
+        if (definition == null || string.IsNullOrEmpty(definition.InteractionId))
+            return false;
+
+        string id = definition.InteractionId;
+        return id.IndexOf("sit", StringComparison.OrdinalIgnoreCase) >= 0 ||
+               id.IndexOf("seat", StringComparison.OrdinalIgnoreCase) >= 0;
     }
 
     private void BeginSocializing(
         PilotSocialSeatingController other,
-        PilotSocialSeatingArea area,
-        Transform ownSeat,
-        Transform otherSeat)
+        SeatOption ownSeat,
+        SeatOption otherSeat)
     {
-        if (other == null || area == null || ownSeat == null || otherSeat == null ||
+        if (other == null || ownSeat.Provider == null || otherSeat.Provider == null ||
+            ownSeat.Provider == otherSeat.Provider ||
             !CanInitiate() || !other.CanJoin())
             return;
 
-        if (!area.TryReservePair(this, other, out Transform reservedOwnSeat, out Transform reservedOtherSeat))
+        if (!ownSeat.Provider.TryReserve(this, ownSeat.Definition))
             return;
 
-        // The area reserves seats in its configured order. Reconcile that order
-        // with the path estimates selected during discovery.
-        if (reservedOwnSeat != ownSeat || reservedOtherSeat != otherSeat)
+        if (!otherSeat.Provider.TryReserve(other, otherSeat.Definition))
         {
-            if (reservedOwnSeat != otherSeat || reservedOtherSeat != ownSeat)
-            {
-                area.ReleasePair(this, other);
-                return;
-            }
-
-            Transform swap = ownSeat;
-            ownSeat = otherSeat;
-            otherSeat = swap;
+            ownSeat.Provider.ReleaseReservation(this, ownSeat.Definition);
+            return;
         }
 
         partner = other;
         other.partner = this;
-        reservedArea = area;
-        other.reservedArea = area;
+        reservedSeatProvider = ownSeat.Provider;
+        reservedSeatDefinition = ownSeat.Definition;
+        other.reservedSeatProvider = otherSeat.Provider;
+        other.reservedSeatDefinition = otherSeat.Definition;
+        partnerSeatProvider = otherSeat.Provider;
+        partnerSeatDefinition = otherSeat.Definition;
+        other.partnerSeatProvider = ownSeat.Provider;
+        other.partnerSeatDefinition = ownSeat.Definition;
         isLeader = true;
         other.isLeader = false;
         state = SeatingState.Travelling;
@@ -278,24 +325,22 @@ public class PilotSocialSeatingController : MonoBehaviour
         other.hasArrived = false;
         travelElapsed = 0f;
         other.travelElapsed = 0f;
-        socializingStartGameSecond = GetCurrentAbsoluteGameSecond();
-        other.socializingStartGameSecond = socializingStartGameSecond;
         currentPartnerName = other.gameObject.name;
         other.currentPartnerName = gameObject.name;
-        currentStatus = "Walking to shared seating";
-        other.currentStatus = "Walking to shared seating";
+        currentStatus = "Walking to available seats";
+        other.currentStatus = "Walking to available seats";
 
-        if (!movement.MoveTo(ownSeat.position))
+        if (!movement.MoveTo(ownSeat.Position))
         {
-            CancelSocializing("Could not reach shared seating");
+            CancelSocializing("Could not reach reserved seat");
             return;
         }
 
         if (partner != other || other.partner != this)
             return;
 
-        if (!other.movement.MoveTo(otherSeat.position))
-            CancelSocializing("Could not reach shared seating");
+        if (!other.movement.MoveTo(otherSeat.Position))
+            CancelSocializing("Could not reach reserved seat");
     }
 
     private void HandleMovementArrived()
@@ -310,7 +355,7 @@ public class PilotSocialSeatingController : MonoBehaviour
     private void HandlePathFailed()
     {
         if (state == SeatingState.Travelling)
-            CancelSocializing("Path to seating position failed");
+            CancelSocializing("Path to reserved seat failed");
     }
 
     private void TryBeginSocializing()
@@ -323,8 +368,8 @@ public class PilotSocialSeatingController : MonoBehaviour
         partner.state = SeatingState.Socializing;
         socializingStartGameSecond = GetCurrentAbsoluteGameSecond();
         partner.socializingStartGameSecond = socializingStartGameSecond;
-        currentStatus = "Socializing at seat";
-        partner.currentStatus = "Socializing at seat";
+        currentStatus = "Socializing while seated";
+        partner.currentStatus = "Socializing while seated";
         movement.Stop();
         partner.movement.Stop();
         FacePartner();
@@ -383,8 +428,6 @@ public class PilotSocialSeatingController : MonoBehaviour
     private void CompleteSocializing()
     {
         PilotSocialSeatingController other = partner;
-        PilotSocialSeatingArea area = reservedArea;
-
         if (other == null)
         {
             ResetOwnState("Seating partner unavailable");
@@ -396,34 +439,41 @@ public class PilotSocialSeatingController : MonoBehaviour
         other.needs.SatisfyNeed(UtilityNeeds.NeedType.Social, other.socialSatisfactionAmount);
         other.needs.SatisfyNeed(UtilityNeeds.NeedType.Comfort, other.comfortSatisfactionAmount);
 
-        if (area != null)
-            area.ReleasePair(this, other);
+        ReleaseSeatReservations();
+        other.ReleaseSeatReservations();
 
         partner = null;
         other.partner = null;
-        reservedArea = null;
-        other.reservedArea = null;
-        ResetOwnState("Seating socializing complete");
-        other.ResetOwnState("Seating socializing complete");
+        ResetOwnState("Seated conversation complete");
+        other.ResetOwnState("Seated conversation complete");
+    }
+
+    private void ReleaseSeatReservations()
+    {
+        if (reservedSeatProvider != null && reservedSeatDefinition != null)
+            reservedSeatProvider.ReleaseReservation(this, reservedSeatDefinition);
+
+        reservedSeatProvider = null;
+        reservedSeatDefinition = null;
+        partnerSeatProvider = null;
+        partnerSeatDefinition = null;
     }
 
     private void CancelSocializing(string reason)
     {
         PilotSocialSeatingController other = partner;
-        PilotSocialSeatingArea area = reservedArea;
         partner = null;
 
-        if (area != null && other != null)
-            area.ReleasePair(this, other);
-
-        ResetOwnState(reason);
+        ReleaseSeatReservations();
 
         if (other != null && other.partner == this)
         {
             other.partner = null;
-            other.reservedArea = null;
+            other.ReleaseSeatReservations();
             other.ResetOwnState(reason);
         }
+
+        ResetOwnState(reason);
     }
 
     private void ResetOwnState(string status)
@@ -438,7 +488,6 @@ public class PilotSocialSeatingController : MonoBehaviour
         socializingStartGameSecond = 0;
         currentPartnerName = string.Empty;
         currentStatus = status;
-        reservedArea = null;
         nextSearchTime = Time.time + searchInterval;
     }
 
@@ -446,6 +495,7 @@ public class PilotSocialSeatingController : MonoBehaviour
     {
         searchInterval = Mathf.Max(0.1f, searchInterval);
         searchRadius = Mathf.Max(0.1f, searchRadius);
+        maximumDistanceBetweenSeats = Mathf.Max(0.1f, maximumDistanceBetweenSeats);
         maximumSocialNeedValue = Mathf.Clamp(maximumSocialNeedValue, 0f, 100f);
         socializingDurationGameSeconds = Mathf.Max(1, socializingDurationGameSeconds);
         socialSatisfactionAmount = Mathf.Max(0f, socialSatisfactionAmount);
