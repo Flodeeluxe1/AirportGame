@@ -132,7 +132,7 @@ public class PilotInteractionController : MonoBehaviour
         reservedInteraction = bestInteraction;
         currentInteractionName = bestInteraction.DisplayName;
 
-        Vector3 destination = bestProvider.InteractionPoint.position;
+        Vector3 destination = bestProvider.InteractionPosition;
 
         if (!movement.MoveTo(destination))
         {
@@ -165,8 +165,8 @@ public class PilotInteractionController : MonoBehaviour
         if (reservedProvider == null || reservedInteraction == null)
             return;
 
-        Transform point = reservedProvider.InteractionPoint;
-        float distance = Vector3.Distance(transform.position, point.position);
+        Vector3 point = reservedProvider.InteractionPosition;
+        float distance = Vector3.Distance(transform.position, point);
 
         if (distance > reservedInteraction.InteractionRange)
         {
