@@ -204,7 +204,7 @@ public class AircraftHobbyVisitController : MonoBehaviour
             return;
 
         Vector3 spawnPosition =
-            transform.TransformPoint(pilotSpawnLocalOffset);
+            transform.TransformPoint(pilotSpawnLocalOffset) + Vector3.up * 0.323f;
 
         Vector3 directionToAircraft =
             transform.position - spawnPosition;
