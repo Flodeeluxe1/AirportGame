@@ -178,8 +178,8 @@ MonoBehaviour:
     entertainmentMax: 100
     comfortMin: 70
     comfortMax: 100
-    curiosityMin: 70
-    curiosityMax: 100
+    boredomMin: 70
+    boredomMax: 100
   initialNeedValue: 100
   decayRates:
     thirst: 0.25
