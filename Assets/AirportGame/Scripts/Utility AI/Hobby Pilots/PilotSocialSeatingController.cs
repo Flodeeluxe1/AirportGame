@@ -43,6 +43,10 @@ public class PilotSocialSeatingController : MonoBehaviour
     [SerializeField] private float socialSatisfactionAmount = 25f;
     [Min(0f)]
     [SerializeField] private float comfortSatisfactionAmount = 10f;
+    [Min(0f)]
+    [SerializeField] private float entertainmentSatisfactionAmount = 15f;
+    [Min(0f)]
+    [SerializeField] private float boredomSatisfactionAmount = 15f;
     [Min(1f)]
     [SerializeField] private float travelTimeout = 45f;
     [Min(1f)]
@@ -490,8 +494,14 @@ public class PilotSocialSeatingController : MonoBehaviour
 
         needs.SatisfyNeed(UtilityNeeds.NeedType.Social, socialSatisfactionAmount);
         needs.SatisfyNeed(UtilityNeeds.NeedType.Comfort, comfortSatisfactionAmount);
+        needs.SatisfyNeed(UtilityNeeds.NeedType.Entertainment, entertainmentSatisfactionAmount);
+        needs.SatisfyNeed(UtilityNeeds.NeedType.Boredom, boredomSatisfactionAmount);
         other.needs.SatisfyNeed(UtilityNeeds.NeedType.Social, other.socialSatisfactionAmount);
         other.needs.SatisfyNeed(UtilityNeeds.NeedType.Comfort, other.comfortSatisfactionAmount);
+        other.needs.SatisfyNeed(UtilityNeeds.NeedType.Entertainment,
+            other.entertainmentSatisfactionAmount);
+        other.needs.SatisfyNeed(UtilityNeeds.NeedType.Boredom,
+            other.boredomSatisfactionAmount);
 
         ReleaseSeatReservations();
         other.ReleaseSeatReservations();
@@ -554,6 +564,8 @@ public class PilotSocialSeatingController : MonoBehaviour
         socializingDurationGameSeconds = Mathf.Max(1, socializingDurationGameSeconds);
         socialSatisfactionAmount = Mathf.Max(0f, socialSatisfactionAmount);
         comfortSatisfactionAmount = Mathf.Max(0f, comfortSatisfactionAmount);
+        entertainmentSatisfactionAmount = Mathf.Max(0f, entertainmentSatisfactionAmount);
+        boredomSatisfactionAmount = Mathf.Max(0f, boredomSatisfactionAmount);
         travelTimeout = Mathf.Max(1f, travelTimeout);
         facingRotationSpeed = Mathf.Max(1f, facingRotationSpeed);
     }
