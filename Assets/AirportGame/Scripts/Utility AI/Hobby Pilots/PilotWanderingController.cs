@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -49,6 +50,7 @@ public class PilotWanderingController : MonoBehaviour
     private static GridSurface cachedFoundationSurface;
     private static bool foundationCacheDirty = true;
     private GridSurface subscribedFoundationSurface;
+    private Coroutine foundationEntryRoutine;
 
     private UtilityNeeds needs;
     private PedestrianMovementController movement;
@@ -90,6 +92,12 @@ public class PilotWanderingController : MonoBehaviour
 
     private void OnDisable()
     {
+        if (foundationEntryRoutine != null)
+        {
+            StopCoroutine(foundationEntryRoutine);
+            foundationEntryRoutine = null;
+        }
+
         if (subscribedFoundationSurface != null)
             subscribedFoundationSurface.FoundationSurfaceChanged -= HandleFoundationSurfaceChanged;
         subscribedFoundationSurface = null;
@@ -189,6 +197,15 @@ public class PilotWanderingController : MonoBehaviour
 
     private void TryEnterFoundation()
     {
+        if (foundationEntryRoutine != null)
+            return;
+
+        enteringFoundation = true;
+        foundationEntryRoutine = StartCoroutine(TryEnterFoundationRoutine());
+    }
+
+    private IEnumerator TryEnterFoundationRoutine()
+    {
         if (gridManager == null || gridSurface == null || pathfinder == null)
             ResolveWorldReferences();
 
@@ -196,7 +213,9 @@ public class PilotWanderingController : MonoBehaviour
         {
             currentStatus = "Foundation entry unavailable: grid references missing";
             nextWanderGameSecond = GetCurrentAbsoluteGameSecond() + 30;
-            return;
+            enteringFoundation = false;
+            foundationEntryRoutine = null;
+            yield break;
         }
 
         UpdateFoundationSurfaceSubscription();
@@ -206,40 +225,47 @@ public class PilotWanderingController : MonoBehaviour
         {
             currentStatus = "No Foundation cells available";
             nextWanderGameSecond = GetCurrentAbsoluteGameSecond() + 30;
-            return;
+            enteringFoundation = false;
+            foundationEntryRoutine = null;
+            yield break;
         }
 
-        // Bound path searches so a newly spawned pilot cannot monopolize a frame.
         int candidateCount = CachedFoundationCells.Count;
         int attempts = Mathf.Min(maximumFoundationPathAttempts, candidateCount);
         int startIndex = Random.Range(0, candidateCount);
 
+        // Spread path searches across frames instead of allowing a newly
+        // spawned pilot to run many expensive A* searches in one Update.
         for (int attempt = 0; attempt < attempts; attempt++)
         {
             int candidateIndex = (startIndex + attempt) % candidateCount;
             Vector2Int candidateCell = CachedFoundationCells[candidateIndex];
 
-            // Check walkability live because obstacles can change independently.
-            if (!pathfinder.IsWalkable(candidateCell))
-                continue;
+            if (pathfinder.IsWalkable(candidateCell))
+            {
+                Vector3 destination = gridManager.GridToWorldCenter(candidateCell);
+                destination.y = transform.position.y;
 
-            Vector3 destination = gridManager.GridToWorldCenter(candidateCell);
-            destination.y = transform.position.y;
+                if (movement.MoveTo(destination))
+                {
+                    wanderingDestination = destination;
+                    ownsCurrentMovement = true;
+                    enteringFoundation = false;
+                    waitingAtDestination = false;
+                    currentStatus = "Entering foundation";
+                    foundationEntryRoutine = null;
+                    yield break;
+                }
+            }
 
-            if (!movement.MoveTo(destination))
-                continue;
-
-            wanderingDestination = destination;
-            ownsCurrentMovement = true;
-            enteringFoundation = true;
-            waitingAtDestination = false;
-            currentStatus = "Entering foundation";
-            return;
+            yield return null;
         }
+
         currentStatus = "No reachable Foundation destination";
         nextWanderGameSecond = GetCurrentAbsoluteGameSecond() + 30;
+        enteringFoundation = false;
+        foundationEntryRoutine = null;
     }
-
     private void TryStartWander()
     {
         if (gridManager == null || gridSurface == null || pathfinder == null)
