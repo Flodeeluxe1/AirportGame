@@ -1,8 +1,10 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
 /// Gives an otherwise-idle hobby pilot occasional short walks across Foundation
-/// cells. Need-based and social activities always take priority.
+/// cells. Pilots who spawn outside Foundation first walk to a random reachable
+/// Foundation cell. Need-based and social activities always take priority.
 /// </summary>
 [DisallowMultipleComponent]
 [RequireComponent(typeof(UtilityNeeds))]
@@ -17,6 +19,9 @@ public class PilotWanderingController : MonoBehaviour
     [SerializeField] private int maximumRadiusCells = 6;
     [Min(1)]
     [SerializeField] private int destinationSearchAttempts = 40;
+
+    [Header("Foundation Entry")]
+    [SerializeField] private bool enterFoundationWhenOutside = true;
 
     [Header("Timing (In-Game Seconds)")]
     [Min(1)]
@@ -35,6 +40,9 @@ public class PilotWanderingController : MonoBehaviour
     [Header("Runtime")]
     [SerializeField] private string currentStatus = "Idle";
 
+    private readonly List<Vector2Int> foundationCandidates =
+        new List<Vector2Int>();
+
     private UtilityNeeds needs;
     private PedestrianMovementController movement;
     private PilotInteractionController interactionController;
@@ -45,6 +53,7 @@ public class PilotWanderingController : MonoBehaviour
     private bool subscribedToGameTime;
     private bool waitingAtDestination;
     private bool ownsCurrentMovement;
+    private bool enteringFoundation;
     private Vector3 wanderingDestination;
     private long nextWanderGameSecond;
     private long waitUntilGameSecond;
@@ -84,6 +93,7 @@ public class PilotWanderingController : MonoBehaviour
 
         subscribedToGameTime = false;
         waitingAtDestination = false;
+        enteringFoundation = false;
         currentStatus = "Disabled";
     }
 
@@ -98,8 +108,8 @@ public class PilotWanderingController : MonoBehaviour
         if (!interactionController.CanWander)
         {
             StopOwnWanderMovement();
-
             waitingAtDestination = false;
+            enteringFoundation = false;
             currentStatus = "Another activity has priority";
             return;
         }
@@ -123,6 +133,9 @@ public class PilotWanderingController : MonoBehaviour
 
         long currentGameSecond = GetCurrentAbsoluteGameSecond();
 
+        if (enteringFoundation)
+            return;
+
         if (waitingAtDestination)
         {
             if (currentGameSecond < waitUntilGameSecond)
@@ -134,10 +147,94 @@ public class PilotWanderingController : MonoBehaviour
                 Random.Range(minimumIdleIntervalSeconds, maximumIdleIntervalSeconds + 1);
         }
 
+        if (enterFoundationWhenOutside && !IsOnFoundation())
+        {
+            if (movement.IsMoving)
+                return;
+
+            TryEnterFoundation();
+            return;
+        }
+
         if (movement.IsMoving || currentGameSecond < nextWanderGameSecond)
             return;
 
         TryStartWander();
+    }
+
+    private bool IsOnFoundation()
+    {
+        if (gridManager == null || gridSurface == null)
+            ResolveWorldReferences();
+
+        if (gridManager == null || gridSurface == null)
+            return false;
+
+        Vector2Int currentCell = gridManager.WorldToGrid(transform.position);
+        return gridManager.IsInsideGrid(currentCell) &&
+               gridSurface.GetSurface(currentCell) == BuildSurface.Foundation;
+    }
+
+    private void TryEnterFoundation()
+    {
+        if (gridManager == null || gridSurface == null || pathfinder == null)
+            ResolveWorldReferences();
+
+        if (gridManager == null || gridSurface == null || pathfinder == null)
+        {
+            currentStatus = "Foundation entry unavailable: grid references missing";
+            nextWanderGameSecond = GetCurrentAbsoluteGameSecond() + 30;
+            return;
+        }
+
+        foundationCandidates.Clear();
+
+        for (int x = 0; x < gridManager.Width; x++)
+        {
+            for (int z = 0; z < gridManager.Height; z++)
+            {
+                Vector2Int cell = new Vector2Int(x, z);
+
+                if (gridSurface.GetSurface(cell) == BuildSurface.Foundation &&
+                    pathfinder.IsWalkable(cell))
+                {
+                    foundationCandidates.Add(cell);
+                }
+            }
+        }
+
+        // Shuffle the complete set so every Foundation cell can be selected,
+        // even when the Foundation occupies only a small part of the grid.
+        for (int i = foundationCandidates.Count - 1; i > 0; i--)
+        {
+            int swapIndex = Random.Range(0, i + 1);
+            Vector2Int temporary = foundationCandidates[i];
+            foundationCandidates[i] = foundationCandidates[swapIndex];
+            foundationCandidates[swapIndex] = temporary;
+        }
+
+        foreach (Vector2Int candidateCell in foundationCandidates)
+        {
+            Vector3 destination = gridManager.GridToWorldCenter(candidateCell);
+            destination.y = transform.position.y;
+
+            float travelTime = movement.EstimateTravelTime(destination);
+            if (float.IsInfinity(travelTime) || float.IsNaN(travelTime))
+                continue;
+
+            if (!movement.MoveTo(destination))
+                continue;
+
+            wanderingDestination = destination;
+            ownsCurrentMovement = true;
+            enteringFoundation = true;
+            waitingAtDestination = false;
+            currentStatus = "Entering foundation";
+            return;
+        }
+
+        currentStatus = "No reachable Foundation destination";
+        nextWanderGameSecond = GetCurrentAbsoluteGameSecond() + 30;
     }
 
     private void TryStartWander()
@@ -195,20 +292,26 @@ public class PilotWanderingController : MonoBehaviour
 
     private void HandleMovementArrived()
     {
-        if (!ownsCurrentMovement || currentStatus != "Wandering")
+        if (!ownsCurrentMovement ||
+            (currentStatus != "Wandering" && currentStatus != "Entering foundation"))
             return;
 
+        bool wasEnteringFoundation = enteringFoundation;
         ownsCurrentMovement = false;
+        enteringFoundation = false;
         waitingAtDestination = true;
+
         int pause = Random.Range(minimumPauseSeconds, maximumPauseSeconds + 1);
         waitUntilGameSecond = GetCurrentAbsoluteGameSecond() + pause;
-        currentStatus = "Pausing after wandering";
+        currentStatus = wasEnteringFoundation
+            ? "Pausing after entering foundation"
+            : "Pausing after wandering";
     }
 
     private void StopWandering(string reason)
     {
         StopOwnWanderMovement();
-
+        enteringFoundation = false;
         waitingAtDestination = false;
         currentStatus = reason;
         nextWanderGameSecond = GetCurrentAbsoluteGameSecond() +
