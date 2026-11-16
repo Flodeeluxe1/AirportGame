@@ -126,6 +126,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2792708387186124762}
   - component: {fileID: 4617106377474951547}
+  - component: {fileID: -300085505548076453}
   m_Layer: 0
   m_Name: (Prb)WaterDispenser
   m_TagString: Untagged
@@ -165,3 +166,20 @@ MonoBehaviour:
   - {fileID: 11400000, guid: f2271da08c829e14ca230ec77ff10012, type: 2}
   interactionPoint: {fileID: 0}
   interactionsEnabled: 1
+--- !u!114 &-300085505548076453
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3281542857924279648}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6b7a9c2d4e1f4385a0b6c8d2e5f71934, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::InteractionQueue
+  queueEnabled: 1
+  maximumWaitingAgents: 5
+  queueSpacing: 1
+  firstQueuePosition: {fileID: 0}
+  queueDirection: {fileID: 0}

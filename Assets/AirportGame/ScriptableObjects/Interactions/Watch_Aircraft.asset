@@ -15,7 +15,7 @@ MonoBehaviour:
   interactionId: watch_aircraft
   displayName: Watch Aircraft
   description: Watch aircraft movements from a plane-spotting point.
-  durationSeconds: 60
+  durationSeconds: 180
   maxConcurrentUsers: 1
   interactionRange: 1.5
   needEffects:
@@ -25,3 +25,4 @@ MonoBehaviour:
   - need: 7
     satisfactionAmount: 20
     maximumNeedValueToConsider: 80
+  needConflicts: []
