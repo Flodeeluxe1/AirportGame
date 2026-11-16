@@ -107,6 +107,16 @@ public class InteractionProvider : MonoBehaviour
         }
     }
 
+    /// <summary>Rotation used at the reachable interaction approach point.</summary>
+    public Quaternion InteractionRotation
+    {
+        get
+        {
+            Transform point = InteractionPointTransform;
+            return point != null ? point.rotation : transform.rotation;
+        }
+    }
+
     /// <summary>Rotation used when the agent reaches the animation position.</summary>
     public Quaternion AnimationRotation
     {
