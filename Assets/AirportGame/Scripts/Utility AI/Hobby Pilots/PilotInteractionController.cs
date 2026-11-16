@@ -56,6 +56,8 @@ public class PilotInteractionController : MonoBehaviour
     [SerializeField] private int shortlistSize = 4;
     [Min(0f)]
     [SerializeField] private float timeCostPerSecond = 0.02f;
+    [Min(1f)]
+    [SerializeField] private float interactionSearchRadius = 100f;
 
     [Header("Queue")]
     [Min(0.05f)]
@@ -69,6 +71,8 @@ public class PilotInteractionController : MonoBehaviour
         new List<InteractionCandidate>();
     private readonly List<DebugCandidateSnapshot> debugCandidates =
         new List<DebugCandidateSnapshot>();
+    private readonly List<InteractionProvider> nearbyProviders =
+        new List<InteractionProvider>(64);
 
     private UtilityNeeds needs;
     private PedestrianMovementController movement;
@@ -182,11 +186,12 @@ public class PilotInteractionController : MonoBehaviour
         if (needs == null || movement == null)
             return false;
 
-        InteractionProvider[] providers =
-            FindObjectsByType<InteractionProvider>(FindObjectsSortMode.None);
+        UtilityAISpatialRegistry<InteractionProvider>.GetNearby(
+            transform.position, interactionSearchRadius, nearbyProviders);
 
-        foreach (InteractionProvider provider in providers)
+        for (int providerIndex = 0; providerIndex < nearbyProviders.Count; providerIndex++)
         {
+            InteractionProvider provider = nearbyProviders[providerIndex];
             if (provider == null || !provider.InteractionsEnabled)
                 continue;
 
@@ -223,11 +228,12 @@ public class PilotInteractionController : MonoBehaviour
         shortlist.Clear();
         debugCandidates.Clear();
 
-        InteractionProvider[] providers =
-            FindObjectsByType<InteractionProvider>(FindObjectsSortMode.None);
+        UtilityAISpatialRegistry<InteractionProvider>.GetNearby(
+            transform.position, interactionSearchRadius, nearbyProviders);
 
-        foreach (InteractionProvider provider in providers)
+        for (int providerIndex = 0; providerIndex < nearbyProviders.Count; providerIndex++)
         {
+            InteractionProvider provider = nearbyProviders[providerIndex];
             if (provider == null || !provider.InteractionsEnabled)
                 continue;
 
@@ -697,6 +703,7 @@ public class PilotInteractionController : MonoBehaviour
         decisionInterval = Mathf.Max(0.1f, decisionInterval);
         shortlistSize = Mathf.Max(1, shortlistSize);
         timeCostPerSecond = Mathf.Max(0f, timeCostPerSecond);
+        interactionSearchRadius = Mathf.Max(1f, interactionSearchRadius);
         queuePositionRefreshInterval = Mathf.Max(0.05f, queuePositionRefreshInterval);
     }
 }
