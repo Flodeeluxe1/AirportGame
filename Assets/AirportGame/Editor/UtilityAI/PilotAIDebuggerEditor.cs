@@ -48,8 +48,9 @@ public class PilotAIDebuggerEditor : Editor
         EditorGUILayout.LabelField("AI Runtime Debug", EditorStyles.boldLabel);
         DrawReadOnlyField("AI Status",
             currentStatus != null ? currentStatus.stringValue : controller.CurrentStatus);
-        DrawReadOnlyField("Current Activity",
-            currentInteractionName != null ? currentInteractionName.stringValue : controller.CurrentInteractionName);
+        DrawReadOnlyField("Current Activity", controller.DebugActivity);
+        DrawReadOnlyField("Activity Source", controller.DebugActivitySource);
+        DrawReadOnlyField("Activity Status", controller.DebugActivityStatus);
 
         PedestrianMovementController movement =
             controller.GetComponent<PedestrianMovementController>();
@@ -75,7 +76,7 @@ public class PilotAIDebuggerEditor : Editor
         if (candidates == null || candidates.Count == 0)
         {
             EditorGUILayout.HelpBox(
-                "No decision shortlist yet. The pilot refreshes its decision periodically when free to choose an activity.",
+                controller.DebugDecisionStatus,
                 MessageType.Info);
         }
         else
