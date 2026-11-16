@@ -430,6 +430,22 @@ public class PilotSocialSeatingController : MonoBehaviour
             !hasArrived || !partner.hasArrived)
             return;
 
+        // The movement targets are reachable approach points. Once both pilots
+        // arrive, place each pilot at the seat's animation position.
+        if (reservedSeatProvider != null)
+        {
+            transform.SetPositionAndRotation(
+                reservedSeatProvider.AnimationPosition,
+                reservedSeatProvider.AnimationRotation);
+        }
+
+        if (partner.reservedSeatProvider != null)
+        {
+            partner.transform.SetPositionAndRotation(
+                partner.reservedSeatProvider.AnimationPosition,
+                partner.reservedSeatProvider.AnimationRotation);
+        }
+
         state = SeatingState.Socializing;
         partner.state = SeatingState.Socializing;
         socializingStartGameSecond = GetCurrentAbsoluteGameSecond();
