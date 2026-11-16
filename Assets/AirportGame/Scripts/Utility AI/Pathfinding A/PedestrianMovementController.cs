@@ -9,8 +9,8 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class PedestrianMovementController : MonoBehaviour
 {
-    private static readonly HashSet<PedestrianMovementController> ActivePedestrians =
-        new HashSet<PedestrianMovementController>();
+    private static readonly List<PedestrianMovementController> NearbyPedestrians =
+        new List<PedestrianMovementController>(16);
 
     [Header("Pathfinding")]
     [SerializeField] private PedestrianPathfinder pathfinder;
@@ -66,7 +66,7 @@ public class PedestrianMovementController : MonoBehaviour
 
     private void OnEnable()
     {
-        ActivePedestrians.Add(this);
+        UtilityAISpatialRegistry<PedestrianMovementController>.Register(this);
         individualSpeedMultiplier = UnityEngine.Random.Range(
             individualSpeedMultiplierRange.x,
             individualSpeedMultiplierRange.y);
@@ -75,7 +75,7 @@ public class PedestrianMovementController : MonoBehaviour
 
     private void OnDisable()
     {
-        ActivePedestrians.Remove(this);
+        UtilityAISpatialRegistry<PedestrianMovementController>.Unregister(this);
     }
 
     private void Awake()
@@ -86,6 +86,8 @@ public class PedestrianMovementController : MonoBehaviour
 
     private void Update()
     {
+        UtilityAISpatialRegistry<PedestrianMovementController>.UpdatePosition(this);
+
         if (isMoving)
             UpdateMovement();
     }
@@ -346,8 +348,7 @@ public class PedestrianMovementController : MonoBehaviour
     {
         if (!avoidOtherPedestrians ||
             avoidanceRadius <= 0f ||
-            avoidanceStrength <= 0f ||
-            ActivePedestrians.Count <= 1)
+            avoidanceStrength <= 0f)
         {
             return Vector3.zero;
         }
@@ -356,8 +357,12 @@ public class PedestrianMovementController : MonoBehaviour
         Vector3 ownPosition = transform.position;
         ownPosition.y = 0f;
 
-        foreach (PedestrianMovementController other in ActivePedestrians)
+        UtilityAISpatialRegistry<PedestrianMovementController>.GetNearby(
+            ownPosition, avoidanceRadius, NearbyPedestrians);
+
+        for (int i = 0; i < NearbyPedestrians.Count; i++)
         {
+            PedestrianMovementController other = NearbyPedestrians[i];
             if (other == null || other == this || !other.isActiveAndEnabled)
                 continue;
 
