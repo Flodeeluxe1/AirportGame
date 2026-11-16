@@ -22,3 +22,6 @@ MonoBehaviour:
   - need: 5
     satisfactionAmount: 30
     maximumNeedValueToConsider: 80
+  - need: 7
+    satisfactionAmount: 20
+    maximumNeedValueToConsider: 80
