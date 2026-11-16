@@ -32,7 +32,7 @@ public class PilotInteractionController : MonoBehaviour
         public float WaitingTime { get; }
         public bool Selected { get; internal set; }
 
-        public DebugCandidateSnapshot(InteractionCandidate candidate)
+        private DebugCandidateSnapshot(InteractionCandidate candidate)
         {
             Provider = candidate.Provider;
             Definition = candidate.Definition;
