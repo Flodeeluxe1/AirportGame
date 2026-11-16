@@ -24,6 +24,20 @@ public class PedestrianPathfinder : MonoBehaviour
     [SerializeField, Range(1, 6)] private int smoothingLookAheadCells = 3;
 
     private static int pathSearchCounter;
+    private int randomState;
+
+    // Reused A* workspace. Path searches run on Unity's main thread and are
+    // sequential, so one workspace avoids per-search collection allocations.
+    private readonly List<OpenNode> openSet = new List<OpenNode>(256);
+    private readonly Dictionary<Vector2Int, Vector2Int> cameFrom =
+        new Dictionary<Vector2Int, Vector2Int>(256);
+    private readonly Dictionary<Vector2Int, int> gScore =
+        new Dictionary<Vector2Int, int>(256);
+    private readonly HashSet<Vector2Int> closedSet =
+        new HashSet<Vector2Int>();
+    private readonly Dictionary<Vector2Int, int> randomCellPenalties =
+        new Dictionary<Vector2Int, int>(256);
+    private readonly int[] neighborOrder = new int[8];
 
     private static readonly Vector2Int[] NeighborOffsets =
     {
@@ -91,27 +105,25 @@ public class PedestrianPathfinder : MonoBehaviour
         if (start == target)
             return new List<Vector2Int> { start };
 
-        List<OpenNode> openSet = new List<OpenNode>();
-        Dictionary<Vector2Int, Vector2Int> cameFrom =
-            new Dictionary<Vector2Int, Vector2Int>();
-        Dictionary<Vector2Int, int> gScore =
-            new Dictionary<Vector2Int, int>();
-        HashSet<Vector2Int> closedSet =
-            new HashSet<Vector2Int>();
-        Dictionary<Vector2Int, int> randomCellPenalties =
-            new Dictionary<Vector2Int, int>();
+        openSet.Clear();
+        cameFrom.Clear();
+        gScore.Clear();
+        closedSet.Clear();
+        randomCellPenalties.Clear();
 
-        // Use a private random generator so route variation does not consume
-        // Unity's global random sequence used by gameplay systems.
-        int seed = unchecked(Environment.TickCount ^ (++pathSearchCounter * 397));
-        System.Random routeRandom = new System.Random(seed);
+        // Use a private lightweight random generator so route variation does
+        // not allocate a System.Random instance or consume Unity's global RNG.
+        randomState = unchecked(Environment.TickCount ^ (++pathSearchCounter * 397));
+        if (randomState == 0)
+            randomState = 1;
 
-        // Shuffle neighbour evaluation order for this search. Combined with
-        // small per-cell costs, this gives equally good routes different shapes.
-        int[] neighborOrder = { 0, 1, 2, 3, 4, 5, 6, 7 };
+        // Reset and shuffle neighbour evaluation order for this search.
+        for (int i = 0; i < neighborOrder.Length; i++)
+            neighborOrder[i] = i;
+
         for (int i = neighborOrder.Length - 1; i > 0; i--)
         {
-            int swapIndex = routeRandom.Next(i + 1);
+            int swapIndex = NextRandom(i + 1);
             int temp = neighborOrder[i];
             neighborOrder[i] = neighborOrder[swapIndex];
             neighborOrder[swapIndex] = temp;
@@ -163,7 +175,7 @@ public class PedestrianPathfinder : MonoBehaviour
                 {
                     if (!randomCellPenalties.TryGetValue(next, out randomPenalty))
                     {
-                        randomPenalty = routeRandom.Next(randomStepPenalty + 1);
+                        randomPenalty = NextRandom(randomStepPenalty + 1);
                         randomCellPenalties[next] = randomPenalty;
                     }
                 }
@@ -469,6 +481,16 @@ public class PedestrianPathfinder : MonoBehaviour
                gridSurface != null &&
                gridOccupancy != null &&
                edgeOccupancy != null;
+    }
+
+    private int NextRandom(int exclusiveMaximum)
+    {
+        uint value = (uint)randomState;
+        value ^= value << 13;
+        value ^= value >> 17;
+        value ^= value << 5;
+        randomState = unchecked((int)value);
+        return (int)(value % (uint)exclusiveMaximum);
     }
 
     private static int GetHeuristic(Vector2Int from, Vector2Int to)
