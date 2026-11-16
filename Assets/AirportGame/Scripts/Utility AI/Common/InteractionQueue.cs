@@ -32,6 +32,7 @@ public class InteractionQueue : MonoBehaviour
     private QueueEntry activeEntry;
     private float activeStartTime;
     private float activeEstimatedTotalTime;
+    private bool queuePositionResolved;
 
     public bool QueueEnabled => queueEnabled && isActiveAndEnabled;
     public int WaitingCount => Mathf.Max(0, entries.Count - (activeEntry != null ? 1 : 0));
@@ -45,8 +46,13 @@ public class InteractionQueue : MonoBehaviour
 
     private void ResolveQueuePosition()
     {
-        if (firstQueuePosition != null)
+        if (queuePositionResolved || firstQueuePosition != null)
+        {
+            queuePositionResolved = true;
             return;
+        }
+
+        queuePositionResolved = true;
 
         Transform[] childTransforms = GetComponentsInChildren<Transform>(true);
 
@@ -304,6 +310,9 @@ public class InteractionQueue : MonoBehaviour
 
     private void CleanupInvalidEntries()
     {
+        if (entries.Count == 0)
+            return;
+
         for (int i = entries.Count - 1; i >= 0; i--)
         {
             QueueEntry entry = entries[i];
