@@ -94,6 +94,87 @@ public class PilotInteractionController : MonoBehaviour
     public string CurrentInteractionName => currentInteractionName;
     public IReadOnlyList<DebugCandidateSnapshot> DebugCandidates => debugCandidates;
 
+    public string DebugActivity
+    {
+        get
+        {
+            if (groupController != null && groupController.IsBusy)
+                return groupController.CurrentStatus;
+            if (seatingController != null && seatingController.IsBusy)
+                return seatingController.CurrentStatus;
+            if (socialController != null && socialController.IsBusy)
+                return socialController.CurrentStatus;
+            if (reservedProvider != null || queuedProvider != null ||
+                interactionRoutine != null)
+                return string.IsNullOrEmpty(currentInteractionName)
+                    ? currentStatus
+                    : currentInteractionName;
+            if (movement != null && movement.IsMoving)
+                return movement.MovementStatus;
+            return "None";
+        }
+    }
+
+    public string DebugActivitySource
+    {
+        get
+        {
+            if (groupController != null && groupController.IsBusy)
+                return "Group Conversation Controller";
+            if (seatingController != null && seatingController.IsBusy)
+                return "Seating Controller";
+            if (socialController != null && socialController.IsBusy)
+                return "Social Interaction Controller";
+            if (reservedProvider != null || queuedProvider != null ||
+                interactionRoutine != null)
+                return "Pilot Interaction Controller";
+            if (movement != null && movement.IsMoving)
+                return "Pedestrian Movement Controller";
+            return "None";
+        }
+    }
+
+    public string DebugActivityStatus
+    {
+        get
+        {
+            if (groupController != null && groupController.IsBusy)
+                return groupController.CurrentStatus;
+            if (seatingController != null && seatingController.IsBusy)
+                return seatingController.CurrentStatus;
+            if (socialController != null && socialController.IsBusy)
+                return socialController.CurrentStatus;
+            if (reservedProvider != null || queuedProvider != null ||
+                interactionRoutine != null)
+                return currentStatus;
+            if (movement != null && movement.IsMoving)
+                return movement.MovementStatus;
+            return currentStatus;
+        }
+    }
+
+    public string DebugDecisionStatus
+    {
+        get
+        {
+            if (groupController != null && groupController.IsBusy)
+                return "Paused: pilot is in a group conversation.";
+            if (seatingController != null && seatingController.IsBusy)
+                return "Paused: pilot is participating in a seated activity.";
+            if (socialController != null && socialController.IsBusy)
+                return "Paused: pilot is socializing.";
+            if (queuedProvider != null)
+                return "Paused: pilot is handling an interaction queue.";
+            if (reservedProvider != null || interactionRoutine != null)
+                return "Paused: pilot has an active interaction.";
+            if (movement != null && movement.IsMoving)
+                return "Paused: pilot is moving.";
+            if (currentStatus == "No suitable available interactions")
+                return "Latest decision found no suitable available interactions.";
+            return "No decision shortlist recorded yet.";
+        }
+    }
+
     public bool CanPauseForSocial =>
         reservedProvider == null &&
         queuedProvider == null &&
