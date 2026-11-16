@@ -218,10 +218,8 @@ public class PilotWanderingController : MonoBehaviour
             Vector3 destination = gridManager.GridToWorldCenter(candidateCell);
             destination.y = transform.position.y;
 
-            float travelTime = movement.EstimateTravelTime(destination);
-            if (float.IsInfinity(travelTime) || float.IsNaN(travelTime))
-                continue;
-
+            // MoveTo performs the authoritative path search. Avoid calculating
+            // the same route once for estimation and again for movement.
             if (!movement.MoveTo(destination))
                 continue;
 
@@ -272,10 +270,8 @@ public class PilotWanderingController : MonoBehaviour
             Vector3 destination = gridManager.GridToWorldCenter(candidateCell);
             destination.y = transform.position.y;
 
-            float travelTime = movement.EstimateTravelTime(destination);
-            if (float.IsInfinity(travelTime) || float.IsNaN(travelTime))
-                continue;
-
+            // MoveTo performs the authoritative path search. Avoid calculating
+            // the same route once for estimation and again for movement.
             if (!movement.MoveTo(destination))
                 continue;
 
