@@ -189,7 +189,7 @@ MonoBehaviour:
     social: 0.06
     entertainment: 0.08
     comfort: 0.05
-    curiosity: 0.05
+    boredom: 0.05
   urgencyCurves:
     thirst:
       serializedVersion: 2
@@ -548,7 +548,7 @@ MonoBehaviour:
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
-    curiosity:
+    boredom:
       serializedVersion: 2
       m_Curve:
       - serializedVersion: 3
@@ -607,7 +607,7 @@ MonoBehaviour:
     social: 0.85
     entertainment: 0.75
     comfort: 0.85
-    curiosity: 0.7
+    boredom: 0.7
   thirst: 100
   hunger: 100
   bladder: 100
@@ -615,7 +615,7 @@ MonoBehaviour:
   social: 100
   entertainment: 100
   comfort: 100
-  curiosity: 100
+  boredom: 100
 --- !u!114 &7462819304756128391
 MonoBehaviour:
   m_ObjectHideFlags: 0
