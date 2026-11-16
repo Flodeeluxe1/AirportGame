@@ -211,12 +211,16 @@ MonoBehaviour:
   minimumStayMinutes: 30
   maximumStayMinutes: 60
   parkingSpotReleaseDistance: 2
+  postBoardingTurnaroundMinutes: 15
   pilotPrefab: {fileID: 1552182806160375558, guid: 2f98a93d7c7f20a4dbe1fa15e897c2d2, type: 3}
   pilotSpawnDelayMinutes: 5
   pilotSpawnLocalOffset: {x: 2, y: 0.36, z: 0}
   hasParked: 0
+  departureSequenceStarted: 0
+  pilotHasBoarded: 0
   departureRequested: 0
   visitMinutesRemaining: 0
+  turnaroundMinutesRemaining: 0
   debugStatus: Waiting for landing
 --- !u!114 &-40079160701466050
 MonoBehaviour:
