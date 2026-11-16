@@ -2124,6 +2124,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: HA_Pilot_1 (5)
       objectReference: {fileID: 0}
+    - target: {fileID: 1552182806160375558, guid: 2f98a93d7c7f20a4dbe1fa15e897c2d2, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 5399730472213202490, guid: 2f98a93d7c7f20a4dbe1fa15e897c2d2, type: 3}
       propertyPath: m_LocalPosition.x
       value: 50.58
@@ -2193,11 +2197,11 @@ PrefabInstance:
       value: 99
       objectReference: {fileID: 0}
     - target: {fileID: 8273649182736450918, guid: 2f98a93d7c7f20a4dbe1fa15e897c2d2, type: 3}
-      propertyPath: initialNeedRanges.comfortMin
+      propertyPath: initialNeedRanges.boredomMin
       value: 99
       objectReference: {fileID: 0}
     - target: {fileID: 8273649182736450918, guid: 2f98a93d7c7f20a4dbe1fa15e897c2d2, type: 3}
-      propertyPath: initialNeedRanges.boredomMin
+      propertyPath: initialNeedRanges.comfortMin
       value: 99
       objectReference: {fileID: 0}
     - target: {fileID: 8273649182736450918, guid: 2f98a93d7c7f20a4dbe1fa15e897c2d2, type: 3}
@@ -2355,6 +2359,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: HA_Pilot_1
       objectReference: {fileID: 0}
+    - target: {fileID: 1552182806160375558, guid: 2f98a93d7c7f20a4dbe1fa15e897c2d2, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 5399730472213202490, guid: 2f98a93d7c7f20a4dbe1fa15e897c2d2, type: 3}
       propertyPath: m_LocalPosition.x
       value: 45.83
@@ -2424,11 +2432,11 @@ PrefabInstance:
       value: 99
       objectReference: {fileID: 0}
     - target: {fileID: 8273649182736450918, guid: 2f98a93d7c7f20a4dbe1fa15e897c2d2, type: 3}
-      propertyPath: initialNeedRanges.comfortMin
+      propertyPath: initialNeedRanges.boredomMin
       value: 99
       objectReference: {fileID: 0}
     - target: {fileID: 8273649182736450918, guid: 2f98a93d7c7f20a4dbe1fa15e897c2d2, type: 3}
-      propertyPath: initialNeedRanges.boredomMin
+      propertyPath: initialNeedRanges.comfortMin
       value: 99
       objectReference: {fileID: 0}
     - target: {fileID: 8273649182736450918, guid: 2f98a93d7c7f20a4dbe1fa15e897c2d2, type: 3}
@@ -3047,6 +3055,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: HA_Pilot_1 (2)
       objectReference: {fileID: 0}
+    - target: {fileID: 1552182806160375558, guid: 2f98a93d7c7f20a4dbe1fa15e897c2d2, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 5399730472213202490, guid: 2f98a93d7c7f20a4dbe1fa15e897c2d2, type: 3}
       propertyPath: m_LocalPosition.x
       value: 47.97
@@ -3116,11 +3128,11 @@ PrefabInstance:
       value: 99
       objectReference: {fileID: 0}
     - target: {fileID: 8273649182736450918, guid: 2f98a93d7c7f20a4dbe1fa15e897c2d2, type: 3}
-      propertyPath: initialNeedRanges.comfortMin
+      propertyPath: initialNeedRanges.boredomMin
       value: 99
       objectReference: {fileID: 0}
     - target: {fileID: 8273649182736450918, guid: 2f98a93d7c7f20a4dbe1fa15e897c2d2, type: 3}
-      propertyPath: initialNeedRanges.boredomMin
+      propertyPath: initialNeedRanges.comfortMin
       value: 99
       objectReference: {fileID: 0}
     - target: {fileID: 8273649182736450918, guid: 2f98a93d7c7f20a4dbe1fa15e897c2d2, type: 3}
@@ -3979,6 +3991,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: HA_Pilot_1 (1)
       objectReference: {fileID: 0}
+    - target: {fileID: 1552182806160375558, guid: 2f98a93d7c7f20a4dbe1fa15e897c2d2, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 5399730472213202490, guid: 2f98a93d7c7f20a4dbe1fa15e897c2d2, type: 3}
       propertyPath: m_LocalPosition.x
       value: 49.53
@@ -4048,11 +4064,11 @@ PrefabInstance:
       value: 99
       objectReference: {fileID: 0}
     - target: {fileID: 8273649182736450918, guid: 2f98a93d7c7f20a4dbe1fa15e897c2d2, type: 3}
-      propertyPath: initialNeedRanges.comfortMin
+      propertyPath: initialNeedRanges.boredomMin
       value: 99
       objectReference: {fileID: 0}
     - target: {fileID: 8273649182736450918, guid: 2f98a93d7c7f20a4dbe1fa15e897c2d2, type: 3}
-      propertyPath: initialNeedRanges.boredomMin
+      propertyPath: initialNeedRanges.comfortMin
       value: 99
       objectReference: {fileID: 0}
     - target: {fileID: 8273649182736450918, guid: 2f98a93d7c7f20a4dbe1fa15e897c2d2, type: 3}
@@ -4075,6 +4091,10 @@ PrefabInstance:
     - target: {fileID: 1552182806160375558, guid: 2f98a93d7c7f20a4dbe1fa15e897c2d2, type: 3}
       propertyPath: m_Name
       value: HA_Pilot_1 (4)
+      objectReference: {fileID: 0}
+    - target: {fileID: 1552182806160375558, guid: 2f98a93d7c7f20a4dbe1fa15e897c2d2, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5399730472213202490, guid: 2f98a93d7c7f20a4dbe1fa15e897c2d2, type: 3}
       propertyPath: m_LocalPosition.x
@@ -4145,11 +4165,11 @@ PrefabInstance:
       value: 99
       objectReference: {fileID: 0}
     - target: {fileID: 8273649182736450918, guid: 2f98a93d7c7f20a4dbe1fa15e897c2d2, type: 3}
-      propertyPath: initialNeedRanges.comfortMin
+      propertyPath: initialNeedRanges.boredomMin
       value: 99
       objectReference: {fileID: 0}
     - target: {fileID: 8273649182736450918, guid: 2f98a93d7c7f20a4dbe1fa15e897c2d2, type: 3}
-      propertyPath: initialNeedRanges.boredomMin
+      propertyPath: initialNeedRanges.comfortMin
       value: 99
       objectReference: {fileID: 0}
     - target: {fileID: 8273649182736450918, guid: 2f98a93d7c7f20a4dbe1fa15e897c2d2, type: 3}
@@ -4400,6 +4420,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: HA_Pilot_1 (3)
       objectReference: {fileID: 0}
+    - target: {fileID: 1552182806160375558, guid: 2f98a93d7c7f20a4dbe1fa15e897c2d2, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 5399730472213202490, guid: 2f98a93d7c7f20a4dbe1fa15e897c2d2, type: 3}
       propertyPath: m_LocalPosition.x
       value: 47.97
@@ -4469,11 +4493,11 @@ PrefabInstance:
       value: 99
       objectReference: {fileID: 0}
     - target: {fileID: 8273649182736450918, guid: 2f98a93d7c7f20a4dbe1fa15e897c2d2, type: 3}
-      propertyPath: initialNeedRanges.comfortMin
+      propertyPath: initialNeedRanges.boredomMin
       value: 99
       objectReference: {fileID: 0}
     - target: {fileID: 8273649182736450918, guid: 2f98a93d7c7f20a4dbe1fa15e897c2d2, type: 3}
-      propertyPath: initialNeedRanges.boredomMin
+      propertyPath: initialNeedRanges.comfortMin
       value: 99
       objectReference: {fileID: 0}
     - target: {fileID: 8273649182736450918, guid: 2f98a93d7c7f20a4dbe1fa15e897c2d2, type: 3}

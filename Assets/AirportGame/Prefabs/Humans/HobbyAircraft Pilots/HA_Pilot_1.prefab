@@ -162,23 +162,23 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c39a5d7e1f824b0d9a6c3e7f5b2d8146, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  randomizeInitialNeeds: 0
+  randomizeInitialNeeds: 1
   initialNeedRanges:
-    thirstMin: 70
+    thirstMin: 50
     thirstMax: 100
-    hungerMin: 70
+    hungerMin: 50
     hungerMax: 100
-    bladderMin: 70
+    bladderMin: 50
     bladderMax: 100
-    energyMin: 70
+    energyMin: 50
     energyMax: 100
-    socialMin: 70
+    socialMin: 50
     socialMax: 100
-    entertainmentMin: 70
+    entertainmentMin: 50
     entertainmentMax: 100
-    comfortMin: 70
+    comfortMin: 50
     comfortMax: 100
-    boredomMin: 70
+    boredomMin: 50
     boredomMax: 100
   initialNeedValue: 100
   decayRates:
@@ -631,6 +631,7 @@ MonoBehaviour:
   decisionInterval: 2
   shortlistSize: 4
   timeCostPerSecond: 0.02
+  interactionSearchRadius: 100
   queuePositionRefreshInterval: 0.25
   currentStatus: Idle
   currentInteractionName: 
@@ -651,6 +652,8 @@ MonoBehaviour:
   maximumSocialNeedValue: 80
   conversationDurationGameSeconds: 240
   socialSatisfactionAmount: 15
+  entertainmentSatisfactionAmount: 10
+  boredomSatisfactionAmount: 10
   conversationDistance: 0.7
   travelTimeout: 30
   facingRotationSpeed: 540
@@ -675,6 +678,8 @@ MonoBehaviour:
   socializingDurationGameSeconds: 600
   socialSatisfactionAmount: 25
   comfortSatisfactionAmount: 10
+  entertainmentSatisfactionAmount: 15
+  boredomSatisfactionAmount: 15
   travelTimeout: 45
   facingRotationSpeed: 540
   currentStatus: Idle
@@ -698,6 +703,8 @@ MonoBehaviour:
   maximumSocialNeedValue: 80
   conversationDurationGameSeconds: 900
   socialSatisfactionAmount: 35
+  entertainmentSatisfactionAmount: 20
+  boredomSatisfactionAmount: 20
   standingCircleRadius: 0.5
   seatClusterRadius: 40
   travelTimeout: 60
@@ -719,6 +726,7 @@ MonoBehaviour:
   minimumRadiusCells: 3
   maximumRadiusCells: 6
   destinationSearchAttempts: 40
+  maximumFoundationPathAttempts: 12
   enterFoundationWhenOutside: 1
   minimumIdleIntervalSeconds: 20
   maximumIdleIntervalSeconds: 40
