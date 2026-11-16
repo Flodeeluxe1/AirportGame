@@ -161,6 +161,24 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c39a5d7e1f824b0d9a6c3e7f5b2d8146, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  randomizeInitialNeeds: 0
+  initialNeedRanges:
+    thirstMin: 70
+    thirstMax: 100
+    hungerMin: 70
+    hungerMax: 100
+    bladderMin: 70
+    bladderMax: 100
+    energyMin: 70
+    energyMax: 100
+    socialMin: 70
+    socialMax: 100
+    entertainmentMin: 70
+    entertainmentMax: 100
+    comfortMin: 70
+    comfortMax: 100
+    curiosityMin: 70
+    curiosityMax: 100
   initialNeedValue: 100
   decayRates:
     thirst: 0.25
