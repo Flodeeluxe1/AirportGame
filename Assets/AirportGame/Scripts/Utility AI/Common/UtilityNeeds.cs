@@ -12,7 +12,7 @@ using UnityEngine.Serialization;
 public class UtilityNeeds : MonoBehaviour
 {
     private static readonly NeedType[] AllNeedTypes =
-        (NeedType[])AllNeedTypes;
+        (NeedType[])Enum.GetValues(typeof(NeedType));
 
     public enum NeedType
     {
