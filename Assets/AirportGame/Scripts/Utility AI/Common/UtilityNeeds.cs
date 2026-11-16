@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 /// <summary>
 /// Reusable, visit-scoped needs for Utility AI agents.
@@ -19,7 +20,7 @@ public class UtilityNeeds : MonoBehaviour
         Social,
         Entertainment,
         Comfort,
-        Curiosity
+        Boredom
     }
 
     [Serializable]
@@ -32,7 +33,7 @@ public class UtilityNeeds : MonoBehaviour
         [Min(0f)] public float social = 0.06f;
         [Min(0f)] public float entertainment = 0.08f;
         [Min(0f)] public float comfort = 0.05f;
-        [Min(0f)] public float curiosity = 0.05f;
+        [FormerlySerializedAs("curiosity")] [Min(0f)] public float boredom = 0.05f;
     }
 
     [Serializable]
@@ -69,7 +70,7 @@ public class UtilityNeeds : MonoBehaviour
                 case NeedType.Social: minimum = socialMin; maximum = socialMax; break;
                 case NeedType.Entertainment: minimum = entertainmentMin; maximum = entertainmentMax; break;
                 case NeedType.Comfort: minimum = comfortMin; maximum = comfortMax; break;
-                case NeedType.Curiosity: minimum = curiosityMin; maximum = curiosityMax; break;
+                case NeedType.Boredom: minimum = curiosityMin; maximum = curiosityMax; break;
                 default: minimum = 70f; maximum = 100f; break;
             }
 
@@ -131,7 +132,7 @@ public class UtilityNeeds : MonoBehaviour
         public AnimationCurve social = CreateCurve(new[] { 0.01f, 0.05f, 0.18f, 0.50f, 1f });
         public AnimationCurve entertainment = CreateCurve(new[] { 0.03f, 0.10f, 0.25f, 0.60f, 1f });
         public AnimationCurve comfort = CreateCurve(new[] { 0f, 0.03f, 0.12f, 0.40f, 0.90f });
-        public AnimationCurve curiosity = CreateCurve(new[] { 0.03f, 0.08f, 0.20f, 0.45f, 0.85f });
+        [FormerlySerializedAs("curiosity")] public AnimationCurve boredom = CreateCurve(new[] { 0.03f, 0.08f, 0.20f, 0.45f, 0.85f });
 
         public AnimationCurve GetCurve(NeedType need)
         {
@@ -144,7 +145,7 @@ public class UtilityNeeds : MonoBehaviour
                 NeedType.Social => social,
                 NeedType.Entertainment => entertainment,
                 NeedType.Comfort => comfort,
-                NeedType.Curiosity => curiosity,
+                NeedType.Boredom => boredom,
                 _ => thirst
             };
         }
@@ -160,7 +161,7 @@ public class UtilityNeeds : MonoBehaviour
         [Min(0f)] public float social = 0.85f;
         [Min(0f)] public float entertainment = 0.75f;
         [Min(0f)] public float comfort = 0.85f;
-        [Min(0f)] public float curiosity = 0.7f;
+        [FormerlySerializedAs("curiosity")] [Min(0f)] public float boredom = 0.7f;
 
         public float GetWeight(NeedType need)
         {
@@ -173,7 +174,7 @@ public class UtilityNeeds : MonoBehaviour
                 NeedType.Social => social,
                 NeedType.Entertainment => entertainment,
                 NeedType.Comfort => comfort,
-                NeedType.Curiosity => curiosity,
+                NeedType.Boredom => boredom,
                 _ => 1f
             };
         }
@@ -205,7 +206,7 @@ public class UtilityNeeds : MonoBehaviour
     [SerializeField, Range(0f, 100f)] private float social = 100f;
     [SerializeField, Range(0f, 100f)] private float entertainment = 100f;
     [SerializeField, Range(0f, 100f)] private float comfort = 100f;
-    [SerializeField, Range(0f, 100f)] private float curiosity = 100f;
+    [FormerlySerializedAs("curiosity")] [SerializeField, Range(0f, 100f)] private float boredom = 100f;
 
     private GameTimeManager gameTimeManager;
     private long lastGameSecond;
@@ -227,7 +228,7 @@ public class UtilityNeeds : MonoBehaviour
             NeedType.Social => social,
             NeedType.Entertainment => entertainment,
             NeedType.Comfort => comfort,
-            NeedType.Curiosity => curiosity,
+            NeedType.Boredom => boredom,
             _ => 100f
         };
     }
@@ -377,7 +378,7 @@ public class UtilityNeeds : MonoBehaviour
         changed |= ApplyDecay(NeedType.Social, decayRates.social, elapsedGameMinutes);
         changed |= ApplyDecay(NeedType.Entertainment, decayRates.entertainment, elapsedGameMinutes);
         changed |= ApplyDecay(NeedType.Comfort, decayRates.comfort, elapsedGameMinutes);
-        changed |= ApplyDecay(NeedType.Curiosity, decayRates.curiosity, elapsedGameMinutes);
+        changed |= ApplyDecay(NeedType.Boredom, decayRates.boredom, elapsedGameMinutes);
 
         if (changed)
             NeedsChanged?.Invoke();
@@ -409,7 +410,7 @@ public class UtilityNeeds : MonoBehaviour
         social = clamped;
         entertainment = clamped;
         comfort = clamped;
-        curiosity = clamped;
+        boredom = clamped;
     }
 
     private void SetValue(NeedType need, float value, bool notify = true)
@@ -429,7 +430,7 @@ public class UtilityNeeds : MonoBehaviour
             case NeedType.Social: social = clamped; break;
             case NeedType.Entertainment: entertainment = clamped; break;
             case NeedType.Comfort: comfort = clamped; break;
-            case NeedType.Curiosity: curiosity = clamped; break;
+            case NeedType.Boredom: boredom = clamped; break;
         }
 
         if (notify)
@@ -452,6 +453,6 @@ public class UtilityNeeds : MonoBehaviour
         social = Mathf.Clamp(social, 0f, 100f);
         entertainment = Mathf.Clamp(entertainment, 0f, 100f);
         comfort = Mathf.Clamp(comfort, 0f, 100f);
-        curiosity = Mathf.Clamp(curiosity, 0f, 100f);
+        boredom = Mathf.Clamp(boredom, 0f, 100f);
     }
 }
