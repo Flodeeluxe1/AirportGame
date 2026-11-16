@@ -45,11 +45,19 @@ public class PilotWanderingController : MonoBehaviour
     [Header("Runtime")]
     [SerializeField] private string currentStatus = "Idle";
 
-    // Shared by all pilots; rebuilt only when Foundation coverage changes.
-    private static readonly List<Vector2Int> CachedFoundationCells = new List<Vector2Int>();
-    private static GridSurface cachedFoundationSurface;
-    private static bool foundationCacheDirty = true;
+    // Each GridSurface gets its own shared cache, so pilots cannot overwrite
+    // one another's Foundation data when resolving different grid instances.
+    private sealed class FoundationCache
+    {
+        public readonly List<Vector2Int> cells = new List<Vector2Int>();
+        public bool dirty = true;
+    }
+
+    private static readonly Dictionary<GridSurface, FoundationCache> FoundationCaches =
+        new Dictionary<GridSurface, FoundationCache>();
+
     private GridSurface subscribedFoundationSurface;
+    private FoundationCache foundationCache;
     private Coroutine foundationEntryRoutine;
 
     private UtilityNeeds needs;
@@ -221,7 +229,7 @@ public class PilotWanderingController : MonoBehaviour
         UpdateFoundationSurfaceSubscription();
         RefreshFoundationCacheIfNeeded();
 
-        if (CachedFoundationCells.Count == 0)
+        if (foundationCache == null || foundationCache.cells.Count == 0)
         {
             currentStatus = "No Foundation cells available";
             nextWanderGameSecond = GetCurrentAbsoluteGameSecond() + 30;
@@ -230,7 +238,7 @@ public class PilotWanderingController : MonoBehaviour
             yield break;
         }
 
-        int candidateCount = CachedFoundationCells.Count;
+        int candidateCount = foundationCache.cells.Count;
         int attempts = Mathf.Min(maximumFoundationPathAttempts, candidateCount);
         int startIndex = Random.Range(0, candidateCount);
 
@@ -239,7 +247,7 @@ public class PilotWanderingController : MonoBehaviour
         for (int attempt = 0; attempt < attempts; attempt++)
         {
             int candidateIndex = (startIndex + attempt) % candidateCount;
-            Vector2Int candidateCell = CachedFoundationCells[candidateIndex];
+            Vector2Int candidateCell = foundationCache.cells[candidateIndex];
 
             if (pathfinder.IsWalkable(candidateCell))
             {
@@ -391,35 +399,49 @@ public class PilotWanderingController : MonoBehaviour
             return;
 
         subscribedFoundationSurface.FoundationSurfaceChanged += HandleFoundationSurfaceChanged;
-        if (cachedFoundationSurface != subscribedFoundationSurface)
+
+        if (!FoundationCaches.TryGetValue(subscribedFoundationSurface, out foundationCache))
         {
-            cachedFoundationSurface = subscribedFoundationSurface;
-            foundationCacheDirty = true;
+            foundationCache = new FoundationCache();
+            FoundationCaches.Add(subscribedFoundationSurface, foundationCache);
         }
     }
 
     private void HandleFoundationSurfaceChanged()
     {
-        foundationCacheDirty = true;
+        if (foundationCache != null)
+            foundationCache.dirty = true;
     }
 
     private void RefreshFoundationCacheIfNeeded()
     {
-        if (!foundationCacheDirty || gridManager == null || gridSurface == null)
+        if (gridManager == null || gridSurface == null)
             return;
 
-        CachedFoundationCells.Clear();
+        if (foundationCache == null)
+        {
+            if (!FoundationCaches.TryGetValue(gridSurface, out foundationCache))
+            {
+                foundationCache = new FoundationCache();
+                FoundationCaches.Add(gridSurface, foundationCache);
+            }
+        }
+
+        if (!foundationCache.dirty)
+            return;
+
+        foundationCache.cells.Clear();
         for (int x = 0; x < gridManager.Width; x++)
         {
             for (int z = 0; z < gridManager.Height; z++)
             {
                 Vector2Int cell = new Vector2Int(x, z);
                 if (gridSurface.GetSurface(cell) == BuildSurface.Foundation)
-                    CachedFoundationCells.Add(cell);
+                    foundationCache.cells.Add(cell);
             }
         }
 
-        foundationCacheDirty = false;
+        foundationCache.dirty = false;
     }
 
     private void ResolveGameTimeManager()
