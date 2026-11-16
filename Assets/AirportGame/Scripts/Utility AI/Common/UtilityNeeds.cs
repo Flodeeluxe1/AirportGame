@@ -359,7 +359,9 @@ public class UtilityNeeds : MonoBehaviour
             return;
         }
 
-        long elapsedSeconds = currentSecond - lastGameSecond;
+        // Use the event's own interval. The cached baseline may be stale if
+        // the GameTimeManager was resolved or the needs were reset mid-tick.
+        long elapsedSeconds = currentSecond - previousSecond;
         lastGameSecond = currentSecond;
 
         if (elapsedSeconds <= 0)
