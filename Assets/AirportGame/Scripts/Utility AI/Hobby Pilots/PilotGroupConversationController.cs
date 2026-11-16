@@ -247,11 +247,12 @@ public class PilotGroupConversationController : MonoBehaviour
             return;
         candidates.RemoveRange(groupCount, candidates.Count - groupCount);
 
-        List<SeatOption> seats = FindSeatOptions(center);
         Vector3 center = Vector3.zero;
         foreach (PilotGroupConversationController candidate in candidates)
             center += candidate.transform.position;
         center /= candidates.Count;
+
+        List<SeatOption> seats = FindSeatOptions(center);
 
         seats.Sort((a, b) =>
             Vector3.Distance(center, a.Position).CompareTo(Vector3.Distance(center, b.Position)));
