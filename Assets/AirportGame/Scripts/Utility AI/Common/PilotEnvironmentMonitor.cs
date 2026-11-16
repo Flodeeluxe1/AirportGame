@@ -1,46 +1,63 @@
 using UnityEngine;
 
 /// <summary>
-/// Periodically samples the environment score at this agent's world position.
+/// Shared cached environment score for any moving AI agent, including pilots
+/// and passengers. Updates are scheduled centrally rather than per-agent Update.
 /// </summary>
 [DisallowMultipleComponent]
-public class PilotEnvironmentMonitor : MonoBehaviour
+public class EnvironmentScoreMonitor : MonoBehaviour
 {
     [Header("Sampling")]
     [Min(0.1f)]
-    [SerializeField] private float updateInterval = 1f;
+    [SerializeField] private float movementThreshold = 1f;
 
     [Header("Runtime")]
-    [SerializeField, Range(0f, 100f)] private float currentEnvironmentScore =
-        EnvironmentScoreCalculator.NeutralScore;
+    [SerializeField, Range(0f, 100f)] private float currentEnvironmentScore = EnvironmentScoreCalculator.NeutralScore;
 
-    private float nextUpdateTime;
+    private Vector3 lastSampledPosition;
+    private int lastEnvironmentVersion = -1;
+    private bool hasSample;
 
     public float CurrentEnvironmentScore => currentEnvironmentScore;
 
     private void OnEnable()
     {
-        RefreshScore();
-        nextUpdateTime = Time.time + Mathf.Max(0.1f, updateInterval);
+        EnvironmentScoreScheduler.Register(this);
     }
 
-    private void Update()
+    private void OnDisable()
     {
-        if (Time.time < nextUpdateTime)
+        EnvironmentScoreScheduler.Unregister(this);
+    }
+
+    public void RefreshIfNeeded()
+    {
+        Vector3 currentPosition = transform.position;
+        int currentVersion = EnvironmentScoreCalculator.Version;
+        float threshold = Mathf.Max(0.1f, movementThreshold);
+
+        if (hasSample && currentVersion == lastEnvironmentVersion &&
+            (currentPosition - lastSampledPosition).sqrMagnitude < threshold * threshold)
             return;
 
-        RefreshScore();
-        nextUpdateTime = Time.time + Mathf.Max(0.1f, updateInterval);
+        RefreshScore(currentPosition, currentVersion);
     }
 
-    public void RefreshScore()
+    public void RefreshNow()
     {
-        currentEnvironmentScore =
-            EnvironmentScoreCalculator.CalculateScore(transform.position);
+        RefreshScore(transform.position, EnvironmentScoreCalculator.Version);
+    }
+
+    private void RefreshScore(Vector3 position, int environmentVersion)
+    {
+        currentEnvironmentScore = EnvironmentScoreCalculator.CalculateScore(position);
+        lastSampledPosition = position;
+        lastEnvironmentVersion = environmentVersion;
+        hasSample = true;
     }
 
     private void OnValidate()
     {
-        updateInterval = Mathf.Max(0.1f, updateInterval);
+        movementThreshold = Mathf.Max(0.1f, movementThreshold);
     }
 }
