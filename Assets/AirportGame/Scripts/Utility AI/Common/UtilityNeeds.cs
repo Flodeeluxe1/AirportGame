@@ -291,7 +291,7 @@ public class UtilityNeeds : MonoBehaviour
     {
         if (randomizeInitialNeeds && initialNeedRanges != null)
         {
-            foreach (NeedType need in Enum.GetValues(typeof(NeedType)))
+            foreach (NeedType need in AllNeedTypes)
                 SetValue(need, initialNeedRanges.GetRandomValue(need), false);
         }
         else
@@ -302,7 +302,7 @@ public class UtilityNeeds : MonoBehaviour
         decayPausedNeeds.Clear();
         RefreshGameTimeBaseline();
 
-        foreach (NeedType need in Enum.GetValues(typeof(NeedType)))
+        foreach (NeedType need in AllNeedTypes)
             NeedChanged?.Invoke(need, GetValue(need));
 
         NeedsChanged?.Invoke();
