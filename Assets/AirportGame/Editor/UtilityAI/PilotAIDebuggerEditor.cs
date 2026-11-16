@@ -38,7 +38,7 @@ public class PilotAIDebuggerEditor : Editor
     public override void OnInspectorGUI()
     {
         serializedObject.Update();
-        DrawDefaultInspector();
+        DrawPropertiesExcluding(serializedObject, "currentStatus", "currentInteractionName");
         serializedObject.ApplyModifiedProperties();
 
         PilotInteractionController controller =
