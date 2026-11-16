@@ -53,8 +53,8 @@ public class UtilityNeeds : MonoBehaviour
         [Range(0f, 100f)] public float entertainmentMax = 100f;
         [Range(0f, 100f)] public float comfortMin = 70f;
         [Range(0f, 100f)] public float comfortMax = 100f;
-        [Range(0f, 100f)] public float curiosityMin = 70f;
-        [Range(0f, 100f)] public float curiosityMax = 100f;
+        [FormerlySerializedAs("curiosityMin")] [Range(0f, 100f)] public float boredomMin = 70f;
+        [FormerlySerializedAs("curiosityMax")] [Range(0f, 100f)] public float boredomMax = 100f;
 
         public float GetRandomValue(NeedType need)
         {
@@ -70,7 +70,7 @@ public class UtilityNeeds : MonoBehaviour
                 case NeedType.Social: minimum = socialMin; maximum = socialMax; break;
                 case NeedType.Entertainment: minimum = entertainmentMin; maximum = entertainmentMax; break;
                 case NeedType.Comfort: minimum = comfortMin; maximum = comfortMax; break;
-                case NeedType.Boredom: minimum = curiosityMin; maximum = curiosityMax; break;
+                case NeedType.Boredom: minimum = boredomMin; maximum = boredomMax; break;
                 default: minimum = 70f; maximum = 100f; break;
             }
 
@@ -95,8 +95,8 @@ public class UtilityNeeds : MonoBehaviour
             entertainmentMax = Mathf.Clamp(entertainmentMax, entertainmentMin, 100f);
             comfortMin = Mathf.Clamp(comfortMin, 0f, 100f);
             comfortMax = Mathf.Clamp(comfortMax, comfortMin, 100f);
-            curiosityMin = Mathf.Clamp(curiosityMin, 0f, 100f);
-            curiosityMax = Mathf.Clamp(curiosityMax, curiosityMin, 100f);
+            boredomMin = Mathf.Clamp(boredomMin, 0f, 100f);
+            boredomMax = Mathf.Clamp(boredomMax, boredomMin, 100f);
         }
     }
 
