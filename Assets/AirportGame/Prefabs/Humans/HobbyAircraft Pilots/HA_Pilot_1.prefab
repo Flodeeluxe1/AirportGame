@@ -719,6 +719,7 @@ MonoBehaviour:
   minimumRadiusCells: 3
   maximumRadiusCells: 6
   destinationSearchAttempts: 40
+  enterFoundationWhenOutside: 1
   minimumIdleIntervalSeconds: 20
   maximumIdleIntervalSeconds: 40
   minimumPauseSeconds: 5
@@ -735,9 +736,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6b8f2d4a9c1e47f0a3d5b7c2e8f61490, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
-  aircraftClearance: 1.25
+  m_Name: 
+  m_EditorClassIdentifier: 
+  aircraftClearance: 2
   retryInterval: 2
   isDeparting: 0
   currentStatus: Available
