@@ -52,8 +52,6 @@ public static class InteractionReservation
         if (provider == null || definition == null || agent == null)
             return false;
 
-        CleanupInvalidReservations();
-
         // Repeated requests from the current owner are treated as success.
         for (int i = 0; i < Reservations.Count; i++)
         {
