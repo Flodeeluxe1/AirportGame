@@ -16,8 +16,31 @@ public class PilotInteractionController : MonoBehaviour
     {
         public InteractionProvider Provider;
         public InteractionDefinition Definition;
+        public float Utility;
         public float Score;
         public float TravelTime;
+        public float WaitingTime;
+    }
+
+    public sealed class DebugCandidateSnapshot
+    {
+        public InteractionProvider Provider { get; }
+        public InteractionDefinition Definition { get; }
+        public float Utility { get; }
+        public float Score { get; }
+        public float TravelTime { get; }
+        public float WaitingTime { get; }
+        public bool Selected { get; internal set; }
+
+        public DebugCandidateSnapshot(InteractionCandidate candidate)
+        {
+            Provider = candidate.Provider;
+            Definition = candidate.Definition;
+            Utility = candidate.Utility;
+            Score = candidate.Score;
+            TravelTime = candidate.TravelTime;
+            WaitingTime = candidate.WaitingTime;
+        }
     }
 
     [Header("Decision")]
@@ -38,6 +61,8 @@ public class PilotInteractionController : MonoBehaviour
 
     private readonly List<InteractionCandidate> shortlist =
         new List<InteractionCandidate>();
+    private readonly List<DebugCandidateSnapshot> debugCandidates =
+        new List<DebugCandidateSnapshot>();
 
     private UtilityNeeds needs;
     private PedestrianMovementController movement;
@@ -56,6 +81,8 @@ public class PilotInteractionController : MonoBehaviour
         new List<UtilityNeeds.NeedType>();
 
     public string CurrentStatus => currentStatus;
+    public string CurrentInteractionName => currentInteractionName;
+    public IReadOnlyList<DebugCandidateSnapshot> DebugCandidates => debugCandidates;
 
     public bool CanPauseForSocial =>
         reservedProvider == null &&
@@ -188,6 +215,7 @@ public class PilotInteractionController : MonoBehaviour
     private void TryStartSelectedInteraction()
     {
         shortlist.Clear();
+        debugCandidates.Clear();
 
         InteractionProvider[] providers =
             FindObjectsByType<InteractionProvider>(FindObjectsSortMode.None);
@@ -230,8 +258,10 @@ public class PilotInteractionController : MonoBehaviour
                 {
                     Provider = provider,
                     Definition = definition,
+                    Utility = utility,
                     Score = timeAdjustedScore,
-                    TravelTime = travelTime
+                    TravelTime = travelTime,
+                    WaitingTime = waitingTime
                 });
             }
         }
@@ -242,7 +272,20 @@ public class PilotInteractionController : MonoBehaviour
             return;
         }
 
+        foreach (InteractionCandidate candidate in shortlist)
+            debugCandidates.Add(new DebugCandidateSnapshot(candidate));
+
         InteractionCandidate selected = SelectWeightedCandidate();
+        for (int i = 0; i < debugCandidates.Count; i++)
+        {
+            DebugCandidateSnapshot snapshot = debugCandidates[i];
+            if (snapshot.Provider == selected.Provider &&
+                snapshot.Definition == selected.Definition)
+            {
+                snapshot.Selected = true;
+                break;
+            }
+        }
 
         if (selected.Provider == null || selected.Definition == null)
         {
