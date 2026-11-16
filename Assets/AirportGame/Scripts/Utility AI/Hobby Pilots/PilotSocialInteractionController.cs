@@ -29,6 +29,10 @@ public class PilotSocialInteractionController : MonoBehaviour
     [SerializeField] private int conversationDurationGameSeconds = 240;
     [Min(0f)]
     [SerializeField] private float socialSatisfactionAmount = 15f;
+    [Min(0f)]
+    [SerializeField] private float entertainmentSatisfactionAmount = 10f;
+    [Min(0f)]
+    [SerializeField] private float boredomSatisfactionAmount = 10f;
     [Min(0.2f)]
     [SerializeField] private float conversationDistance = 1.2f;
     [Min(1f)]
@@ -395,9 +399,16 @@ public class PilotSocialInteractionController : MonoBehaviour
             UtilityNeeds.NeedType.Social,
             socialSatisfactionAmount);
 
+        needs.SatisfyNeed(UtilityNeeds.NeedType.Entertainment, entertainmentSatisfactionAmount);
+        needs.SatisfyNeed(UtilityNeeds.NeedType.Boredom, boredomSatisfactionAmount);
+
         other.needs.SatisfyNeed(
             UtilityNeeds.NeedType.Social,
             other.socialSatisfactionAmount);
+        other.needs.SatisfyNeed(UtilityNeeds.NeedType.Entertainment,
+            other.entertainmentSatisfactionAmount);
+        other.needs.SatisfyNeed(UtilityNeeds.NeedType.Boredom,
+            other.boredomSatisfactionAmount);
 
         partner = null;
         other.partner = null;
@@ -442,6 +453,8 @@ public class PilotSocialInteractionController : MonoBehaviour
         maximumSocialNeedValue = Mathf.Clamp(maximumSocialNeedValue, 0f, 100f);
         conversationDurationGameSeconds = Mathf.Max(1, conversationDurationGameSeconds);
         socialSatisfactionAmount = Mathf.Max(0f, socialSatisfactionAmount);
+        entertainmentSatisfactionAmount = Mathf.Max(0f, entertainmentSatisfactionAmount);
+        boredomSatisfactionAmount = Mathf.Max(0f, boredomSatisfactionAmount);
         conversationDistance = Mathf.Max(0.2f, conversationDistance);
         travelTimeout = Mathf.Max(1f, travelTimeout);
         facingRotationSpeed = Mathf.Max(1f, facingRotationSpeed);
