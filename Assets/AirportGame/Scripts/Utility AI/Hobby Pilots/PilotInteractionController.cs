@@ -531,6 +531,12 @@ public class PilotInteractionController : MonoBehaviour
             reservedProvider = queuedProvider;
             reservedInteraction = queuedInteraction;
 
+            // The pilot is already using the provider at its AnimationPoint.
+            // Do not send it back to the InteractionPoint until the interaction
+            // routine has completed and explicitly returns it there.
+            if (interactionRoutine != null)
+                return;
+
             Vector3 interactionPosition = queuedProvider.InteractionPosition;
             if (!movement.IsMoving &&
                 Vector3.Distance(transform.position, interactionPosition) > 0.12f &&
