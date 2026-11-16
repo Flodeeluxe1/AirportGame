@@ -100,6 +100,24 @@ public static class UtilityAISpatialRegistry<T> where T : Component
         }
     }
 
+    public static void GetAll(List<T> results)
+    {
+        if (results == null)
+            return;
+
+        results.Clear();
+        foreach (KeyValuePair<Vector2Int, List<T>> pair in Buckets)
+        {
+            List<T> bucket = pair.Value;
+            for (int i = 0; i < bucket.Count; i++)
+            {
+                T component = bucket[i];
+                if (component != null)
+                    results.Add(component);
+            }
+        }
+    }
+
     private static Vector2Int GetCell(Vector3 position)
     {
         return new Vector2Int(
