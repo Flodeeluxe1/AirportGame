@@ -20,6 +20,10 @@ public class PilotWanderingController : MonoBehaviour
     [Min(1)]
     [SerializeField] private int destinationSearchAttempts = 40;
 
+    [Tooltip("Maximum cached Foundation cells to test for a reachable entry path per attempt.")]
+    [Min(1)]
+    [SerializeField] private int maximumFoundationPathAttempts = 12;
+
     [Header("Foundation Entry")]
     [SerializeField] private bool enterFoundationWhenOutside = true;
 
@@ -40,8 +44,11 @@ public class PilotWanderingController : MonoBehaviour
     [Header("Runtime")]
     [SerializeField] private string currentStatus = "Idle";
 
-    private readonly List<Vector2Int> foundationCandidates =
-        new List<Vector2Int>();
+    // Shared by all pilots; rebuilt only when Foundation coverage changes.
+    private static readonly List<Vector2Int> CachedFoundationCells = new List<Vector2Int>();
+    private static GridSurface cachedFoundationSurface;
+    private static bool foundationCacheDirty = true;
+    private GridSurface subscribedFoundationSurface;
 
     private UtilityNeeds needs;
     private PedestrianMovementController movement;
@@ -76,12 +83,17 @@ public class PilotWanderingController : MonoBehaviour
             movement.Arrived += HandleMovementArrived;
 
         ResolveGameTimeManager();
+        UpdateFoundationSurfaceSubscription();
         nextWanderGameSecond = GetCurrentAbsoluteGameSecond() +
             Random.Range(minimumIdleIntervalSeconds, maximumIdleIntervalSeconds + 1);
     }
 
     private void OnDisable()
     {
+        if (subscribedFoundationSurface != null)
+            subscribedFoundationSurface.FoundationSurfaceChanged -= HandleFoundationSurfaceChanged;
+        subscribedFoundationSurface = null;
+
         if (movement != null)
         {
             movement.Arrived -= HandleMovementArrived;
@@ -187,39 +199,33 @@ public class PilotWanderingController : MonoBehaviour
             return;
         }
 
-        foundationCandidates.Clear();
+        UpdateFoundationSurfaceSubscription();
+        RefreshFoundationCacheIfNeeded();
 
-        for (int x = 0; x < gridManager.Width; x++)
+        if (CachedFoundationCells.Count == 0)
         {
-            for (int z = 0; z < gridManager.Height; z++)
-            {
-                Vector2Int cell = new Vector2Int(x, z);
-
-                if (gridSurface.GetSurface(cell) == BuildSurface.Foundation &&
-                    pathfinder.IsWalkable(cell))
-                {
-                    foundationCandidates.Add(cell);
-                }
-            }
+            currentStatus = "No Foundation cells available";
+            nextWanderGameSecond = GetCurrentAbsoluteGameSecond() + 30;
+            return;
         }
 
-        // Shuffle the complete set so every Foundation cell can be selected,
-        // even when the Foundation occupies only a small part of the grid.
-        for (int i = foundationCandidates.Count - 1; i > 0; i--)
-        {
-            int swapIndex = Random.Range(0, i + 1);
-            Vector2Int temporary = foundationCandidates[i];
-            foundationCandidates[i] = foundationCandidates[swapIndex];
-            foundationCandidates[swapIndex] = temporary;
-        }
+        // Bound path searches so a newly spawned pilot cannot monopolize a frame.
+        int candidateCount = CachedFoundationCells.Count;
+        int attempts = Mathf.Min(maximumFoundationPathAttempts, candidateCount);
+        int startIndex = Random.Range(0, candidateCount);
 
-        foreach (Vector2Int candidateCell in foundationCandidates)
+        for (int attempt = 0; attempt < attempts; attempt++)
         {
+            int candidateIndex = (startIndex + attempt) % candidateCount;
+            Vector2Int candidateCell = CachedFoundationCells[candidateIndex];
+
+            // Check walkability live because obstacles can change independently.
+            if (!pathfinder.IsWalkable(candidateCell))
+                continue;
+
             Vector3 destination = gridManager.GridToWorldCenter(candidateCell);
             destination.y = transform.position.y;
 
-            // MoveTo performs the authoritative path search. Avoid calculating
-            // the same route once for estimation and again for movement.
             if (!movement.MoveTo(destination))
                 continue;
 
@@ -230,7 +236,6 @@ public class PilotWanderingController : MonoBehaviour
             currentStatus = "Entering foundation";
             return;
         }
-
         currentStatus = "No reachable Foundation destination";
         nextWanderGameSecond = GetCurrentAbsoluteGameSecond() + 30;
     }
@@ -343,6 +348,52 @@ public class PilotWanderingController : MonoBehaviour
 
         if (pathfinder == null)
             pathfinder = FindFirstObjectByType<PedestrianPathfinder>();
+
+        UpdateFoundationSurfaceSubscription();
+    }
+
+    private void UpdateFoundationSurfaceSubscription()
+    {
+        if (subscribedFoundationSurface == gridSurface)
+            return;
+
+        if (subscribedFoundationSurface != null)
+            subscribedFoundationSurface.FoundationSurfaceChanged -= HandleFoundationSurfaceChanged;
+
+        subscribedFoundationSurface = gridSurface;
+        if (subscribedFoundationSurface == null)
+            return;
+
+        subscribedFoundationSurface.FoundationSurfaceChanged += HandleFoundationSurfaceChanged;
+        if (cachedFoundationSurface != subscribedFoundationSurface)
+        {
+            cachedFoundationSurface = subscribedFoundationSurface;
+            foundationCacheDirty = true;
+        }
+    }
+
+    private void HandleFoundationSurfaceChanged()
+    {
+        foundationCacheDirty = true;
+    }
+
+    private void RefreshFoundationCacheIfNeeded()
+    {
+        if (!foundationCacheDirty || gridManager == null || gridSurface == null)
+            return;
+
+        CachedFoundationCells.Clear();
+        for (int x = 0; x < gridManager.Width; x++)
+        {
+            for (int z = 0; z < gridManager.Height; z++)
+            {
+                Vector2Int cell = new Vector2Int(x, z);
+                if (gridSurface.GetSurface(cell) == BuildSurface.Foundation)
+                    CachedFoundationCells.Add(cell);
+            }
+        }
+
+        foundationCacheDirty = false;
     }
 
     private void ResolveGameTimeManager()
@@ -381,6 +432,7 @@ public class PilotWanderingController : MonoBehaviour
         minimumRadiusCells = Mathf.Max(1, minimumRadiusCells);
         maximumRadiusCells = Mathf.Max(minimumRadiusCells, maximumRadiusCells);
         destinationSearchAttempts = Mathf.Max(1, destinationSearchAttempts);
+        maximumFoundationPathAttempts = Mathf.Max(1, maximumFoundationPathAttempts);
         minimumIdleIntervalSeconds = Mathf.Max(1, minimumIdleIntervalSeconds);
         maximumIdleIntervalSeconds = Mathf.Max(minimumIdleIntervalSeconds, maximumIdleIntervalSeconds);
         minimumPauseSeconds = Mathf.Max(1, minimumPauseSeconds);
