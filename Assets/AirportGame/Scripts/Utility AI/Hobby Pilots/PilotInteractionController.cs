@@ -32,14 +32,20 @@ public class PilotInteractionController : MonoBehaviour
         public float WaitingTime { get; }
         public bool Selected { get; internal set; }
 
-        private DebugCandidateSnapshot(InteractionCandidate candidate)
+        public DebugCandidateSnapshot(
+            InteractionProvider provider,
+            InteractionDefinition definition,
+            float utility,
+            float score,
+            float travelTime,
+            float waitingTime)
         {
-            Provider = candidate.Provider;
-            Definition = candidate.Definition;
-            Utility = candidate.Utility;
-            Score = candidate.Score;
-            TravelTime = candidate.TravelTime;
-            WaitingTime = candidate.WaitingTime;
+            Provider = provider;
+            Definition = definition;
+            Utility = utility;
+            Score = score;
+            TravelTime = travelTime;
+            WaitingTime = waitingTime;
         }
     }
 
@@ -273,7 +279,15 @@ public class PilotInteractionController : MonoBehaviour
         }
 
         foreach (InteractionCandidate candidate in shortlist)
-            debugCandidates.Add(new DebugCandidateSnapshot(candidate));
+        {
+            debugCandidates.Add(new DebugCandidateSnapshot(
+                candidate.Provider,
+                candidate.Definition,
+                candidate.Utility,
+                candidate.Score,
+                candidate.TravelTime,
+                candidate.WaitingTime));
+        }
 
         InteractionCandidate selected = SelectWeightedCandidate();
         for (int i = 0; i < debugCandidates.Count; i++)
