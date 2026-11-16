@@ -163,11 +163,19 @@ public class PilotDepartureController : MonoBehaviour
         for (int i = 0; i <= perimeter.Length; i++)
             route.Add(perimeter[(startIndex + i) % perimeter.Length]);
 
-        int index = (startIndex + 1) % perimeter.Length;
-        while (index != boardingIndex)
+        if (boardingIndex != startIndex)
         {
-            route.Add(perimeter[index]);
-            index = (index + 1) % perimeter.Length;
+            int index = (startIndex + 1) % perimeter.Length;
+
+            while (true)
+            {
+                route.Add(perimeter[index]);
+
+                if (index == boardingIndex)
+                    break;
+
+                index = (index + 1) % perimeter.Length;
+            }
         }
 
         route.Add(boardingPosition);
