@@ -12,6 +12,11 @@ using UnityEngine;
 [RequireComponent(typeof(PilotInteractionController))]
 public class PilotSocialSeatingController : MonoBehaviour
 {
+    private static readonly List<PedestrianMovementController> NearbyMovements =
+        new List<PedestrianMovementController>(16);
+    private static readonly List<InteractionProvider> NearbyProviders =
+        new List<InteractionProvider>(64);
+
     private enum SeatingState
     {
         Idle,
@@ -196,9 +201,9 @@ public class PilotSocialSeatingController : MonoBehaviour
         if (Vector3.Distance(transform.position, other.transform.position) > searchRadius)
             return false;
 
-        InteractionProvider[] providers =
-            FindObjectsByType<InteractionProvider>(FindObjectsSortMode.None);
-        List<SeatOption> availableSeats = GetAvailableSeats(providers);
+        UtilityAISpatialRegistry<InteractionProvider>.GetNearby(
+            transform.position, searchRadius, NearbyProviders);
+        List<SeatOption> availableSeats = GetAvailableSeats(NearbyProviders);
 
         for (int i = 0; i < availableSeats.Count; i++)
         {
@@ -241,22 +246,24 @@ public class PilotSocialSeatingController : MonoBehaviour
         if (!CanInitiate())
             return;
 
-        PilotSocialSeatingController[] pilots =
-            FindObjectsByType<PilotSocialSeatingController>(FindObjectsSortMode.None);
-        InteractionProvider[] providers =
-            FindObjectsByType<InteractionProvider>(FindObjectsSortMode.None);
+        UtilityAISpatialRegistry<PedestrianMovementController>.GetNearby(
+            transform.position, searchRadius, NearbyMovements);
+        UtilityAISpatialRegistry<InteractionProvider>.GetNearby(
+            transform.position, searchRadius, NearbyProviders);
 
         PilotSocialSeatingController selectedPartner = null;
         SeatOption selectedOwnSeat = default;
         SeatOption selectedPartnerSeat = default;
         float bestScore = float.PositiveInfinity;
 
-        List<SeatOption> availableSeats = GetAvailableSeats(providers);
+        List<SeatOption> availableSeats = GetAvailableSeats(NearbyProviders);
         if (availableSeats.Count < 2)
             return;
 
-        foreach (PilotSocialSeatingController candidate in pilots)
+        for (int pilotIndex = 0; pilotIndex < NearbyMovements.Count; pilotIndex++)
         {
+            PilotSocialSeatingController candidate =
+                NearbyMovements[pilotIndex].GetComponent<PilotSocialSeatingController>();
             if (candidate == null || candidate == this || !candidate.CanJoin())
                 continue;
 
@@ -307,12 +314,13 @@ public class PilotSocialSeatingController : MonoBehaviour
         }
     }
 
-    private static List<SeatOption> GetAvailableSeats(InteractionProvider[] providers)
+    private static List<SeatOption> GetAvailableSeats(IReadOnlyList<InteractionProvider> providers)
     {
-        List<SeatOption> seats = new List<SeatOption>();
+        List<SeatOption> seats = new List<SeatOption>(providers.Count);
 
-        foreach (InteractionProvider provider in providers)
+        for (int providerIndex = 0; providerIndex < providers.Count; providerIndex++)
         {
+            InteractionProvider provider = providers[providerIndex];
             if (provider == null || !provider.InteractionsEnabled)
                 continue;
 
