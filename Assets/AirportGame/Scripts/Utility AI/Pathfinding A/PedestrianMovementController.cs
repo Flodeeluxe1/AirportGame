@@ -243,13 +243,36 @@ public class PedestrianMovementController : MonoBehaviour
 
     private void UpdateMovement()
     {
-        SkipReachedWaypoints();
+        // Time.deltaTime follows the game speed multiplier. At high speeds a
+        // single rendered frame can represent a large amount of game time, so
+        // simulate that elapsed time in small steps to avoid large position
+        // jumps and missed collision/path checks.
+        const float maximumSimulationStep = 0.05f;
+        float remainingGameTime = Time.deltaTime;
 
-        if (currentWaypointIndex >= movementPath.Count)
+        while (remainingGameTime > 0f && isMoving)
         {
-            CompleteMovement();
-            return;
+            float step = Mathf.Min(remainingGameTime, maximumSimulationStep);
+
+            if (!UpdateMovementStep(step))
+                return;
+
+            remainingGameTime -= step;
+
+            SkipReachedWaypoints();
+
+            if (currentWaypointIndex >= movementPath.Count)
+            {
+                CompleteMovement();
+                return;
+            }
         }
+    }
+
+    private bool UpdateMovementStep(float deltaTime)
+    {
+        if (currentWaypointIndex >= movementPath.Count)
+            return true;
 
         Vector3 target = movementPath[currentWaypointIndex];
         target.y = movementHeight;
@@ -258,7 +281,6 @@ public class PedestrianMovementController : MonoBehaviour
         toTarget.y = 0f;
 
         Vector3 desiredDirection = toTarget.normalized;
-        float deltaTime = Time.deltaTime;
 
         // Give each pedestrian a slightly different walking pace and ease
         // into movement instead of starting at full speed immediately.
@@ -281,7 +303,7 @@ public class PedestrianMovementController : MonoBehaviour
             speedChange * deltaTime);
 
         if (currentSpeed <= 0.001f)
-            return;
+            return true;
 
         Vector3 targetAvoidanceOffset = GetAvoidanceOffset(desiredDirection);
         float avoidanceLerp = 1f - Mathf.Exp(-avoidanceResponse * deltaTime);
@@ -321,7 +343,7 @@ public class PedestrianMovementController : MonoBehaviour
                     transform.position,
                     nextPosition))
             {
-                return;
+                return false;
             }
         }
 
@@ -335,8 +357,10 @@ public class PedestrianMovementController : MonoBehaviour
             transform.rotation = Quaternion.RotateTowards(
                 transform.rotation,
                 targetRotation,
-                rotationSpeed * Time.deltaTime);
+                rotationSpeed * deltaTime);
         }
+
+        return true;
     }
 
     /// <summary>
