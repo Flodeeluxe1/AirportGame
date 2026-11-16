@@ -44,6 +44,8 @@ public class PilotWanderingController : MonoBehaviour
     private GameTimeManager gameTimeManager;
     private bool subscribedToGameTime;
     private bool waitingAtDestination;
+    private bool ownsCurrentMovement;
+    private Vector3 wanderingDestination;
     private long nextWanderGameSecond;
     private long waitUntilGameSecond;
     private float nextEligibilityCheckTime;
@@ -74,8 +76,7 @@ public class PilotWanderingController : MonoBehaviour
         if (movement != null)
         {
             movement.Arrived -= HandleMovementArrived;
-            if (movement.IsMoving)
-                movement.Stop();
+            StopOwnWanderMovement();
         }
 
         if (gameTimeManager != null && subscribedToGameTime)
@@ -96,8 +97,7 @@ public class PilotWanderingController : MonoBehaviour
 
         if (!interactionController.CanWander)
         {
-            if (movement.IsMoving)
-                movement.Stop();
+            StopOwnWanderMovement();
 
             waitingAtDestination = false;
             currentStatus = "Another activity has priority";
@@ -182,6 +182,8 @@ public class PilotWanderingController : MonoBehaviour
             if (!movement.MoveTo(destination))
                 continue;
 
+            wanderingDestination = destination;
+            ownsCurrentMovement = true;
             waitingAtDestination = false;
             currentStatus = "Wandering";
             return;
@@ -193,9 +195,10 @@ public class PilotWanderingController : MonoBehaviour
 
     private void HandleMovementArrived()
     {
-        if (currentStatus != "Wandering")
+        if (!ownsCurrentMovement || currentStatus != "Wandering")
             return;
 
+        ownsCurrentMovement = false;
         waitingAtDestination = true;
         int pause = Random.Range(minimumPauseSeconds, maximumPauseSeconds + 1);
         waitUntilGameSecond = GetCurrentAbsoluteGameSecond() + pause;
@@ -204,13 +207,28 @@ public class PilotWanderingController : MonoBehaviour
 
     private void StopWandering(string reason)
     {
-        if (movement != null && movement.IsMoving)
-            movement.Stop();
+        StopOwnWanderMovement();
 
         waitingAtDestination = false;
         currentStatus = reason;
         nextWanderGameSecond = GetCurrentAbsoluteGameSecond() +
             Random.Range(minimumIdleIntervalSeconds, maximumIdleIntervalSeconds + 1);
+    }
+
+    private void StopOwnWanderMovement()
+    {
+        if (!ownsCurrentMovement)
+            return;
+
+        // Another controller may have replaced the route since wandering began.
+        // Never stop a route that no longer belongs to this controller.
+        if (movement != null && movement.IsMoving &&
+            Vector3.Distance(movement.Destination, wanderingDestination) <= 0.1f)
+        {
+            movement.Stop();
+        }
+
+        ownsCurrentMovement = false;
     }
 
     private void ResolveWorldReferences()
