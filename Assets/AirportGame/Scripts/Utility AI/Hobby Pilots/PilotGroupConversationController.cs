@@ -48,6 +48,10 @@ public class PilotGroupConversationController : MonoBehaviour
     [SerializeField] private int conversationDurationGameSeconds = 900;
     [Min(0f)]
     [SerializeField] private float socialSatisfactionAmount = 35f;
+    [Min(0f)]
+    [SerializeField] private float entertainmentSatisfactionAmount = 20f;
+    [Min(0f)]
+    [SerializeField] private float boredomSatisfactionAmount = 20f;
     [Min(0.2f)]
     [SerializeField] private float standingCircleRadius = 1.5f;
     [Min(0.5f)]
@@ -446,8 +450,14 @@ public class PilotGroupConversationController : MonoBehaviour
         foreach (Member member in members)
         {
             if (member.Controller != null && member.Controller.needs != null)
+            {
                 member.Controller.needs.SatisfyNeed(
                     UtilityNeeds.NeedType.Social, socialSatisfactionAmount);
+                member.Controller.needs.SatisfyNeed(
+                    UtilityNeeds.NeedType.Entertainment, entertainmentSatisfactionAmount);
+                member.Controller.needs.SatisfyNeed(
+                    UtilityNeeds.NeedType.Boredom, boredomSatisfactionAmount);
+            }
         }
         ReleaseReservations();
         ResetGroup("Group conversation complete");
@@ -512,6 +522,8 @@ public class PilotGroupConversationController : MonoBehaviour
         maximumGroupSize = Mathf.Clamp(maximumGroupSize, minimumGroupSize, 5);
         conversationDurationGameSeconds = Mathf.Max(1, conversationDurationGameSeconds);
         socialSatisfactionAmount = Mathf.Max(0f, socialSatisfactionAmount);
+        entertainmentSatisfactionAmount = Mathf.Max(0f, entertainmentSatisfactionAmount);
+        boredomSatisfactionAmount = Mathf.Max(0f, boredomSatisfactionAmount);
         standingCircleRadius = Mathf.Max(0.2f, standingCircleRadius);
         seatClusterRadius = Mathf.Max(0.5f, seatClusterRadius);
         travelTimeout = Mathf.Max(1f, travelTimeout);
