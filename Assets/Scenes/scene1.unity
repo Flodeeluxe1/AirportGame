@@ -2197,7 +2197,7 @@ PrefabInstance:
       value: 99
       objectReference: {fileID: 0}
     - target: {fileID: 8273649182736450918, guid: 2f98a93d7c7f20a4dbe1fa15e897c2d2, type: 3}
-      propertyPath: initialNeedRanges.curiosityMin
+      propertyPath: initialNeedRanges.boredomMin
       value: 99
       objectReference: {fileID: 0}
     - target: {fileID: 8273649182736450918, guid: 2f98a93d7c7f20a4dbe1fa15e897c2d2, type: 3}
@@ -2428,7 +2428,7 @@ PrefabInstance:
       value: 99
       objectReference: {fileID: 0}
     - target: {fileID: 8273649182736450918, guid: 2f98a93d7c7f20a4dbe1fa15e897c2d2, type: 3}
-      propertyPath: initialNeedRanges.curiosityMin
+      propertyPath: initialNeedRanges.boredomMin
       value: 99
       objectReference: {fileID: 0}
     - target: {fileID: 8273649182736450918, guid: 2f98a93d7c7f20a4dbe1fa15e897c2d2, type: 3}
@@ -3120,7 +3120,7 @@ PrefabInstance:
       value: 99
       objectReference: {fileID: 0}
     - target: {fileID: 8273649182736450918, guid: 2f98a93d7c7f20a4dbe1fa15e897c2d2, type: 3}
-      propertyPath: initialNeedRanges.curiosityMin
+      propertyPath: initialNeedRanges.boredomMin
       value: 99
       objectReference: {fileID: 0}
     - target: {fileID: 8273649182736450918, guid: 2f98a93d7c7f20a4dbe1fa15e897c2d2, type: 3}
@@ -4052,7 +4052,7 @@ PrefabInstance:
       value: 99
       objectReference: {fileID: 0}
     - target: {fileID: 8273649182736450918, guid: 2f98a93d7c7f20a4dbe1fa15e897c2d2, type: 3}
-      propertyPath: initialNeedRanges.curiosityMin
+      propertyPath: initialNeedRanges.boredomMin
       value: 99
       objectReference: {fileID: 0}
     - target: {fileID: 8273649182736450918, guid: 2f98a93d7c7f20a4dbe1fa15e897c2d2, type: 3}
@@ -4149,7 +4149,7 @@ PrefabInstance:
       value: 99
       objectReference: {fileID: 0}
     - target: {fileID: 8273649182736450918, guid: 2f98a93d7c7f20a4dbe1fa15e897c2d2, type: 3}
-      propertyPath: initialNeedRanges.curiosityMin
+      propertyPath: initialNeedRanges.boredomMin
       value: 99
       objectReference: {fileID: 0}
     - target: {fileID: 8273649182736450918, guid: 2f98a93d7c7f20a4dbe1fa15e897c2d2, type: 3}
@@ -4473,7 +4473,7 @@ PrefabInstance:
       value: 99
       objectReference: {fileID: 0}
     - target: {fileID: 8273649182736450918, guid: 2f98a93d7c7f20a4dbe1fa15e897c2d2, type: 3}
-      propertyPath: initialNeedRanges.curiosityMin
+      propertyPath: initialNeedRanges.boredomMin
       value: 99
       objectReference: {fileID: 0}
     - target: {fileID: 8273649182736450918, guid: 2f98a93d7c7f20a4dbe1fa15e897c2d2, type: 3}
