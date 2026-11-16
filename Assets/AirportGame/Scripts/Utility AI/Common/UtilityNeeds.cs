@@ -11,6 +11,9 @@ using UnityEngine.Serialization;
 [DisallowMultipleComponent]
 public class UtilityNeeds : MonoBehaviour
 {
+    private static readonly NeedType[] AllNeedTypes =
+        (NeedType[])AllNeedTypes;
+
     public enum NeedType
     {
         Thirst,
