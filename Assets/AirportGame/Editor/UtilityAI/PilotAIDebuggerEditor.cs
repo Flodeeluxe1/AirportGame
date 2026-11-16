@@ -68,8 +68,8 @@ public class PilotAIDebuggerEditor : Editor
         if (needs != null)
             DrawNeeds(needs);
 
-        PilotEnvironmentMonitor environment =
-            controller.GetComponent<PilotEnvironmentMonitor>();
+        EnvironmentScoreMonitor environment =
+            controller.GetComponent<EnvironmentScoreMonitor>();
         if (environment != null)
         {
             EditorGUILayout.Space();
