@@ -52,6 +52,11 @@ public class InteractionProvider : MonoBehaviour
         }
     }
 
+    private void OnEnable()
+    {
+        UtilityAISpatialRegistry<InteractionProvider>.Register(this);
+    }
+
     public bool InteractionsEnabled =>
         interactionsEnabled && isActiveAndEnabled && gameObject.activeInHierarchy;
 
@@ -109,6 +114,7 @@ public class InteractionProvider : MonoBehaviour
 
     private void OnDisable()
     {
+        UtilityAISpatialRegistry<InteractionProvider>.Unregister(this);
         InteractionReservation.ReleaseAllForProvider(this);
     }
 
