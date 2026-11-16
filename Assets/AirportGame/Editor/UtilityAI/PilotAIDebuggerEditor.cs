@@ -74,8 +74,10 @@ public class PilotAIDebuggerEditor : Editor
         {
             EditorGUILayout.Space();
             EditorGUILayout.LabelField("Environment", EditorStyles.boldLabel);
-            DrawReadOnlyField("Environment Score",
-                environment.CurrentEnvironmentScore.ToString("F1") + " / 100");
+            DrawReadOnlyField("Raw Environment Score",
+                environment.RawEnvironmentScore.ToString("F1") + " / 100");
+            DrawReadOnlyField("Smoothed Environment Score",
+                environment.SmoothedEnvironmentScore.ToString("F1") + " / 100");
         }
 
         EditorGUILayout.Space();
