@@ -13,6 +13,11 @@ using UnityEngine;
 [RequireComponent(typeof(PilotInteractionController))]
 public class PilotGroupConversationController : MonoBehaviour
 {
+    private static readonly List<PedestrianMovementController> NearbyMovements =
+        new List<PedestrianMovementController>(24);
+    private static readonly List<InteractionProvider> NearbyProviders =
+        new List<InteractionProvider>(64);
+
     private enum GroupState { Idle, Travelling, Talking }
 
     private sealed class Member
@@ -195,11 +200,13 @@ public class PilotGroupConversationController : MonoBehaviour
         if (!CanInitiate())
             return false;
 
-        PilotGroupConversationController[] all =
-            FindObjectsByType<PilotGroupConversationController>(FindObjectsSortMode.None);
+        UtilityAISpatialRegistry<PedestrianMovementController>.GetNearby(
+            transform.position, searchRadius, NearbyMovements);
         int count = 1;
-        foreach (PilotGroupConversationController candidate in all)
+        for (int i = 0; i < NearbyMovements.Count; i++)
         {
+            PilotGroupConversationController candidate =
+                NearbyMovements[i].GetComponent<PilotGroupConversationController>();
             if (candidate == null || candidate == this || !candidate.CanJoin())
                 continue;
             if (Vector3.Distance(transform.position, candidate.transform.position) <= searchRadius)
@@ -216,12 +223,14 @@ public class PilotGroupConversationController : MonoBehaviour
             return;
 
         List<PilotGroupConversationController> candidates =
-            new List<PilotGroupConversationController> { this };
-        PilotGroupConversationController[] all =
-            FindObjectsByType<PilotGroupConversationController>(FindObjectsSortMode.None);
+            new List<PilotGroupConversationController>(maximumGroupSize) { this };
+        UtilityAISpatialRegistry<PedestrianMovementController>.GetNearby(
+            transform.position, searchRadius, NearbyMovements);
 
-        foreach (PilotGroupConversationController candidate in all)
+        for (int i = 0; i < NearbyMovements.Count; i++)
         {
+            PilotGroupConversationController candidate =
+                NearbyMovements[i].GetComponent<PilotGroupConversationController>();
             if (candidate == null || candidate == this || !candidate.CanJoin())
                 continue;
             if (Vector3.Distance(transform.position, candidate.transform.position) > searchRadius)
@@ -238,7 +247,7 @@ public class PilotGroupConversationController : MonoBehaviour
             return;
         candidates.RemoveRange(groupCount, candidates.Count - groupCount);
 
-        List<SeatOption> seats = FindSeatOptions();
+        List<SeatOption> seats = FindSeatOptions(center);
         Vector3 center = Vector3.zero;
         foreach (PilotGroupConversationController candidate in candidates)
             center += candidate.transform.position;
@@ -318,14 +327,15 @@ public class PilotGroupConversationController : MonoBehaviour
         }
     }
 
-    private List<SeatOption> FindSeatOptions()
+    private List<SeatOption> FindSeatOptions(Vector3 center)
     {
-        List<SeatOption> result = new List<SeatOption>();
-        InteractionProvider[] providers =
-            FindObjectsByType<InteractionProvider>(FindObjectsSortMode.None);
+        List<SeatOption> result = new List<SeatOption>(maximumGroupSize);
+        UtilityAISpatialRegistry<InteractionProvider>.GetNearby(
+            center, seatClusterRadius, NearbyProviders);
 
-        foreach (InteractionProvider provider in providers)
+        for (int providerIndex = 0; providerIndex < NearbyProviders.Count; providerIndex++)
         {
+            InteractionProvider provider = NearbyProviders[providerIndex];
             if (provider == null || !provider.InteractionsEnabled)
                 continue;
 
