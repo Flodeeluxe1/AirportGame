@@ -612,6 +612,12 @@ public class PilotInteractionController : MonoBehaviour
             return;
         }
 
+        // Move from the reachable approach point to the object's animation position.
+        // This point may intentionally be inside the object's occupied footprint.
+        transform.SetPositionAndRotation(
+            reservedProvider.AnimationPosition,
+            reservedProvider.AnimationRotation);
+
         currentStatus = "Performing " + reservedInteraction.DisplayName;
         interactionRoutine = StartCoroutine(PerformInteraction());
     }
