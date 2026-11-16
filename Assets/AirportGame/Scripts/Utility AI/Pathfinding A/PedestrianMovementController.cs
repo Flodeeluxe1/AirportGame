@@ -51,6 +51,8 @@ public class PedestrianMovementController : MonoBehaviour
     private float individualSpeedMultiplier = 1f;
     private float currentSpeed;
     private Vector3 currentAvoidanceOffset;
+    private Collider[] alignmentColliders;
+    private Renderer[] alignmentRenderers;
 
     public bool IsMoving => isMoving;
     public bool HasPath => movementPath.Count > 0;
@@ -82,6 +84,8 @@ public class PedestrianMovementController : MonoBehaviour
     {
         ResolvePathfinder();
         movementHeight = transform.position.y;
+        alignmentColliders = GetComponentsInChildren<Collider>(true);
+        alignmentRenderers = GetComponentsInChildren<Renderer>(true);
     }
 
     private void Update()
@@ -90,6 +94,85 @@ public class PedestrianMovementController : MonoBehaviour
 
         if (isMoving)
             UpdateMovement();
+    }
+
+    /// <summary>
+    /// Places the pedestrian at an interaction's animation anchor while
+    /// keeping the bottom of its collider bounds on that anchor.
+    /// </summary>
+    public void AlignToAnimationPoint(InteractionProvider provider)
+    {
+        if (provider == null)
+            return;
+
+        AlignToAnimationPoint(
+            provider.AnimationPosition,
+            provider.AnimationRotation);
+    }
+
+    /// <summary>
+    /// Places the pedestrian's feet at a world-space animation anchor.
+    /// The vertical offset is calculated as half the pedestrian's collider height.
+    /// </summary>
+    public void AlignToAnimationPoint(
+        Vector3 animationPosition,
+        Quaternion animationRotation)
+    {
+        float halfHeight = GetBodyHalfHeight();
+        Vector3 rootPosition =
+            animationPosition + animationRotation * Vector3.up * halfHeight;
+
+        transform.SetPositionAndRotation(rootPosition, animationRotation);
+        movementHeight = transform.position.y;
+        UtilityAISpatialRegistry<PedestrianMovementController>.UpdatePosition(this);
+    }
+
+    private float GetBodyHalfHeight()
+    {
+        bool hasBounds = false;
+        Bounds combinedBounds = default;
+
+        if (alignmentColliders != null)
+        {
+            for (int i = 0; i < alignmentColliders.Length; i++)
+            {
+                Collider bodyCollider = alignmentColliders[i];
+                if (bodyCollider == null || !bodyCollider.enabled || bodyCollider.isTrigger)
+                    continue;
+
+                if (!hasBounds)
+                {
+                    combinedBounds = bodyCollider.bounds;
+                    hasBounds = true;
+                }
+                else
+                {
+                    combinedBounds.Encapsulate(bodyCollider.bounds);
+                }
+            }
+        }
+
+        if (!hasBounds && alignmentRenderers != null)
+        {
+            for (int i = 0; i < alignmentRenderers.Length; i++)
+            {
+                Renderer bodyRenderer = alignmentRenderers[i];
+                if (bodyRenderer == null || !bodyRenderer.enabled)
+                    continue;
+
+                if (!hasBounds)
+                {
+                    combinedBounds = bodyRenderer.bounds;
+                    hasBounds = true;
+                }
+                else
+                {
+                    combinedBounds.Encapsulate(bodyRenderer.bounds);
+                }
+            }
+        }
+
+        return hasBounds ? combinedBounds.extents.y : 0f;
     }
 
     /// <summary>
