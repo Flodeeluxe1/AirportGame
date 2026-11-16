@@ -400,9 +400,7 @@ public class PilotGroupConversationController : MonoBehaviour
         {
             if (item.SeatProvider != null)
             {
-                item.Controller.transform.SetPositionAndRotation(
-                    item.SeatProvider.AnimationPosition,
-                    item.SeatProvider.AnimationRotation);
+                item.Controller.movement.AlignToAnimationPoint(item.SeatProvider);
             }
         }
 
