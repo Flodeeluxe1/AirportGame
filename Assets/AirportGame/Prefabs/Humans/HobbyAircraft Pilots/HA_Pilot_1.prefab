@@ -765,5 +765,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 91a7d3c84e2f4b5a8c6d0e1f3a7b9c25, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  updateInterval: 1
+  movementThreshold: 1
   currentEnvironmentScore: 50
