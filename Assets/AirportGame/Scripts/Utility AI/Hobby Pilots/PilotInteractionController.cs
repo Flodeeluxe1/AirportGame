@@ -666,6 +666,12 @@ public class PilotInteractionController : MonoBehaviour
         currentStatus = "Completed " + completedInteraction.DisplayName;
         interactionRoutine = null;
 
+        // The animation point may be inside the object's blocked footprint.
+        // Return to the reachable approach point before releasing the slot.
+        InteractionProvider completedProvider = reservedProvider;
+        if (completedProvider != null && movement != null)
+            movement.AlignToInteractionPoint(completedProvider);
+
         if (queuedProvider != null && queuedProvider.Queue != null)
         {
             queuedProvider.Queue.Complete(this);
