@@ -434,16 +434,12 @@ public class PilotSocialSeatingController : MonoBehaviour
         // arrive, place each pilot at the seat's animation position.
         if (reservedSeatProvider != null)
         {
-            transform.SetPositionAndRotation(
-                reservedSeatProvider.AnimationPosition,
-                reservedSeatProvider.AnimationRotation);
+            movement.AlignToAnimationPoint(reservedSeatProvider);
         }
 
         if (partner.reservedSeatProvider != null)
         {
-            partner.transform.SetPositionAndRotation(
-                partner.reservedSeatProvider.AnimationPosition,
-                partner.reservedSeatProvider.AnimationRotation);
+            partner.movement.AlignToAnimationPoint(partner.reservedSeatProvider);
         }
 
         state = SeatingState.Socializing;
