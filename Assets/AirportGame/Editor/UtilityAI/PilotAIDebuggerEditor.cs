@@ -17,7 +17,7 @@ public class PilotAIDebuggerEditor : Editor
         UtilityNeeds.NeedType.Social,
         UtilityNeeds.NeedType.Entertainment,
         UtilityNeeds.NeedType.Comfort,
-        UtilityNeeds.NeedType.Curiosity
+        UtilityNeeds.NeedType.Boredom
     };
 
     private SerializedProperty currentStatus;
