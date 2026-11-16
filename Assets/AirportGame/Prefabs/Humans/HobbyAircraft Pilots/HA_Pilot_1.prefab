@@ -19,6 +19,7 @@ GameObject:
   - component: {fileID: 5947382019658473021}
   - component: {fileID: 7123456789012345678}
   - component: {fileID: 8217346509182736450}
+  - component: {fileID: 6812345678901234567}
   m_Layer: 0
   m_Name: HA_Pilot_1
   m_TagString: Untagged
@@ -724,3 +725,21 @@ MonoBehaviour:
   maximumPauseSeconds: 15
   maximumSocialNeedValue: 80
   currentStatus: Idle
+--- !u!114 &6812345678901234567
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1552182806160375558}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6b8f2d4a9c1e47f0a3d5b7c2e8f61490, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  aircraftClearance: 1.25
+  retryInterval: 2
+  isDeparting: 0
+  currentStatus: Available
+  currentWaypoint: 0
+  totalWaypoints: 0
