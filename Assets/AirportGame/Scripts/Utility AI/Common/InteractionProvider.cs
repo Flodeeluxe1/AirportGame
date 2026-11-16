@@ -15,6 +15,9 @@ public class InteractionProvider : MonoBehaviour
     [SerializeField] private bool interactionsEnabled = true;
 
     private InteractionQueue interactionQueue;
+    private bool interactionPointResolved;
+    private static GridManager cachedGridManager;
+    private static bool gridManagerLookupAttempted;
 
     public IReadOnlyList<InteractionDefinition> Interactions => interactions;
     public InteractionQueue Queue
@@ -37,15 +40,24 @@ public class InteractionProvider : MonoBehaviour
     {
         get
         {
-            if (interactionPoint == null)
-                interactionPoint = transform.Find("interactionPoint");
+            if (!interactionPointResolved)
+            {
+                interactionPointResolved = true;
+                if (interactionPoint == null)
+                    interactionPoint = transform.Find("interactionPoint");
+            }
 
             if (interactionPoint != null)
                 return interactionPoint.position;
 
-            GridManager gridManager = FindFirstObjectByType<GridManager>();
-            float gridUnit = gridManager != null
-                ? gridManager.CellSize
+            if (!gridManagerLookupAttempted)
+            {
+                cachedGridManager = FindFirstObjectByType<GridManager>();
+                gridManagerLookupAttempted = true;
+            }
+
+            float gridUnit = cachedGridManager != null
+                ? cachedGridManager.CellSize
                 : 1f;
 
             return transform.position + transform.forward * gridUnit;
