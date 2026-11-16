@@ -11,6 +11,9 @@ using UnityEngine;
 [RequireComponent(typeof(PilotInteractionController))]
 public class PilotSocialInteractionController : MonoBehaviour
 {
+    private static readonly List<PedestrianMovementController> NearbyMovements =
+        new List<PedestrianMovementController>(16);
+
     private enum SocialState
     {
         Idle,
@@ -169,15 +172,17 @@ public class PilotSocialInteractionController : MonoBehaviour
         if (!CanStartConversation())
             return;
 
-        PilotSocialInteractionController[] pilots =
-            FindObjectsByType<PilotSocialInteractionController>(
-                FindObjectsSortMode.None);
+        UtilityAISpatialRegistry<PedestrianMovementController>.GetNearby(
+            transform.position, partnerSearchRadius, NearbyMovements);
 
         PilotSocialInteractionController selectedPartner = null;
         float closestDistance = partnerSearchRadius;
 
-        foreach (PilotSocialInteractionController candidate in pilots)
+        for (int i = 0; i < NearbyMovements.Count; i++)
         {
+            PilotSocialInteractionController candidate =
+                NearbyMovements[i].GetComponent<PilotSocialInteractionController>();
+
             if (candidate == null || candidate == this ||
                 !candidate.CanJoinConversation())
             {
