@@ -27,7 +27,7 @@ MonoBehaviour:
   canSupportSurfaceObjects: 0
   canRotate: 1
   buildCost: 7500
-  blocksPathfinding: 0
+  blocksPathfinding: 1
   menuCategory: Airport Operations
   category: 3
   icon: {fileID: 2800000, guid: 749ed41490e883a4cbe30f548b17e93a, type: 3}

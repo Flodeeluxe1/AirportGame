@@ -26,7 +26,7 @@ MonoBehaviour:
   canSupportSurfaceObjects: 0
   canRotate: 1
   buildCost: 25
-  blocksPathfinding: 0
+  blocksPathfinding: 1
   menuCategory: Interior & Decor
   category: 3
   icon: {fileID: 2800000, guid: b58dd00e39c172f419f650b0facde9a2, type: 3}

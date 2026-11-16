@@ -26,7 +26,7 @@ MonoBehaviour:
   canSupportSurfaceObjects: 0
   canRotate: 1
   buildCost: 200
-  blocksPathfinding: 0
+  blocksPathfinding: 1
   menuCategory: Pipelines
   category: 8
   icon: {fileID: 2800000, guid: d406c8c1db3486946b4796f342bb891d, type: 3}

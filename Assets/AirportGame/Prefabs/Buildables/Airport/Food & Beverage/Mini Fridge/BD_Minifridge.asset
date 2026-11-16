@@ -26,7 +26,7 @@ MonoBehaviour:
   canSupportSurfaceObjects: 0
   canRotate: 1
   buildCost: 100
-  blocksPathfinding: 0
+  blocksPathfinding: 1
   menuCategory: Food & Beverage
   category: 3
   icon: {fileID: 2800000, guid: 2022ab6e2c386214ca603a11823bd0fd, type: 3}

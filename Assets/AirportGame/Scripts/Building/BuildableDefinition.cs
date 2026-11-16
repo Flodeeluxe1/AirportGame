@@ -69,7 +69,7 @@ public class BuildableDefinition : ScriptableObject
     public int buildCost = 0;
 
     [Header("Pathfinding")]
-    public bool blocksPathfinding = false;
+    public bool blocksPathfinding = true;
 
     [Header("UI")]
     [Tooltip("Menu category is generated from the buildable folder by the Editor catalogue builder.")]

@@ -26,7 +26,7 @@ MonoBehaviour:
   canSupportSurfaceObjects: 0
   canRotate: 1
   buildCost: 30
-  blocksPathfinding: 0
+  blocksPathfinding: 1
   menuCategory: Plants & Landscaping
   category: 3
   icon: {fileID: 2800000, guid: ea08a82d106647b4caf7d89bb56ff395, type: 3}

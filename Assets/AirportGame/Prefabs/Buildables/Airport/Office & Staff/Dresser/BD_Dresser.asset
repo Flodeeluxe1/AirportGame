@@ -26,7 +26,7 @@ MonoBehaviour:
   canSupportSurfaceObjects: 1
   canRotate: 1
   buildCost: 100
-  blocksPathfinding: 0
+  blocksPathfinding: 1
   menuCategory: Office & Staff
   category: 3
   icon: {fileID: 2800000, guid: 251258b73c4a2e343bf4d3704d0fe481, type: 3}

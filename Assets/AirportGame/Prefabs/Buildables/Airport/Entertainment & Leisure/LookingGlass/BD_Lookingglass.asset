@@ -26,7 +26,7 @@ MonoBehaviour:
   canSupportSurfaceObjects: 0
   canRotate: 1
   buildCost: 90
-  blocksPathfinding: 0
+  blocksPathfinding: 1
   menuCategory: Entertainment & Leisure
   category: 3
   icon: {fileID: 0}

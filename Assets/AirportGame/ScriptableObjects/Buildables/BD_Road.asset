@@ -26,7 +26,7 @@ MonoBehaviour:
   canSupportSurfaceObjects: 0
   canRotate: 1
   buildCost: 50
-  blocksPathfinding: 0
+  blocksPathfinding: 1
   menuCategory: Roads
   category: 4
   icon: {fileID: 2800000, guid: 5915a95e74c93f848aa9b6172bad6b4e, type: 3}

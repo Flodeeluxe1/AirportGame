@@ -26,7 +26,7 @@ MonoBehaviour:
   canSupportSurfaceObjects: 0
   canRotate: 1
   buildCost: 300
-  blocksPathfinding: 0
+  blocksPathfinding: 1
   menuCategory: Restrooms & Hygiene
   category: 3
   icon: {fileID: 2800000, guid: 7978d96ca3231744ebd197c2aab2abb2, type: 3}

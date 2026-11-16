@@ -26,7 +26,7 @@ MonoBehaviour:
   canSupportSurfaceObjects: 0
   canRotate: 1
   buildCost: 200
-  blocksPathfinding: 0
+  blocksPathfinding: 1
   menuCategory: Passenger Services
   category: 3
   icon: {fileID: 2800000, guid: 56848a07af905a44f910da25b56b25a0, type: 3}

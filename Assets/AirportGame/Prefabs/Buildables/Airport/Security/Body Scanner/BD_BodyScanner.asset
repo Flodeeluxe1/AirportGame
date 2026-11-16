@@ -26,7 +26,7 @@ MonoBehaviour:
   canSupportSurfaceObjects: 0
   canRotate: 1
   buildCost: 200
-  blocksPathfinding: 0
+  blocksPathfinding: 1
   menuCategory: Security
   category: 3
   icon: {fileID: 2800000, guid: 4f99221144e012b4d9389ab0c856a0ed, type: 3}

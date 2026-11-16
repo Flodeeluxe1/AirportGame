@@ -26,7 +26,7 @@ MonoBehaviour:
   canSupportSurfaceObjects: 0
   canRotate: 1
   buildCost: 90
-  blocksPathfinding: 0
+  blocksPathfinding: 1
   menuCategory: Facilities & Maintenance
   category: 3
   icon: {fileID: 2800000, guid: 4da2933864808f04da1686ed62bae852, type: 3}
