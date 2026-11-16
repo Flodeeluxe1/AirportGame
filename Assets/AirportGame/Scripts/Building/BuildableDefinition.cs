@@ -71,6 +71,14 @@ public class BuildableDefinition : ScriptableObject
     [Header("Pathfinding")]
     public bool blocksPathfinding = true;
 
+    [Header("Environment")]
+    [Tooltip("Positive values improve the local environment; negative values reduce it.")]
+    public float environmentValue = 0f;
+
+    [Min(0f)]
+    [Tooltip("Maximum distance in world units at which this object influences the environment.")]
+    public float environmentRadius = 0f;
+
     [Header("UI")]
     [Tooltip("Menu category is generated from the buildable folder by the Editor catalogue builder.")]
     public string menuCategory;
