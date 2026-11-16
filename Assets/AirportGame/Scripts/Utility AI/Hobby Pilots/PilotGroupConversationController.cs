@@ -394,6 +394,18 @@ public class PilotGroupConversationController : MonoBehaviour
                 return;
         }
 
+        // Seated members first reach their walkable approach points, then
+        // move to the seat's dedicated animation positions.
+        foreach (Member item in members)
+        {
+            if (item.SeatProvider != null)
+            {
+                item.Controller.transform.SetPositionAndRotation(
+                    item.SeatProvider.AnimationPosition,
+                    item.SeatProvider.AnimationRotation);
+            }
+        }
+
         state = GroupState.Talking;
         conversationStartGameSecond = GetCurrentAbsoluteGameSecond();
         foreach (Member item in members)
