@@ -68,6 +68,16 @@ public class PilotAIDebuggerEditor : Editor
         if (needs != null)
             DrawNeeds(needs);
 
+        PilotEnvironmentMonitor environment =
+            controller.GetComponent<PilotEnvironmentMonitor>();
+        if (environment != null)
+        {
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("Environment", EditorStyles.boldLabel);
+            DrawReadOnlyField("Environment Score",
+                environment.CurrentEnvironmentScore.ToString("F1") + " / 100");
+        }
+
         EditorGUILayout.Space();
         EditorGUILayout.LabelField("Interaction Shortlist",
             EditorStyles.boldLabel);
