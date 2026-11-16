@@ -105,24 +105,28 @@ public class PedestrianMovementController : MonoBehaviour
         if (provider == null)
             return;
 
-        AlignToAnimationPoint(
-            provider.AnimationPosition,
-            provider.AnimationRotation);
+        AlignToPoint(provider.AnimationPosition, provider.AnimationRotation);
     }
 
     /// <summary>
-    /// Places the pedestrian's feet at a world-space animation anchor.
-    /// The vertical offset is calculated as half the pedestrian's collider height.
+    /// Returns the pedestrian to the provider's reachable approach point after
+    /// an interaction has finished, freeing the object's occupied footprint.
     /// </summary>
-    public void AlignToAnimationPoint(
-        Vector3 animationPosition,
-        Quaternion animationRotation)
+    public void AlignToInteractionPoint(InteractionProvider provider)
+    {
+        if (provider == null)
+            return;
+
+        AlignToPoint(provider.InteractionPosition, provider.InteractionRotation);
+    }
+
+    private void AlignToPoint(Vector3 anchorPosition, Quaternion anchorRotation)
     {
         float halfHeight = GetBodyHalfHeight();
         Vector3 rootPosition =
-            animationPosition + animationRotation * Vector3.up * halfHeight;
+            anchorPosition + anchorRotation * Vector3.up * halfHeight;
 
-        transform.SetPositionAndRotation(rootPosition, animationRotation);
+        transform.SetPositionAndRotation(rootPosition, anchorRotation);
         movementHeight = transform.position.y;
         UtilityAISpatialRegistry<PedestrianMovementController>.UpdatePosition(this);
     }
