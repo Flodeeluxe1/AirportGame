@@ -830,12 +830,10 @@ public class RoomPurposeController : MonoBehaviour
     public int CountWallBoardsOnBoundary(
         RoomDetectionController.DetectedRoom room)
     {
-        if (room == null || room.cells == null || edgeOccupancy == null)
+        if (room == null || room.cells == null || room.cells.Count == 0)
             return 0;
 
-        HashSet<PlacedBuilding> countedBoards =
-            new HashSet<PlacedBuilding>();
-
+        HashSet<GridEdge> roomBoundaryEdges = new HashSet<GridEdge>();
         Vector2Int[] directions =
         {
             Vector2Int.up,
@@ -848,30 +846,49 @@ public class RoomPurposeController : MonoBehaviour
         {
             foreach (Vector2Int direction in directions)
             {
-                Vector2Int neighbor = cell + direction;
-
-                if (room.cells.Contains(neighbor))
+                if (room.cells.Contains(cell + direction))
                     continue;
 
-                GridEdge edge = GetSharedEdge(cell, direction);
+                roomBoundaryEdges.Add(GetSharedEdge(cell, direction));
+            }
+        }
 
-                if (!edgeOccupancy.TryGetOccupant(
-                        edge, out GameObject boundary) ||
-                    boundary == null)
-                {
-                    continue;
-                }
+        HashSet<PlacedBuilding> countedBoards =
+            new HashSet<PlacedBuilding>();
 
-                PlacedBuilding placed =
-                    boundary.GetComponent<PlacedBuilding>();
+        PlacedBuilding[] placedBuildings =
+            FindObjectsByType<PlacedBuilding>(
+                FindObjectsInactive.Exclude,
+                FindObjectsSortMode.None);
 
-                if (placed == null || placed.Definition == null)
-                    continue;
+        foreach (PlacedBuilding placed in placedBuildings)
+        {
+            if (placed == null || placed.Definition == null ||
+                !placed.Definition.isWallMounted ||
+                (placed.Definition.roomFurnitureRole &
+                 RoomFurnitureRole.WallBoard) == 0)
+            {
+                continue;
+            }
 
-                if ((placed.Definition.roomFurnitureRole &
-                     RoomFurnitureRole.WallBoard) != 0)
+            int edgeLength = Mathf.Max(1, placed.EdgeLength);
+
+            for (int i = 0; i < edgeLength; i++)
+            {
+                Vector2Int edgeCell = placed.Origin;
+
+                if (placed.EdgeDirection == EdgeDirection.Horizontal)
+                    edgeCell += Vector2Int.right * i;
+                else
+                    edgeCell += Vector2Int.up * i;
+
+                GridEdge mountedEdge =
+                    new GridEdge(edgeCell, placed.EdgeDirection);
+
+                if (roomBoundaryEdges.Contains(mountedEdge))
                 {
                     countedBoards.Add(placed);
+                    break;
                 }
             }
         }
