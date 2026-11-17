@@ -20,7 +20,6 @@ public class AirportFinancialReportsUI : MonoBehaviour
     private static readonly Color MutedTextColor = new Color32(174, 186, 199, 255);
     private static readonly Color IncomeColor = new Color32(100, 210, 140, 255);
     private static readonly Color ExpenseColor = new Color32(235, 125, 105, 255);
-    private static readonly Color AccentColor = new Color32(91, 170, 218, 255);
 
     private VisualElement root;
     private VisualElement window;
@@ -451,7 +450,7 @@ public class AirportFinancialReportsUI : MonoBehaviour
         row.style.paddingTop = 6;
         row.style.paddingBottom = 6;
         row.style.borderBottomWidth = 1;
-        row.style.borderBottomColor = new Color32(65, 75, 86, 180);
+        row.style.borderBottomColor = (Color)new Color32(65, 75, 86, 180);
 
         VisualElement details = new VisualElement();
         details.style.flexDirection = FlexDirection.Column;
