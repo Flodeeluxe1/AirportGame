@@ -13,7 +13,7 @@ public class AirportRatingUI : MonoBehaviour
     [SerializeField] private AirportRatingManager ratingManager;
 
     [Header("HUD Appearance")]
-    [SerializeField, Min(12)] private int fontSize = 18;
+    [SerializeField, Min(12)] private int fontSize = 24;
     [SerializeField, Min(0)] private float topOffset = 20f;
     [SerializeField, Min(0)] private float rightOffset = 420f;
     [SerializeField, Min(80)] private float buttonWidth = 170f;
@@ -128,9 +128,10 @@ public class AirportRatingUI : MonoBehaviour
         ratingButton.style.top = topOffset;
         ratingButton.style.right = rightOffset;
         ratingButton.style.width = buttonWidth;
-        ratingButton.style.height = 58;
-        ratingButton.style.paddingLeft = 10;
-        ratingButton.style.paddingRight = 10;
+        ratingButton.style.paddingLeft = 16;
+        ratingButton.style.paddingRight = 16;
+        ratingButton.style.paddingTop = 10;
+        ratingButton.style.paddingBottom = 10;
         ratingButton.style.flexDirection = FlexDirection.Column;
         ratingButton.style.alignItems = Align.Center;
         ratingButton.style.justifyContent = Justify.Center;
