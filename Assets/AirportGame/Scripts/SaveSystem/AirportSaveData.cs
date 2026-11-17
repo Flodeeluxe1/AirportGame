@@ -6,7 +6,7 @@ using UnityEngine;
 [Serializable]
 public class AirportSaveData
 {
-    public const int CurrentSchemaVersion = 5;
+    public const int CurrentSchemaVersion = 6;
 
     public int schemaVersion = CurrentSchemaVersion;
     public string saveName = "";
@@ -16,6 +16,9 @@ public class AirportSaveData
     public float gameSpeedMultiplier = 1f;
 
     public int balance;
+
+    public List<AirportFinancialTransaction> financialTransactions =
+        new List<AirportFinancialTransaction>();
 
     public List<PlacedBuildingSaveData> placedBuildings =
         new List<PlacedBuildingSaveData>();
@@ -51,6 +54,9 @@ public class AirportSaveData
     {
         if (placedBuildings == null)
             placedBuildings = new List<PlacedBuildingSaveData>();
+
+        if (financialTransactions == null)
+            financialTransactions = new List<AirportFinancialTransaction>();
 
         foreach (PlacedBuildingSaveData building in placedBuildings)
         {
