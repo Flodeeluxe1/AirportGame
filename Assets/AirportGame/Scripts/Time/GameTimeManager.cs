@@ -156,7 +156,13 @@ public class GameTimeManager : MonoBehaviour
 
     public void SetGameTimeSeconds(int seconds)
     {
+        SetGameDate(currentDay, seconds);
+    }
+
+    public void SetGameDate(long day, int seconds)
+    {
         long previousAbsoluteSecond = GetAbsoluteGameSecond();
+        currentDay = System.Math.Max(1L, day);
         gameSeconds = Mathf.Clamp(seconds, 0, 86399);
         NotifyGameTimeAdvanced(previousAbsoluteSecond);
     }
