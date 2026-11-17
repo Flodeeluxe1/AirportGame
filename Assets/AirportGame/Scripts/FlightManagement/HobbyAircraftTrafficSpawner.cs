@@ -50,9 +50,6 @@ public class HobbyAircraftTrafficSpawner : MonoBehaviour
     [Min(0f)]
     [SerializeField] private float dailyVisitsPerExtraRunway = 0.5f;
 
-    [Tooltip("Can later be connected to an airport reputation system.")]
-    [Min(0f)]
-    [SerializeField] private float reputationDemandMultiplier = 1f;
 
     [Min(0f)]
     [SerializeField] private float maximumExpectedDailyVisits = 15f;
@@ -110,6 +107,7 @@ public class HobbyAircraftTrafficSpawner : MonoBehaviour
     private long lastObservedGameSeconds = -1;
     private bool initialized;
     private bool previousTestFlightMode;
+    private bool warnedMissingAirportRatingManager;
 
     private void Start()
     {
@@ -493,7 +491,28 @@ public class HobbyAircraftTrafficSpawner : MonoBehaviour
             maximumExpectedDailyVisits
         );
 
-        expectedDailyVisits *= reputationDemandMultiplier;
+        AirportRatingManager ratingManager = AirportRatingManager.Instance;
+        float reputationMultiplier = 1f;
+
+        if (ratingManager != null)
+        {
+            reputationMultiplier = Mathf.Lerp(
+                0.5f,
+                2f,
+                Mathf.Clamp01(ratingManager.AirportRating / 100f)
+            );
+        }
+        else if (!warnedMissingAirportRatingManager)
+        {
+            Debug.LogWarning(
+                "HobbyAircraftTrafficSpawner: AirportRatingManager is missing. " +
+                "Using neutral reputation demand.",
+                this
+            );
+            warnedMissingAirportRatingManager = true;
+        }
+
+        expectedDailyVisits *= reputationMultiplier;
         expectedDailyVisits *= GetTimeOfDayMultiplier();
         expectedDailyVisits *= GetDayOfWeekMultiplier();
         expectedDailyVisits *= GetFeeDemandMultiplier();
