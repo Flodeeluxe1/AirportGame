@@ -30,4 +30,4 @@ MonoBehaviour:
   menuCategory: Office & Staff
   category: 3
   icon: {fileID: 2800000, guid: a3fe7175fd7e5424f98ab726fea6ec4d, type: 3}
-  roomFurnitureRole: 0
+  roomFurnitureRole: 128
