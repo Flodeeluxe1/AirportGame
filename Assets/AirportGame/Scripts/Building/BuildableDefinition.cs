@@ -18,11 +18,13 @@ public enum BuildCategory
 public enum RoomFurnitureRole
 {
     None = 0,
-    InstructorDesk = 1,
     Chair = 2,
-    OfficeDesk = 4,
-    OfficeComputer = 16,
-    OfficePrinter = 32
+    Desk = 4,
+    WallBoard = 8,
+    Computer = 16,
+    Printer = 32,
+    Projector = 64,
+    Book = 128
 }
 
 [CreateAssetMenu(
