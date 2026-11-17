@@ -14,12 +14,14 @@ public class AirportRatingManager : MonoBehaviour
     [Header("Rating Weights")]
     [SerializeField, Min(0f)] private float visitorSatisfactionWeight = 0.75f;
     [SerializeField, Min(0f)] private float environmentWeight = 0.25f;
+    [SerializeField, Min(0.01f)] private float ratingSmoothingTimeSeconds = 30f;
 
     [Header("Runtime Statistics")]
     [SerializeField] private int completedVisitors;
     [SerializeField] private double recordedVisitorHours;
     [SerializeField, Range(0f, 100f)] private float visitorSatisfaction = 50f;
     [SerializeField, Range(0f, 100f)] private float environmentExperience = 50f;
+    [SerializeField, Range(0f, 100f)] private float rawAirportRating = 50f;
     [SerializeField, Range(0f, 100f)] private float airportRating = 50f;
 
     private readonly List<AirportVisitorExperience> activeVisitors =
@@ -38,6 +40,7 @@ public class AirportRatingManager : MonoBehaviour
     public double RecordedVisitorHours => recordedVisitorHours;
     public float VisitorSatisfaction => visitorSatisfaction;
     public float EnvironmentExperience => environmentExperience;
+    public float RawAirportRating => rawAirportRating;
     public float AirportRating => airportRating;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
@@ -107,6 +110,10 @@ public class AirportRatingManager : MonoBehaviour
 
     private void Update()
     {
+        float smoothingTime = Mathf.Max(0.01f, ratingSmoothingTimeSeconds);
+        float alpha = 1f - Mathf.Exp(-Time.unscaledDeltaTime / smoothingTime);
+        airportRating = Mathf.Lerp(airportRating, rawAirportRating, alpha);
+
         int processed = 0;
         while (processed < MaximumVisitorsPerFrame && activeVisitors.Count > 0)
         {
@@ -133,7 +140,7 @@ public class AirportRatingManager : MonoBehaviour
         {
             visitorSatisfaction = 50f;
             environmentExperience = 50f;
-            airportRating = 50f;
+            rawAirportRating = 50f;
             recordedVisitorHours = 0d;
             return;
         }
@@ -145,11 +152,11 @@ public class AirportRatingManager : MonoBehaviour
         float totalWeight = visitorSatisfactionWeight + environmentWeight;
         if (totalWeight <= 0f)
         {
-            airportRating = 50f;
+            rawAirportRating = 50f;
             return;
         }
 
-        airportRating = Mathf.Clamp(
+        rawAirportRating = Mathf.Clamp(
             (visitorSatisfaction * visitorSatisfactionWeight +
              environmentExperience * environmentWeight) / totalWeight,
             0f,
@@ -160,6 +167,7 @@ public class AirportRatingManager : MonoBehaviour
     {
         visitorSatisfactionWeight = Mathf.Max(0f, visitorSatisfactionWeight);
         environmentWeight = Mathf.Max(0f, environmentWeight);
+        ratingSmoothingTimeSeconds = Mathf.Max(0.01f, ratingSmoothingTimeSeconds);
         if (Application.isPlaying)
             RefreshDisplayedRating();
     }
