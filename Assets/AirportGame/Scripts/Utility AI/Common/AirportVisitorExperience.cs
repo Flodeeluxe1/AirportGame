@@ -63,6 +63,14 @@ public class AirportVisitorExperience : MonoBehaviour
 
         ratingManager = AirportRatingManager.RegisterVisitor(this);
         isTracking = ratingManager != null;
+        if (!isTracking)
+        {
+            needs.NeedsChanged -= HandleNeedsChanged;
+            environmentMonitor.ScoreUpdated -= HandleEnvironmentScoreUpdated;
+            Debug.LogWarning(
+                name + ": No active AirportRatingManager found. Add the component to your scene's AirportRatingManager GameObject.",
+                this);
+        }
     }
 
     private void OnDisable()
