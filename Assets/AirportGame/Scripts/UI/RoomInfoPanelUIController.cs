@@ -505,12 +505,14 @@ public class RoomInfoPanelUIController : MonoBehaviour
 
             if ((role & RoomFurnitureRole.Desk) != 0) desks++;
             if ((role & RoomFurnitureRole.Chair) != 0) seats++;
-            if ((role & RoomFurnitureRole.WallBoard) != 0) wallBoards++;
+            // Wall-mounted boards are counted separately from floor furniture.
             if ((role & RoomFurnitureRole.Computer) != 0) computers++;
             if ((role & RoomFurnitureRole.Projector) != 0) projectors++;
             if ((role & RoomFurnitureRole.Book) != 0) books++;
             if ((role & RoomFurnitureRole.Printer) != 0) printers++;
         }
+
+        wallBoards = roomPurposeController.CountWallBoardsOnBoundary(selectedRoom);
 
         bool hasDoor = roomPurposeController.HasDoor(selectedRoom);
 
