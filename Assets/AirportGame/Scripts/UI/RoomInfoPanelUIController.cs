@@ -53,7 +53,7 @@ public class RoomInfoPanelUIController : MonoBehaviour
     private Label roomSizeLabel;
     private Label currentPurposeLabel;
     private DropdownField purposeDropdown;
-    private Label requirementsLabel;
+    private VisualElement requirementsLabel;
     private Label validationLabel;
     private Label assessmentLabel;
 
@@ -218,8 +218,7 @@ public class RoomInfoPanelUIController : MonoBehaviour
 
         AddSectionTitle(scrollView, "Requirements");
 
-        requirementsLabel = CreateLabel("", 13, false);
-        requirementsLabel.style.whiteSpace = WhiteSpace.Normal;
+        requirementsLabel = new VisualElement();
         requirementsLabel.style.marginBottom = 14;
         scrollView.Add(requirementsLabel);
 
@@ -394,111 +393,169 @@ public class RoomInfoPanelUIController : MonoBehaviour
 
     private void UpdateValidationDisplay()
     {
-        if (selectedRoom == null)
-        {
+        if (selectedRoom == null || requirementsLabel == null)
             return;
+
+        requirementsLabel.Clear();
+
+        void AddRequirement(string description, bool fulfilled)
+        {
+            Label row = CreateLabel(
+                (fulfilled ? "✓ " : "✗ ") + description,
+                13,
+                false);
+
+            row.style.color = fulfilled
+                ? new Color(0.35f, 0.85f, 0.48f, 1f)
+                : new Color(1f, 0.35f, 0.35f, 1f);
+
+            row.style.whiteSpace = WhiteSpace.Normal;
+            row.style.marginBottom = 4;
+            requirementsLabel.Add(row);
         }
 
         if (pendingPurpose == RoomPurpose.None)
         {
-            requirementsLabel.text =
-                "No room purpose selected.\n\n" +
-                "Choose a purpose to see its requirements.";
+            Label message = CreateLabel(
+                "No room purpose selected.\nChoose a purpose to see its requirements.",
+                13,
+                false);
+            message.style.whiteSpace = WhiteSpace.Normal;
+            message.style.color = secondaryTextColor;
+            requirementsLabel.Add(message);
 
-            validationLabel.text =
-                "This room has no assigned purpose.";
-
+            validationLabel.text = "This room has no assigned purpose.";
             validationLabel.style.color = secondaryTextColor;
             return;
         }
 
+        if (roomPurposeController == null)
+        {
+            Label message = CreateLabel(
+                "Cannot check requirements: RoomPurposeController is missing.",
+                13,
+                false);
+            message.style.color = new Color(1f, 0.55f, 0.40f, 1f);
+            requirementsLabel.Add(message);
+
+            validationLabel.text = "Room validation is unavailable.";
+            validationLabel.style.color = new Color(1f, 0.55f, 0.40f, 1f);
+            return;
+        }
+
+        HashSet<Vector2Int> roomCells = new HashSet<Vector2Int>(selectedRoom.cells);
+        int desks = 0;
+        int seats = 0;
+        int officeDesks = 0;
+        int chairs = 0;
+        int computers = 0;
+        int printers = 0;
+
+        PlacedBuilding[] placedBuildings = FindObjectsByType<PlacedBuilding>(
+            FindObjectsInactive.Exclude,
+            FindObjectsSortMode.None);
+
+        foreach (PlacedBuilding placed in placedBuildings)
+        {
+            if (placed == null || placed.Definition == null)
+                continue;
+
+            PlacedBuilding building = placed;
+            if (building.IsSurfacePlaced)
+            {
+                building = building.SupportingSurface;
+                if (building == null)
+                    continue;
+            }
+
+            if (building.IsEdgeBuilding)
+                continue;
+
+            bool touchesRoom = false;
+            for (int x = 0; x < Mathf.Max(1, building.Width) && !touchesRoom; x++)
+            {
+                for (int z = 0; z < Mathf.Max(1, building.Depth); z++)
+                {
+                    if (roomCells.Contains(building.Origin + new Vector2Int(x, z)))
+                    {
+                        touchesRoom = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!touchesRoom)
+                continue;
+
+            RoomFurnitureRole role = placed.Definition.roomFurnitureRole;
+
+            if ((role & RoomFurnitureRole.InstructorDesk) != 0) desks++;
+            if ((role & RoomFurnitureRole.Chair) != 0) seats++;
+            if ((role & RoomFurnitureRole.OfficeDesk) != 0) officeDesks++;
+            if ((role & RoomFurnitureRole.Chair) != 0) chairs++;
+            if ((role & RoomFurnitureRole.OfficeComputer) != 0) computers++;
+            if ((role & RoomFurnitureRole.OfficePrinter) != 0) printers++;
+        }
+
+        bool hasDoor = roomPurposeController.HasDoor(selectedRoom);
+
         if (pendingPurpose == RoomPurpose.FlightSchool)
         {
-            requirementsLabel.text =
-                "Flight School requirements:\n" +
-                "• At least 20 foundation cells\n" +
-                "• Fully enclosed by walls or doors\n" +
-                "• At least one door\n" +
-                "• At least one instructor desk\n" +
-                "• At least one student seat\n" +
-                "• Required furniture must be inside this room";
+            AddRequirement(
+                $"At least {roomPurposeController.MinimumFoundationCells} foundation cells ({selectedRoom.CellCount}/{roomPurposeController.MinimumFoundationCells})",
+                selectedRoom.CellCount >= roomPurposeController.MinimumFoundationCells);
+            AddRequirement("Fully enclosed by walls or doors", true);
+            AddRequirement("At least one door", hasDoor);
+            AddRequirement("At least one instructor desk", desks >= 1);
+            AddRequirement("At least one student seat", seats >= 1);
+            AddRequirement("Required furniture inside this room", desks >= 1 && seats >= 1);
 
-            if (roomPurposeController != null)
-            {
-                bool valid =
-                    roomPurposeController.ValidateFlightSchool(
-                        selectedRoom,
-                        out string validationMessage
-                    );
+            bool valid = roomPurposeController.ValidateFlightSchool(
+                selectedRoom, out string validationMessage);
 
-                validationLabel.text = valid
-                    ? "Valid: this room meets the requirements."
-                    : "Not valid yet:\n" + validationMessage;
+            validationLabel.text = valid
+                ? "Valid: this room meets the requirements."
+                : "Not valid yet:\n" + validationMessage;
 
-                validationLabel.style.color = valid
-                    ? new Color(0.35f, 0.85f, 0.48f, 1f)
-                    : new Color(1f, 0.55f, 0.40f, 1f);
-            }
-            else
-            {
-                validationLabel.text =
-                    "Cannot validate: RoomPurposeController is missing.";
-
-                validationLabel.style.color =
-                    new Color(1f, 0.55f, 0.40f, 1f);
-            }
+            validationLabel.style.color = valid
+                ? new Color(0.35f, 0.85f, 0.48f, 1f)
+                : new Color(1f, 0.55f, 0.40f, 1f);
         }
         else if (pendingPurpose == RoomPurpose.CEOOffice ||
                  pendingPurpose == RoomPurpose.CFOOffice)
         {
-            requirementsLabel.text =
-                pendingPurpose == RoomPurpose.CEOOffice
-                    ? "CEO Office requirements:\\n"
-                    : "CFO Office requirements:\\n";
+            AddRequirement("Fully enclosed room", true);
+            AddRequirement("At least one door", hasDoor);
+            AddRequirement("One desk or office table", officeDesks >= 1);
+            AddRequirement("One chair", chairs >= 1);
+            AddRequirement("One computer", computers >= 1);
+            AddRequirement("One printer", printers >= 1);
+            AddRequirement(
+                "Required furniture inside this room",
+                officeDesks >= 1 && chairs >= 1 && computers >= 1 && printers >= 1);
 
-            requirementsLabel.text +=
-                "• Fully enclosed room\\n" +
-                "• At least one door\\n" +
-                "• One desk or office table\\n" +
-                "• One chair\\n" +
-                "• One computer\\n" +
-                "• One printer\\n" +
-                "• Required furniture must be inside this room";
+            bool valid = roomPurposeController.ValidateOffice(
+                selectedRoom, out string validationMessage);
 
-            if (roomPurposeController != null)
-            {
-                bool valid =
-                    roomPurposeController.ValidateOffice(
-                        selectedRoom,
-                        out string validationMessage
-                    );
+            validationLabel.text = valid
+                ? "Functional: this office meets all requirements."
+                : "Not functional yet:\n" + validationMessage;
 
-                validationLabel.text = valid
-                    ? "Functional: this office meets all requirements."
-                    : "Not functional yet:\\n" + validationMessage;
-
-                validationLabel.style.color = valid
-                    ? new Color(0.35f, 0.85f, 0.48f, 1f)
-                    : new Color(1f, 0.55f, 0.40f, 1f);
-            }
-            else
-            {
-                validationLabel.text =
-                    "Cannot validate: RoomPurposeController is missing.";
-
-                validationLabel.style.color =
-                    new Color(1f, 0.55f, 0.40f, 1f);
-            }
+            validationLabel.style.color = valid
+                ? new Color(0.35f, 0.85f, 0.48f, 1f)
+                : new Color(1f, 0.55f, 0.40f, 1f);
         }
         else
         {
-            requirementsLabel.text =
-                "No validation requirements have been configured for " +
-                pendingPurpose + " yet.";
+            Label message = CreateLabel(
+                $"No validation requirements have been configured for {pendingPurpose} yet.",
+                13,
+                false);
+            message.style.color = secondaryTextColor;
+            message.style.whiteSpace = WhiteSpace.Normal;
+            requirementsLabel.Add(message);
 
-            validationLabel.text =
-                "Validation for this purpose is not implemented yet.";
-
+            validationLabel.text = "Validation for this purpose is not implemented yet.";
             validationLabel.style.color = secondaryTextColor;
         }
     }
