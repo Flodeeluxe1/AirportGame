@@ -28,6 +28,15 @@ public class PilotWanderingController : MonoBehaviour
     [Header("Foundation Entry")]
     [SerializeField] private bool enterFoundationWhenOutside = true;
 
+    [Header("Room Preferences")]
+    [Tooltip("Relative chance multiplier for wandering destinations inside a Pilots Lounge.")]
+    [Min(1f)]
+    [SerializeField] private float loungeDestinationWeight = 2f;
+
+    [Tooltip("Additional multiplier for lounge destinations while the pilot is already inside the lounge.")]
+    [Min(1f)]
+    [SerializeField] private float loungeStayWeight = 2f;
+
     [Header("Timing (In-Game Seconds)")]
     [Min(1)]
     [SerializeField] private int minimumIdleIntervalSeconds = 20;
@@ -66,6 +75,7 @@ public class PilotWanderingController : MonoBehaviour
     private GridManager gridManager;
     private GridSurface gridSurface;
     private PedestrianPathfinder pathfinder;
+    private RoomPurposeController roomPurposeController;
     private GameTimeManager gameTimeManager;
     private bool subscribedToGameTime;
     private bool waitingAtDestination;
@@ -83,6 +93,7 @@ public class PilotWanderingController : MonoBehaviour
         needs = GetComponent<UtilityNeeds>();
         movement = GetComponent<PedestrianMovementController>();
         interactionController = GetComponent<PilotInteractionController>();
+        roomPurposeController = FindFirstObjectByType<RoomPurposeController>();
         ResolveWorldReferences();
         ResolveGameTimeManager();
     }
@@ -288,6 +299,18 @@ public class PilotWanderingController : MonoBehaviour
 
         Vector2Int origin = gridManager.WorldToGrid(transform.position);
 
+        if (roomPurposeController == null)
+            roomPurposeController = FindFirstObjectByType<RoomPurposeController>();
+
+        bool currentlyInsideLounge = roomPurposeController != null &&
+            roomPurposeController.IsPositionInPilotsLounge(transform.position);
+
+        float loungeWeight = Mathf.Max(1f, loungeDestinationWeight);
+        float stayWeight = currentlyInsideLounge
+            ? Mathf.Max(1f, loungeStayWeight)
+            : 1f;
+        float maximumCandidateWeight = loungeWeight * stayWeight;
+
         for (int attempt = 0; attempt < destinationSearchAttempts; attempt++)
         {
             int radius = Random.Range(minimumRadiusCells, maximumRadiusCells + 1);
@@ -308,6 +331,18 @@ public class PilotWanderingController : MonoBehaviour
 
             Vector3 destination = gridManager.GridToWorldCenter(candidateCell);
             destination.y = transform.position.y;
+
+            bool candidateInsideLounge = roomPurposeController != null &&
+                roomPurposeController.IsPositionInPilotsLounge(destination);
+
+            float candidateWeight = candidateInsideLounge
+                ? loungeWeight * stayWeight
+                : 1f;
+
+            // Weighted rejection sampling biases the random destinations without
+            // changing the pathfinder or adding extra path searches.
+            if (Random.value > candidateWeight / maximumCandidateWeight)
+                continue;
 
             // MoveTo performs the authoritative path search. Avoid calculating
             // the same route once for estimation and again for movement.
@@ -481,6 +516,8 @@ public class PilotWanderingController : MonoBehaviour
         maximumRadiusCells = Mathf.Max(minimumRadiusCells, maximumRadiusCells);
         destinationSearchAttempts = Mathf.Max(1, destinationSearchAttempts);
         maximumFoundationPathAttempts = Mathf.Max(1, maximumFoundationPathAttempts);
+        loungeDestinationWeight = Mathf.Max(1f, loungeDestinationWeight);
+        loungeStayWeight = Mathf.Max(1f, loungeStayWeight);
         minimumIdleIntervalSeconds = Mathf.Max(1, minimumIdleIntervalSeconds);
         maximumIdleIntervalSeconds = Mathf.Max(minimumIdleIntervalSeconds, maximumIdleIntervalSeconds);
         minimumPauseSeconds = Mathf.Max(1, minimumPauseSeconds);
