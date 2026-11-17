@@ -109,7 +109,8 @@ public class AirportPassengerRevenueManager : MonoBehaviour
         if (revenueAmount > 0 &&
             !economy.AddRevenue(
                 revenueAmount,
-                $"Passenger flight {identity.FlightNumber} ticket sales and airport fee"))
+                $"Passenger flight {identity.FlightNumber} ticket sales and airport fee",
+                AirportFinancialCategory.PassengerRevenue))
         {
             Debug.LogError(
                 $"Could not add ${revenueAmount} to the airport balance. " +
