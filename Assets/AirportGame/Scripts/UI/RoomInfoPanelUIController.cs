@@ -529,8 +529,6 @@ public class RoomInfoPanelUIController : MonoBehaviour
             AddRequirement("One chair", chairs >= 1);
             AddRequirement("One computer", computers >= 1);
             AddRequirement("One printer", printers >= 1);
-            AddRequirement(
-                officeDesks >= 1 && chairs >= 1 && computers >= 1 && printers >= 1);
 
             bool valid = roomPurposeController.ValidateOffice(
                 selectedRoom, out string validationMessage);
