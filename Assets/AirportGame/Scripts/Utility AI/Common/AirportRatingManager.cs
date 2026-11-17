@@ -3,7 +3,7 @@ using UnityEngine;
 
 /// <summary>
 /// Session-wide airport rating built from the time-weighted experiences of
-/// active and completed visitors. Created automatically when the first visitor registers.
+/// active and completed visitors. Add this component to a scene GameObject manually.
 /// </summary>
 [DisallowMultipleComponent]
 public class AirportRatingManager : MonoBehaviour
@@ -49,12 +49,29 @@ public class AirportRatingManager : MonoBehaviour
         instance = null;
     }
 
+    private void OnEnable()
+    {
+        if (instance != null && instance != this)
+        {
+            Debug.LogError("Only one AirportRatingManager may be active in the scene.", this);
+            enabled = false;
+            return;
+        }
+
+        instance = this;
+    }
+
     public static AirportRatingManager RegisterVisitor(AirportVisitorExperience visitor)
     {
         if (visitor == null)
             return null;
 
-        EnsureInstance();
+        if (instance == null)
+            instance = FindFirstObjectByType<AirportRatingManager>();
+
+        if (instance == null || !instance.isActiveAndEnabled)
+            return null;
+
         if (instance.registeredVisitors.Add(visitor))
             instance.activeVisitors.Add(visitor);
 
@@ -96,16 +113,6 @@ public class AirportRatingManager : MonoBehaviour
         environmentSeconds += clampedEnvironment * elapsedGameSeconds;
 
         RefreshDisplayedRating();
-    }
-
-    private static void EnsureInstance()
-    {
-        if (instance != null)
-            return;
-
-        GameObject managerObject = new GameObject("Airport Rating Manager");
-        DontDestroyOnLoad(managerObject);
-        instance = managerObject.AddComponent<AirportRatingManager>();
     }
 
     private void Update()
