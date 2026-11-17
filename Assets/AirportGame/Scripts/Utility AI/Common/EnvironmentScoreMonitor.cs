@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 /// <summary>
@@ -26,6 +27,8 @@ public class EnvironmentScoreMonitor : MonoBehaviour
     private float lastSmoothingTime;
     private bool hasSample;
 
+    public event Action<float, float> ScoreUpdated;
+
     public float RawEnvironmentScore => rawEnvironmentScore;
     public float SmoothedEnvironmentScore => smoothedEnvironmentScore;
 
@@ -48,21 +51,29 @@ public class EnvironmentScoreMonitor : MonoBehaviour
         int currentVersion = EnvironmentScoreCalculator.Version;
         float threshold = Mathf.Max(0.1f, movementThreshold);
 
-        if (hasSample && currentVersion == lastEnvironmentVersion &&
-            (currentPosition - lastSampledPosition).sqrMagnitude < threshold * threshold)
-            return;
+        bool needsRawRefresh = !hasSample ||
+            currentVersion != lastEnvironmentVersion ||
+            (currentPosition - lastSampledPosition).sqrMagnitude >= threshold * threshold;
 
-        RefreshScore(currentPosition, currentVersion);
+        RefreshScore(currentPosition, currentVersion, needsRawRefresh);
     }
 
     public void RefreshNow()
     {
-        RefreshScore(transform.position, EnvironmentScoreCalculator.Version);
+        RefreshScore(transform.position, EnvironmentScoreCalculator.Version, true);
     }
 
-    private void RefreshScore(Vector3 position, int environmentVersion)
+    private void RefreshScore(Vector3 position, int environmentVersion, bool refreshRawScore)
     {
-        rawEnvironmentScore = EnvironmentScoreCalculator.CalculateScore(position);
+        float previousRawScore = rawEnvironmentScore;
+        float previousSmoothedScore = smoothedEnvironmentScore;
+
+        if (refreshRawScore)
+        {
+            rawEnvironmentScore = EnvironmentScoreCalculator.CalculateScore(position);
+            lastSampledPosition = position;
+            lastEnvironmentVersion = environmentVersion;
+        }
 
         float now = Time.unscaledTime;
         if (!hasSample)
@@ -80,8 +91,12 @@ public class EnvironmentScoreMonitor : MonoBehaviour
         }
 
         lastSmoothingTime = now;
-        lastSampledPosition = position;
-        lastEnvironmentVersion = environmentVersion;
+
+        if (!Mathf.Approximately(previousRawScore, rawEnvironmentScore) ||
+            !Mathf.Approximately(previousSmoothedScore, smoothedEnvironmentScore))
+        {
+            ScoreUpdated?.Invoke(rawEnvironmentScore, smoothedEnvironmentScore);
+        }
     }
 
     private void OnValidate()
