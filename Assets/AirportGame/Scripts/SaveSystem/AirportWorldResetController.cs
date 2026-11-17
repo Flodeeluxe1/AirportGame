@@ -323,6 +323,7 @@ public class AirportWorldResetController : MonoBehaviour
             gameTimeSeconds = gameTimeManager.GetGameTimeSeconds(),
             gameSpeedMultiplier = gameTimeManager.CurrentSpeedMultiplier,
             balance = economyManager.Balance,
+            financialTransactions = economyManager.GetTransactionsForSave(),
             hasCustomAirportFees = airportManagementController != null,
             airportFeeSettings = airportManagementController != null
                 ? airportManagementController.GetCustomFeeSettingsForSave()
@@ -1103,6 +1104,7 @@ public class AirportWorldResetController : MonoBehaviour
             Mathf.RoundToInt(data.gameSpeedMultiplier));
 
         economyManager.RestoreBalanceFromSave(data.balance);
+        economyManager.RestoreTransactionsFromSave(data.financialTransactions);
 
         // Refresh the gate registry against the restored airport and then
         // replace the active schedule with this slot's saved schedule.
