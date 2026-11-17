@@ -316,9 +316,11 @@ public class RoomPurposeController : MonoBehaviour
         {
             bool removed = assignments.Remove(anchor);
             if (removed)
+            {
                 roomEnvironmentCacheDirty = true;
                 EnvironmentScoreCalculator.NotifyRoomEnvironmentChanged();
                 AssignmentsChanged?.Invoke();
+            }
 
             Debug.Log($"Room at {anchor} has no assigned purpose.");
             return;
@@ -333,9 +335,11 @@ public class RoomPurposeController : MonoBehaviour
         assignments[anchor] = purpose;
 
         if (assignmentChanged)
+        {
             roomEnvironmentCacheDirty = true;
-                EnvironmentScoreCalculator.NotifyRoomEnvironmentChanged();
-                AssignmentsChanged?.Invoke();
+            EnvironmentScoreCalculator.NotifyRoomEnvironmentChanged();
+            AssignmentsChanged?.Invoke();
+        }
 
         if (purpose == RoomPurpose.FlightSchool)
         {
@@ -396,9 +400,11 @@ public class RoomPurposeController : MonoBehaviour
         assignments.Clear();
 
         if (hadAssignments)
+        {
             roomEnvironmentCacheDirty = true;
-                EnvironmentScoreCalculator.NotifyRoomEnvironmentChanged();
-                AssignmentsChanged?.Invoke();
+            EnvironmentScoreCalculator.NotifyRoomEnvironmentChanged();
+            AssignmentsChanged?.Invoke();
+        }
 
         previousClickCell = Vector2Int.zero;
         previousClickTime = -10f;
@@ -519,9 +525,11 @@ public class RoomPurposeController : MonoBehaviour
         }
 
         if (hadAssignments || restoredCount > 0)
+        {
             roomEnvironmentCacheDirty = true;
-                EnvironmentScoreCalculator.NotifyRoomEnvironmentChanged();
-                AssignmentsChanged?.Invoke();
+            EnvironmentScoreCalculator.NotifyRoomEnvironmentChanged();
+            AssignmentsChanged?.Invoke();
+        }
 
         Debug.Log(
             $"RoomPurposeController: Restored {restoredCount} of " +
