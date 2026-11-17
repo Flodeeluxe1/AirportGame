@@ -548,8 +548,8 @@ public class RoomInfoPanelUIController : MonoBehaviour
         {
             AddRequirement("Fully enclosed room", true);
             AddRequirement("At least one door", hasDoor);
-            AddRequirement("One desk or office table", officeDesks >= 1);
-            AddRequirement("One chair", chairs >= 1);
+            AddRequirement("One desk or office table", desks >= 1);
+            AddRequirement("One chair", seats >= 1);
             AddRequirement("One computer", computers >= 1);
             AddRequirement("One printer", printers >= 1);
 
