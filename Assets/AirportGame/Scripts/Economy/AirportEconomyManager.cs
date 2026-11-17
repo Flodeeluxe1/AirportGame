@@ -14,6 +14,8 @@ public enum AirportFinancialCategory
     ParkingFees,
     AircraftCleaning,
     PassengerRevenue,
+    SightseeingFlights,
+    FuelSales,
     FlightSchool
 }
 
