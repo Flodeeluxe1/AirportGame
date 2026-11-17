@@ -7,7 +7,14 @@ public enum RoomPurpose
     None,
     FlightSchool,
     CEOOffice,
-    CFOOffice
+    CFOOffice,
+    PilotsLounge
+}
+
+public enum RoomEnvironmentEffectMode
+{
+    Additive,
+    SetTo100
 }
 
 public class RoomPurposeController : MonoBehaviour
@@ -26,11 +33,21 @@ public class RoomPurposeController : MonoBehaviour
     [Header("Flight School Rules")]
     [SerializeField, Min(1)] private int minimumFoundationCells = 20;
 
+    [Header("Pilots Lounge Environment")]
+    [SerializeField] private RoomEnvironmentEffectMode pilotsLoungeEnvironmentMode =
+        RoomEnvironmentEffectMode.Additive;
+    [SerializeField, Range(0f, 100f)] private float pilotsLoungeEnvironmentBonus = 25f;
+
     [Header("Input")]
     [SerializeField, Min(0.1f)] private float doubleClickSeconds = 0.35f;
 
     private readonly Dictionary<Vector2Int, RoomPurpose> assignments =
         new Dictionary<Vector2Int, RoomPurpose>();
+
+    private readonly Dictionary<Vector2Int, RoomPurpose> roomPurposeByCell =
+        new Dictionary<Vector2Int, RoomPurpose>();
+
+    private bool roomEnvironmentCacheDirty = true;
 
     private Vector2Int previousClickCell;
     private float previousClickTime = -10f;
@@ -40,6 +57,74 @@ public class RoomPurposeController : MonoBehaviour
     private void Awake()
     {
         ResolveReferences();
+    }
+
+    private void OnEnable()
+    {
+        ResolveReferences();
+
+        if (roomDetection != null)
+            roomDetection.RoomsChanged += HandleRoomLayoutChanged;
+    }
+
+    private void OnDisable()
+    {
+        if (roomDetection != null)
+            roomDetection.RoomsChanged -= HandleRoomLayoutChanged;
+    }
+
+    private void HandleRoomLayoutChanged()
+    {
+        roomEnvironmentCacheDirty = true;
+        EnvironmentScoreCalculator.NotifyRoomEnvironmentChanged();
+    }
+
+    public float ApplyRoomEnvironmentEffect(Vector3 worldPosition, float score)
+    {
+        ResolveReferences();
+
+        if (gridManager == null || roomDetection == null)
+            return score;
+
+        roomDetection.RefreshRooms();
+
+        if (roomEnvironmentCacheDirty)
+            RebuildRoomEnvironmentCache();
+
+        Vector2Int cell = gridManager.WorldToGrid(worldPosition);
+
+        if (!roomPurposeByCell.TryGetValue(cell, out RoomPurpose purpose) ||
+            purpose != RoomPurpose.PilotsLounge)
+        {
+            return score;
+        }
+
+        if (pilotsLoungeEnvironmentMode == RoomEnvironmentEffectMode.SetTo100)
+            return 100f;
+
+        return Mathf.Clamp(score + pilotsLoungeEnvironmentBonus, 0f, 100f);
+    }
+
+    private void RebuildRoomEnvironmentCache()
+    {
+        roomPurposeByCell.Clear();
+
+        if (roomDetection != null)
+        {
+            foreach (RoomDetectionController.DetectedRoom room in roomDetection.Rooms)
+            {
+                if (room == null || room.cells == null ||
+                    GetAssignedPurpose(room) != RoomPurpose.PilotsLounge)
+                {
+                    continue;
+                }
+
+                foreach (Vector2Int cell in room.cells)
+                    roomPurposeByCell[cell] = RoomPurpose.PilotsLounge;
+            }
+        }
+
+        roomEnvironmentCacheDirty = false;
     }
 
     private void Update()
@@ -231,6 +316,8 @@ public class RoomPurposeController : MonoBehaviour
         {
             bool removed = assignments.Remove(anchor);
             if (removed)
+                roomEnvironmentCacheDirty = true;
+                EnvironmentScoreCalculator.NotifyRoomEnvironmentChanged();
                 AssignmentsChanged?.Invoke();
 
             Debug.Log($"Room at {anchor} has no assigned purpose.");
@@ -246,7 +333,9 @@ public class RoomPurposeController : MonoBehaviour
         assignments[anchor] = purpose;
 
         if (assignmentChanged)
-            AssignmentsChanged?.Invoke();
+            roomEnvironmentCacheDirty = true;
+                EnvironmentScoreCalculator.NotifyRoomEnvironmentChanged();
+                AssignmentsChanged?.Invoke();
 
         if (purpose == RoomPurpose.FlightSchool)
         {
@@ -307,7 +396,9 @@ public class RoomPurposeController : MonoBehaviour
         assignments.Clear();
 
         if (hadAssignments)
-            AssignmentsChanged?.Invoke();
+            roomEnvironmentCacheDirty = true;
+                EnvironmentScoreCalculator.NotifyRoomEnvironmentChanged();
+                AssignmentsChanged?.Invoke();
 
         previousClickCell = Vector2Int.zero;
         previousClickTime = -10f;
@@ -330,6 +421,8 @@ public class RoomPurposeController : MonoBehaviour
         if (roomDetection == null)
         {
             if (hadAssignments)
+                roomEnvironmentCacheDirty = true;
+                EnvironmentScoreCalculator.NotifyRoomEnvironmentChanged();
                 AssignmentsChanged?.Invoke();
 
             Debug.LogWarning(
@@ -343,6 +436,8 @@ public class RoomPurposeController : MonoBehaviour
         if (savedAssignments == null || savedAssignments.Count == 0)
         {
             if (hadAssignments)
+                roomEnvironmentCacheDirty = true;
+                EnvironmentScoreCalculator.NotifyRoomEnvironmentChanged();
                 AssignmentsChanged?.Invoke();
 
             Debug.Log(
@@ -424,7 +519,9 @@ public class RoomPurposeController : MonoBehaviour
         }
 
         if (hadAssignments || restoredCount > 0)
-            AssignmentsChanged?.Invoke();
+            roomEnvironmentCacheDirty = true;
+                EnvironmentScoreCalculator.NotifyRoomEnvironmentChanged();
+                AssignmentsChanged?.Invoke();
 
         Debug.Log(
             $"RoomPurposeController: Restored {restoredCount} of " +
@@ -496,6 +593,26 @@ public class RoomPurposeController : MonoBehaviour
         }
 
         return ValidateFurnitureCounts(desks, seats, out reason);
+    }
+
+    public bool ValidatePilotsLounge(
+        RoomDetectionController.DetectedRoom room,
+        out string reason)
+    {
+        if (room == null || room.cells == null || room.cells.Count == 0)
+        {
+            reason = "Room was not detected.";
+            return false;
+        }
+
+        if (!HasDoor(room))
+        {
+            reason = "Needs at least one door on its boundary.";
+            return false;
+        }
+
+        reason = "";
+        return true;
     }
 
     public bool ValidateOffice(
