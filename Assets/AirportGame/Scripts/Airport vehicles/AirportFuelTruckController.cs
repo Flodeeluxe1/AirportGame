@@ -541,7 +541,8 @@ public class AirportFuelTruckController : MonoBehaviour
         bool paymentRecorded = airportFees != null &&
             airportFees.RecordCharge(
                 totalCost,
-                $"CargoPax aircraft fuel sale and service fee ({job.Aircraft?.name ?? "aircraft"})");
+                $"CargoPax aircraft fuel sale and service fee ({job.Aircraft?.name ?? "aircraft"})",
+                AirportFinancialCategory.FuelSales);
 
         if (paymentRecorded)
         {
