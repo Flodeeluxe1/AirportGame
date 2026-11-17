@@ -89,8 +89,12 @@ public class PilotSocialSeatingController : MonoBehaviour
         ResolveGameTimeManager();
     }
 
+    private bool preparingForDeparture;
+
     private void OnEnable()
     {
+        preparingForDeparture = false;
+
         if (movement == null)
             movement = GetComponent<PedestrianMovementController>();
 
@@ -116,7 +120,19 @@ public class PilotSocialSeatingController : MonoBehaviour
             gameTimeManager.GameTimeAdvanced -= HandleGameTimeAdvanced;
 
         subscribedToGameTime = false;
-        CancelSocializing("Seated conversation interrupted");
+
+        if (!preparingForDeparture)
+            CancelSocializing("Seated conversation interrupted");
+    }
+
+    /// <summary>
+    /// Ends a seated conversation cleanly when the pilot's aircraft begins departure.
+    /// The departure controller takes over movement immediately afterwards.
+    /// </summary>
+    public void PrepareForDeparture()
+    {
+        preparingForDeparture = true;
+        CancelSocializing("Departure sequence started");
     }
 
     private void Update()
@@ -522,6 +538,14 @@ public class PilotSocialSeatingController : MonoBehaviour
             other.entertainmentSatisfactionAmount);
         other.needs.SatisfyNeed(UtilityNeeds.NeedType.Boredom,
             other.boredomSatisfactionAmount);
+
+        // Return both pilots to reachable approach points before freeing the seats.
+        // Their AnimationPoints may be inside blocked building footprints.
+        if (reservedSeatProvider != null && movement != null)
+            movement.AlignToInteractionPoint(reservedSeatProvider);
+
+        if (other.reservedSeatProvider != null && other.movement != null)
+            other.movement.AlignToInteractionPoint(other.reservedSeatProvider);
 
         ReleaseSeatReservations();
         other.ReleaseSeatReservations();
