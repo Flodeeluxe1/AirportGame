@@ -414,6 +414,19 @@ public class RoomInfoPanelUIController : MonoBehaviour
             requirementsLabel.Add(row);
         }
 
+        void AddOptionalRequirement(string description, bool present)
+        {
+            Label row = CreateLabel(
+                (present ? "✓ " : "○ ") + description + " (optional)",
+                13,
+                false);
+
+            row.style.color = new Color(1f, 0.82f, 0.2f, 1f);
+            row.style.whiteSpace = WhiteSpace.Normal;
+            row.style.marginBottom = 4;
+            requirementsLabel.Add(row);
+        }
+
         if (pendingPurpose == RoomPurpose.None)
         {
             Label message = CreateLabel(
@@ -446,9 +459,10 @@ public class RoomInfoPanelUIController : MonoBehaviour
         HashSet<Vector2Int> roomCells = new HashSet<Vector2Int>(selectedRoom.cells);
         int desks = 0;
         int seats = 0;
-        int officeDesks = 0;
-        int chairs = 0;
+        int wallBoards = 0;
         int computers = 0;
+        int projectors = 0;
+        int books = 0;
         int printers = 0;
 
         PlacedBuilding[] placedBuildings = FindObjectsByType<PlacedBuilding>(
@@ -489,12 +503,13 @@ public class RoomInfoPanelUIController : MonoBehaviour
 
             RoomFurnitureRole role = placed.Definition.roomFurnitureRole;
 
-            if ((role & RoomFurnitureRole.InstructorDesk) != 0) desks++;
+            if ((role & RoomFurnitureRole.Desk) != 0) desks++;
             if ((role & RoomFurnitureRole.Chair) != 0) seats++;
-            if ((role & RoomFurnitureRole.OfficeDesk) != 0) officeDesks++;
-            if ((role & RoomFurnitureRole.Chair) != 0) chairs++;
-            if ((role & RoomFurnitureRole.OfficeComputer) != 0) computers++;
-            if ((role & RoomFurnitureRole.OfficePrinter) != 0) printers++;
+            if ((role & RoomFurnitureRole.WallBoard) != 0) wallBoards++;
+            if ((role & RoomFurnitureRole.Computer) != 0) computers++;
+            if ((role & RoomFurnitureRole.Projector) != 0) projectors++;
+            if ((role & RoomFurnitureRole.Book) != 0) books++;
+            if ((role & RoomFurnitureRole.Printer) != 0) printers++;
         }
 
         bool hasDoor = roomPurposeController.HasDoor(selectedRoom);
@@ -506,8 +521,14 @@ public class RoomInfoPanelUIController : MonoBehaviour
                 selectedRoom.CellCount >= roomPurposeController.MinimumFoundationCells);
             AddRequirement("Fully enclosed by walls or doors", true);
             AddRequirement("At least one door", hasDoor);
-            AddRequirement("At least one instructor desk", desks >= 1);
-            AddRequirement("At least one student seat", seats >= 1);
+            AddRequirement("At least one desk", desks >= 1);
+            AddRequirement("At least one chair", seats >= 1);
+            AddRequirement("At least one wall board", wallBoards >= 1);
+
+            AddOptionalRequirement("PC", computers > 0);
+            AddOptionalRequirement("Projector", projectors > 0);
+            AddOptionalRequirement("Book", books > 0);
+            AddOptionalRequirement("Printer", printers > 0);
 
             bool valid = roomPurposeController.ValidateFlightSchool(
                 selectedRoom, out string validationMessage);
