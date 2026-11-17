@@ -1,0 +1,542 @@
+AIRPORT GAME
+PLAYER MANUAL
+Early Access – implemented mechanics
+
+This manual explains the gameplay systems currently implemented in the project.
+The game is still in development. Some systems are more complete than others.
+Values described as defaults can be changed during development and balancing.
+
+============================================================
+1. GAME TIME
+============================================================
+
+The airport runs on an adjustable game clock.
+You can pause the simulation.
+You can run it at normal speed, 10x, 100x or 1,000x speed.
+
+Most aircraft schedules, visitor needs, waiting times and service tasks use game time.
+Higher simulation speed makes these systems progress faster.
+Pausing stops game-time-based processes.
+
+============================================================
+2. BUILDING YOUR AIRPORT
+============================================================
+
+The airport is built on a grid.
+Most buildings occupy one or more grid cells.
+Some objects are placed along walls.
+Other objects can be placed on top of supporting furniture.
+
+You can place, rotate, move and delete buildings.
+The build menu groups objects by category.
+Each buildable has its own construction cost.
+A cost of zero means the object is free.
+
+You can create foundations and tarmac areas.
+Grass, foundation and tarmac are walkable by pedestrians.
+Runways and taxiways are not pedestrian walkways.
+Buildings marked as pathfinding obstacles block pedestrian movement.
+Walls block movement across their edge.
+Doors allow pedestrians to pass through that edge.
+
+You can build walls and place doors in them.
+Enclosed foundation areas are detected as rooms.
+A room needs walls or doors along its complete outer boundary.
+A door is required for the room purposes that need an entrance.
+
+Roads connect to neighbouring road tiles.
+The road system automatically creates straight sections, corners and junctions.
+Airport service vehicles use the road network to travel around the airport.
+
+Taxiways connect runways to aircraft parking and gates.
+Taxiway placement has width and surface requirements.
+Aircraft use the taxiway network to find routes.
+The route finder prefers suitable, direct routes.
+Aircraft slow down and follow smooth turns.
+
+Runways are used for landing and takeoff.
+Runway and taxiway placement registers the ground-movement area.
+Aircraft cannot use a runway or taxiway that does not provide a valid route.
+
+You can apply floor finishes to foundation cells.
+You can apply wall finishes to the inner and outer faces of walls.
+Finishes change the appearance of the airport.
+They do not currently change room quality or visitor needs.
+
+You can connect fuel pipes to fuel-related buildings.
+Connected pipe sections form a shared fuel network.
+Storage tanks connected to the same network contribute to its capacity.
+
+============================================================
+3. ROOMS AND AIRPORT MANAGEMENT
+============================================================
+
+You can assign a purpose to a detected room.
+The room information panel shows its requirements and whether it is functional.
+
+CEO OFFICE
+A CEO Office needs:
+- At least one office desk.
+- At least one chair.
+- At least one computer.
+- At least one printer.
+- At least one door.
+
+A valid CEO Office makes the airport operational.
+New scheduled aircraft arrivals and new hobby aircraft arrivals require it.
+If the office becomes invalid, new arrivals are disabled.
+Aircraft already operating are handled by their own flight systems.
+
+CFO OFFICE
+A CFO Office needs the same basic office furniture:
+- At least one office desk.
+- At least one chair.
+- At least one computer.
+- At least one printer.
+- At least one door.
+
+A valid CFO Office unlocks custom airport fees.
+Without a valid CFO Office, aircraft use their default fee profiles.
+
+FLIGHT SCHOOL
+A Flight School needs:
+- At least 20 foundation cells.
+- At least one door.
+- At least one instructor desk.
+- At least one chair.
+
+The room's quality depends on its area, student seats and instructor desks.
+
+Area quality:
+- Fewer than 20 cells: 0 points.
+- 20–29 cells: 10 points.
+- 30–39 cells: 20 points.
+- 40–59 cells: 30 points.
+- 60 or more cells: 40 points.
+
+Student seating quality:
+- No seats: 0 points.
+- 1 seat: 10 points.
+- 2–3 seats: 20 points.
+- 4–5 seats: 30 points.
+- 6 or more seats: 40 points.
+
+Instructor desk quality:
+- No instructor desk: 0 points.
+- 1 instructor desk: 10 points.
+- 2 or more instructor desks: 20 points.
+
+Facility Quality Score = Area Points + Seating Points + Desk Points.
+
+The score determines daily student demand:
+- Below 20 points: 0 students per day.
+- 20–39 points: up to 2 students per day.
+- 40–59 points: up to 4 students per day.
+- 60–79 points: up to 6 students per day.
+- 80 points or more: up to 8 students per day.
+
+Daily demand cannot exceed the number of student seats.
+Flight School operates from 08:00 until 18:00.
+A training aircraft waits 30 game minutes before its first lesson.
+It also waits 30 game minutes between completed lessons.
+A lesson consists of five training circuits.
+Each completed lesson rewards the airport with $300.
+
+PILOTS LOUNGE
+A Pilots Lounge needs a detected room and at least one door.
+You can choose how it affects the room's environment:
+- Additive mode adds an environment bonus. The default bonus is 25 points.
+- Set To 100 mode sets the environment score inside the lounge to 100.
+
+The lounge effect applies only inside the assigned room.
+The room must remain enclosed and have a valid door.
+
+============================================================
+4. AIRCRAFT AND FLIGHT OPERATIONS
+============================================================
+
+The airport supports several aircraft operation types.
+These include hobby aircraft, training aircraft, sightseeing aircraft, cargo aircraft and passenger aircraft.
+
+SCHEDULED FLIGHTS
+Scheduled flights use the airport flight schedule.
+A flight has a flight number, an arrival time and a gate assignment.
+The airport checks that the assigned gate is suitable and reachable.
+If a suitable route or gate is not available, the aircraft waits for another attempt.
+A valid CEO Office is required for new scheduled arrivals.
+
+LANDING AND TAKEOFF
+Aircraft select a suitable runway based on weather and traffic.
+Wind direction affects headwind and crosswind.
+The systems prefer runways with acceptable crosswind.
+Traffic and route availability also influence runway selection.
+
+The default maximum permitted crosswind component is 15 knots.
+If crosswind is too strong during the landing flare, the aircraft can go around.
+A go-around means the aircraft climbs away and tries again later.
+
+Aircraft taxi between runways, taxiways, parking areas and gates.
+The ground traffic controller monitors shared taxiway sections and intersections.
+Aircraft may be held at a holding point until the route is clear.
+Runway reservations prevent conflicting landings, line-ups and departures.
+A runway remains occupied until the aircraft has physically cleared it.
+
+HOBBY AIRCRAFT VISITORS
+Hobby aircraft arrive according to airport demand.
+The airport checks for a possible visitor every 15 game minutes by default.
+A free grass parking spot and a usable runway are required.
+The number of active hobby aircraft is limited by the spawner setting.
+
+The base expected daily demand is calculated as:
+
+Base Demand =
+1.5
++ (0.85 × number of grass parking spots)
++ (0.5 × number of runways beyond the first)
+
+The result is capped at 15 expected visits per day before demand modifiers.
+
+Demand is then influenced by:
+- Airport rating: 0 rating gives 0.5x demand; 100 rating gives 2x.
+- Time of day: daytime 1.0x, dawn/dusk 0.5x, night 0.1x.
+- Weekend: 1.25x by default.
+- Available aircraft fuel station: 1.5x by default.
+- Landing and parking fees: higher fees reduce demand.
+
+The reputation multiplier is:
+0.5 + (Airport Rating / 100 × 1.5).
+
+The fee multiplier is:
+1 / (1 + landing fee × 0.001 + parking fee × 0.001).
+
+The final expected daily demand is divided by the number of demand checks per day.
+That gives the probability of an arrival at each check.
+The probability is limited to a maximum of 100%.
+
+When a hobby aircraft parks, its visit timer starts.
+The default visit lasts between 60 and 180 game minutes.
+The pilot appears five game minutes after parking.
+When the visit ends, the pilot returns to the aircraft.
+The pilot walks around the aircraft before boarding.
+After boarding, the aircraft waits another 15 game minutes before departure.
+The parking spot is released after the aircraft moves away.
+
+SIGHTSEEING FLIGHTS
+A sightseeing ticket desk is required.
+The airport schedules one sightseeing flight at each new game-hour by default.
+If no parking spot is available, the pending flight retries.
+Missed hourly slots do not build up into multiple flights.
+
+The default aircraft capacity is six passengers.
+The default ticket price is $100.
+Reference demand is four passengers at that price.
+Demand changes inversely with ticket price and varies randomly by up to 25%.
+Passenger demand cannot exceed aircraft capacity.
+
+Expected passenger demand is:
+Reference Demand × (100 / Ticket Price),
+then adjusted by the random variation and limited by aircraft capacity.
+
+The airport receives a 20% commission on sightseeing ticket revenue by default.
+The commission is paid after a successful takeoff.
+
+PASSENGER FLIGHTS
+Passenger flights use the scheduled flight system.
+The default base ticket price is $10.
+An airport fee can be configured as a percentage of the base fare.
+Revenue is recorded after a successful departure.
+
+Ticket Revenue =
+Passengers × Base Ticket Price × (1 + Airport Fee Percentage / 100).
+
+The current passenger systems handle aircraft passenger counts, boarding revenue and baggage.
+Independent passenger needs and passenger AI are not yet integrated.
+
+CARGO FLIGHTS
+Cargo flights use the scheduled flight and gate systems.
+Cargo vehicles transfer baggage between aircraft and cargo zones.
+Incoming baggage is unloaded from the aircraft.
+Outgoing baggage is collected from cargo zones and loaded onto the aircraft.
+Packages are reserved during transfer to prevent duplicate handling.
+Cargo-only flights skip passenger deboarding, cleaning and boarding tasks.
+They still require applicable fueling and baggage services.
+
+============================================================
+5. AIRCRAFT TURNAROUND AND AIRPORT SERVICES
+============================================================
+
+A parked aircraft begins its turnaround process.
+Depending on its operation type, the turnaround can include:
+- Passenger deboarding.
+- Baggage unloading.
+- Aircraft cleaning.
+- Fueling.
+- Baggage loading.
+- Passenger boarding.
+
+Some tasks use timed game-time durations.
+Other tasks are completed by airport service vehicles.
+The aircraft becomes ready to depart when its required tasks are complete.
+
+FUEL
+Aircraft consume fuel while flying.
+The default aircraft fuel consumption is 40 litres per in-game flight hour.
+Each aircraft has its own fuel tank capacity.
+
+Airport fuel trucks can refuel parked aircraft.
+The truck travels to the aircraft, transfers fuel and charges for the service.
+The truck returns to its refill station when required.
+The truck's own fuel supply is limited.
+
+Fuel delivery tankers bring fuel to airport fuel stations.
+Fuel pipes connect stations and storage tanks into shared networks.
+Each connected network has one shared fuel reserve.
+Connected storage tanks contribute to network capacity.
+Automatic tanker delivery is requested when a network's fuel falls to 25% of capacity by default.
+
+CLEANING AND WASTE
+Cleaning vehicles travel to parked aircraft.
+They perform the cleaning process and return to their home lot.
+Cleaning generates waste.
+The cleaning fee depends on aircraft passenger capacity.
+
+Waste is stored in airport waste disposal objects.
+A garbage collector is requested when a disposal reaches 75% full by default.
+A collector can carry up to 500 waste units by default.
+It collects waste over time and then leaves the airport.
+
+Waste collection cost is:
+$25 fixed trip fee + $0.20 per collected waste unit.
+The final charge is rounded up to the next whole currency unit.
+
+CARGO VEHICLES
+Cargo tugs move packages between aircraft and cargo zones.
+A tug can collect outgoing packages, carry them and deliver them to the aircraft.
+Incoming packages are moved from aircraft to a cargo zone.
+Vehicle routes use the airport road and traffic systems.
+
+============================================================
+6. HOBBY PILOT BEHAVIOUR
+============================================================
+
+Each hobby pilot has eight needs.
+Need values range from 0 to 100.
+100 means fully satisfied.
+0 means critical.
+
+The eight needs are:
+- Thirst.
+- Hunger.
+- Bladder.
+- Energy.
+- Social.
+- Entertainment.
+- Comfort.
+- Boredom.
+
+Pilots begin each visit with independently randomised needs.
+The current pilot prefab uses a starting range of 50–100 for each need.
+
+Needs decrease over game time.
+Default decay per game minute is:
+- Thirst: 0.25.
+- Hunger: 0.15.
+- Bladder: 0.20.
+- Energy: 0.08.
+- Social: 0.06.
+- Entertainment: 0.08.
+- Comfort: 0.05 before environmental adjustment.
+- Boredom: 0.05.
+
+The pilot AI checks available interactions.
+It estimates how useful each interaction would be.
+Urgent needs receive more influence.
+Each need has its own urgency curve and importance weight.
+Interactions can also be penalised when they conflict with another urgent need.
+Travel time, queue waiting time and interaction duration reduce the final score.
+
+The pilot considers a need-based interaction only while the relevant need is below its configured threshold.
+The default threshold for the listed interactions is 80.
+The pilot selects from its best candidates using weighted random choice.
+It does not always choose the single highest score.
+
+INTERACTIONS
+Current interaction examples include:
+- Drink: restores 30 Thirst in 5 seconds.
+- Buy Drink: restores 20 Thirst in 5 seconds.
+- Buy Food: restores 30 Hunger in 8 seconds.
+- Use Toilet: restores 50 Bladder in 10 seconds.
+- Sit / Rest: restores 25 Energy and 15 Comfort in 20 seconds.
+- Watch TV: restores 30 Entertainment and 20 Boredom in 30 seconds.
+- Watch Aircraft: restores 30 Entertainment and 20 Boredom in 180 seconds.
+
+An interaction object can limit how many pilots use it at once.
+Some objects have a waiting queue.
+The first pilot reserves the interaction.
+Other pilots wait in line and are promoted when the interaction becomes available.
+
+SOCIAL ACTIVITIES
+Two pilots can start a conversation when both can participate.
+They prefer a pair of available seats when possible.
+If suitable seats are unavailable, they can talk while standing.
+
+A standing conversation lasts four game minutes by default.
+It restores 15 Social, 10 Entertainment and 10 Boredom to each pilot.
+
+A seated conversation lasts ten game minutes by default.
+It restores 25 Social, 10 Comfort, 15 Entertainment and 15 Boredom.
+
+Groups of three to five pilots can have a group conversation.
+The group prefers seats when enough are available.
+Otherwise, the pilots gather in a standing circle.
+A group conversation lasts 15 game minutes.
+It restores 35 Social, 20 Entertainment and 20 Boredom.
+
+WANDERING
+Pilots wander when no higher-priority activity is available.
+They use reachable foundation areas for their wandering destinations.
+They pause between walks.
+Pilots can walk on grass, foundations and tarmac.
+They avoid buildings, walls, runways and taxiways.
+They also try to avoid bumping into one another.
+
+Pilots prefer destinations inside a Pilots Lounge.
+The default lounge destination weight is 2x.
+A pilot already inside the lounge gets an additional 2x stay weight.
+This makes lounge destinations more likely, but does not force pilots to stay there.
+
+When an aircraft is ready to depart, its pilot stops other activities.
+The pilot walks around the aircraft, returns to the boarding position and boards.
+The pilot then disappears from the airport.
+
+============================================================
+7. ENVIRONMENT AND COMFORT
+============================================================
+
+The airport has a local environment score from 0 to 100.
+The neutral starting score is 50.
+Placed objects can improve or reduce the score.
+Each object has an environment value and an influence radius.
+
+The object's influence decreases linearly with distance.
+At the object, the full environment value applies.
+At the edge of its radius, the contribution is zero.
+Objects outside their radius have no effect.
+
+Object Contribution =
+Environment Value × (1 - Distance / Influence Radius).
+
+Contributions from nearby objects are added together.
+The final score is limited to the range 0–100.
+Distance is measured horizontally across the ground.
+
+A Pilots Lounge can add its configured bonus or set the score to 100.
+Its room effect applies only to positions inside the lounge.
+
+Environment affects pilot Comfort decay.
+A poor environment makes Comfort decrease faster.
+A good environment slows Comfort decay.
+
+The default Comfort decay multiplier is:
+- Environment 0: 2x normal decay.
+- Environment 50: 1x normal decay.
+- Environment 100: 0x normal decay.
+
+The multiplier changes linearly between these values.
+The original Comfort decay rate is 0.05 per game minute.
+
+A high environment score does not directly add Comfort points.
+It helps pilots keep their existing Comfort for longer.
+
+============================================================
+8. AIRPORT RATING AND REPUTATION
+============================================================
+
+The airport rating ranges from 0 to 100.
+It is based on visitor satisfaction and the environment experienced by visitors.
+
+Visitor Satisfaction is the average value of the visitor's eight needs.
+Environment Experience is the environment score experienced during the visit.
+
+The rating uses time-weighted visitor experience.
+A visitor who stays longer contributes more than a visitor who stays briefly.
+
+The default rating formula is:
+Airport Rating =
+(Visitor Satisfaction × 0.75) +
+(Environment Experience × 0.25).
+
+The displayed rating moves gradually toward the calculated rating.
+The default smoothing time is 30 game seconds.
+
+Hobby aircraft demand uses airport rating as a reputation multiplier.
+A rating of 0 gives 0.5x demand.
+A rating of 50 gives 1x demand.
+A rating of 100 gives 2x demand.
+
+The current needs-based visitor experience system is active for hobby pilots.
+Passenger visitor AI and passenger needs are planned for later development.
+
+============================================================
+9. AIRPORT FINANCES
+============================================================
+
+A new airport starts with $50,000 by default.
+Building placement spends money.
+Aircraft services and airport operations can generate income or costs.
+
+Aircraft can pay:
+- Landing fees.
+- Recurring parking fees.
+- Fuel service fees.
+- Cleaning fees.
+
+Landing fees are charged after a completed landing.
+Parking fees are charged at configured game-time intervals.
+The fee profile depends on aircraft operation type.
+
+A valid CFO Office unlocks custom fee settings.
+Without one, aircraft use their default fee profiles.
+
+Default fee profiles are:
+- Hobby aircraft: $20 landing, $5 parking every 10 game minutes.
+- Flight School aircraft: $20 landing, $5 parking every 10 game minutes.
+- Sightseeing aircraft: $250 landing, $100 parking every 15 game minutes.
+- Cargo aircraft: $250 landing, $100 parking every 15 game minutes.
+- Passenger aircraft: $250 landing, $100 parking every 15 game minutes.
+
+Cleaning fees depend on aircraft seat capacity.
+Default fee tiers are:
+- Up to 10 seats: $100.
+- Up to 50 seats: $200.
+- Up to 100 seats: $350.
+- Up to 200 seats: $500.
+- Up to 300 seats: $750.
+- More than 300 seats: $1,000.
+
+Sightseeing flights generate ticket revenue.
+The airport receives its configured commission.
+Passenger flights record ticket sales and airport fees after successful departure.
+Flight School pays a reward for each completed lesson.
+Fuel delivery, aircraft services and waste collection create operating costs.
+
+============================================================
+10. SAVING YOUR AIRPORT
+============================================================
+
+Save slots store the airport layout and its main management data.
+A save includes placed buildings, foundations, tarmac, roads and taxiways.
+It also stores pipelines and their fuel reserves.
+Room-purpose assignments and the flight schedule are saved.
+Game time, simulation speed and airport money are saved.
+Floor and wall finishes are saved with the airport layout.
+
+Starting a new game clears the current airport and resets its starting money and clock.
+Existing save slots are not deleted when a new game is started.
+
+The airport rating and active visitor experience are currently session systems.
+They are not included in the airport save data.
+
+============================================================
+END OF CURRENT MANUAL
+============================================================
