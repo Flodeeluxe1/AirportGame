@@ -19,14 +19,14 @@ MonoBehaviour:
   requiredSurface: 5
   width: 1
   depth: 1
-  edgeLength: 2
+  edgeLength: 4
   requiresExistingWall: 1
   isWallMounted: 1
   canBePlacedOnSurface: 0
   canSupportSurfaceObjects: 0
   canRotate: 1
   buildCost: 100
-  blocksPathfinding: 1
+  blocksPathfinding: 0
   environmentValue: 0
   environmentRadius: 0
   menuCategory: Office & Staff
