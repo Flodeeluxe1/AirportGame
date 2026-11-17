@@ -1,4 +1,5 @@
 
+using System;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -17,6 +18,8 @@ public class AirportEconomyHUD : MonoBehaviour
     [SerializeField, Min(12)] private int fontSize = 24;
     [SerializeField, Min(0)] private float topOffset = 20f;
     [SerializeField, Min(0)] private float rightOffset = 20f;
+
+    public event Action BalanceClicked;
 
     private Label balanceLabel;
     private VisualElement root;
@@ -80,7 +83,10 @@ public class AirportEconomyHUD : MonoBehaviour
             economyManager.OnBalanceChanged -= HandleBalanceChanged;
 
         if (root != null && balanceLabel != null)
+        {
+            balanceLabel.UnregisterCallback<ClickEvent>(HandleBalanceClicked);
             root.Remove(balanceLabel);
+        }
 
         balanceLabel = null;
         root = null;
@@ -91,7 +97,9 @@ public class AirportEconomyHUD : MonoBehaviour
         balanceLabel = new Label();
 
         balanceLabel.name = "airport-money-label";
-        balanceLabel.pickingMode = PickingMode.Ignore;
+        balanceLabel.pickingMode = PickingMode.Position;
+        balanceLabel.tooltip = "Open financial reports";
+        balanceLabel.RegisterCallback<ClickEvent>(HandleBalanceClicked);
 
         balanceLabel.style.position = Position.Absolute;
         balanceLabel.style.top = topOffset;
@@ -118,6 +126,11 @@ public class AirportEconomyHUD : MonoBehaviour
         balanceLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
 
         root.Add(balanceLabel);
+    }
+
+    private void HandleBalanceClicked(ClickEvent evt)
+    {
+        BalanceClicked?.Invoke();
     }
 
     private void HandleBalanceChanged(int newBalance)
