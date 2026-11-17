@@ -508,7 +508,6 @@ public class RoomInfoPanelUIController : MonoBehaviour
             AddRequirement("At least one door", hasDoor);
             AddRequirement("At least one instructor desk", desks >= 1);
             AddRequirement("At least one student seat", seats >= 1);
-            AddRequirement("Required furniture inside this room", desks >= 1 && seats >= 1);
 
             bool valid = roomPurposeController.ValidateFlightSchool(
                 selectedRoom, out string validationMessage);
@@ -531,7 +530,6 @@ public class RoomInfoPanelUIController : MonoBehaviour
             AddRequirement("One computer", computers >= 1);
             AddRequirement("One printer", printers >= 1);
             AddRequirement(
-                "Required furniture inside this room",
                 officeDesks >= 1 && chairs >= 1 && computers >= 1 && printers >= 1);
 
             bool valid = roomPurposeController.ValidateOffice(
