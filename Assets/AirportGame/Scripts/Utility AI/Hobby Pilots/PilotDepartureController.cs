@@ -102,7 +102,10 @@ public class PilotDepartureController : MonoBehaviour
         PilotSocialSeatingController seating =
             GetComponent<PilotSocialSeatingController>();
         if (seating != null)
+        {
+            seating.PrepareForDeparture();
             seating.enabled = false;
+        }
 
         PilotSocialInteractionController social =
             GetComponent<PilotSocialInteractionController>();
