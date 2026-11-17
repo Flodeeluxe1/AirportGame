@@ -544,7 +544,8 @@ public class AircraftSSTakeoffController : MonoBehaviour
 
         bool paid = airportFees.RecordCharge(
                 commissionPaid,
-                $"Sightseeing flight ({passengersOnBoard} passengers)");
+                $"Sightseeing flight ({passengersOnBoard} passengers)",
+                AirportFinancialCategory.SightseeingFlights);
 
         if (!paid)
         {
