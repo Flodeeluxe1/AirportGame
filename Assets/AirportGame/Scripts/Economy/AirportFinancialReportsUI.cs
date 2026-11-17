@@ -25,6 +25,9 @@ public class AirportFinancialReportsUI : MonoBehaviour
     private VisualElement window;
     private ScrollView reportScroll;
     private Label currentBalanceLabel;
+    private Label lifetimeIncomeLabel;
+    private Label lifetimeExpensesLabel;
+    private Label lifetimeNetLabel;
     private Label dailyIncomeLabel;
     private Label dailyExpensesLabel;
     private Label dailyNetLabel;
@@ -207,6 +210,13 @@ public class AirportFinancialReportsUI : MonoBehaviour
 
     private void CreatePeriodSummaries()
     {
+        reportScroll.Add(CreateSectionTitle("ALL-TIME SUMMARY"));
+        VisualElement lifetimeCard = CreateCard();
+        lifetimeIncomeLabel = AddMetric(lifetimeCard, "TOTAL INCOME", IncomeColor);
+        lifetimeExpensesLabel = AddMetric(lifetimeCard, "TOTAL EXPENSES", ExpenseColor);
+        lifetimeNetLabel = AddMetric(lifetimeCard, "NET PROFIT", Color.white);
+        reportScroll.Add(lifetimeCard);
+
         reportScroll.Add(CreateSectionTitle("DAILY SUMMARY"));
         VisualElement dailyCard = CreateCard();
         dailyIncomeLabel = AddMetric(dailyCard, "INCOME", IncomeColor);
@@ -285,6 +295,9 @@ public class AirportFinancialReportsUI : MonoBehaviour
         if (economyManager == null)
         {
             currentBalanceLabel.text = "Economy manager unavailable";
+            lifetimeIncomeLabel.text = "--";
+            lifetimeExpensesLabel.text = "--";
+            lifetimeNetLabel.text = "--";
             dailyIncomeLabel.text = "--";
             dailyExpensesLabel.text = "--";
             dailyNetLabel.text = "--";
@@ -305,6 +318,8 @@ public class AirportFinancialReportsUI : MonoBehaviour
             : now / 86400L;
         long rollingStart = Math.Max(0L, now - 30L * 86400L);
 
+        long lifetimeIncome = 0L;
+        long lifetimeExpenses = 0L;
         long dailyIncome = 0L;
         long dailyExpenses = 0L;
         long periodIncome = 0L;
@@ -323,6 +338,11 @@ public class AirportFinancialReportsUI : MonoBehaviour
             AirportFinancialTransaction transaction = transactions[i];
             if (transaction == null || transaction.amount <= 0)
                 continue;
+
+            if (transaction.isIncome)
+                lifetimeIncome += transaction.amount;
+            else
+                lifetimeExpenses += transaction.amount;
 
             long transactionDay = transaction.absoluteGameSecond / 86400L;
             if (transactionDay == currentDayIndex)
@@ -348,6 +368,10 @@ public class AirportFinancialReportsUI : MonoBehaviour
                 AddCategoryTotal(expensesByCategory, transaction);
             }
         }
+
+        lifetimeIncomeLabel.text = FormatMoney(lifetimeIncome);
+        lifetimeExpensesLabel.text = FormatMoney(lifetimeExpenses);
+        lifetimeNetLabel.text = FormatSignedMoney(lifetimeIncome - lifetimeExpenses);
 
         dailyIncomeLabel.text = FormatMoney(dailyIncome);
         dailyExpensesLabel.text = FormatMoney(dailyExpenses);
