@@ -3001,6 +3001,8 @@ MonoBehaviour:
   buildController: {fileID: 0}
   infoPanel: {fileID: 0}
   minimumFoundationCells: 20
+  pilotsLoungeEnvironmentMode: 1
+  pilotsLoungeEnvironmentBonus: 25
   doubleClickSeconds: 0.35
 --- !u!4 &1399790237
 Transform:
@@ -3121,7 +3123,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5399730472213202490, guid: 2f98a93d7c7f20a4dbe1fa15e897c2d2, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 32.02
+      value: 28.58
       objectReference: {fileID: 0}
     - target: {fileID: 5399730472213202490, guid: 2f98a93d7c7f20a4dbe1fa15e897c2d2, type: 3}
       propertyPath: m_LocalRotation.w
