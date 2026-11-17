@@ -193,6 +193,17 @@ public class UtilityNeeds : MonoBehaviour
     [Header("Decay Per In-Game Minute")]
     [SerializeField] private NeedDecayRates decayRates = new NeedDecayRates();
 
+    [Header("Environment Influence")]
+    [Tooltip("Comfort decay multiplier when the environment score is 0.")]
+    [Min(0f)]
+    [SerializeField] private float comfortDecayMultiplierAtZeroEnvironment = 2f;
+
+    [Tooltip("Comfort decay multiplier when the environment score is 100.")]
+    [Min(0f)]
+    [SerializeField] private float comfortDecayMultiplierAtFullEnvironment = 0f;
+
+    private EnvironmentScoreMonitor environmentScoreMonitor;
+
     [Header("Urgency Curves")]
     [Tooltip("Each curve maps normalized need urgency (0 = satisfied, 1 = critical) to utility urgency. Curves are evaluated independently for each need.")]
     [SerializeField] private NeedUrgencyCurves urgencyCurves = new NeedUrgencyCurves();
@@ -380,11 +391,33 @@ public class UtilityNeeds : MonoBehaviour
         changed |= ApplyDecay(NeedType.Energy, decayRates.energy, elapsedGameMinutes);
         changed |= ApplyDecay(NeedType.Social, decayRates.social, elapsedGameMinutes);
         changed |= ApplyDecay(NeedType.Entertainment, decayRates.entertainment, elapsedGameMinutes);
-        changed |= ApplyDecay(NeedType.Comfort, decayRates.comfort, elapsedGameMinutes);
+        changed |= ApplyDecay(NeedType.Comfort, GetEnvironmentAdjustedComfortDecayRate(), elapsedGameMinutes);
         changed |= ApplyDecay(NeedType.Boredom, decayRates.boredom, elapsedGameMinutes);
 
         if (changed)
             NeedsChanged?.Invoke();
+    }
+
+    private float GetEnvironmentAdjustedComfortDecayRate()
+    {
+        if (decayRates == null)
+            return 0f;
+
+        if (environmentScoreMonitor == null)
+            environmentScoreMonitor = GetComponent<EnvironmentScoreMonitor>();
+
+        // A neutral score of 50 preserves the original Comfort decay rate.
+        float environmentScore = environmentScoreMonitor != null
+            ? environmentScoreMonitor.CurrentEnvironmentScore
+            : EnvironmentScoreCalculator.NeutralScore;
+
+        float normalizedScore = Mathf.Clamp01(environmentScore / 100f);
+        float multiplier = Mathf.Lerp(
+            comfortDecayMultiplierAtZeroEnvironment,
+            comfortDecayMultiplierAtFullEnvironment,
+            normalizedScore);
+
+        return decayRates.comfort * Mathf.Max(0f, multiplier);
     }
 
     private bool ApplyDecay(NeedType need, float ratePerMinute, float elapsedGameMinutes)
@@ -446,6 +479,10 @@ public class UtilityNeeds : MonoBehaviour
     private void OnValidate()
     {
         initialNeedValue = Mathf.Clamp(initialNeedValue, 0f, 100f);
+        comfortDecayMultiplierAtZeroEnvironment =
+            Mathf.Max(0f, comfortDecayMultiplierAtZeroEnvironment);
+        comfortDecayMultiplierAtFullEnvironment =
+            Mathf.Max(0f, comfortDecayMultiplierAtFullEnvironment);
         if (initialNeedRanges != null)
             initialNeedRanges.ClampRanges();
 
