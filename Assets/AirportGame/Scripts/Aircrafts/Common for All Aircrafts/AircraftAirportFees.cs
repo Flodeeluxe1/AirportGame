@@ -168,7 +168,7 @@ public class AircraftAirportFees : MonoBehaviour
             return;
         }
 
-        if (RecordCharge(activeLandingFee, "Landing fee - " + name))
+        if (RecordCharge(activeLandingFee, "Landing fee - " + name, AirportFinancialCategory.LandingFees))
             landingFeePaid = true;
     }
 
@@ -205,7 +205,7 @@ public class AircraftAirportFees : MonoBehaviour
                 nextParkingChargeTime >= hobbyVisitController.ParkingFeeEndGameSeconds)
                 break;
 
-            if (activeParkingFee > 0 && !RecordCharge(activeParkingFee, "Parking fee - " + name))
+            if (activeParkingFee > 0 && !RecordCharge(activeParkingFee, "Parking fee - " + name, AirportFinancialCategory.ParkingFees))
                 return;
 
             nextParkingChargeTime += intervalSeconds;
@@ -216,7 +216,10 @@ public class AircraftAirportFees : MonoBehaviour
     /// Records a calculated aircraft-related charge as airport revenue.
     /// The caller remains responsible for preventing duplicate requests.
     /// </summary>
-    public bool RecordCharge(int amount, string description)
+    public bool RecordCharge(
+        int amount,
+        string description,
+        AirportFinancialCategory category = AirportFinancialCategory.Other)
     {
         if (amount <= 0)
             return true;
@@ -230,7 +233,7 @@ public class AircraftAirportFees : MonoBehaviour
             return false;
         }
 
-        bool recorded = economyManager.AddRevenue(amount, description);
+        bool recorded = economyManager.AddRevenue(amount, description, category);
         if (!recorded)
             Debug.LogWarning(name + ": Airport charge could not be recorded: " + description + " ($" + amount + ").", this);
 
@@ -271,7 +274,7 @@ public class AircraftAirportFees : MonoBehaviour
             return true;
         }
 
-        if (!RecordCharge(fee, "Aircraft cleaning (" + seatCapacity + " seats)"))
+        if (!RecordCharge(fee, "Aircraft cleaning (" + seatCapacity + " seats)", AirportFinancialCategory.AircraftCleaning))
             return false;
 
         cleaningFeePaid = true;
