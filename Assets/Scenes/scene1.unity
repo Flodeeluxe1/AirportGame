@@ -3220,6 +3220,7 @@ GameObject:
   - component: {fileID: 1478484333}
   - component: {fileID: 1478484334}
   - component: {fileID: 1478484335}
+  - component: {fileID: 1478484336}
   m_Layer: 0
   m_Name: AirportUI
   m_TagString: Untagged
@@ -3517,6 +3518,22 @@ MonoBehaviour:
   topOffset: 20
   rightOffset: 420
   buttonWidth: 140
+--- !u!114 &1478484336
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1478484321}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7b9e2d4a6c1f4380a5d7e9b2c4f61830, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AirportFinancialReportsUI
+  uiDocument: {fileID: 762824360}
+  economyHUD: {fileID: 1048131946}
+  economyManager: {fileID: 1048131944}
+  gameTimeManager: {fileID: 0}
 --- !u!1 &1502454834
 GameObject:
   m_ObjectHideFlags: 0
