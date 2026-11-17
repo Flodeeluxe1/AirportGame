@@ -606,7 +606,8 @@ public class FlightSchoolManager : MonoBehaviour
 
             if (!economyManager.AddRevenue(
                     lessonReward,
-                    "Flight school lesson completed"))
+                    "Flight school lesson completed",
+                    AirportFinancialCategory.FlightSchool))
             {
                 operation.validationMessage =
                     "Lesson complete, but reward payment failed. Will retry.";
