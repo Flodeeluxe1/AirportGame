@@ -529,7 +529,7 @@ public class FuelTruckController : MonoBehaviour
         }
 
         int cost = Mathf.CeilToInt(affordableLitres * fuelPricePerLitre);
-        if (!economyManager.TrySpend(cost, $"Fuel delivery ({affordableLitres:F0} litres)"))
+        if (!economyManager.TrySpend(cost, $"Fuel delivery ({affordableLitres:F0} litres)", AirportFinancialCategory.FuelDelivery))
         {
             FinishFuelOffloading(0f);
             return;
@@ -615,7 +615,7 @@ public class FuelTruckController : MonoBehaviour
         int refund = Mathf.Max(0, prepaidFuelCost - actualCost);
 
         if (refund > 0 && economyManager != null)
-            economyManager.AddRevenue(refund, "Refund for undelivered fuel");
+            economyManager.AddRevenue(refund, "Refund for undelivered fuel", AirportFinancialCategory.FuelRefund);
 
         prepaidFuelCost = 0;
     }
