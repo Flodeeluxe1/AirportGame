@@ -288,7 +288,8 @@ public class CargoTugLotSpawner : MonoBehaviour
 
         if (!economyManager.TrySpend(
                 trailerPrice,
-                "Cargo trailer purchase"))
+                "Cargo trailer purchase",
+                AirportFinancialCategory.VehiclePurchase))
         {
             return false;
         }
