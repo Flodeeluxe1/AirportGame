@@ -18,6 +18,7 @@ public class FlightSchoolRoomAssessment
     public int usableFoundationCells;
     public int instructorDeskCount;
     public int studentSeatCount;
+    public int wallBoardCount;
     public int studentCapacity;
 
     [Header("Facility Quality")]
@@ -78,6 +79,7 @@ public class FlightSchoolAssessmentController : MonoBehaviour
     {
         public int instructorDesks;
         public int studentSeats;
+        public int wallBoards;
     }
 
     private void Awake()
@@ -138,8 +140,9 @@ public class FlightSchoolAssessmentController : MonoBehaviour
         RoomFurnitureRole role =
             building.Definition.roomFurnitureRole;
 
-        if ((role & RoomFurnitureRole.InstructorDesk) != 0 ||
-            (role & RoomFurnitureRole.Chair) != 0)
+        if ((role & (RoomFurnitureRole.Desk |
+                     RoomFurnitureRole.Chair |
+                     RoomFurnitureRole.WallBoard)) != 0)
         {
             RequestRefresh();
         }
@@ -229,6 +232,7 @@ public class FlightSchoolAssessmentController : MonoBehaviour
                     room,
                     furniture.instructorDesks,
                     furniture.studentSeats,
+                    furniture.wallBoards,
                     out string validationReason);
 
             int areaPoints =
@@ -250,6 +254,7 @@ public class FlightSchoolAssessmentController : MonoBehaviour
                     usableFoundationCells = room.CellCount,
                     instructorDeskCount = furniture.instructorDesks,
                     studentSeatCount = furniture.studentSeats,
+                    wallBoardCount = furniture.wallBoards,
                     studentCapacity = furniture.studentSeats,
 
                     areaQualityPoints = areaPoints,
@@ -346,12 +351,9 @@ public class FlightSchoolAssessmentController : MonoBehaviour
             RoomFurnitureRole role =
                 building.Definition.roomFurnitureRole;
 
-            if ((role & RoomFurnitureRole.InstructorDesk) == 0 &&
-                (role & RoomFurnitureRole.Chair) == 0 &&
-                (role & RoomFurnitureRole.OfficeDesk) == 0 &&
-                (role & RoomFurnitureRole.Chair) == 0 &&
-                (role & RoomFurnitureRole.OfficeComputer) == 0 &&
-                (role & RoomFurnitureRole.OfficePrinter) == 0)
+            if ((role & (RoomFurnitureRole.Desk |
+                         RoomFurnitureRole.Chair |
+                         RoomFurnitureRole.WallBoard)) == 0)
             {
                 continue;
             }
@@ -369,11 +371,14 @@ public class FlightSchoolAssessmentController : MonoBehaviour
             if (!result.TryGetValue(anchor, out FurnitureCounts counts))
                 continue;
 
-            if ((role & RoomFurnitureRole.InstructorDesk) != 0)
+            if ((role & RoomFurnitureRole.Desk) != 0)
                 counts.instructorDesks++;
 
             if ((role & RoomFurnitureRole.Chair) != 0)
                 counts.studentSeats++;
+
+            if ((role & RoomFurnitureRole.WallBoard) != 0)
+                counts.wallBoards++;
         }
 
         return result;
