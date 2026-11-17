@@ -59,6 +59,10 @@ public class PilotInteractionController : MonoBehaviour
     [Min(1f)]
     [SerializeField] private float interactionSearchRadius = 100f;
 
+    [Header("Room Preferences")]
+    [Min(1f)]
+    [SerializeField] private float pilotsLoungeUtilityMultiplier = 1.15f;
+
     [Header("Queue")]
     [Min(0.05f)]
     [SerializeField] private float queuePositionRefreshInterval = 0.25f;
@@ -79,6 +83,7 @@ public class PilotInteractionController : MonoBehaviour
     private PilotSocialInteractionController socialController;
     private PilotSocialSeatingController seatingController;
     private PilotGroupConversationController groupController;
+    private RoomPurposeController roomPurposeController;
     private InteractionProvider reservedProvider;
     private InteractionDefinition reservedInteraction;
     private InteractionProvider queuedProvider;
@@ -192,6 +197,7 @@ public class PilotInteractionController : MonoBehaviour
         socialController = GetComponent<PilotSocialInteractionController>();
         seatingController = GetComponent<PilotSocialSeatingController>();
         groupController = GetComponent<PilotGroupConversationController>();
+        roomPurposeController = FindFirstObjectByType<RoomPurposeController>();
     }
 
     private void OnEnable()
@@ -327,8 +333,16 @@ public class PilotInteractionController : MonoBehaviour
                 if (utility <= 0f)
                     continue;
 
+                Vector3 interactionPosition = provider.InteractionPosition;
+
+                if (roomPurposeController != null &&
+                    roomPurposeController.IsPositionInPilotsLounge(interactionPosition))
+                {
+                    utility *= pilotsLoungeUtilityMultiplier;
+                }
+
                 float travelTime =
-                    movement.EstimateTravelTime(provider.InteractionPosition);
+                    movement.EstimateTravelTime(interactionPosition);
 
                 if (float.IsInfinity(travelTime) || float.IsNaN(travelTime))
                     continue;
