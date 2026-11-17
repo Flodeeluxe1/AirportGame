@@ -81,7 +81,7 @@ public class AirportVisitorExperience : MonoBehaviour
 
     public void AccumulateExperienceToNow()
     {
-        if (!isTracking || gameTimeManager == null)
+        if (!isTracking || gameTimeManager == null || ratingManager == null)
             return;
 
         long currentGameSecond = GetCurrentGameSecond();
