@@ -13,6 +13,7 @@ public static class EnvironmentScoreCalculator
     private static readonly Dictionary<PlacedBuilding, List<Vector2Int>> BuildingCells = new Dictionary<PlacedBuilding, List<Vector2Int>>();
     private static bool initialized;
     private static int version;
+    private static RoomPurposeController roomPurposeController;
 
     public static int Version { get { EnsureInitialized(); return version; } }
 
@@ -24,6 +25,7 @@ public static class EnvironmentScoreCalculator
         BuildingCells.Clear();
         initialized = false;
         version = 0;
+        roomPurposeController = null;
     }
 
     public static float CalculateScore(Vector3 worldPosition)
@@ -58,7 +60,20 @@ public static class EnvironmentScoreCalculator
             score += value * (1f - Mathf.Sqrt(distanceSquared) / radius);
         }
 
+        score = Mathf.Clamp(score, 0f, 100f);
+
+        if (roomPurposeController == null)
+            roomPurposeController = Object.FindFirstObjectByType<RoomPurposeController>();
+
+        if (roomPurposeController != null)
+            score = roomPurposeController.ApplyRoomEnvironmentEffect(worldPosition, score);
+
         return Mathf.Clamp(score, 0f, 100f);
+    }
+
+    public static void NotifyRoomEnvironmentChanged()
+    {
+        version++;
     }
 
     private static void EnsureInitialized()
