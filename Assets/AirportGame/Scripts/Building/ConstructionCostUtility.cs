@@ -72,7 +72,8 @@ public static class ConstructionCostUtility
         return economyManager.TrySpend(
             (int)totalCost,
             $"{constructionType}: {definition.displayName} " +
-            (quantity > 1 ? $"x{quantity}" : "")
+            (quantity > 1 ? $"x{quantity}" : ""),
+            AirportFinancialCategory.Construction
         );
     }
 }
