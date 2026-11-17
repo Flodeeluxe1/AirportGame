@@ -616,6 +616,37 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::RoadTilemapController
   roadTilemap: {fileID: 788607068}
   roadTile: {fileID: 11400000, guid: b3692791c0c36fe4ebc0f069d77861da, type: 2}
+--- !u!1 &403195573
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 403195574}
+  m_Layer: 0
+  m_Name: AirportRatingManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &403195574
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 403195573}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 22.63245, y: 3.24514, z: 25.30301}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &405670565
 GameObject:
   m_ObjectHideFlags: 0
@@ -5347,6 +5378,7 @@ SceneRoots:
   - {fileID: 1399790237}
   - {fileID: 449210933}
   - {fileID: 2136825552}
+  - {fileID: 403195574}
   - {fileID: 1390174455}
   - {fileID: 1048131945}
   - {fileID: 1832806717}
