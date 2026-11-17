@@ -377,8 +377,19 @@ public class FlightSchoolAssessmentController : MonoBehaviour
             if ((role & RoomFurnitureRole.Chair) != 0)
                 counts.studentSeats++;
 
-            if ((role & RoomFurnitureRole.WallBoard) != 0)
-                counts.wallBoards++;
+            // Wall-mounted boards are counted from the room boundary below.
+        }
+
+        foreach (RoomDetectionController.DetectedRoom room in rooms)
+        {
+            if (room == null || room.cells == null || room.cells.Count == 0)
+                continue;
+
+            if (result.TryGetValue(GetAnchor(room), out FurnitureCounts counts))
+            {
+                counts.wallBoards =
+                    roomPurposeController.CountWallBoardsOnBoundary(room);
+            }
         }
 
         return result;
