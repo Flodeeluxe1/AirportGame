@@ -276,7 +276,7 @@ public class AircraftFuelStation : MonoBehaviour
             if (airportFees == null ||
                 !airportFees.RecordCharge(
                     totalCost,
-                    $"Hobby aircraft fuel sales and service fee ({currentlyServicedAircraft?.name ?? "aircraft"})"))
+                    $"Hobby aircraft fuel sales and service fee ({currentlyServicedAircraft?.name ?? "aircraft"})", AirportFinancialCategory.FuelSales))
             {
                 debugStatus = "Could not record completed aircraft fuel sale";
             }
