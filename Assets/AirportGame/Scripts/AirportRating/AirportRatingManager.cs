@@ -24,6 +24,8 @@ public class AirportRatingManager : MonoBehaviour
     [SerializeField, Range(0f, 100f)] private float rawAirportRating = 50f;
     [SerializeField, Range(0f, 100f)] private float airportRating = 50f;
 
+    private GameTimeManager gameTimeManager;
+
     private readonly List<AirportVisitorExperience> activeVisitors =
         new List<AirportVisitorExperience>();
     private readonly HashSet<AirportVisitorExperience> registeredVisitors =
@@ -59,6 +61,36 @@ public class AirportRatingManager : MonoBehaviour
         }
 
         instance = this;
+        TrySubscribeToGameTimeManager();
+    }
+
+    private void OnDisable()
+    {
+        if (gameTimeManager != null)
+            gameTimeManager.GameTimeAdvanced -= HandleGameTimeAdvanced;
+
+        gameTimeManager = null;
+    }
+
+    private void TrySubscribeToGameTimeManager()
+    {
+        if (gameTimeManager != null)
+            return;
+
+        gameTimeManager = FindFirstObjectByType<GameTimeManager>();
+        if (gameTimeManager != null)
+            gameTimeManager.GameTimeAdvanced += HandleGameTimeAdvanced;
+    }
+
+    private void HandleGameTimeAdvanced(long previousSecond, long currentSecond)
+    {
+        long elapsedGameSeconds = currentSecond - previousSecond;
+        if (elapsedGameSeconds <= 0)
+            return;
+
+        float smoothingTime = Mathf.Max(0.01f, ratingSmoothingTimeSeconds);
+        float alpha = 1f - Mathf.Exp(-elapsedGameSeconds / smoothingTime);
+        airportRating = Mathf.Lerp(airportRating, rawAirportRating, alpha);
     }
 
     public static AirportRatingManager RegisterVisitor(AirportVisitorExperience visitor)
@@ -117,9 +149,7 @@ public class AirportRatingManager : MonoBehaviour
 
     private void Update()
     {
-        float smoothingTime = Mathf.Max(0.01f, ratingSmoothingTimeSeconds);
-        float alpha = 1f - Mathf.Exp(-Time.unscaledDeltaTime / smoothingTime);
-        airportRating = Mathf.Lerp(airportRating, rawAirportRating, alpha);
+        TrySubscribeToGameTimeManager();
 
         int processed = 0;
         while (processed < MaximumVisitorsPerFrame && activeVisitors.Count > 0)
