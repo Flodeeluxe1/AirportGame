@@ -20,8 +20,8 @@ MonoBehaviour:
   width: 1
   depth: 1
   edgeLength: 1
-  requiresExistingWall: 0
-  isWallMounted: 0
+  requiresExistingWall: 1
+  isWallMounted: 1
   canBePlacedOnSurface: 0
   canSupportSurfaceObjects: 0
   canRotate: 1
