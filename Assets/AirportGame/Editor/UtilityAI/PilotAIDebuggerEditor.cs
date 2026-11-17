@@ -80,6 +80,33 @@ public class PilotAIDebuggerEditor : Editor
                 environment.SmoothedEnvironmentScore.ToString("F1") + " / 100");
         }
 
+        AirportVisitorExperience experience =
+            controller.GetComponent<AirportVisitorExperience>();
+        if (experience != null)
+        {
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("Visitor Experience", EditorStyles.boldLabel);
+            DrawReadOnlyField("Needs Satisfaction",
+                experience.CurrentNeedSatisfaction.ToString("F1") + " / 100");
+            DrawReadOnlyField("Environment Experience",
+                experience.CurrentEnvironmentExperience.ToString("F1") + " / 100");
+            DrawReadOnlyField("Recorded Visit",
+                experience.RecordedVisitGameMinutes.ToString("F1") + " game minutes");
+        }
+
+        AirportRatingManager ratingManager = AirportRatingManager.Instance;
+        if (ratingManager != null)
+        {
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("Airport Rating", EditorStyles.boldLabel);
+            DrawReadOnlyField("Overall Rating", ratingManager.AirportRating.ToString("F1") + " / 100");
+            DrawReadOnlyField("Visitor Satisfaction", ratingManager.VisitorSatisfaction.ToString("F1") + " / 100");
+            DrawReadOnlyField("Environment", ratingManager.EnvironmentExperience.ToString("F1") + " / 100");
+            DrawReadOnlyField("Active Visitors", ratingManager.ActiveVisitorCount.ToString());
+            DrawReadOnlyField("Completed Visitors", ratingManager.CompletedVisitors.ToString());
+            DrawReadOnlyField("Recorded Visitor Hours", ratingManager.RecordedVisitorHours.ToString("F2"));
+        }
+
         EditorGUILayout.Space();
         EditorGUILayout.LabelField("Interaction Shortlist",
             EditorStyles.boldLabel);
