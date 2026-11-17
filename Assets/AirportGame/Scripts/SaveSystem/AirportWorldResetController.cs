@@ -321,6 +321,7 @@ public class AirportWorldResetController : MonoBehaviour
                 : saveName,
 
             gameTimeSeconds = gameTimeManager.GetGameTimeSeconds(),
+            gameDay = gameTimeManager.CurrentDay,
             gameSpeedMultiplier = gameTimeManager.CurrentSpeedMultiplier,
             balance = economyManager.Balance,
             financialTransactions = economyManager.GetTransactionsForSave(),
@@ -1099,7 +1100,7 @@ public class AirportWorldResetController : MonoBehaviour
         }
 
         // 5. Restore saved game time, speed, and balance.
-        gameTimeManager.SetGameTimeSeconds(data.gameTimeSeconds);
+        gameTimeManager.SetGameDate(data.gameDay, data.gameTimeSeconds);
         gameTimeManager.SetSpeed(
             Mathf.RoundToInt(data.gameSpeedMultiplier));
 
