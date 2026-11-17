@@ -394,6 +394,14 @@ public static class AirportSaveFileStore
                 data.schemaVersion = 5;
             }
 
+            if (data.schemaVersion == 5 && CurrentSchemaVersion >= 6)
+            {
+                // Version 6 adds financial transaction history and the saved
+                // in-game calendar day. Older saves start with an empty ledger
+                // and default to day 1.
+                data.schemaVersion = 6;
+            }
+
             if (data.schemaVersion != CurrentSchemaVersion)
             {
                 error =
