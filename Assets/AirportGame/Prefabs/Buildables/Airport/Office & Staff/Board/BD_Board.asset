@@ -19,7 +19,7 @@ MonoBehaviour:
   requiredSurface: 5
   width: 1
   depth: 1
-  edgeLength: 1
+  edgeLength: 2
   requiresExistingWall: 1
   isWallMounted: 1
   canBePlacedOnSurface: 0
