@@ -299,7 +299,7 @@ public class AirportRatingUI : MonoBehaviour
         VisualElement track = new VisualElement();
         track.style.height = 8;
         track.style.marginTop = 7;
-        track.style.backgroundColor = new Color32(65, 75, 86, 255);
+        track.style.backgroundColor = (Color)new Color32(65, 75, 86, 255);
         track.style.borderTopLeftRadius = 4;
         track.style.borderTopRightRadius = 4;
         track.style.borderBottomLeftRadius = 4;
