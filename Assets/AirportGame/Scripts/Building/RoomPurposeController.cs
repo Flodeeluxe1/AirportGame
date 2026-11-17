@@ -105,6 +105,24 @@ public class RoomPurposeController : MonoBehaviour
         return Mathf.Clamp(score + pilotsLoungeEnvironmentBonus, 0f, 100f);
     }
 
+    public bool IsPositionInPilotsLounge(Vector3 worldPosition)
+    {
+        ResolveReferences();
+
+        if (gridManager == null || roomDetection == null)
+            return false;
+
+        roomDetection.RefreshRooms();
+
+        if (roomEnvironmentCacheDirty)
+            RebuildRoomEnvironmentCache();
+
+        Vector2Int cell = gridManager.WorldToGrid(worldPosition);
+
+        return roomPurposeByCell.TryGetValue(cell, out RoomPurpose purpose) &&
+               purpose == RoomPurpose.PilotsLounge;
+    }
+
     private void RebuildRoomEnvironmentCache()
     {
         roomPurposeByCell.Clear();
