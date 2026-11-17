@@ -539,13 +539,9 @@ public class PilotSocialSeatingController : MonoBehaviour
         other.needs.SatisfyNeed(UtilityNeeds.NeedType.Boredom,
             other.boredomSatisfactionAmount);
 
-        // Return both pilots to reachable approach points before freeing the seats.
-        // Their AnimationPoints may be inside blocked building footprints.
-        if (reservedSeatProvider != null && movement != null)
-            movement.AlignToInteractionPoint(reservedSeatProvider);
-
-        if (other.reservedSeatProvider != null && other.movement != null)
-            other.movement.AlignToInteractionPoint(other.reservedSeatProvider);
+        // Cache the approach points before releasing the seat references.
+        InteractionProvider ownSeat = reservedSeatProvider;
+        InteractionProvider otherSeat = other.reservedSeatProvider;
 
         ReleaseSeatReservations();
         other.ReleaseSeatReservations();
@@ -554,6 +550,23 @@ public class PilotSocialSeatingController : MonoBehaviour
         other.partner = null;
         ResetOwnState("Seated conversation complete");
         other.ResetOwnState("Seated conversation complete");
+
+        // Apply the final poses after all conversation cleanup. Stop any
+        // residual movement first so no previous route can keep the pilots
+        // at their animation positions.
+        if (movement != null)
+        {
+            movement.Stop();
+            if (ownSeat != null)
+                movement.AlignToInteractionPoint(ownSeat);
+        }
+
+        if (other.movement != null)
+        {
+            other.movement.Stop();
+            if (otherSeat != null)
+                other.movement.AlignToInteractionPoint(otherSeat);
+        }
     }
 
     private void ReleaseSeatReservations()
