@@ -541,6 +541,22 @@ public class RoomInfoPanelUIController : MonoBehaviour
                 ? new Color(0.35f, 0.85f, 0.48f, 1f)
                 : new Color(1f, 0.55f, 0.40f, 1f);
         }
+        else if (pendingPurpose == RoomPurpose.PilotsLounge)
+        {
+            AddRequirement("Fully enclosed room", true);
+            AddRequirement("At least one door", hasDoor);
+
+            bool valid = roomPurposeController.ValidatePilotsLounge(
+                selectedRoom, out string validationMessage);
+
+            validationLabel.text = valid
+                ? "Functional: this pilots lounge is active."
+                : "Not functional yet:\n" + validationMessage;
+
+            validationLabel.style.color = valid
+                ? new Color(0.35f, 0.85f, 0.48f, 1f)
+                : new Color(1f, 0.55f, 0.40f, 1f);
+        }
         else
         {
             Label message = CreateLabel(
