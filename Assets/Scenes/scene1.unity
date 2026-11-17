@@ -625,6 +625,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 403195574}
+  - component: {fileID: 403195575}
   m_Layer: 0
   m_Name: AirportRatingManager
   m_TagString: Untagged
@@ -647,6 +648,27 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &403195575
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 403195573}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b71d4c8e2a6f4930a5c7e1d8f2b60491, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AirportRatingManager
+  visitorSatisfactionWeight: 0.75
+  environmentWeight: 0.25
+  ratingSmoothingTimeSeconds: 30
+  completedVisitors: 0
+  recordedVisitorHours: 0
+  visitorSatisfaction: 50
+  environmentExperience: 50
+  rawAirportRating: 50
+  airportRating: 50
 --- !u!1 &405670565
 GameObject:
   m_ObjectHideFlags: 0
@@ -1738,10 +1760,9 @@ MonoBehaviour:
   demandCheckIntervalMinutes: 10
   testFlightMode: 0
   testSpawnIntervalSeconds: 5
-  baseDailyVisits: 10
-  dailyVisitsPerParkingSpot: 3
+  baseDailyVisits: 1.5
+  dailyVisitsPerParkingSpot: 5
   dailyVisitsPerExtraRunway: 0.5
-  reputationDemandMultiplier: 1
   maximumExpectedDailyVisits: 24
   daytimeMultiplier: 1
   dawnDuskMultiplier: 0.5
@@ -3196,6 +3217,7 @@ GameObject:
   - component: {fileID: 1478484332}
   - component: {fileID: 1478484333}
   - component: {fileID: 1478484334}
+  - component: {fileID: 1478484335}
   m_Layer: 0
   m_Name: AirportUI
   m_TagString: Untagged
@@ -3475,6 +3497,24 @@ MonoBehaviour:
   catalogue: {fileID: 11400000, guid: 49bd0928823c6994c83f15b59a0cf454, type: 2}
   painter: {fileID: 555229059}
   floorPainter: {fileID: 555229058}
+--- !u!114 &1478484335
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1478484321}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a9c72d14e6b84f309d5a1c7e2f6084b3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AirportRatingUI
+  uiDocument: {fileID: 762824360}
+  ratingManager: {fileID: 403195575}
+  fontSize: 24
+  topOffset: 20
+  rightOffset: 420
+  buttonWidth: 140
 --- !u!1 &1502454834
 GameObject:
   m_ObjectHideFlags: 0
