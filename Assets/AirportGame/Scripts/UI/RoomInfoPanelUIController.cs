@@ -676,14 +676,15 @@ public class RoomInfoPanelUIController : MonoBehaviour
             $"Quality breakdown:\n" +
             $"• Room area: {assessment.areaQualityPoints}/40\n" +
             $"• Student seating: {assessment.seatingQualityPoints}/40\n" +
-            $"• Instructor desks: " +
+            $"• Desk quality: " +
             $"{assessment.instructorDeskQualityPoints}/20\n\n" +
 
             $"FACILITY DETAILS\n" +
             $"• Foundation cells: {assessment.usableFoundationCells}\n" +
             $"• Student seats: {assessment.studentSeatCount}\n" +
             $"• Student capacity: {assessment.studentCapacity}\n" +
-            $"• Instructor desks: {assessment.instructorDeskCount}\n\n" +
+            $"• Desks: {assessment.instructorDeskCount}\n" +
+            $"• Wall boards: {assessment.wallBoardCount}\n\n" +
 
             $"OPERATIONAL STATUS\n" +
             $"{operationalStatus}\n" +
