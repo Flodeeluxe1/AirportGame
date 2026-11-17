@@ -13,6 +13,7 @@ public class AirportSaveData
     public string savedAtUtc = "";
 
     public int gameTimeSeconds;
+    public long gameDay = 1;
     public float gameSpeedMultiplier = 1f;
 
     public int balance;
