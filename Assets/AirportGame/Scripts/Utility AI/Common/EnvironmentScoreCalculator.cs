@@ -32,32 +32,33 @@ public static class EnvironmentScoreCalculator
     {
         EnsureInitialized();
         Vector2Int cell = GetCell(worldPosition);
-        if (!Buckets.TryGetValue(cell, out List<PlacedBuilding> nearbyBuildings))
-            return NeutralScore;
-
         float score = NeutralScore;
-        for (int i = 0; i < nearbyBuildings.Count; i++)
+
+        if (Buckets.TryGetValue(cell, out List<PlacedBuilding> nearbyBuildings))
         {
-            PlacedBuilding building = nearbyBuildings[i];
-            if (building == null || !building.isActiveAndEnabled)
-                continue;
+            for (int i = 0; i < nearbyBuildings.Count; i++)
+            {
+                PlacedBuilding building = nearbyBuildings[i];
+                if (building == null || !building.isActiveAndEnabled)
+                    continue;
 
-            BuildableDefinition definition = building.Definition;
-            if (definition == null)
-                continue;
+                BuildableDefinition definition = building.Definition;
+                if (definition == null)
+                    continue;
 
-            float radius = definition.environmentRadius;
-            float value = definition.environmentValue;
-            if (radius <= 0f || Mathf.Approximately(value, 0f))
-                continue;
+                float radius = definition.environmentRadius;
+                float value = definition.environmentValue;
+                if (radius <= 0f || Mathf.Approximately(value, 0f))
+                    continue;
 
-            Vector3 offset = building.transform.position - worldPosition;
-            offset.y = 0f;
-            float distanceSquared = offset.sqrMagnitude;
-            if (distanceSquared >= radius * radius)
-                continue;
+                Vector3 offset = building.transform.position - worldPosition;
+                offset.y = 0f;
+                float distanceSquared = offset.sqrMagnitude;
+                if (distanceSquared >= radius * radius)
+                    continue;
 
-            score += value * (1f - Mathf.Sqrt(distanceSquared) / radius);
+                score += value * (1f - Mathf.Sqrt(distanceSquared) / radius);
+            }
         }
 
         score = Mathf.Clamp(score, 0f, 100f);
