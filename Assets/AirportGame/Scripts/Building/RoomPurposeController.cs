@@ -35,6 +35,8 @@ public class RoomPurposeController : MonoBehaviour
     private Vector2Int previousClickCell;
     private float previousClickTime = -10f;
 
+    public int MinimumFoundationCells => minimumFoundationCells;
+
     private void Awake()
     {
         ResolveReferences();
@@ -672,7 +674,7 @@ public class RoomPurposeController : MonoBehaviour
         return false;
     }
 
-    private bool HasDoor(
+    public bool HasDoor(
         RoomDetectionController.DetectedRoom room)
     {
         if (edgeOccupancy == null)
