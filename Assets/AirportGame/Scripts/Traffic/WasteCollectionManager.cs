@@ -231,7 +231,7 @@ public class WasteCollectionManager : MonoBehaviour
 
         string reason = $"Waste collection ({collectedUnits:F1} units)";
 
-        if (!economyManager.TrySpend(charge, reason))
+        if (!economyManager.TrySpend(charge, reason, AirportFinancialCategory.WasteCollection))
         {
             Debug.LogWarning(
                 $"WASTE COLLECTION CHARGE FAILED | {reason} | Cost: ${charge:N0}.",
