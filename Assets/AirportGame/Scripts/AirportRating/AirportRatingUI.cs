@@ -135,24 +135,18 @@ public class AirportRatingUI : MonoBehaviour
         ratingButton.style.alignItems = Align.Center;
         ratingButton.style.justifyContent = Justify.Center;
         ratingButton.style.backgroundColor =
-            new Color32(35, 75, 96, 245);
+            new Color(0.08f, 0.12f, 0.16f, 0.92f);
         ratingButton.style.color = Color.white;
         ratingButton.style.borderTopLeftRadius = 6;
         ratingButton.style.borderTopRightRadius = 6;
         ratingButton.style.borderBottomLeftRadius = 6;
         ratingButton.style.borderBottomRightRadius = 6;
 
-        Label title = new Label("AIRPORT RATING");
-        title.style.fontSize = 10;
-        title.style.unityFontStyleAndWeight = FontStyle.Bold;
-        title.style.color = MutedTextColor;
-
         buttonRatingLabel = new Label("-- / 100");
         buttonRatingLabel.style.fontSize = fontSize;
         buttonRatingLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
         buttonRatingLabel.style.color = Color.white;
 
-        ratingButton.Add(title);
         ratingButton.Add(buttonRatingLabel);
         root.Add(ratingButton);
     }
