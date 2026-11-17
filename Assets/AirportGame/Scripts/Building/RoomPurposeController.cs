@@ -589,7 +589,6 @@ public class RoomPurposeController : MonoBehaviour
 
         int desks = 0;
         int seats = 0;
-        int wallBoards = 0;
 
         HashSet<Vector2Int> roomCells =
             new HashSet<Vector2Int>(room.cells);
@@ -617,10 +616,9 @@ public class RoomPurposeController : MonoBehaviour
                 desks++;
             if ((role & RoomFurnitureRole.Chair) != 0)
                 seats++;
-            if ((role & RoomFurnitureRole.WallBoard) != 0)
-                wallBoards++;
         }
 
+        int wallBoards = CountWallBoardsOnBoundary(room);
         return ValidateFurnitureCounts(desks, seats, wallBoards, out reason);
     }
 
@@ -827,6 +825,58 @@ public class RoomPurposeController : MonoBehaviour
         }
 
         return false;
+    }
+
+    public int CountWallBoardsOnBoundary(
+        RoomDetectionController.DetectedRoom room)
+    {
+        if (room == null || room.cells == null || edgeOccupancy == null)
+            return 0;
+
+        HashSet<PlacedBuilding> countedBoards =
+            new HashSet<PlacedBuilding>();
+
+        Vector2Int[] directions =
+        {
+            Vector2Int.up,
+            Vector2Int.down,
+            Vector2Int.left,
+            Vector2Int.right
+        };
+
+        foreach (Vector2Int cell in room.cells)
+        {
+            foreach (Vector2Int direction in directions)
+            {
+                Vector2Int neighbor = cell + direction;
+
+                if (room.cells.Contains(neighbor))
+                    continue;
+
+                GridEdge edge = GetSharedEdge(cell, direction);
+
+                if (!edgeOccupancy.TryGetOccupant(
+                        edge, out GameObject boundary) ||
+                    boundary == null)
+                {
+                    continue;
+                }
+
+                PlacedBuilding placed =
+                    boundary.GetComponent<PlacedBuilding>();
+
+                if (placed == null || placed.Definition == null)
+                    continue;
+
+                if ((placed.Definition.roomFurnitureRole &
+                     RoomFurnitureRole.WallBoard) != 0)
+                {
+                    countedBoards.Add(placed);
+                }
+            }
+        }
+
+        return countedBoards.Count;
     }
 
     public bool HasDoor(
