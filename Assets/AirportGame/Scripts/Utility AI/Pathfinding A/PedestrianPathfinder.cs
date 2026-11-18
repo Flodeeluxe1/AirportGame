@@ -203,6 +203,87 @@ public class PedestrianPathfinder : MonoBehaviour
     }
 
     /// <summary>
+    /// Finds the nearest walkable pedestrian grid cell around a desired
+    /// spawn point and returns its world-space centre.
+    /// </summary>
+    public bool TryFindNearestWalkablePosition(
+        Vector3 desiredWorldPosition,
+        int maximumSearchRadius,
+        out Vector3 walkableWorldPosition)
+    {
+        walkableWorldPosition = desiredWorldPosition;
+
+        if (!HasValidReferences())
+            return false;
+
+        Vector2Int originCell = gridManager.WorldToGrid(desiredWorldPosition);
+        Vector2Int bestCell = default;
+        float bestDistance = float.MaxValue;
+        bool found = false;
+
+        maximumSearchRadius = Mathf.Max(0, maximumSearchRadius);
+
+        for (int radius = 0; radius <= maximumSearchRadius; radius++)
+        {
+            int minX = originCell.x - radius;
+            int maxX = originCell.x + radius;
+            int minY = originCell.y - radius;
+            int maxY = originCell.y + radius;
+
+            for (int x = minX; x <= maxX; x++)
+            {
+                for (int y = minY; y <= maxY; y++)
+                {
+                    if (radius > 0 &&
+                        x != minX && x != maxX &&
+                        y != minY && y != maxY)
+                    {
+                        continue;
+                    }
+
+                    Vector2Int candidate = new Vector2Int(x, y);
+                    if (!IsWalkable(candidate))
+                        continue;
+
+                    Vector3 candidateWorld =
+                        gridManager.GridToWorldCenter(candidate);
+
+                    float distance = HorizontalDistanceSquared(
+                        desiredWorldPosition,
+                        candidateWorld);
+
+                    if (distance >= bestDistance)
+                        continue;
+
+                    bestDistance = distance;
+                    bestCell = candidate;
+                    found = true;
+                }
+            }
+
+            // Once a candidate exists, a farther ring cannot contain a
+            // closer grid cell than the ring just searched.
+            if (found)
+                break;
+        }
+
+        if (!found)
+            return false;
+
+        walkableWorldPosition =
+            gridManager.GridToWorldCenter(bestCell);
+        walkableWorldPosition.y += pathHeightOffset;
+        return true;
+    }
+
+    private static float HorizontalDistanceSquared(Vector3 a, Vector3 b)
+    {
+        float dx = a.x - b.x;
+        float dz = a.z - b.z;
+        return dx * dx + dz * dz;
+    }
+
+    /// <summary>
     /// Finds a path using world positions. The returned list contains world-space cell centres.
     /// </summary>
     public List<Vector3> FindWorldPath(Vector3 startWorld, Vector3 targetWorld)
