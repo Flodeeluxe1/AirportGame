@@ -47,6 +47,20 @@ public class RoadNetwork : MonoBehaviour
         return position;
     }
 
+    public bool TryGetRoadDirection(Vector2Int position, out RoadDirection direction)
+    {
+        position = GetRoadAnchor(position);
+
+        if (roadCells.TryGetValue(position, out RoadCell cell))
+        {
+            direction = cell.Direction;
+            return true;
+        }
+
+        direction = RoadDirection.North;
+        return false;
+    }
+
     public void AddRoad(Vector2Int position, RoadDirection direction)
     {
         position = GetRoadAnchor(position);
