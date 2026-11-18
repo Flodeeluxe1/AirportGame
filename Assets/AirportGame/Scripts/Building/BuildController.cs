@@ -156,7 +156,8 @@ public class BuildController : MonoBehaviour
             UpdatePlacementPosition();
         }
 
-        if (keyboard.rKey.wasPressedThisFrame)
+        if (keyboard.rKey.wasPressedThisFrame &&
+            currentDefinition.category != BuildCategory.Roads)
         {
             currentHandler?.Rotate();
         }
