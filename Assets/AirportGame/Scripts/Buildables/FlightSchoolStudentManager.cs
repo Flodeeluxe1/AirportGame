@@ -125,6 +125,9 @@ public class FlightSchoolStudentManager : MonoBehaviour
             trafficSpawner = FindFirstObjectByType<TrafficTestSpawner>();
 
         if (flightSchoolManager == null)
+            flightSchoolManager = GetComponent<FlightSchoolManager>();
+
+        if (flightSchoolManager == null)
             flightSchoolManager = FindFirstObjectByType<FlightSchoolManager>();
 
         if (roomPurposeController == null)
