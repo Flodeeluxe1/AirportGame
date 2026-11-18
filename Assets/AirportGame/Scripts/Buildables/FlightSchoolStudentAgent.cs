@@ -126,8 +126,7 @@ public class FlightSchoolStudentAgent : MonoBehaviour
             vehicle.ParkingPosition +
             vehicle.transform.right * 1.5f;
 
-        if (!movement.MoveTo(carSidePosition))
-            HandlePathFailed();
+        movement.MoveTo(carSidePosition);
     }
 
     private void HandleMovementArrived()
