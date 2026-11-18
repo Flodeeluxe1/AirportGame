@@ -4,7 +4,7 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class IncomingCargoCollectionSpawner : MonoBehaviour
 {
-    private const float RetryInterval = 0.5f;
+    private const long RetryIntervalGameSeconds = 1L;
 
     private GameObject cargoTruckPrefab;
     private Transform spawnPoint;
@@ -14,6 +14,7 @@ public class IncomingCargoCollectionSpawner : MonoBehaviour
     private int roadModuleSize = 2;
     private float spawnHeightOffset;
     private bool logTruckSpawns;
+    private GameTimeManager gameTimeManager;
 
     private readonly HashSet<CargoZone> pendingZones =
         new HashSet<CargoZone>();
@@ -27,7 +28,7 @@ public class IncomingCargoCollectionSpawner : MonoBehaviour
     private Vector2Int startCell;
     private Vector2Int exitCell;
     private Vector3 spawnPosition;
-    private float nextRetryTime;
+    private long nextRetryGameSecond;
     private bool initialized;
     private bool roadSetupWarningShown;
 
@@ -93,8 +94,18 @@ public class IncomingCargoCollectionSpawner : MonoBehaviour
         spawnPosition = GetRoadModuleCenter(startCell);
         spawnPosition.y += spawnHeightOffset;
 
+        gameTimeManager = FindFirstObjectByType<GameTimeManager>();
+        if (gameTimeManager == null)
+        {
+            Debug.LogError(
+                "IncomingCargoCollectionSpawner: GameTimeManager is required for retry timing.",
+                this);
+            enabled = false;
+            return;
+        }
+
         initialized = true;
-        nextRetryTime = 0f;
+        nextRetryGameSecond = GetAbsoluteGameTimeSeconds();
         QueueRegisteredZones();
     }
 
@@ -116,16 +127,27 @@ public class IncomingCargoCollectionSpawner : MonoBehaviour
 
     private void Update()
     {
-        if (!initialized || Time.unscaledTime < nextRetryTime)
+        if (!initialized || gameTimeManager == null)
             return;
 
-        nextRetryTime = Time.unscaledTime + RetryInterval;
+        long currentGameSecond = GetAbsoluteGameTimeSeconds();
+        if (currentGameSecond < nextRetryGameSecond)
+            return;
+
+        nextRetryGameSecond = currentGameSecond + RetryIntervalGameSeconds;
 
         if (pendingOutgoingRecoveryOperations.Count > 0)
             ProcessOutgoingRecoveryOperations();
 
         if (pendingZones.Count > 0)
             ProcessPendingZones();
+    }
+
+    private long GetAbsoluteGameTimeSeconds()
+    {
+        return
+            (gameTimeManager.CurrentDay - 1) * 86400L +
+            gameTimeManager.GetGameTimeSeconds();
     }
 
     private void ProcessOutgoingRecoveryOperations()
