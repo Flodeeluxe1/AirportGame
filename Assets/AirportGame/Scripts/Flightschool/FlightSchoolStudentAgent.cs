@@ -208,12 +208,6 @@ public class FlightSchoolStudentAgent : MonoBehaviour
 
     private string GridCellForDiagnostics(Vector3 worldPosition)
     {
-        PedestrianPathfinder pathfinder =
-            FindFirstObjectByType<PedestrianPathfinder>();
-
-        if (pathfinder == null)
-            return "unknown";
-
         GridManager grid = FindFirstObjectByType<GridManager>();
         return grid != null
             ? grid.WorldToGrid(worldPosition).ToString()
