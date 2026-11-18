@@ -657,6 +657,8 @@ public class FlightSchoolStudentManager : MonoBehaviour
 
         record.hasStartedLesson = true;
         record.activeLesson = true;
+        if (record.student != null)
+            record.student.SetStudentVisible(false);
 
         debugStatus = $"Student started a flight lesson at {roomAnchor}.";
     }
@@ -673,6 +675,7 @@ public class FlightSchoolStudentManager : MonoBehaviour
         record.activeLesson = false;
         record.returningFromLesson = true;
         record.pendingAircraft = null;
+        record.student.SetStudentVisible(true);
 
         if (!record.student.ReturnToSeat())
             BeginStudentDeparture(record);
