@@ -236,10 +236,10 @@ public class PilotSocialSeatingController : MonoBehaviour
                     continue;
                 }
 
-                float ownFirst = movement.EstimateTravelTime(firstSeat.Position);
-                float otherSecond = other.movement.EstimateTravelTime(secondSeat.Position);
-                float ownSecond = movement.EstimateTravelTime(secondSeat.Position);
-                float otherFirst = other.movement.EstimateTravelTime(firstSeat.Position);
+                float ownFirst = movement.EstimateTravelTime(firstSeat.Provider);
+                float otherSecond = other.movement.EstimateTravelTime(secondSeat.Provider);
+                float ownSecond = movement.EstimateTravelTime(secondSeat.Provider);
+                float otherFirst = other.movement.EstimateTravelTime(firstSeat.Provider);
 
                 bool firstAssignmentReachable =
                     !float.IsInfinity(ownFirst) && !float.IsNaN(ownFirst) &&
@@ -299,10 +299,10 @@ public class PilotSocialSeatingController : MonoBehaviour
                     if (seatDistance > maximumDistanceBetweenSeats)
                         continue;
 
-                    float ownFirst = movement.EstimateTravelTime(firstSeat.Position);
-                    float partnerSecond = candidate.movement.EstimateTravelTime(secondSeat.Position);
-                    float ownSecond = movement.EstimateTravelTime(secondSeat.Position);
-                    float partnerFirst = candidate.movement.EstimateTravelTime(firstSeat.Position);
+                    float ownFirst = movement.EstimateTravelTime(firstSeat.Provider);
+                    float partnerSecond = candidate.movement.EstimateTravelTime(secondSeat.Provider);
+                    float ownSecond = movement.EstimateTravelTime(secondSeat.Provider);
+                    float partnerFirst = candidate.movement.EstimateTravelTime(firstSeat.Provider);
 
                     float firstAssignment = ownFirst + partnerSecond;
                     float secondAssignment = ownSecond + partnerFirst;
@@ -412,7 +412,7 @@ public class PilotSocialSeatingController : MonoBehaviour
         currentStatus = "Walking to available seats";
         other.currentStatus = "Walking to available seats";
 
-        if (!movement.MoveTo(ownSeat.Position))
+        if (!movement.MoveTo(ownSeat.Provider))
         {
             CancelSocializing("Could not reach reserved seat");
             return;
@@ -421,7 +421,7 @@ public class PilotSocialSeatingController : MonoBehaviour
         if (partner != other || other.partner != this)
             return;
 
-        if (!other.movement.MoveTo(otherSeat.Position))
+        if (!other.movement.MoveTo(otherSeat.Provider))
             CancelSocializing("Could not reach reserved seat");
     }
 
