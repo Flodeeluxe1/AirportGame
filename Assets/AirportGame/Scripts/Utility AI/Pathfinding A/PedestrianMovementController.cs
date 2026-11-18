@@ -53,6 +53,8 @@ public class PedestrianMovementController : MonoBehaviour
     private Vector3 currentAvoidanceOffset;
     private Collider[] alignmentColliders;
     private Renderer[] alignmentRenderers;
+    private InteractionProvider lastApproachProvider;
+    private Vector3 lastApproachPosition;
 
     public bool IsMoving => isMoving;
     public bool HasPath => movementPath.Count > 0;
@@ -117,7 +119,12 @@ public class PedestrianMovementController : MonoBehaviour
         if (provider == null)
             return;
 
-        AlignToPoint(provider.InteractionPosition, provider.InteractionRotation);
+        Vector3 approachPosition =
+            lastApproachProvider == provider
+                ? lastApproachPosition
+                : provider.InteractionPosition;
+
+        AlignToPoint(approachPosition, provider.InteractionRotation);
     }
 
     private void AlignToPoint(Vector3 anchorPosition, Quaternion anchorRotation)
@@ -198,6 +205,49 @@ public class PedestrianMovementController : MonoBehaviour
         List<Vector3> estimatedPath =
             pathfinder.FindWorldPath(start, target);
 
+        return EstimateTravelTime(start, target, estimatedPath);
+    }
+
+    /// <summary>
+    /// Estimates travel time to an interaction using the same preferred-point
+    /// and fallback-approach selection used by MoveTo(provider).
+    /// </summary>
+    public float EstimateTravelTime(InteractionProvider provider)
+    {
+        if (provider == null)
+            return float.PositiveInfinity;
+
+        if (pathfinder == null)
+            ResolvePathfinder();
+
+        if (pathfinder == null)
+            return float.PositiveInfinity;
+
+        Vector3 selectedDestination;
+        List<Vector3> estimatedPath;
+
+        bool foundPath = pathfinder.TryFindBestApproachPath(
+            transform.position,
+            provider.InteractionPosition,
+            provider.GetComponentInParent<PlacedBuilding>(),
+            out selectedDestination,
+            out estimatedPath);
+
+        if (!foundPath)
+            return float.PositiveInfinity;
+
+        selectedDestination.y = transform.position.y;
+        return EstimateTravelTime(
+            transform.position,
+            selectedDestination,
+            estimatedPath);
+    }
+
+    private float EstimateTravelTime(
+        Vector3 start,
+        Vector3 target,
+        List<Vector3> estimatedPath)
+    {
         if (estimatedPath == null || estimatedPath.Count == 0)
             return float.PositiveInfinity;
 
@@ -235,6 +285,7 @@ public class PedestrianMovementController : MonoBehaviour
     public bool MoveTo(Vector3 worldDestination)
     {
         StopInternal("Calculating route");
+        lastApproachProvider = null;
 
         if (pathfinder == null)
             ResolvePathfinder();
@@ -246,12 +297,11 @@ public class PedestrianMovementController : MonoBehaviour
             return false;
         }
 
-        destination = worldDestination;
-        movementHeight = transform.position.y;
-        destination.y = movementHeight;
+        Vector3 target = worldDestination;
+        target.y = transform.position.y;
 
         List<Vector3> calculatedPath =
-            pathfinder.FindWorldPath(transform.position, destination);
+            pathfinder.FindWorldPath(transform.position, target);
 
         if (calculatedPath == null || calculatedPath.Count == 0)
         {
@@ -259,6 +309,77 @@ public class PedestrianMovementController : MonoBehaviour
             PathFailed?.Invoke();
             return false;
         }
+
+        return StartMovement(target, calculatedPath);
+    }
+
+    /// <summary>
+    /// Walks to an interaction provider. The configured InteractionPoint is
+    /// preferred; the pathfinder only searches surrounding footprint cells
+    /// when that point cannot be reached.
+    /// </summary>
+    public bool MoveTo(InteractionProvider provider)
+    {
+        StopInternal("Calculating interaction route");
+        lastApproachProvider = null;
+
+        if (provider == null)
+        {
+            movementStatus = "Interaction provider missing";
+            PathFailed?.Invoke();
+            return false;
+        }
+
+        if (pathfinder == null)
+            ResolvePathfinder();
+
+        if (pathfinder == null)
+        {
+            movementStatus = "Pathfinder missing";
+            PathFailed?.Invoke();
+            return false;
+        }
+
+        Vector3 selectedDestination;
+        List<Vector3> calculatedPath;
+
+        bool foundPath = pathfinder.TryFindBestApproachPath(
+            transform.position,
+            provider.InteractionPosition,
+            provider.GetComponentInParent<PlacedBuilding>(),
+            out selectedDestination,
+            out calculatedPath);
+
+        if (!foundPath)
+        {
+            movementStatus = "No interaction approach path found";
+            PathFailed?.Invoke();
+            return false;
+        }
+
+        selectedDestination.y = transform.position.y;
+        lastApproachProvider = provider;
+        lastApproachPosition = selectedDestination;
+
+        return StartMovement(selectedDestination, calculatedPath);
+    }
+
+    public bool IsAtInteractionApproach(InteractionProvider provider)
+    {
+        return provider != null &&
+               lastApproachProvider == provider &&
+               !isMoving &&
+               movementStatus == "Arrived" &&
+               HorizontalDistance(transform.position, lastApproachPosition) <= 0.12f;
+    }
+
+    private bool StartMovement(
+        Vector3 worldDestination,
+        List<Vector3> calculatedPath)
+    {
+        destination = worldDestination;
+        movementHeight = transform.position.y;
+        destination.y = movementHeight;
 
         for (int i = 0; i < calculatedPath.Count; i++)
         {
