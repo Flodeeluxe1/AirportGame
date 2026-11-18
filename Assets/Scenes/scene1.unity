@@ -1560,6 +1560,7 @@ GameObject:
   - component: {fileID: 732156762}
   - component: {fileID: 732156763}
   - component: {fileID: 732156764}
+  - component: {fileID: 732156765}
   m_Layer: 0
   m_Name: FlightSchoolManager
   m_TagString: Untagged
@@ -1612,9 +1613,34 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8f7987af2dd35d8448ee2ded07eb1ef6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FlightSchoolAssessmentController
-  roomPurposeController: {fileID: 0}
+  roomPurposeController: {fileID: 1399790236}
   assessments: []
   debugStatus: Waiting for Flight School rooms.
+--- !u!114 &732156765
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 732156761}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7d4e9b2a1c6f4a8b9e3d5c7f1a2b6048, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FlightSchoolStudentManager
+  studentCarPrefab: {fileID: 2154428240389558112, guid: 9150906fb3da9b049807bba55795f99b, type: 3}
+  studentPrefab: {fileID: 1552182806160375558, guid: d810372275650df4184270e88fa81619, type: 3}
+  seatInteractionDefinition: {fileID: 11400000, guid: d10a1b2c3d4e5f67890123456789abcd, type: 2}
+  trafficSpawner: {fileID: 2134991059}
+  flightSchoolManager: {fileID: 732156763}
+  roomPurposeController: {fileID: 1399790236}
+  gameTimeManager: {fileID: 449210932}
+  pedestrianPathfinder: {fileID: 0}
+  openingHour: 9
+  closingHour: 18
+  carSpawnInterval: 3
+  carExitOffset: 1.5
+  debugStatus: Waiting for Flight School opening.
 --- !u!1 &732953584
 GameObject:
   m_ObjectHideFlags: 0
@@ -5065,6 +5091,7 @@ MonoBehaviour:
   trafficVehiclePrefab: {fileID: 2154428240389558112, guid: 9150906fb3da9b049807bba55795f99b, type: 3}
   cargoTruckPrefab: {fileID: 7704799895376171895, guid: 739ed671cc5ea6c459769b72b223d80d, type: 3}
   gridManager: {fileID: 728659359}
+  gameTimeManager: {fileID: 0}
   spawnMode: 2
   randomizeWhenBoth: 1
   spawnInterval: 3
@@ -5112,6 +5139,7 @@ MonoBehaviour:
   exitPoint: {fileID: 1964681761}
   gridManager: {fileID: 728659359}
   roadNetwork: {fileID: 401526682}
+  gameTimeManager: {fileID: 0}
   tankerCapacityLitres: 20000
   fuelPricePerLitre: 1
   spawnHeightOffset: 0.2
