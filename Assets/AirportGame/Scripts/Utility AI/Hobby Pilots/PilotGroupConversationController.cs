@@ -320,7 +320,11 @@ public class PilotGroupConversationController : MonoBehaviour
             controller.currentGroupSize = members.Count;
             controller.currentStatus = currentStatus;
 
-            if (!controller.movement.MoveTo(member.Target))
+            bool movementStarted = member.SeatProvider != null
+                ? controller.movement.MoveTo(member.SeatProvider)
+                : controller.movement.MoveTo(member.Target);
+
+            if (!movementStarted)
             {
                 CancelGroup("A group member could not reach the meeting point");
                 return;
