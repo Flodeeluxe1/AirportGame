@@ -3,13 +3,15 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// Creates the daily Flight School student cohort. Each student arrives in
-/// their own SUV, parks through the ordinary ParkingSpace traffic system,
-/// and walks to a reserved classroom chair.
+/// Coordinates Flight School student arrivals, classroom seats, lesson hand-offs
+/// and departures. Each student keeps their own SUV in an ordinary ParkingSpace.
 /// </summary>
 [DisallowMultipleComponent]
 public class FlightSchoolStudentManager : MonoBehaviour
 {
+    private const long StudentReturnWaitSeconds = 30L * 60L;
+    private const int SecondsPerDay = 86400;
+
     [Header("Prefab References")]
     [SerializeField] private GameObject studentCarPrefab;
     [SerializeField] private GameObject studentPrefab;
@@ -45,6 +47,14 @@ public class FlightSchoolStudentManager : MonoBehaviour
         public Vector2Int roomAnchor;
         public TrafficTestVehicle vehicle;
         public FlightSchoolStudentAgent student;
+
+        public bool activeLesson;
+        public bool hasStartedLesson;
+        public bool returningFromLesson;
+        public bool waitingAfterLesson;
+        public bool departing;
+        public long departureReadyAtGameSeconds;
+        public GameObject pendingAircraft;
     }
 
     private readonly Dictionary<Vector2Int, long> spawnedDayByRoom =
@@ -53,10 +63,14 @@ public class FlightSchoolStudentManager : MonoBehaviour
     private readonly Dictionary<Vector2Int, List<SeatSlot>> seatsByRoom =
         new Dictionary<Vector2Int, List<SeatSlot>>();
 
+    private readonly Dictionary<Vector2Int, GameObject> readyAircraftByRoom =
+        new Dictionary<Vector2Int, GameObject>();
+
     private readonly List<StudentRecord> students =
         new List<StudentRecord>();
 
     private float nextRoomCheckTime;
+    private bool subscribedToLessons;
 
     private void Awake()
     {
@@ -66,6 +80,7 @@ public class FlightSchoolStudentManager : MonoBehaviour
     private void Update()
     {
         ResolveReferences();
+        SubscribeToLessons();
 
         if (flightSchoolManager == null ||
             roomPurposeController == null ||
@@ -80,21 +95,23 @@ public class FlightSchoolStudentManager : MonoBehaviour
         int openingSeconds = openingHour * 60 * 60;
         int closingSeconds = closingHour * 60 * 60;
 
-        if (currentSeconds < openingSeconds ||
-            currentSeconds >= closingSeconds)
+        if (currentSeconds >= closingSeconds)
         {
-            if (currentSeconds >= closingSeconds)
-                debugStatus = "Flight School is closed for today.";
-
+            HandleSchoolClosing();
+            UpdateStudentDepartureTimers();
+            debugStatus = "Flight School is closed. Remaining active lessons are being completed.";
             return;
         }
+
+        UpdateStudentDepartureTimers();
+
+        if (currentSeconds < openingSeconds)
+            return;
 
         if (Time.unscaledTime < nextRoomCheckTime)
             return;
 
-        nextRoomCheckTime =
-            Time.unscaledTime + 1f;
-
+        nextRoomCheckTime = Time.unscaledTime + 1f;
         SpawnDueSchoolCohorts();
     }
 
@@ -111,6 +128,17 @@ public class FlightSchoolStudentManager : MonoBehaviour
 
         if (gameTimeManager == null)
             gameTimeManager = FindFirstObjectByType<GameTimeManager>();
+    }
+
+    private void SubscribeToLessons()
+    {
+        if (subscribedToLessons || flightSchoolManager == null)
+            return;
+
+        flightSchoolManager.LessonReady += HandleLessonReady;
+        flightSchoolManager.LessonStarted += HandleLessonStarted;
+        flightSchoolManager.LessonCompleted += HandleLessonCompleted;
+        subscribedToLessons = true;
     }
 
     private void SpawnDueSchoolCohorts()
@@ -146,7 +174,6 @@ public class FlightSchoolStudentManager : MonoBehaviour
                 continue;
             }
 
-            // A zero-demand school has still been evaluated for this day.
             spawnedDayByRoom[anchor] = currentDay;
 
             if (dailyDemand <= 0)
@@ -227,8 +254,7 @@ public class FlightSchoolStudentManager : MonoBehaviour
         RoomDetectionController.DetectedRoom room)
     {
         List<SeatSlot> result = new List<SeatSlot>();
-        HashSet<Vector2Int> roomCells =
-            new HashSet<Vector2Int>(room.cells);
+        HashSet<Vector2Int> roomCells = new HashSet<Vector2Int>(room.cells);
 
         PlacedBuilding[] placedBuildings =
             FindObjectsByType<PlacedBuilding>(
@@ -288,8 +314,7 @@ public class FlightSchoolStudentManager : MonoBehaviour
         {
             for (int z = 0; z < Mathf.Max(1, building.Depth); z++)
             {
-                Vector2Int cell =
-                    building.Origin + new Vector2Int(x, z);
+                Vector2Int cell = building.Origin + new Vector2Int(x, z);
 
                 if (roomCells.Contains(cell))
                     return true;
@@ -303,7 +328,7 @@ public class FlightSchoolStudentManager : MonoBehaviour
     {
         StudentRecord record = FindRecord(vehicle);
 
-        if (record == null || vehicle == null)
+        if (record == null || vehicle == null || record.student != null)
             return;
 
         if (studentPrefab == null)
@@ -329,6 +354,7 @@ public class FlightSchoolStudentManager : MonoBehaviour
 
         student.Initialize(vehicle);
         student.SeatReached += HandleStudentSeated;
+        student.AircraftReached += HandleStudentReachedAircraft;
         student.PathFailed += HandleStudentPathFailed;
         record.student = student;
 
@@ -339,8 +365,11 @@ public class FlightSchoolStudentManager : MonoBehaviour
                 $"student arriving at room {record.roomAnchor}.",
                 student);
 
-            student.BeginDeparture();
+            BeginStudentDeparture(record);
+            return;
         }
+
+        TryDispatchWaitingStudent(record.roomAnchor);
     }
 
     private bool TryAssignRoomSeat(
@@ -368,17 +397,243 @@ public class FlightSchoolStudentManager : MonoBehaviour
 
     private void HandleStudentSeated(FlightSchoolStudentAgent student)
     {
-        debugStatus = $"Student seated in Flight School at {FindStudentRoom(student)}.";
+        StudentRecord record = FindRecord(student);
+
+        if (record == null)
+            return;
+
+        if (record.returningFromLesson)
+        {
+            record.returningFromLesson = false;
+            record.waitingAfterLesson = true;
+            record.departureReadyAtGameSeconds =
+                GetAbsoluteGameTimeSeconds() + StudentReturnWaitSeconds;
+
+            debugStatus =
+                $"Student returned to Flight School at {record.roomAnchor}; " +
+                "30-minute classroom wait started.";
+
+            return;
+        }
+
+        if (readyAircraftByRoom.ContainsKey(record.roomAnchor))
+            TryDispatchWaitingStudent(record.roomAnchor);
+    }
+
+    private void HandleLessonReady(
+        Vector2Int roomAnchor,
+        GameObject aircraft)
+    {
+        if (aircraft == null)
+            return;
+
+        readyAircraftByRoom[roomAnchor] = aircraft;
+        TryDispatchWaitingStudent(roomAnchor);
+    }
+
+    private void TryDispatchWaitingStudent(Vector2Int roomAnchor)
+    {
+        if (!readyAircraftByRoom.TryGetValue(
+                roomAnchor,
+                out GameObject aircraft) ||
+            aircraft == null)
+        {
+            return;
+        }
+
+        StudentRecord selected = null;
+
+        foreach (StudentRecord record in students)
+        {
+            if (record.roomAnchor != roomAnchor ||
+                record.student == null ||
+                record.hasStartedLesson ||
+                record.activeLesson ||
+                record.returningFromLesson ||
+                record.waitingAfterLesson ||
+                record.departing ||
+                !record.student.IsSeated)
+            {
+                continue;
+            }
+
+            selected = record;
+            break;
+        }
+
+        if (selected == null)
+            return;
+
+        selected.activeLesson = true;
+        selected.pendingAircraft = aircraft;
+
+        if (!selected.student.BeginFlightLesson(aircraft))
+        {
+            selected.activeLesson = false;
+            selected.pendingAircraft = null;
+            flightSchoolManager.CancelStudentReadyForLesson(roomAnchor);
+            BeginStudentDeparture(selected);
+        }
+    }
+
+    private void HandleStudentReachedAircraft(
+        FlightSchoolStudentAgent student)
+    {
+        StudentRecord record = FindRecord(student);
+
+        if (record == null ||
+            !record.activeLesson ||
+            record.pendingAircraft == null)
+        {
+            return;
+        }
+
+        if (!flightSchoolManager.ConfirmStudentReadyForLesson(
+                record.roomAnchor))
+        {
+            record.activeLesson = false;
+            record.pendingAircraft = null;
+            flightSchoolManager.CancelStudentReadyForLesson(record.roomAnchor);
+
+            if (!student.ReturnToSeat())
+                BeginStudentDeparture(record);
+
+            return;
+        }
+
+        readyAircraftByRoom.Remove(record.roomAnchor);
+    }
+
+    private void HandleLessonStarted(
+        Vector2Int roomAnchor,
+        GameObject aircraft)
+    {
+        StudentRecord record = FindActiveStudent(roomAnchor, aircraft);
+
+        if (record == null)
+            return;
+
+        record.hasStartedLesson = true;
+        record.activeLesson = true;
+        record.pendingAircraft = null;
+
+        debugStatus = $"Student started a flight lesson at {roomAnchor}.";
+    }
+
+    private void HandleLessonCompleted(
+        Vector2Int roomAnchor,
+        GameObject aircraft)
+    {
+        StudentRecord record = FindActiveStudent(roomAnchor, aircraft);
+
+        if (record == null || record.student == null)
+            return;
+
+        record.activeLesson = false;
+        record.returningFromLesson = true;
+        record.pendingAircraft = null;
+
+        if (!record.student.ReturnToSeat())
+            BeginStudentDeparture(record);
+
+        debugStatus = $"Student returning to the classroom at {roomAnchor}.";
+    }
+
+    private StudentRecord FindActiveStudent(
+        Vector2Int roomAnchor,
+        GameObject aircraft)
+    {
+        foreach (StudentRecord record in students)
+        {
+            if (record.roomAnchor == roomAnchor &&
+                record.activeLesson &&
+                record.pendingAircraft == aircraft)
+            {
+                return record;
+            }
+        }
+
+        return null;
     }
 
     private void HandleStudentPathFailed(FlightSchoolStudentAgent student)
     {
         StudentRecord record = FindRecord(student);
 
-        if (record != null && record.vehicle != null)
-            record.vehicle.RequestDeparture();
+        if (record == null)
+            return;
 
-        RemoveStudentSubscriptions(student);
+        if (record.activeLesson && !record.hasStartedLesson)
+        {
+            flightSchoolManager.CancelStudentReadyForLesson(record.roomAnchor);
+            readyAircraftByRoom.Remove(record.roomAnchor);
+        }
+
+        BeginStudentDeparture(record);
+    }
+
+    private void HandleSchoolClosing()
+    {
+        readyAircraftByRoom.Clear();
+
+        for (int i = students.Count - 1; i >= 0; i--)
+        {
+            StudentRecord record = students[i];
+
+            if (record == null ||
+                record.departing ||
+                record.hasStartedLesson ||
+                record.activeLesson ||
+                record.returningFromLesson ||
+                record.waitingAfterLesson)
+            {
+                continue;
+            }
+
+            BeginStudentDeparture(record);
+        }
+    }
+
+    private void UpdateStudentDepartureTimers()
+    {
+        long currentGameSeconds = GetAbsoluteGameTimeSeconds();
+
+        for (int i = 0; i < students.Count; i++)
+        {
+            StudentRecord record = students[i];
+
+            if (record == null ||
+                !record.waitingAfterLesson ||
+                record.departing ||
+                currentGameSeconds < record.departureReadyAtGameSeconds)
+            {
+                continue;
+            }
+
+            BeginStudentDeparture(record);
+        }
+    }
+
+    private void BeginStudentDeparture(StudentRecord record)
+    {
+        if (record == null || record.departing)
+            return;
+
+        record.departing = true;
+        record.waitingAfterLesson = false;
+        record.returningFromLesson = false;
+
+        if (record.student != null)
+        {
+            if (record.activeLesson && !record.hasStartedLesson)
+                flightSchoolManager.CancelStudentReadyForLesson(record.roomAnchor);
+
+            record.student.BeginDeparture();
+        }
+        else if (record.vehicle != null)
+        {
+            record.vehicle.RequestDeparture();
+        }
     }
 
     private void HandleVehicleExited(TrafficTestVehicle vehicle)
@@ -421,19 +676,14 @@ public class FlightSchoolStudentManager : MonoBehaviour
         return null;
     }
 
-    private Vector2Int FindStudentRoom(FlightSchoolStudentAgent student)
+    private long GetAbsoluteGameTimeSeconds()
     {
-        StudentRecord record = FindRecord(student);
-        return record != null ? record.roomAnchor : Vector2Int.zero;
-    }
+        if (gameTimeManager == null)
+            return 0;
 
-    private void RemoveStudentSubscriptions(FlightSchoolStudentAgent student)
-    {
-        if (student == null)
-            return;
-
-        student.SeatReached -= HandleStudentSeated;
-        student.PathFailed -= HandleStudentPathFailed;
+        return
+            (gameTimeManager.CurrentDay - 1) * (long)SecondsPerDay +
+            gameTimeManager.GetGameTimeSeconds();
     }
 
     private Vector2Int GetRoomAnchor(
@@ -453,8 +703,25 @@ public class FlightSchoolStudentManager : MonoBehaviour
         return anchor;
     }
 
+    private void RemoveStudentSubscriptions(FlightSchoolStudentAgent student)
+    {
+        if (student == null)
+            return;
+
+        student.SeatReached -= HandleStudentSeated;
+        student.AircraftReached -= HandleStudentReachedAircraft;
+        student.PathFailed -= HandleStudentPathFailed;
+    }
+
     private void OnDestroy()
     {
+        if (subscribedToLessons && flightSchoolManager != null)
+        {
+            flightSchoolManager.LessonReady -= HandleLessonReady;
+            flightSchoolManager.LessonStarted -= HandleLessonStarted;
+            flightSchoolManager.LessonCompleted -= HandleLessonCompleted;
+        }
+
         foreach (StudentRecord record in students)
         {
             if (record.vehicle != null)
