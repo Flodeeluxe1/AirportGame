@@ -16,16 +16,19 @@ public class FlightSchoolRoomAssessment
 
     [Header("Room Measurements")]
     public int usableFoundationCells;
-    public int instructorDeskCount;
     public int studentSeatCount;
     public int wallBoardCount;
     public int studentCapacity;
+    public int bookCount;
+    public int computerCount;
+    public int printerCount;
+    public int projectorCount;
 
     [Header("Facility Quality")]
-    [Range(0, 40)] public int areaQualityPoints;
-    [Range(0, 40)] public int seatingQualityPoints;
-    [Range(0, 20)] public int instructorDeskQualityPoints;
-    [Range(0, 100)] public int facilityQualityScore;
+    [Range(0, 25)] public int areaQualityPoints;
+    [Range(0, 25)] public int seatingQualityPoints;
+    [Range(0, 20)] public int equipmentQualityPoints;
+    [Range(0, 70)] public int facilityQualityScore;
 
     [Header("Operational Requirements")]
     public bool meetsMinimumOperationalRequirements;
@@ -77,9 +80,12 @@ public class FlightSchoolAssessmentController : MonoBehaviour
 
     private sealed class FurnitureCounts
     {
-        public int instructorDesks;
         public int studentSeats;
         public int wallBoards;
+        public int books;
+        public int computers;
+        public int printers;
+        public int projectors;
     }
 
     private void Awake()
@@ -140,9 +146,12 @@ public class FlightSchoolAssessmentController : MonoBehaviour
         RoomFurnitureRole role =
             building.Definition.roomFurnitureRole;
 
-        if ((role & (RoomFurnitureRole.Desk |
-                     RoomFurnitureRole.Chair |
-                     RoomFurnitureRole.WallBoard)) != 0)
+        if ((role & (RoomFurnitureRole.Chair |
+                     RoomFurnitureRole.WallBoard |
+                     RoomFurnitureRole.Computer |
+                     RoomFurnitureRole.Printer |
+                     RoomFurnitureRole.Projector |
+                     RoomFurnitureRole.Book)) != 0)
         {
             RequestRefresh();
         }
@@ -230,7 +239,6 @@ public class FlightSchoolAssessmentController : MonoBehaviour
             bool meetsRequirements =
                 roomPurposeController.ValidateFlightSchool(
                     room,
-                    furniture.instructorDesks,
                     furniture.studentSeats,
                     furniture.wallBoards,
                     out string validationReason);
@@ -241,9 +249,12 @@ public class FlightSchoolAssessmentController : MonoBehaviour
             int seatingPoints =
                 CalculateSeatingQualityPoints(furniture.studentSeats);
 
-            int deskPoints =
-                CalculateInstructorDeskQualityPoints(
-                    furniture.instructorDesks);
+            int equipmentPoints =
+                CalculateEquipmentQualityPoints(
+                    furniture.books,
+                    furniture.computers,
+                    furniture.printers,
+                    furniture.projectors);
 
             FlightSchoolRoomAssessment assessment =
                 new FlightSchoolRoomAssessment
@@ -252,16 +263,19 @@ public class FlightSchoolAssessmentController : MonoBehaviour
                     anchorZ = anchor.y,
 
                     usableFoundationCells = room.CellCount,
-                    instructorDeskCount = furniture.instructorDesks,
                     studentSeatCount = furniture.studentSeats,
                     wallBoardCount = furniture.wallBoards,
                     studentCapacity = furniture.studentSeats,
+                    bookCount = furniture.books,
+                    computerCount = furniture.computers,
+                    printerCount = furniture.printers,
+                    projectorCount = furniture.projectors,
 
                     areaQualityPoints = areaPoints,
                     seatingQualityPoints = seatingPoints,
-                    instructorDeskQualityPoints = deskPoints,
+                    equipmentQualityPoints = equipmentPoints,
                     facilityQualityScore =
-                        areaPoints + seatingPoints + deskPoints,
+                        areaPoints + seatingPoints + equipmentPoints,
 
                     meetsMinimumOperationalRequirements =
                         meetsRequirements,
@@ -351,17 +365,31 @@ public class FlightSchoolAssessmentController : MonoBehaviour
             RoomFurnitureRole role =
                 building.Definition.roomFurnitureRole;
 
-            if ((role & (RoomFurnitureRole.Desk |
-                         RoomFurnitureRole.Chair |
-                         RoomFurnitureRole.WallBoard)) == 0)
+            if ((role & (RoomFurnitureRole.Chair |
+                         RoomFurnitureRole.WallBoard |
+                         RoomFurnitureRole.Computer |
+                         RoomFurnitureRole.Printer |
+                         RoomFurnitureRole.Projector |
+                         RoomFurnitureRole.Book)) == 0)
             {
                 continue;
             }
 
+            PlacedBuilding footprintBuilding = building;
+            if (building.IsSurfacePlaced)
+            {
+                footprintBuilding = building.SupportingSurface;
+                if (footprintBuilding == null)
+                    continue;
+            }
+
+            if (footprintBuilding.IsEdgeBuilding)
+                continue;
+
             // Attribute each placed furniture object to at most one room.
             // Normally its origin lies inside the room it belongs to.
             RoomDetectionController.DetectedRoom owner =
-                FindOwningRoom(building, rooms);
+                FindOwningRoom(footprintBuilding, rooms);
 
             if (owner == null)
                 continue;
@@ -371,11 +399,20 @@ public class FlightSchoolAssessmentController : MonoBehaviour
             if (!result.TryGetValue(anchor, out FurnitureCounts counts))
                 continue;
 
-            if ((role & RoomFurnitureRole.Desk) != 0)
-                counts.instructorDesks++;
-
             if ((role & RoomFurnitureRole.Chair) != 0)
                 counts.studentSeats++;
+
+            if ((role & RoomFurnitureRole.Book) != 0)
+                counts.books++;
+
+            if ((role & RoomFurnitureRole.Computer) != 0)
+                counts.computers++;
+
+            if ((role & RoomFurnitureRole.Printer) != 0)
+                counts.printers++;
+
+            if ((role & RoomFurnitureRole.Projector) != 0)
+                counts.projectors++;
 
             // Wall-mounted boards are counted from the room boundary below.
         }
@@ -483,47 +520,41 @@ public class FlightSchoolAssessmentController : MonoBehaviour
 
     private int CalculateAreaQualityPoints(int foundationCells)
     {
-        if (foundationCells < MinimumFoundationCells)
+        if (foundationCells <= MinimumFoundationCells)
             return 0;
 
-        if (foundationCells <= 29)
-            return 10;
+        float progress = Mathf.InverseLerp(
+            MinimumFoundationCells,
+            165f,
+            foundationCells);
 
-        if (foundationCells <= 39)
-            return 20;
-
-        if (foundationCells <= 59)
-            return 30;
-
-        return 40;
+        return Mathf.RoundToInt(progress * 25f);
     }
 
     private int CalculateSeatingQualityPoints(int studentSeats)
     {
-        if (studentSeats <= 0)
-            return 0;
-
-        if (studentSeats == 1)
-            return 10;
-
-        if (studentSeats <= 3)
-            return 20;
-
-        if (studentSeats <= 5)
-            return 30;
-
-        return 40;
+        float progress = Mathf.Clamp01(studentSeats / 20f);
+        return Mathf.RoundToInt(progress * 25f);
     }
 
-    private int CalculateInstructorDeskQualityPoints(int instructorDesks)
+    private int CalculateEquipmentQualityPoints(
+        int books,
+        int computers,
+        int printers,
+        int projectors)
     {
-        if (instructorDesks <= 0)
-            return 0;
+        int points = Mathf.Max(0, books) * 2;
 
-        if (instructorDesks == 1)
-            return 10;
+        if (computers > 0)
+            points += 5 + (computers - 1) * 2;
 
-        return 20;
+        if (printers > 0)
+            points += 4 + (printers - 1);
+
+        if (projectors > 0)
+            points += 6 + (projectors - 1) * 2;
+
+        return Mathf.Min(20, points);
     }
 
     private Vector2Int GetAnchor(
