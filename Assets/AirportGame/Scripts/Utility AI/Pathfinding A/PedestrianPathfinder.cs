@@ -473,7 +473,6 @@ public class PedestrianPathfinder : MonoBehaviour
     {
         if (cells.Contains(candidate) ||
             !IsWalkable(candidate) ||
-            !IsWalkable(footprintCell) ||
             !CanMoveCardinal(footprintCell, candidate))
         {
             return;
