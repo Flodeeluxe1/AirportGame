@@ -15,6 +15,7 @@ public class PedestrianPathfinder : MonoBehaviour
     [SerializeField] private GridSurface gridSurface;
     [SerializeField] private GridOccupancy gridOccupancy;
     [SerializeField] private EdgeOccupancy edgeOccupancy;
+    [SerializeField] private RoadNetwork roadNetwork;
 
     [Header("Path Settings")]
     [SerializeField, Min(0f)] private float pathHeightOffset = 0.05f;
@@ -53,6 +54,7 @@ public class PedestrianPathfinder : MonoBehaviour
 
     private const int StraightMoveCost = 10;
     private const int DiagonalMoveCost = 14;
+    private const int RoadTraversalPenalty = 80;
 
     private void Awake()
     {
@@ -77,6 +79,9 @@ public class PedestrianPathfinder : MonoBehaviour
 
             if (edgeOccupancy == null)
                 edgeOccupancy = gridManager.GetComponent<EdgeOccupancy>();
+
+            if (roadNetwork == null)
+                roadNetwork = gridManager.GetComponent<RoadNetwork>();
         }
 
         if (gridSurface == null)
@@ -87,6 +92,9 @@ public class PedestrianPathfinder : MonoBehaviour
 
         if (edgeOccupancy == null)
             edgeOccupancy = FindFirstObjectByType<EdgeOccupancy>();
+
+        if (roadNetwork == null)
+            roadNetwork = FindFirstObjectByType<RoadNetwork>();
     }
 
     /// <summary>
@@ -180,7 +188,14 @@ public class PedestrianPathfinder : MonoBehaviour
                     }
                 }
 
-                int tentativeG = currentBestG + moveCost + randomPenalty;
+                // Roads remain walkable, but pedestrians strongly prefer
+                // grass, foundations and tarmac when an alternative exists.
+                int roadPenalty = IsRoadCell(next)
+                    ? RoadTraversalPenalty
+                    : 0;
+
+                int tentativeG =
+                    currentBestG + moveCost + randomPenalty + roadPenalty;
 
                 if (gScore.TryGetValue(next, out int previousG) &&
                     tentativeG >= previousG)
@@ -550,7 +565,7 @@ public class PedestrianPathfinder : MonoBehaviour
         }
     }
 
-    private static int CalculatePathCost(List<Vector2Int> path)
+    private int CalculatePathCost(List<Vector2Int> path)
     {
         int cost = 0;
 
@@ -560,9 +575,17 @@ public class PedestrianPathfinder : MonoBehaviour
             cost += difference.x != 0 && difference.y != 0
                 ? DiagonalMoveCost
                 : StraightMoveCost;
+
+            if (IsRoadCell(path[i]))
+                cost += RoadTraversalPenalty;
         }
 
         return cost;
+    }
+
+    private bool IsRoadCell(Vector2Int cell)
+    {
+        return roadNetwork != null && roadNetwork.IsRoad(cell);
     }
 
     private List<Vector3> ConvertGridPathToWorld(List<Vector2Int> gridPath)
