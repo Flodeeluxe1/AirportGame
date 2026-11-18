@@ -119,6 +119,12 @@ public class FlightSchoolStudentAgent : MonoBehaviour
         if (aircraft == null || reservedSeat == null || movement == null)
             return false;
 
+        // Sitting places the student on the chair's animation anchor, which
+        // may be inside a blocked building footprint. Restore the reserved
+        // chair's reachable approach position before calculating a route.
+        if (walkingToSeat == false && IsSeated)
+            movement.AlignToInteractionPoint(reservedSeat);
+
         walkingToSeat = false;
         walkingToAircraft = true;
         walkingToCar = false;
@@ -185,6 +191,12 @@ public class FlightSchoolStudentAgent : MonoBehaviour
 
         if (vehicle == null || movement == null)
             return false;
+
+        // A seated student is aligned to the chair animation point, which
+        // can be on a non-walkable cell. Move back to the saved approach point
+        // before releasing the reservation and walking to the car.
+        if (IsSeated && reservedSeat != null)
+            movement.AlignToInteractionPoint(reservedSeat);
 
         ReleaseSeat();
 
