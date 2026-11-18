@@ -216,7 +216,8 @@ public class FlightSchoolStudentManager : MonoBehaviour
         for (int i = 0; i < studentCount; i++)
         {
             if (gameTimeManager == null ||
-                gameTimeManager.CurrentDay != cohortDay)
+                gameTimeManager.CurrentDay != cohortDay ||
+                gameTimeManager.GetGameTimeSeconds() >= closingHour * 60 * 60)
             {
                 yield break;
             }
@@ -330,6 +331,12 @@ public class FlightSchoolStudentManager : MonoBehaviour
 
         if (record == null || vehicle == null || record.student != null)
             return;
+
+        if (record.departing)
+        {
+            vehicle.RequestDeparture();
+            return;
+        }
 
         if (studentPrefab == null)
         {
@@ -493,6 +500,7 @@ public class FlightSchoolStudentManager : MonoBehaviour
         {
             record.activeLesson = false;
             record.pendingAircraft = null;
+            readyAircraftByRoom.Remove(record.roomAnchor);
             flightSchoolManager.CancelStudentReadyForLesson(record.roomAnchor);
 
             if (!student.ReturnToSeat())
@@ -515,7 +523,6 @@ public class FlightSchoolStudentManager : MonoBehaviour
 
         record.hasStartedLesson = true;
         record.activeLesson = true;
-        record.pendingAircraft = null;
 
         debugStatus = $"Student started a flight lesson at {roomAnchor}.";
     }
@@ -563,6 +570,15 @@ public class FlightSchoolStudentManager : MonoBehaviour
         if (record == null)
             return;
 
+        if (record.departing)
+        {
+            if (record.vehicle != null)
+                record.vehicle.RequestDeparture();
+
+            Destroy(student.gameObject);
+            return;
+        }
+
         if (record.activeLesson && !record.hasStartedLesson)
         {
             flightSchoolManager.CancelStudentReadyForLesson(record.roomAnchor);
@@ -583,7 +599,6 @@ public class FlightSchoolStudentManager : MonoBehaviour
             if (record == null ||
                 record.departing ||
                 record.hasStartedLesson ||
-                record.activeLesson ||
                 record.returningFromLesson ||
                 record.waitingAfterLesson)
             {
