@@ -273,7 +273,7 @@ public class InteractionQueue : MonoBehaviour
             next.Agent.GetComponent<PedestrianMovementController>();
 
         float travelTime = movement != null
-            ? movement.EstimateTravelTime(provider.InteractionPosition)
+            ? movement.EstimateTravelTime(provider)
             : next.EstimatedTravelTime;
 
         activeEstimatedTotalTime =
