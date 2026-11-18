@@ -382,7 +382,7 @@ public class FlightSchoolStudentManager : MonoBehaviour
         {
             Debug.LogError(
                 $"FlightSchoolStudentManager: Parked event received from {vehicle.name} " +
-                $"(instance {vehicle.GetInstanceID()}), but no student record matches it.",
+                $"(instance {vehicle.GetEntityId()}), but no student record matches it.",
                 vehicle);
             return;
         }
