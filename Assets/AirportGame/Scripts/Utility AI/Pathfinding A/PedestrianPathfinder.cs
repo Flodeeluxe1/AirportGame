@@ -238,6 +238,9 @@ public class PedestrianPathfinder : MonoBehaviour
         if (worldPath.Count > 0)
             return true;
 
+        if (!HasValidReferences())
+            return false;
+
         List<Vector2Int> approachCells =
             GetApproachCells(targetBuilding, preferredWorld);
 
