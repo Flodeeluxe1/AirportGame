@@ -181,10 +181,9 @@ public class FlightSchoolStudentManager : MonoBehaviour
                 continue;
             }
 
-            spawnedDayByRoom[anchor] = currentDay;
-
             if (dailyDemand <= 0)
             {
+                spawnedDayByRoom[anchor] = currentDay;
                 debugStatus = $"Flight School at {anchor} has no student demand today.";
                 continue;
             }
@@ -208,6 +207,7 @@ public class FlightSchoolStudentManager : MonoBehaviour
                 continue;
             }
 
+            spawnedDayByRoom[anchor] = currentDay;
             seatsByRoom[anchor] = seats;
             StartCoroutine(SpawnRoomCohort(anchor, dailyDemand, currentDay));
 
