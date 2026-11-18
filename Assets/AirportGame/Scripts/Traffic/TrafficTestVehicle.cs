@@ -395,10 +395,15 @@ public class TrafficTestVehicle : MonoBehaviour
                     continue;
                 }
 
-                if (availableTime < bestAvailableTime ||
-                    (Mathf.Approximately(
-                         availableTime,
-                         bestAvailableTime) &&
+                bool isBetterAvailability =
+                    bestFutureSpace == null ||
+                    availableTime < bestAvailableTime;
+
+                bool sameAvailability =
+                    availableTime == bestAvailableTime;
+
+                if (isBetterAvailability ||
+                    (sameAvailability &&
                      candidatePath.Count < bestFuturePathLength))
                 {
                     bestAvailableTime = availableTime;
