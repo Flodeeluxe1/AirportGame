@@ -1,0 +1,792 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &1552182806160375558
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5399730472213202490}
+  - component: {fileID: 2441741470410130843}
+  - component: {fileID: 497652449320250805}
+  - component: {fileID: 2338498571254170503}
+  - component: {fileID: 9192837465012345678}
+  - component: {fileID: 8273649182736450918}
+  - component: {fileID: 7462819304756128391}
+  - component: {fileID: 3894756102837465190}
+  - component: {fileID: 5947382019658473021}
+  - component: {fileID: 7123456789012345678}
+  - component: {fileID: 8217346509182736450}
+  - component: {fileID: 6812345678901234567}
+  - component: {fileID: 7349201846502739184}
+  - component: {fileID: 1200000000000000001}
+  m_Layer: 0
+  m_Name: FS_Pilot_1
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5399730472213202490
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1552182806160375558}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 37.066, y: 0.323, z: 38.077}
+  m_LocalScale: {x: 0.25, y: 0.76, z: 0.2}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &2441741470410130843
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1552182806160375558}
+  m_Mesh: {fileID: 10208, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!23 &497652449320250805
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1552182806160375558}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: 3b18a128e3ef569439a0f43236d96d81, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!136 &2338498571254170503
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1552182806160375558}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 0.5
+  m_Height: 2
+  m_Direction: 1
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &9192837465012345678
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1552182806160375558}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a3c7e91f4b2d4680a5f6c9e1d3b7a824, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  pathfinder: {fileID: 0}
+  movementSpeed: 1.5
+  individualSpeedMultiplierRange: {x: 0.9, y: 1.1}
+  acceleration: 5
+  deceleration: 3
+  slowdownDistance: 0.8
+  rotationSpeed: 540
+  waypointArrivalDistance: 0.08
+  avoidOtherPedestrians: 1
+  avoidanceRadius: 0.65
+  avoidanceStrength: 0.25
+  avoidanceResponse: 3.5
+  isMoving: 0
+  movementStatus: Idle
+  currentWaypointIndex: 0
+  waypointCount: 0
+--- !u!114 &8273649182736450918
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1552182806160375558}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c39a5d7e1f824b0d9a6c3e7f5b2d8146, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  randomizeInitialNeeds: 1
+  initialNeedRanges:
+    thirstMin: 50
+    thirstMax: 100
+    hungerMin: 50
+    hungerMax: 100
+    bladderMin: 50
+    bladderMax: 100
+    energyMin: 50
+    energyMax: 100
+    socialMin: 50
+    socialMax: 100
+    entertainmentMin: 50
+    entertainmentMax: 100
+    comfortMin: 50
+    comfortMax: 100
+    boredomMin: 50
+    boredomMax: 100
+  initialNeedValue: 100
+  decayRates:
+    thirst: 0.25
+    hunger: 0.15
+    bladder: 0.2
+    energy: 0.08
+    social: 0.06
+    entertainment: 0.08
+    comfort: 0.05
+    boredom: 0.05
+  comfortDecayMultiplierAtZeroEnvironment: 2
+  comfortDecayMultiplierAtFullEnvironment: 0
+  urgencyCurves:
+    thirst:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0
+        inSlope: 0.32
+        outSlope: 0.32
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 0.25
+        value: 0.08
+        inSlope: 0.56
+        outSlope: 0.56
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 0.5
+        value: 0.28
+        inSlope: 1.2
+        outSlope: 1.2
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 0.75
+        value: 0.68
+        inSlope: 1.44
+        outSlope: 1.44
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 1
+        value: 1
+        inSlope: 1.28
+        outSlope: 1.28
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    hunger:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0
+        inSlope: 0.04
+        outSlope: 0.04
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 0.25
+        value: 0.01
+        inSlope: 0.12
+        outSlope: 0.12
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 0.5
+        value: 0.06
+        inSlope: 0.62
+        outSlope: 0.62
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 0.75
+        value: 0.32
+        inSlope: 1.88
+        outSlope: 1.88
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 1
+        value: 1
+        inSlope: 2.72
+        outSlope: 2.72
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    bladder:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0
+        inSlope: 0.16
+        outSlope: 0.16
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 0.25
+        value: 0.04
+        inSlope: 0.36
+        outSlope: 0.36
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 0.5
+        value: 0.18
+        inSlope: 1.02
+        outSlope: 1.02
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 0.75
+        value: 0.55
+        inSlope: 1.64
+        outSlope: 1.64
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 1
+        value: 1
+        inSlope: 1.8
+        outSlope: 1.8
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    energy:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0
+        inSlope: 0.12
+        outSlope: 0.12
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 0.25
+        value: 0.03
+        inSlope: 0.36
+        outSlope: 0.36
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 0.5
+        value: 0.18
+        inSlope: 1.1400001
+        outSlope: 1.1400001
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 0.75
+        value: 0.6
+        inSlope: 1.64
+        outSlope: 1.64
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 1
+        value: 1
+        inSlope: 1.5999999
+        outSlope: 1.5999999
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    social:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0.01
+        inSlope: 0.16
+        outSlope: 0.16
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 0.25
+        value: 0.05
+        inSlope: 0.34
+        outSlope: 0.34
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 0.5
+        value: 0.18
+        inSlope: 0.9
+        outSlope: 0.9
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 0.75
+        value: 0.5
+        inSlope: 1.64
+        outSlope: 1.64
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 1
+        value: 1
+        inSlope: 2
+        outSlope: 2
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    entertainment:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0.03
+        inSlope: 0.28
+        outSlope: 0.28
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 0.25
+        value: 0.1
+        inSlope: 0.44
+        outSlope: 0.44
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 0.5
+        value: 0.25
+        inSlope: 1
+        outSlope: 1
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 0.75
+        value: 0.6
+        inSlope: 1.5
+        outSlope: 1.5
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 1
+        value: 1
+        inSlope: 1.5999999
+        outSlope: 1.5999999
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    comfort:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0
+        inSlope: 0.12
+        outSlope: 0.12
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 0.25
+        value: 0.03
+        inSlope: 0.24
+        outSlope: 0.24
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 0.5
+        value: 0.12
+        inSlope: 0.74
+        outSlope: 0.74
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 0.75
+        value: 0.4
+        inSlope: 1.56
+        outSlope: 1.56
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 1
+        value: 0.9
+        inSlope: 1.9999999
+        outSlope: 1.9999999
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    boredom:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0.03
+        inSlope: 0.19999999
+        outSlope: 0.19999999
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 0.25
+        value: 0.08
+        inSlope: 0.34
+        outSlope: 0.34
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 0.5
+        value: 0.2
+        inSlope: 0.74
+        outSlope: 0.74
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 0.75
+        value: 0.45
+        inSlope: 1.3000001
+        outSlope: 1.3000001
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 1
+        value: 0.85
+        inSlope: 1.6000001
+        outSlope: 1.6000001
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+  utilityWeights:
+    thirst: 1.4
+    hunger: 0.9
+    bladder: 1
+    energy: 1
+    social: 0.85
+    entertainment: 0.75
+    comfort: 0.85
+    boredom: 0.7
+  thirst: 100
+  hunger: 100
+  bladder: 100
+  energy: 100
+  social: 100
+  entertainment: 100
+  comfort: 100
+  boredom: 100
+--- !u!114 &7462819304756128391
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1552182806160375558}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d4e7a1c93f5b4d2e8a6c0f1b3d5e7a92, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  decisionInterval: 2
+  shortlistSize: 4
+  timeCostPerSecond: 0.02
+  interactionSearchRadius: 100
+  pilotsLoungeUtilityMultiplier: 1.15
+  queuePositionRefreshInterval: 0.25
+  currentStatus: Idle
+  currentInteractionName: 
+--- !u!114 &3894756102837465190
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1552182806160375558}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7f4a2c9e6b1d4a8f9c3e5d7b1a6f2048, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  searchInterval: 2
+  partnerSearchRadius: 8
+  maximumSocialNeedValue: 80
+  conversationDurationGameSeconds: 240
+  socialSatisfactionAmount: 15
+  entertainmentSatisfactionAmount: 10
+  boredomSatisfactionAmount: 10
+  conversationDistance: 0.7
+  travelTimeout: 30
+  facingRotationSpeed: 540
+  currentStatus: Idle
+  currentPartnerName: 
+--- !u!114 &5947382019658473021
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1552182806160375558}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c8f1a5d7392e4b60a7d3f9c1e5b28416, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  searchInterval: 3
+  searchRadius: 12
+  maximumDistanceBetweenSeats: 2.5
+  maximumSocialNeedValue: 80
+  socializingDurationGameSeconds: 600
+  socialSatisfactionAmount: 25
+  comfortSatisfactionAmount: 10
+  entertainmentSatisfactionAmount: 15
+  boredomSatisfactionAmount: 15
+  travelTimeout: 45
+  facingRotationSpeed: 540
+  currentStatus: Idle
+  currentPartnerName: 
+--- !u!114 &7123456789012345678
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1552182806160375558}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d2f6a8c4b1e47d0a5c3f8e2b6d91470, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  searchInterval: 4
+  searchRadius: 12
+  minimumGroupSize: 3
+  maximumGroupSize: 5
+  maximumSocialNeedValue: 80
+  conversationDurationGameSeconds: 900
+  socialSatisfactionAmount: 35
+  entertainmentSatisfactionAmount: 20
+  boredomSatisfactionAmount: 20
+  standingCircleRadius: 0.5
+  seatClusterRadius: 40
+  travelTimeout: 60
+  facingRotationSpeed: 540
+  currentStatus: Idle
+  currentGroupSize: 0
+--- !u!114 &8217346509182736450
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1552182806160375558}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3e8a1c7d5f924b60a2d9e4c7b1f63850, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  minimumRadiusCells: 3
+  maximumRadiusCells: 6
+  destinationSearchAttempts: 40
+  maximumFoundationPathAttempts: 12
+  enterFoundationWhenOutside: 1
+  loungeDestinationWeight: 2
+  loungeStayWeight: 2
+  minimumIdleIntervalSeconds: 20
+  maximumIdleIntervalSeconds: 40
+  minimumPauseSeconds: 5
+  maximumPauseSeconds: 15
+  maximumSocialNeedValue: 80
+  currentStatus: Idle
+--- !u!114 &6812345678901234567
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1552182806160375558}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6b8f2d4a9c1e47f0a3d5b7c2e8f61490, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  aircraftClearance: 2
+  retryInterval: 2
+  isDeparting: 0
+  currentStatus: Available
+  currentWaypoint: 0
+  totalWaypoints: 0
+--- !u!114 &7349201846502739184
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1552182806160375558}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 91a7d3c84e2f4b5a8c6d0e1f3a7b9c25, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  movementThreshold: 1
+  smoothingTime: 5
+  rawEnvironmentScore: 50
+  smoothedEnvironmentScore: 50
+--- !u!114 &1200000000000000001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1552182806160375558}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c82e5d9f3b704a61a6d8f2e9c3b71502, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  currentNeedSatisfaction: 50
+  currentEnvironmentExperience: 50
+  recordedVisitGameMinutes: 0
