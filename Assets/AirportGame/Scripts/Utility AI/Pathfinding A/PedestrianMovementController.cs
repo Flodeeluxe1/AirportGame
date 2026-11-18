@@ -124,7 +124,16 @@ public class PedestrianMovementController : MonoBehaviour
                 ? lastApproachPosition
                 : provider.InteractionPosition;
 
-        AlignToPoint(approachPosition, provider.InteractionRotation);
+        // Interaction approach positions are already pedestrian-root positions:
+        // the pathfinder creates them at the pedestrian's walking height.
+        // Do not add the collider half-height here. Doing so shifts the root
+        // upward after every completed interaction, accumulating vertical drift.
+        transform.SetPositionAndRotation(
+            approachPosition,
+            provider.InteractionRotation);
+
+        movementHeight = transform.position.y;
+        UtilityAISpatialRegistry<PedestrianMovementController>.UpdatePosition(this);
     }
 
     private void AlignToPoint(Vector3 anchorPosition, Quaternion anchorRotation)
