@@ -526,10 +526,10 @@ public class RoomInfoPanelUIController : MonoBehaviour
             AddRequirement("At least one chair", seats >= 1);
             AddRequirement("At least one wall board", wallBoards >= 1);
 
-            AddOptionalRequirement("PC", computers > 0);
-            AddOptionalRequirement("Projector", projectors > 0);
-            AddOptionalRequirement("Book", books > 0);
-            AddOptionalRequirement("Printer", printers > 0);
+            AddOptionalRequirement("Computer (+5 first, +2 additional)", computers > 0);
+            AddOptionalRequirement("Projector (+6 first, +2 additional)", projectors > 0);
+            AddOptionalRequirement("Book (+2 each)", books > 0);
+            AddOptionalRequirement("Printer (+4 first, +1 additional)", printers > 0);
 
             bool valid = roomPurposeController.ValidateFlightSchool(
                 selectedRoom, out string validationMessage);
