@@ -25,6 +25,7 @@ public class FlightSchoolStudentManager : MonoBehaviour
     [SerializeField] private FlightSchoolManager flightSchoolManager;
     [SerializeField] private RoomPurposeController roomPurposeController;
     [SerializeField] private GameTimeManager gameTimeManager;
+    [SerializeField] private PedestrianPathfinder pedestrianPathfinder;
 
     [Header("Operating Hours")]
     [SerializeField, Range(0, 23)] private int openingHour = 8;
@@ -135,6 +136,9 @@ public class FlightSchoolStudentManager : MonoBehaviour
 
         if (gameTimeManager == null)
             gameTimeManager = FindFirstObjectByType<GameTimeManager>();
+
+        if (pedestrianPathfinder == null)
+            pedestrianPathfinder = FindFirstObjectByType<PedestrianPathfinder>();
     }
 
     private void SubscribeToLessons()
@@ -422,9 +426,24 @@ public class FlightSchoolStudentManager : MonoBehaviour
             return;
         }
 
-        Vector3 spawnPosition =
+        Vector3 desiredSpawnPosition =
             vehicle.ParkingPosition +
             vehicle.transform.right * carExitOffset;
+
+        if (pedestrianPathfinder == null ||
+            !pedestrianPathfinder.TryFindNearestWalkablePosition(
+                desiredSpawnPosition,
+                8,
+                out Vector3 spawnPosition))
+        {
+            Debug.LogError(
+                $"FlightSchoolStudentManager: Could not find a walkable pedestrian " +
+                $"spawn cell near {desiredSpawnPosition} for {vehicle.name}. " +
+                "The student was not spawned and the car will leave.",
+                vehicle);
+            vehicle.RequestDeparture();
+            return;
+        }
 
         GameObject studentObject = Instantiate(
             studentPrefab,
@@ -752,7 +771,21 @@ public class FlightSchoolStudentManager : MonoBehaviour
             if (record.activeLesson && !record.hasStartedLesson)
                 flightSchoolManager.CancelStudentReadyForLesson(record.roomAnchor);
 
-            record.student.BeginDeparture();
+            if (!record.student.BeginDeparture())
+            {
+                Debug.LogWarning(
+                    $"FlightSchoolStudentManager: {record.student.name} cannot walk " +
+                    "to its car. Requesting vehicle departure without the student.",
+                    record.student);
+
+                FlightSchoolStudentAgent departingStudent = record.student;
+                record.student = null;
+                RemoveStudentSubscriptions(departingStudent);
+                Destroy(departingStudent.gameObject);
+
+                if (record.vehicle != null)
+                    record.vehicle.RequestDeparture();
+            }
         }
         else if (record.vehicle != null)
         {
