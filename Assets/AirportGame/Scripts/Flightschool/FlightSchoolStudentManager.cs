@@ -32,7 +32,7 @@ public class FlightSchoolStudentManager : MonoBehaviour
     [SerializeField, Range(0, 23)] private int closingHour = 18;
 
     [Header("Arrival Traffic")]
-    [Tooltip("Small real-time gap between cars prevents the entire cohort spawning on the same road position.")]
+    [Tooltip("In-game seconds between student car spawns, allowing each car to clear the road entry.")]
     [SerializeField, Min(0f)] private float carSpawnInterval = 1.5f;
 
     [Header("Student Placement")]
@@ -74,7 +74,7 @@ public class FlightSchoolStudentManager : MonoBehaviour
     private readonly List<StudentRecord> students =
         new List<StudentRecord>();
 
-    private float nextRoomCheckTime;
+    private long nextRoomCheckGameSecond;
     private bool subscribedToLessons;
 
     private void Awake()
@@ -113,10 +113,11 @@ public class FlightSchoolStudentManager : MonoBehaviour
         if (currentSeconds < openingSeconds)
             return;
 
-        if (Time.unscaledTime < nextRoomCheckTime)
+        long currentGameSecond = GetAbsoluteGameTimeSeconds();
+        if (currentGameSecond < nextRoomCheckGameSecond)
             return;
 
-        nextRoomCheckTime = Time.unscaledTime + 1f;
+        nextRoomCheckGameSecond = currentGameSecond + 1L;
         SpawnDueSchoolCohorts();
     }
 
@@ -258,7 +259,17 @@ public class FlightSchoolStudentManager : MonoBehaviour
             }
 
             if (carSpawnInterval > 0f && i < studentCount - 1)
-                yield return new WaitForSecondsRealtime(carSpawnInterval);
+            {
+                long nextCarSpawnGameSecond =
+                    GetAbsoluteGameTimeSeconds() +
+                    Mathf.CeilToInt(carSpawnInterval);
+
+                while (gameTimeManager != null &&
+                       GetAbsoluteGameTimeSeconds() < nextCarSpawnGameSecond)
+                {
+                    yield return null;
+                }
+            }
         }
     }
 
@@ -449,6 +460,23 @@ public class FlightSchoolStudentManager : MonoBehaviour
             studentPrefab,
             spawnPosition,
             vehicle.transform.rotation);
+
+        Collider studentCollider = studentObject.GetComponent<Collider>();
+        if (studentCollider == null)
+            studentCollider = studentObject.GetComponentInChildren<Collider>();
+
+        if (studentCollider != null)
+        {
+            studentObject.transform.position +=
+                Vector3.up * studentCollider.bounds.extents.y;
+        }
+        else
+        {
+            Debug.LogWarning(
+                $"FlightSchoolStudentManager: {studentObject.name} has no Collider; " +
+                "its spawn height cannot be adjusted.",
+                studentObject);
+        }
 
         FlightSchoolStudentAgent student =
             studentObject.GetComponent<FlightSchoolStudentAgent>();
