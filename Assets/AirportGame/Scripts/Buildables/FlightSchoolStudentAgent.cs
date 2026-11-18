@@ -15,15 +15,21 @@ public class FlightSchoolStudentAgent : MonoBehaviour
     private InteractionDefinition seatInteraction;
 
     private bool walkingToSeat;
+    private bool walkingToAircraft;
     private bool walkingToCar;
 
     public event Action<FlightSchoolStudentAgent> SeatReached;
+    public event Action<FlightSchoolStudentAgent> AircraftReached;
     public event Action<FlightSchoolStudentAgent> CarReached;
     public event Action<FlightSchoolStudentAgent> PathFailed;
 
     public TrafficTestVehicle Vehicle => vehicle;
     public InteractionProvider ReservedSeat => reservedSeat;
-    public bool IsSeated => reservedSeat != null && !walkingToSeat && !walkingToCar;
+    public bool IsSeated =>
+        reservedSeat != null &&
+        !walkingToSeat &&
+        !walkingToAircraft &&
+        !walkingToCar;
 
     public void Initialize(TrafficTestVehicle assignedVehicle)
     {
@@ -52,6 +58,7 @@ public class FlightSchoolStudentAgent : MonoBehaviour
         reservedSeat = provider;
         seatInteraction = interaction;
         walkingToSeat = true;
+        walkingToAircraft = false;
         walkingToCar = false;
 
         if (!movement.MoveTo(provider.InteractionPosition))
@@ -61,6 +68,41 @@ public class FlightSchoolStudentAgent : MonoBehaviour
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// Walks from the reserved chair to the training aircraft.
+    /// The chair reservation is retained so the student can return to it.
+    /// </summary>
+    public bool BeginFlightLesson(GameObject aircraft)
+    {
+        if (aircraft == null || reservedSeat == null || movement == null)
+            return false;
+
+        walkingToSeat = false;
+        walkingToAircraft = true;
+        walkingToCar = false;
+
+        Vector3 aircraftApproach =
+            aircraft.transform.position +
+            aircraft.transform.right * 2f;
+
+        return movement.MoveTo(aircraftApproach);
+    }
+
+    /// <summary>
+    /// Returns the student to their original reserved chair after landing.
+    /// </summary>
+    public bool ReturnToSeat()
+    {
+        if (reservedSeat == null || movement == null)
+            return false;
+
+        walkingToSeat = true;
+        walkingToAircraft = false;
+        walkingToCar = false;
+
+        return movement.MoveTo(reservedSeat.InteractionPosition);
     }
 
     /// <summary>
@@ -77,6 +119,7 @@ public class FlightSchoolStudentAgent : MonoBehaviour
         ReleaseSeat();
 
         walkingToSeat = false;
+        walkingToAircraft = false;
         walkingToCar = true;
 
         Vector3 carSidePosition =
@@ -100,6 +143,13 @@ public class FlightSchoolStudentAgent : MonoBehaviour
             return;
         }
 
+        if (walkingToAircraft)
+        {
+            walkingToAircraft = false;
+            AircraftReached?.Invoke(this);
+            return;
+        }
+
         if (walkingToCar)
         {
             walkingToCar = false;
@@ -114,10 +164,11 @@ public class FlightSchoolStudentAgent : MonoBehaviour
 
     private void HandlePathFailed()
     {
-        if (walkingToSeat)
+        if (walkingToSeat && !walkingToAircraft)
             ReleaseSeat();
 
         walkingToSeat = false;
+        walkingToAircraft = false;
         walkingToCar = false;
         PathFailed?.Invoke(this);
     }
