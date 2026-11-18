@@ -281,12 +281,8 @@ public class PedestrianPathfinder : MonoBehaviour
     {
         List<Vector2Int> result = new List<Vector2Int>(16);
 
-        if (targetBuilding != null &&
-            targetBuilding.IsSurfacePlaced &&
-            targetBuilding.SupportingSurface != null)
-        {
+        if (targetBuilding != null && targetBuilding.IsSurfacePlaced)
             targetBuilding = targetBuilding.SupportingSurface;
-        }
 
         if (targetBuilding == null)
         {
