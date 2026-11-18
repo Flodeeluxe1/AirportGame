@@ -411,6 +411,20 @@ public class PedestrianPathfinder : MonoBehaviour
                 AddAdjacentApproachCell(result, preferred + Vector2Int.down, preferred);
             }
 
+            // Parking positions can be surrounded by blocked/non-pedestrian
+            // cells (for example, the vehicle's own occupied tile or adjacent
+            // road/obstacle cells). If none of the immediate cells are valid,
+            // expand a small distance through walkable cells. The bounded
+            // cardinal flood respects wall and door edges, so it cannot select
+            // a boarding point on the other side of a wall.
+            if (result.Count == 0)
+            {
+                AddNearbyApproachCells(result, anchor, 2);
+
+                if (preferred != anchor)
+                    AddNearbyApproachCells(result, preferred, 2);
+            }
+
             return result;
         }
 
@@ -483,6 +497,57 @@ public class PedestrianPathfinder : MonoBehaviour
         }
 
         cells.Add(candidate);
+    }
+
+    private void AddNearbyApproachCells(
+        List<Vector2Int> cells,
+        Vector2Int anchor,
+        int maximumRadius)
+    {
+        Queue<Vector2Int> queue = new Queue<Vector2Int>();
+        Dictionary<Vector2Int, int> distances =
+            new Dictionary<Vector2Int, int>();
+
+        // The anchor may be occupied by the vehicle itself. It is treated as
+        // the flood origin, but every cell entered after it must be walkable.
+        queue.Enqueue(anchor);
+        distances[anchor] = 0;
+
+        Vector2Int[] cardinalOffsets =
+        {
+            Vector2Int.right,
+            Vector2Int.left,
+            Vector2Int.up,
+            Vector2Int.down
+        };
+
+        while (queue.Count > 0)
+        {
+            Vector2Int current = queue.Dequeue();
+            int currentDistance = distances[current];
+
+            if (currentDistance >= maximumRadius)
+                continue;
+
+            for (int i = 0; i < cardinalOffsets.Length; i++)
+            {
+                Vector2Int next = current + cardinalOffsets[i];
+
+                if (distances.ContainsKey(next) ||
+                    !IsWalkable(next) ||
+                    !CanMoveCardinal(current, next))
+                {
+                    continue;
+                }
+
+                int nextDistance = currentDistance + 1;
+                distances[next] = nextDistance;
+                queue.Enqueue(next);
+
+                if (!cells.Contains(next))
+                    cells.Add(next);
+            }
+        }
     }
 
     private static int CalculatePathCost(List<Vector2Int> path)
