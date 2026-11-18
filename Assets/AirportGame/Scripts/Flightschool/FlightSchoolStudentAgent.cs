@@ -223,9 +223,19 @@ public class FlightSchoolStudentAgent : MonoBehaviour
             vehicle.ParkingPosition +
             vehicle.transform.right * 1.5f;
 
-        if (!movement.TryMoveTo(carSidePosition))
+        // The exact point beside a parked vehicle can be blocked by the
+        // vehicle's footprint or nearby airport objects. Search the cells
+        // immediately around the car and choose the nearest reachable one.
+        if (!movement.TryMoveToNearby(
+                carSidePosition,
+                vehicle.ParkingPosition))
         {
             walkingToCar = false;
+            Debug.LogWarning(
+                $"FlightSchoolStudentAgent {name}: No reachable approach cell " +
+                $"beside car {vehicle.name}. Preferred={carSidePosition}, " +
+                $"car position={vehicle.ParkingPosition}.",
+                this);
             return false;
         }
 
