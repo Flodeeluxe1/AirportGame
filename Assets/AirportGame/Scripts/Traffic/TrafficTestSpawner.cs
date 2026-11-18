@@ -14,6 +14,7 @@ public class TrafficTestSpawner : MonoBehaviour
     [SerializeField] private GameObject trafficVehiclePrefab;
     [SerializeField] private GameObject cargoTruckPrefab;
     [SerializeField] private GridManager gridManager;
+    [SerializeField] private GameTimeManager gameTimeManager;
 
     [Header("Traffic Type")]
     [SerializeField]
@@ -32,33 +33,53 @@ public class TrafficTestSpawner : MonoBehaviour
     [Header("Exit")]
     [SerializeField] private Transform exitPoint;
 
-    private float spawnTimer;
+    private long nextSpawnGameSecond;
     private bool nextSpawnIsCargoTruck;
 
     private void Awake()
     {
         if (gridManager == null)
-        {
             gridManager = FindFirstObjectByType<GridManager>();
-        }
+
+        if (gameTimeManager == null)
+            gameTimeManager = FindFirstObjectByType<GameTimeManager>();
     }
 
     private void Start()
     {
-        spawnTimer = spawnInterval;
+        if (gameTimeManager == null)
+        {
+            Debug.LogError(
+                "TrafficTestSpawner: GameTimeManager is missing; spawning requires in-game time.",
+                this);
+            enabled = false;
+            return;
+        }
+
+        nextSpawnGameSecond =
+            GetAbsoluteGameTimeSeconds() + Mathf.CeilToInt(spawnInterval);
     }
 
     private void Update()
     {
-        spawnTimer -= Time.deltaTime;
-
-        if (spawnTimer > 0f)
-        {
+        if (gameTimeManager == null)
             return;
-        }
 
-        spawnTimer = spawnInterval;
+        long currentGameSecond = GetAbsoluteGameTimeSeconds();
+        if (currentGameSecond < nextSpawnGameSecond)
+            return;
+
+        nextSpawnGameSecond =
+            currentGameSecond + Mathf.CeilToInt(spawnInterval);
+
         SpawnVehicle();
+    }
+
+    private long GetAbsoluteGameTimeSeconds()
+    {
+        return
+            (gameTimeManager.CurrentDay - 1) * 86400L +
+            gameTimeManager.GetGameTimeSeconds();
     }
 
     private void SpawnVehicle()
