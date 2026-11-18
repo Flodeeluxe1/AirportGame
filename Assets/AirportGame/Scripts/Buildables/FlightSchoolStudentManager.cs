@@ -397,6 +397,9 @@ public class FlightSchoolStudentManager : MonoBehaviour
 
             if (student.AssignSeat(seat.provider, seat.interaction))
                 return true;
+
+            if (record.departing)
+                return false;
         }
 
         return false;
