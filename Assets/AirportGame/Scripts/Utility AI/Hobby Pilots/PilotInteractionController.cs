@@ -289,7 +289,7 @@ public class PilotInteractionController : MonoBehaviour
                     continue;
 
                 float travelTime =
-                    movement.EstimateTravelTime(provider.InteractionPosition);
+                    movement.EstimateTravelTime(provider);
 
                 if (!float.IsInfinity(travelTime) && !float.IsNaN(travelTime))
                     return true;
@@ -342,7 +342,7 @@ public class PilotInteractionController : MonoBehaviour
                 }
 
                 float travelTime =
-                    movement.EstimateTravelTime(interactionPosition);
+                    movement.EstimateTravelTime(provider);
 
                 if (float.IsInfinity(travelTime) || float.IsNaN(travelTime))
                     continue;
@@ -438,7 +438,7 @@ public class PilotInteractionController : MonoBehaviour
         reservedInteraction = selected.Definition;
         currentInteractionName = selected.Definition.DisplayName;
 
-        if (!movement.MoveTo(selected.Provider.InteractionPosition))
+        if (!movement.MoveTo(selected.Provider))
         {
             CancelCurrentInteraction("Could not find a path to interaction");
             return;
@@ -551,15 +551,14 @@ public class PilotInteractionController : MonoBehaviour
             if (interactionRoutine != null)
                 return;
 
-            Vector3 interactionPosition = queuedProvider.InteractionPosition;
             if (!movement.IsMoving &&
-                Vector3.Distance(transform.position, interactionPosition) > 0.12f &&
+                !movement.IsAtInteractionApproach(queuedProvider) &&
                 Time.time >= nextQueuePositionRefresh)
             {
                 nextQueuePositionRefresh = Time.time + queuePositionRefreshInterval;
-                lastQueueDestination = interactionPosition;
+                lastQueueDestination = queuedProvider.InteractionPosition;
 
-                if (!movement.MoveTo(interactionPosition))
+                if (!movement.MoveTo(queuedProvider))
                     CancelQueuedInteraction("Could not reach interaction");
                 else
                     currentStatus = "Walking to " + currentInteractionName;
@@ -619,8 +618,8 @@ public class PilotInteractionController : MonoBehaviour
         if (reservedProvider == null || reservedInteraction == null)
             return;
 
-        Vector3 point = reservedProvider.InteractionPosition;
-        float distance = Vector3.Distance(transform.position, point);
+        float distance =
+            Vector3.Distance(transform.position, movement.Destination);
 
         if (distance > reservedInteraction.InteractionRange)
         {
