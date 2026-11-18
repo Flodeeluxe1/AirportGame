@@ -290,17 +290,45 @@ public class FlightSchoolStudentManager : MonoBehaviour
             if (provider == null)
                 provider = placed.GetComponentInChildren<InteractionProvider>(true);
 
-            if (provider == null ||
-                provider.Interactions == null ||
-                provider.Interactions.Count == 0)
-            {
+            if (provider == null || !provider.InteractionsEnabled)
                 continue;
+
+            InteractionDefinition seatInteraction = null;
+
+            for (int i = 0; i < provider.Interactions.Count; i++)
+            {
+                InteractionDefinition definition = provider.Interactions[i];
+
+                if (definition == null ||
+                    string.IsNullOrEmpty(definition.InteractionId))
+                {
+                    continue;
+                }
+
+                string interactionId = definition.InteractionId;
+
+                bool isSeatInteraction =
+                    interactionId.IndexOf(
+                        "sit",
+                        System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    interactionId.IndexOf(
+                        "seat",
+                        System.StringComparison.OrdinalIgnoreCase) >= 0;
+
+                if (!isSeatInteraction || !provider.CanOffer(definition))
+                    continue;
+
+                seatInteraction = definition;
+                break;
             }
+
+            if (seatInteraction == null)
+                continue;
 
             result.Add(new SeatSlot
             {
                 provider = provider,
-                interaction = provider.Interactions[0]
+                interaction = seatInteraction
             });
         }
 
