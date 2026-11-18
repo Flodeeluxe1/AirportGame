@@ -375,17 +375,49 @@ public class FlightSchoolStudentManager : MonoBehaviour
     {
         StudentRecord record = FindRecord(vehicle);
 
-        if (record == null || vehicle == null || record.student != null)
+        if (vehicle == null)
             return;
+
+        if (record == null)
+        {
+            Debug.LogError(
+                $"FlightSchoolStudentManager: Parked event received from {vehicle.name} " +
+                $"(instance {vehicle.GetInstanceID()}), but no student record matches it.",
+                vehicle);
+            return;
+        }
+
+        if (record.student != null)
+        {
+            Debug.LogWarning(
+                $"FlightSchoolStudentManager: {vehicle.name} parked more than once; " +
+                "a student is already assigned to this car.",
+                vehicle);
+            return;
+        }
+
+        Debug.Log(
+            $"FlightSchoolStudentManager: Handling parked student car {vehicle.name} " +
+            $"for room {record.roomAnchor}. Departing={record.departing}, " +
+            $"studentPrefabAssigned={studentPrefab != null}.",
+            vehicle);
 
         if (record.departing)
         {
+            Debug.LogWarning(
+                $"FlightSchoolStudentManager: {vehicle.name} was already marked for " +
+                "departure before its parked event. Requesting car departure.",
+                vehicle);
             vehicle.RequestDeparture();
             return;
         }
 
         if (studentPrefab == null)
         {
+            Debug.LogError(
+                $"FlightSchoolStudentManager: Student prefab is not assigned; " +
+                $"{vehicle.name} cannot spawn a student.",
+                this);
             vehicle.RequestDeparture();
             return;
         }
@@ -411,11 +443,17 @@ public class FlightSchoolStudentManager : MonoBehaviour
         student.PathFailed += HandleStudentPathFailed;
         record.student = student;
 
+        Debug.Log(
+            $"FlightSchoolStudentManager: Spawned {studentObject.name} for {vehicle.name}; " +
+            $"trying to reserve one of {GetSeatCount(record.roomAnchor)} classroom seats.",
+            studentObject);
+
         if (!TryAssignRoomSeat(record, student))
         {
-            Debug.LogWarning(
-                $"FlightSchoolStudentManager: No available classroom chair for " +
-                $"student arriving at room {record.roomAnchor}.",
+            Debug.LogError(
+                $"FlightSchoolStudentManager: {studentObject.name} could not reserve " +
+                $"or path to a classroom chair in room {record.roomAnchor}. " +
+                "See the FlightSchoolStudentAgent seat diagnostics immediately above.",
                 student);
 
             BeginStudentDeparture(record);
@@ -612,6 +650,13 @@ public class FlightSchoolStudentManager : MonoBehaviour
         return null;
     }
 
+    private int GetSeatCount(Vector2Int roomAnchor)
+    {
+        return seatsByRoom.TryGetValue(roomAnchor, out List<SeatSlot> seats)
+            ? seats.Count
+            : 0;
+    }
+
     private void HandleStudentPathFailed(FlightSchoolStudentAgent student)
     {
         StudentRecord record = FindRecord(student);
@@ -621,12 +666,24 @@ public class FlightSchoolStudentManager : MonoBehaviour
 
         if (record.departing)
         {
+            Debug.LogError(
+                $"FlightSchoolStudentManager: {student.name} failed its departure walk " +
+                $"to car {record.vehicle?.name}; requesting the car to leave anyway.",
+                student);
+
             if (record.vehicle != null)
                 record.vehicle.RequestDeparture();
 
             Destroy(student.gameObject);
             return;
         }
+
+        Debug.LogError(
+            $"FlightSchoolStudentManager: {student.name} path failed. " +
+            $"ActiveLesson={record.activeLesson}, HasStartedLesson={record.hasStartedLesson}, " +
+            $"ReturningFromLesson={record.returningFromLesson}, WaitingAfterLesson={record.waitingAfterLesson}. " +
+            "The student will be sent back to its car.",
+            student);
 
         if (record.activeLesson && !record.hasStartedLesson)
         {
