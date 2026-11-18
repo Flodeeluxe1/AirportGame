@@ -193,6 +193,69 @@ public class TrafficTestSpawner : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Spawns a traffic vehicle using this spawner's road entry and exit.
+    /// Used by systems that need to control when a parked vehicle departs.
+    /// </summary>
+    public TrafficTestVehicle SpawnExternallyControlledVehicle(
+        GameObject vehiclePrefab)
+    {
+        if (gridManager == null)
+            gridManager = FindFirstObjectByType<GridManager>();
+
+        if (gridManager == null || exitPoint == null || vehiclePrefab == null)
+        {
+            Debug.LogError(
+                "TrafficTestSpawner: Cannot spawn externally controlled vehicle. " +
+                "GridManager, Exit Point and vehicle prefab are required.",
+                this);
+            return null;
+        }
+
+        Vector2Int startCell =
+            gridManager.WorldToGrid(transform.position);
+
+        Vector2Int exitCell =
+            gridManager.WorldToGrid(exitPoint.position);
+
+        Vector3 spawnPosition =
+            gridManager.GridToWorldCenter(startCell);
+
+        spawnPosition.y += spawnHeightOffset;
+
+        GameObject vehicleObject = Instantiate(
+            vehiclePrefab,
+            spawnPosition,
+            transform.rotation);
+
+        VehicleSpawnID spawnID =
+            vehicleObject.GetComponent<VehicleSpawnID>();
+
+        TrafficTestVehicle trafficVehicle =
+            vehicleObject.GetComponent<TrafficTestVehicle>();
+
+        if (spawnID == null || trafficVehicle == null)
+        {
+            Debug.LogError(
+                "TrafficTestSpawner: Externally controlled vehicle prefab " +
+                "must contain VehicleSpawnID and TrafficTestVehicle.",
+                vehicleObject);
+
+            Destroy(vehicleObject);
+            return null;
+        }
+
+        spawnID.InitializeID();
+        trafficVehicle.InitializeRoute(startCell, exitCell, true);
+
+        Debug.Log(
+            $"EXTERNALLY CONTROLLED TRAFFIC SPAWNED | " +
+            $"ID: {spawnID.SpawnID} | Start: {startCell} | Exit: {exitCell}",
+            vehicleObject);
+
+        return trafficVehicle;
+    }
+
     private bool ShouldSpawnCargoTruck()
     {
         switch (spawnMode)
