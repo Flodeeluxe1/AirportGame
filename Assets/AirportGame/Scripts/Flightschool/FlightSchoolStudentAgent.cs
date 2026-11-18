@@ -91,13 +91,13 @@ public class FlightSchoolStudentAgent : MonoBehaviour
         walkingToAircraft = false;
         walkingToCar = false;
 
-        if (!movement.MoveTo(provider))
+        if (!movement.TryMoveTo(provider))
         {
             Debug.LogError(
                 $"FlightSchoolStudentAgent {name}: Reserved chair {provider.name}, " +
                 $"but no reachable approach cell was found. Preferred target={provider.InteractionPosition}.",
                 this);
-            ReleaseSeat();
+            HandlePathFailed();
             return false;
         }
 
@@ -126,7 +126,11 @@ public class FlightSchoolStudentAgent : MonoBehaviour
             aircraft.transform.position +
             aircraft.transform.right * 2f;
 
-        return movement.MoveTo(aircraftApproach);
+        if (movement.TryMoveTo(aircraftApproach))
+            return true;
+
+        HandlePathFailed();
+        return false;
     }
 
     /// <summary>
@@ -141,7 +145,11 @@ public class FlightSchoolStudentAgent : MonoBehaviour
         walkingToAircraft = false;
         walkingToCar = false;
 
-        return movement.MoveTo(reservedSeat);
+        if (movement.TryMoveTo(reservedSeat))
+            return true;
+
+        HandlePathFailed();
+        return false;
     }
 
     /// <summary>
@@ -165,7 +173,8 @@ public class FlightSchoolStudentAgent : MonoBehaviour
             vehicle.ParkingPosition +
             vehicle.transform.right * 1.5f;
 
-        movement.MoveTo(carSidePosition);
+        if (!movement.TryMoveTo(carSidePosition))
+            HandlePathFailed();
     }
 
     private void HandleMovementArrived()
