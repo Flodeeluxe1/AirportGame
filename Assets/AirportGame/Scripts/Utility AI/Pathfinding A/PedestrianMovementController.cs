@@ -232,7 +232,8 @@ public class PedestrianMovementController : MonoBehaviour
             provider.transform.position,
             provider.GetComponentInParent<PlacedBuilding>(),
             out selectedDestination,
-            out estimatedPath);
+            out estimatedPath,
+            false);
 
         if (!foundPath)
             return float.PositiveInfinity;
