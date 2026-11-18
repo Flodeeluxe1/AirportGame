@@ -1,4 +1,5 @@
 
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -59,6 +60,9 @@ public class FlightSchoolManager : MonoBehaviour
 
         public long demandDay = -1;
         public int studentsStartedToday;
+        public bool lessonReadyNotified;
+        public bool studentReadyToStart;
+        public bool lessonCompletionNotified;
     }
 
     private readonly Dictionary<Vector2Int, SchoolOperation> operations =
@@ -72,6 +76,10 @@ public class FlightSchoolManager : MonoBehaviour
     private static FlightSchoolManager activeManager;
 
     public GameObject TrainingAircraftPrefab => trainingAircraftPrefab;
+
+    public event Action<Vector2Int, GameObject> LessonReady;
+    public event Action<Vector2Int, GameObject> LessonStarted;
+    public event Action<Vector2Int, GameObject> LessonCompleted;
 
     private void Awake()
     {
@@ -548,16 +556,32 @@ public class FlightSchoolManager : MonoBehaviour
                 return;
             }
 
+            if (!operation.lessonReadyNotified)
+            {
+                operation.lessonReadyNotified = true;
+                LessonReady?.Invoke(operation.anchor, operation.aircraft);
+                operation.validationMessage =
+                    "Aircraft ready. Waiting for a student to reach the training aircraft.";
+                return;
+            }
+
+            if (!operation.studentReadyToStart)
+                return;
+
             if (!trainingController.StartTrainingLesson())
             {
                 operation.validationMessage =
-                    "Initial preparation complete. Retrying the first lesson start.";
+                    "Student is ready. Retrying the first lesson start.";
                 return;
             }
 
             operation.studentsStartedToday++;
             operation.turnaroundPending = false;
             operation.turnaroundReadyAtGameSeconds = 0;
+            operation.lessonReadyNotified = false;
+            operation.studentReadyToStart = false;
+            operation.lessonCompletionNotified = false;
+            LessonStarted?.Invoke(operation.anchor, operation.aircraft);
 
             operation.validationMessage =
                 $"First lesson started after preparation. Daily students: " +
@@ -577,6 +601,13 @@ public class FlightSchoolManager : MonoBehaviour
             !operation.lessonRestartPending)
         {
             return;
+        }
+
+        if (trainingController.IsLessonComplete &&
+            !operation.lessonCompletionNotified)
+        {
+            operation.lessonCompletionNotified = true;
+            LessonCompleted?.Invoke(operation.anchor, operation.aircraft);
         }
 
         // Start the turnaround clock when a completed lesson is detected.
@@ -666,11 +697,23 @@ public class FlightSchoolManager : MonoBehaviour
             operation.lessonRestartPending = true;
         }
 
+        if (!operation.lessonReadyNotified)
+        {
+            operation.lessonReadyNotified = true;
+            LessonReady?.Invoke(operation.anchor, operation.aircraft);
+            operation.validationMessage =
+                "Aircraft ready. Waiting for the next student to reach the training aircraft.";
+            return;
+        }
+
+        if (!operation.studentReadyToStart)
+            return;
+
         // Retry a failed lesson start without resetting again or paying twice.
         if (!trainingController.StartTrainingLesson())
         {
             operation.validationMessage =
-                "Turnaround complete. Retrying the next lesson start.";
+                "Student is ready. Retrying the next lesson start.";
             return;
         }
 
@@ -681,6 +724,10 @@ public class FlightSchoolManager : MonoBehaviour
         operation.lessonRestartPending = false;
         operation.turnaroundPending = false;
         operation.turnaroundReadyAtGameSeconds = 0;
+        operation.lessonReadyNotified = false;
+        operation.studentReadyToStart = false;
+        operation.lessonCompletionNotified = false;
+        LessonStarted?.Invoke(operation.anchor, operation.aircraft);
 
         operation.validationMessage =
             $"Next lesson started after turnaround. Daily students: " +
@@ -721,6 +768,26 @@ public class FlightSchoolManager : MonoBehaviour
             operation,
             out dailyDemand,
             out _);
+    }
+
+    /// <summary>
+    /// Called by the student coordinator after the assigned student reaches
+    /// the training aircraft and is ready for the lesson to begin.
+    /// </summary>
+    public bool ConfirmStudentReadyForLesson(Vector2Int roomAnchor)
+    {
+        if (!operations.TryGetValue(
+                roomAnchor,
+                out SchoolOperation operation) ||
+            !operation.lessonReadyNotified ||
+            operation.aircraft == null ||
+            !CanStartNewLesson(operation, out _))
+        {
+            return false;
+        }
+
+        operation.studentReadyToStart = true;
+        return true;
     }
 
     private void OnDestroy()
