@@ -28,7 +28,7 @@ public class FlightSchoolStudentManager : MonoBehaviour
 
     [Header("Arrival Traffic")]
     [Tooltip("Small real-time gap between cars prevents the entire cohort spawning on the same road position.")]
-    [SerializeField, Min(0f)] private float carSpawnInterval = 0.35f;
+    [SerializeField, Min(0f)] private float carSpawnInterval = 1.5f;
 
     [Header("Student Placement")]
     [SerializeField, Min(0.1f)] private float carExitOffset = 1.5f;
