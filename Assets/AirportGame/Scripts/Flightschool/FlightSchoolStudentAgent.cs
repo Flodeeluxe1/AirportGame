@@ -127,8 +127,30 @@ public class FlightSchoolStudentAgent : MonoBehaviour
             aircraft.transform.position +
             aircraft.transform.right * 2f;
 
-        if (movement.TryMoveTo(aircraftApproach))
+        PlacedBuilding aircraftBuilding =
+            aircraft.GetComponentInParent<PlacedBuilding>();
+
+        if (movement.TryMoveToNearby(
+                aircraftApproach,
+                aircraft.transform.position,
+                aircraftBuilding))
+        {
+            Debug.Log(
+                $"FlightSchoolStudentAgent {name}: Walking to aircraft {aircraft.name}. " +
+                $"Start={transform.position}, preferred approach={aircraftApproach}, " +
+                $"selected approach={movement.Destination}.",
+                this);
             return true;
+        }
+
+        Debug.LogError(
+            $"FlightSchoolStudentAgent {name}: No reachable aircraft approach found. " +
+            $"Aircraft={aircraft.name}, Start={transform.position}, " +
+            $"StartCell={GridCellForDiagnostics(transform.position)}, " +
+            $"Preferred={aircraftApproach}, " +
+            $"PreferredCell={GridCellForDiagnostics(aircraftApproach)}, " +
+            $"MovementStatus={movement.MovementStatus}.",
+            this);
 
         HandlePathFailed();
         return false;
@@ -182,6 +204,20 @@ public class FlightSchoolStudentAgent : MonoBehaviour
 
         departureStarted = true;
         return true;
+    }
+
+    private string GridCellForDiagnostics(Vector3 worldPosition)
+    {
+        PedestrianPathfinder pathfinder =
+            FindFirstObjectByType<PedestrianPathfinder>();
+
+        if (pathfinder == null)
+            return "unknown";
+
+        GridManager grid = FindFirstObjectByType<GridManager>();
+        return grid != null
+            ? grid.WorldToGrid(worldPosition).ToString()
+            : "unknown";
     }
 
     private void HandleMovementArrived()
