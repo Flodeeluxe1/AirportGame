@@ -334,6 +334,54 @@ public class PedestrianMovementController : MonoBehaviour
     }
 
     /// <summary>
+    /// Attempts to reach a world-space target, searching nearby walkable
+    /// approach cells when the preferred destination is blocked or unreachable.
+    /// </summary>
+    public bool TryMoveToNearby(
+        Vector3 preferredWorld,
+        Vector3 approachAnchorWorld,
+        PlacedBuilding targetBuilding = null)
+    {
+        StopInternal("Calculating nearby approach route");
+        lastApproachProvider = null;
+
+        if (pathfinder == null)
+            ResolvePathfinder();
+
+        if (pathfinder == null)
+        {
+            movementStatus = "Pathfinder missing";
+            return false;
+        }
+
+        Vector3 selectedDestination;
+        List<Vector3> calculatedPath;
+
+        bool foundPath = pathfinder.TryFindBestApproachPath(
+            transform.position,
+            preferredWorld,
+            approachAnchorWorld,
+            targetBuilding,
+            out selectedDestination,
+            out calculatedPath);
+
+        if (!foundPath)
+        {
+            movementStatus = "No nearby approach path found";
+            return false;
+        }
+
+        selectedDestination.y = transform.position.y;
+
+        Debug.Log(
+            $"PedestrianMovementController {name}: Selected nearby approach " +
+            $"point {selectedDestination} for preferred target {preferredWorld}.",
+            this);
+
+        return StartMovement(selectedDestination, calculatedPath);
+    }
+
+    /// <summary>
     /// Walks to an interaction provider. The configured InteractionPoint is
     /// preferred; the pathfinder only searches surrounding footprint cells
     /// when that point cannot be reached.
