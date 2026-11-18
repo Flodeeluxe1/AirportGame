@@ -790,6 +790,23 @@ public class FlightSchoolManager : MonoBehaviour
         return true;
     }
 
+    /// <summary>
+    /// Clears a pending student hand-off when the assigned pedestrian cannot
+    /// reach the aircraft or the school closes before the lesson begins.
+    /// </summary>
+    public void CancelStudentReadyForLesson(Vector2Int roomAnchor)
+    {
+        if (!operations.TryGetValue(
+                roomAnchor,
+                out SchoolOperation operation))
+        {
+            return;
+        }
+
+        operation.studentReadyToStart = false;
+        operation.lessonReadyNotified = false;
+    }
+
     private void OnDestroy()
     {
         if (activeManager == this)
