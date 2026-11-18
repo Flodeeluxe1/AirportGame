@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -92,9 +93,16 @@ public class TrafficTestVehicle : MonoBehaviour
 
     private float parkingTimer;
     private float currentSpeed;
+    private bool holdAtParking;
 
     private VehicleState state = VehicleState.Idle;
     public VehicleState CurrentState => state;
+    public ParkingSpace CurrentParkingSpace => parkingSpace;
+    public Vector3 ParkingPosition => parkingCenterPosition;
+    public bool IsParked => state == VehicleState.Parked;
+
+    public event Action<TrafficTestVehicle> Parked;
+    public event Action<TrafficTestVehicle> Exited;
 
     // Intersection reservation currently held by this vehicle.
     private bool hasIntersectionReservation;
@@ -118,12 +126,39 @@ public class TrafficTestVehicle : MonoBehaviour
         Vector2Int startCell,
         Vector2Int exitCell)
     {
+        InitializeRoute(startCell, exitCell, false);
+    }
+
+    /// <summary>
+    /// Initializes a route with optional externally controlled parking.
+    /// When held, the vehicle remains parked until RequestDeparture is called.
+    /// </summary>
+    public void InitializeRoute(
+        Vector2Int startCell,
+        Vector2Int exitCell,
+        bool holdAtParking)
+    {
         this.startCell = startCell;
         this.exitCell = exitCell;
+        this.holdAtParking = holdAtParking;
 
         currentSpeed = speed;
 
         StartRoute();
+    }
+
+    /// <summary>
+    /// Starts the normal parking-exit manoeuvre for a vehicle held in a space.
+    /// </summary>
+    public bool RequestDeparture()
+    {
+        if (state != VehicleState.Parked)
+            return false;
+
+        parkingTimer = 0f;
+        leavingParkingStep = 0;
+        state = VehicleState.LeavingParking;
+        return true;
     }
 
     private void Awake()
@@ -731,7 +766,8 @@ public class TrafficTestVehicle : MonoBehaviour
 
         if (!parkingSpace.ParkVehicle(
                 gameObject,
-                parkingDuration))
+                parkingDuration,
+                holdAtParking))
         {
             Debug.LogError(
                 "TrafficTestVehicle: Failed to occupy parking space.");
@@ -745,7 +781,11 @@ public class TrafficTestVehicle : MonoBehaviour
         state = VehicleState.Parked;
 
         Debug.Log(
-            $"TRAFFIC PARKED | Duration: {parkingDuration} seconds");
+            holdAtParking
+                ? "TRAFFIC PARKED | Waiting for external departure request."
+                : $"TRAFFIC PARKED | Duration: {parkingDuration} seconds");
+
+        Parked?.Invoke(this);
     }
 
     private bool ReachedPosition(Vector3 targetPosition)
@@ -761,6 +801,9 @@ public class TrafficTestVehicle : MonoBehaviour
 
     private void UpdateParking()
     {
+        if (holdAtParking)
+            return;
+
         parkingTimer -= Time.deltaTime;
 
         if (parkingTimer > 0f)
@@ -892,6 +935,7 @@ public class TrafficTestVehicle : MonoBehaviour
                 $"TRAFFIC ARRIVED AT EXIT | Cell: {exitCell}");
 
             state = VehicleState.Arrived;
+            Exited?.Invoke(this);
             Destroy(gameObject);
             return;
         }
