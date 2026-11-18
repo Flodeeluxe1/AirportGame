@@ -1,6 +1,6 @@
-
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 public class RoadModuleRuleManager : MonoBehaviour
 {
@@ -23,6 +23,9 @@ public class RoadModuleRuleManager : MonoBehaviour
     [SerializeField] private Vector3 tJunctionRotationOffset;
     [SerializeField] private Vector3 crossroadsRotationOffset;
 
+    [Header("One-Way Direction Overlay")]
+    [SerializeField, Min(0f)] private float arrowHeightOffset = 0.012f;
+
     private const int North = 1;
     private const int East = 2;
     private const int South = 4;
@@ -31,11 +34,15 @@ public class RoadModuleRuleManager : MonoBehaviour
     private class RoadModule
     {
         public GameObject Instance;
+        public GameObject Arrow;
         public GameObject Prefab;
     }
 
     private readonly Dictionary<Vector2Int, RoadModule> modules =
         new Dictionary<Vector2Int, RoadModule>();
+
+    private Mesh arrowMesh;
+    private Material arrowMaterial;
 
     private void Awake()
     {
@@ -47,6 +54,87 @@ public class RoadModuleRuleManager : MonoBehaviour
 
         if (moduleParent == null)
             moduleParent = transform;
+
+        CreateArrowAssets();
+    }
+
+    private void OnDestroy()
+    {
+        if (arrowMesh != null)
+            Destroy(arrowMesh);
+
+        if (arrowMaterial != null)
+            Destroy(arrowMaterial);
+    }
+
+    private void CreateArrowAssets()
+    {
+        Shader shader = Shader.Find("Universal Render Pipeline/Unlit");
+
+        if (shader == null)
+            shader = Shader.Find("Unlit/Color");
+
+        if (shader == null)
+        {
+            Debug.LogError(
+                "RoadModuleRuleManager: Could not find an unlit shader for road direction arrows.");
+            return;
+        }
+
+        arrowMaterial = new Material(shader)
+        {
+            name = "Runtime_RoadDirectionArrow_Material",
+            enableInstancing = true
+        };
+
+        if (arrowMaterial.HasProperty("_BaseColor"))
+            arrowMaterial.SetColor("_BaseColor", Color.white);
+        else if (arrowMaterial.HasProperty("_Color"))
+            arrowMaterial.SetColor("_Color", Color.white);
+
+        if (arrowMaterial.HasProperty("_Cull"))
+            arrowMaterial.SetFloat("_Cull", 0f);
+
+        arrowMesh = CreateArrowMesh();
+    }
+
+    private Mesh CreateArrowMesh()
+    {
+        // The arrow points along local +Z. Its flat shape sits just above the road.
+        Vector3[] vertices =
+        {
+            Vector3.zero,
+            new Vector3(-0.11f, 0f, -0.58f),
+            new Vector3( 0.11f, 0f, -0.58f),
+            new Vector3( 0.11f, 0f,  0.02f),
+            new Vector3( 0.32f, 0f,  0.02f),
+            new Vector3( 0f,    0f,  0.62f),
+            new Vector3(-0.32f, 0f,  0.02f),
+            new Vector3(-0.11f, 0f,  0.02f)
+        };
+
+        int[] triangles =
+        {
+            0, 2, 1,
+            0, 3, 2,
+            0, 4, 3,
+            0, 5, 4,
+            0, 6, 5,
+            0, 7, 6,
+            0, 1, 7
+        };
+
+        Mesh mesh = new Mesh
+        {
+            name = "RoadDirectionArrow"
+        };
+
+        mesh.vertices = vertices;
+        mesh.triangles = triangles;
+        mesh.RecalculateNormals();
+        mesh.RecalculateBounds();
+
+        return mesh;
     }
 
     public void RefreshCell(Vector2Int cell)
@@ -95,6 +183,7 @@ public class RoadModuleRuleManager : MonoBehaviour
             existing.Prefab == prefab)
         {
             existing.Instance.transform.SetPositionAndRotation(position, rotation);
+            UpdateArrowOverlay(existing, cell, position);
             return;
         }
 
@@ -105,11 +194,75 @@ public class RoadModuleRuleManager : MonoBehaviour
 
         instance.name = $"{prefab.name}_Road_{cell.x}_{cell.y}";
 
-        modules[cell] = new RoadModule
+        RoadModule module = new RoadModule
         {
             Instance = instance,
             Prefab = prefab
         };
+
+        modules[cell] = module;
+        UpdateArrowOverlay(module, cell, position);
+    }
+
+    private void UpdateArrowOverlay(
+        RoadModule module,
+        Vector2Int cell,
+        Vector3 roadPosition)
+    {
+        if (arrowMesh == null || arrowMaterial == null)
+            return;
+
+        if (!roadNetwork.TryGetRoadDirection(cell, out RoadDirection direction))
+        {
+            if (module.Arrow != null)
+                Destroy(module.Arrow);
+
+            module.Arrow = null;
+            return;
+        }
+
+        if (module.Arrow == null)
+        {
+            module.Arrow = new GameObject(
+                $"RoadDirectionArrow_{cell.x}_{cell.y}");
+
+            module.Arrow.transform.SetParent(moduleParent, true);
+
+            MeshFilter meshFilter = module.Arrow.AddComponent<MeshFilter>();
+            meshFilter.sharedMesh = arrowMesh;
+
+            MeshRenderer meshRenderer = module.Arrow.AddComponent<MeshRenderer>();
+            meshRenderer.sharedMaterial = arrowMaterial;
+            meshRenderer.shadowCastingMode = ShadowCastingMode.Off;
+            meshRenderer.receiveShadows = false;
+            meshRenderer.lightProbeUsage = LightProbeUsage.Off;
+            meshRenderer.reflectionProbeUsage = ReflectionProbeUsage.Off;
+        }
+
+        module.Arrow.transform.SetPositionAndRotation(
+            roadPosition + Vector3.up * arrowHeightOffset,
+            GetArrowRotation(direction));
+    }
+
+    private static Quaternion GetArrowRotation(RoadDirection direction)
+    {
+        switch (direction)
+        {
+            case RoadDirection.North:
+                return Quaternion.identity;
+
+            case RoadDirection.East:
+                return Quaternion.Euler(0f, 90f, 0f);
+
+            case RoadDirection.South:
+                return Quaternion.Euler(0f, 180f, 0f);
+
+            case RoadDirection.West:
+                return Quaternion.Euler(0f, 270f, 0f);
+
+            default:
+                return Quaternion.identity;
+        }
     }
 
     public void RefreshCellAndNeighbors(Vector2Int cell)
@@ -157,6 +310,9 @@ public class RoadModuleRuleManager : MonoBehaviour
         {
             if (module.Instance != null)
                 Destroy(module.Instance);
+
+            if (module.Arrow != null)
+                Destroy(module.Arrow);
         }
 
         modules.Clear();
@@ -173,6 +329,9 @@ public class RoadModuleRuleManager : MonoBehaviour
 
         if (module.Instance != null)
             Destroy(module.Instance);
+
+        if (module.Arrow != null)
+            Destroy(module.Arrow);
 
         modules.Remove(cell);
     }
