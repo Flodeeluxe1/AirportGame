@@ -1406,6 +1406,7 @@ public class TrafficTestVehicle : MonoBehaviour
                 $"TRAFFIC ARRIVED AT EXIT | Cell: {exitCell}");
 
             state = VehicleState.Arrived;
+            Exited?.Invoke(this);
             Destroy(gameObject);
         }
     }
