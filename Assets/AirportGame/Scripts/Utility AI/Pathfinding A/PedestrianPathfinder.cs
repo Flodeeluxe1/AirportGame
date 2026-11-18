@@ -379,24 +379,34 @@ public class PedestrianPathfinder : MonoBehaviour
         Vector3 preferredWorld,
         Vector3 providerWorld)
     {
-        List<Vector2Int> result = new List<Vector2Int>(48);
+        List<Vector2Int> result = new List<Vector2Int>(16);
 
-        // A surface-placed item may not have a supporting surface reference
-        // (for example, when the object is restored or spawned dynamically).
-        // In that case use its own world position as the local search anchor.
         if (targetBuilding != null && targetBuilding.IsSurfacePlaced)
             targetBuilding = targetBuilding.SupportingSurface;
 
+        // A provider without a building footprint (for example an aircraft)
+        // can only be approached from a cardinally adjacent cell. Validate
+        // the edge between the provider cell and candidate so walls are not
+        // mistaken for valid approach positions.
         if (targetBuilding == null)
         {
-            AddApproachRings(
-                result,
-                gridManager.WorldToGrid(providerWorld),
-                3);
-            AddApproachRings(
-                result,
-                gridManager.WorldToGrid(preferredWorld),
-                3);
+            Vector2Int anchor = gridManager.WorldToGrid(providerWorld);
+            AddAdjacentApproachCell(result, anchor + Vector2Int.right, anchor);
+            AddAdjacentApproachCell(result, anchor + Vector2Int.left, anchor);
+            AddAdjacentApproachCell(result, anchor + Vector2Int.up, anchor);
+            AddAdjacentApproachCell(result, anchor + Vector2Int.down, anchor);
+
+            // The preferred interaction cell may be offset from the provider
+            // pivot. Only accept its immediate cardinal neighbours too.
+            Vector2Int preferred = gridManager.WorldToGrid(preferredWorld);
+            if (preferred != anchor)
+            {
+                AddAdjacentApproachCell(result, preferred + Vector2Int.right, preferred);
+                AddAdjacentApproachCell(result, preferred + Vector2Int.left, preferred);
+                AddAdjacentApproachCell(result, preferred + Vector2Int.up, preferred);
+                AddAdjacentApproachCell(result, preferred + Vector2Int.down, preferred);
+            }
+
             return result;
         }
 
@@ -412,7 +422,7 @@ public class PedestrianPathfinder : MonoBehaviour
             else
                 maxY += Mathf.Max(1, targetBuilding.EdgeLength) - 1;
 
-            AddRectangleApproachRings(result, minX, minY, maxX, maxY, 3);
+            AddFootprintBoundaryApproachCells(result, minX, minY, maxX, maxY);
             return result;
         }
 
@@ -423,71 +433,48 @@ public class PedestrianPathfinder : MonoBehaviour
         int footprintMaxY =
             footprintMinY + Mathf.Max(1, targetBuilding.Depth) - 1;
 
-        AddRectangleApproachRings(
+        AddFootprintBoundaryApproachCells(
             result,
             footprintMinX,
             footprintMinY,
             footprintMaxX,
-            footprintMaxY,
-            3);
+            footprintMaxY);
 
-        // Include cells around the provider's actual transform as a safety net
-        // for prefab pivots that do not sit at the footprint centre.
-        AddApproachRings(result, gridManager.WorldToGrid(providerWorld), 2);
         return result;
     }
 
-    private void AddRectangleApproachRings(
+    private void AddFootprintBoundaryApproachCells(
         List<Vector2Int> cells,
         int minX,
         int minY,
         int maxX,
-        int maxY,
-        int maximumRadius)
+        int maxY)
     {
-        for (int radius = 1; radius <= maximumRadius; radius++)
+        // Approach cells must touch the footprint directly. This avoids
+        // treating cells several tiles away, or on the far side of a wall,
+        // as valid interaction positions.
+        for (int x = minX; x <= maxX; x++)
         {
-            for (int x = minX - radius; x <= maxX + radius; x++)
-            {
-                AddApproachCell(cells, new Vector2Int(x, minY - radius));
-                AddApproachCell(cells, new Vector2Int(x, maxY + radius));
-            }
+            AddAdjacentApproachCell(cells, new Vector2Int(x, minY - 1), new Vector2Int(x, minY));
+            AddAdjacentApproachCell(cells, new Vector2Int(x, maxY + 1), new Vector2Int(x, maxY));
+        }
 
-            for (int y = minY - radius + 1; y <= maxY + radius - 1; y++)
-            {
-                AddApproachCell(cells, new Vector2Int(minX - radius, y));
-                AddApproachCell(cells, new Vector2Int(maxX + radius, y));
-            }
+        for (int y = minY; y <= maxY; y++)
+        {
+            AddAdjacentApproachCell(cells, new Vector2Int(minX - 1, y), new Vector2Int(minX, y));
+            AddAdjacentApproachCell(cells, new Vector2Int(maxX + 1, y), new Vector2Int(maxX, y));
         }
     }
 
-    private void AddApproachRings(
+    private void AddAdjacentApproachCell(
         List<Vector2Int> cells,
-        Vector2Int centre,
-        int maximumRadius)
-    {
-        for (int radius = 1; radius <= maximumRadius; radius++)
-        {
-            for (int x = centre.x - radius; x <= centre.x + radius; x++)
-            {
-                AddApproachCell(cells, new Vector2Int(x, centre.y - radius));
-                AddApproachCell(cells, new Vector2Int(x, centre.y + radius));
-            }
-
-            for (int y = centre.y - radius + 1; y <= centre.y + radius - 1; y++)
-            {
-                AddApproachCell(cells, new Vector2Int(centre.x - radius, y));
-                AddApproachCell(cells, new Vector2Int(centre.x + radius, y));
-            }
-        }
-    }
-
-    private void AddApproachCell(
-        List<Vector2Int> cells,
-        Vector2Int candidate)
+        Vector2Int candidate,
+        Vector2Int footprintCell)
     {
         if (cells.Contains(candidate) ||
-            !IsWalkable(candidate))
+            !IsWalkable(candidate) ||
+            !IsWalkable(footprintCell) ||
+            !CanMoveCardinal(footprintCell, candidate))
         {
             return;
         }
