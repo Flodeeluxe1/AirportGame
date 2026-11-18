@@ -16,6 +16,10 @@ public class FlightSchoolStudentManager : MonoBehaviour
     [SerializeField] private GameObject studentCarPrefab;
     [SerializeField] private GameObject studentPrefab;
 
+    [Header("Classroom Seating")]
+    [Tooltip("A sit interaction such as Sit_Rest. Used to make chair InteractionProviders reservable.")]
+    [SerializeField] private InteractionDefinition seatInteractionDefinition;
+
     [Header("Scene References")]
     [SerializeField] private TrafficTestSpawner trafficSpawner;
     [SerializeField] private FlightSchoolManager flightSchoolManager;
@@ -290,7 +294,18 @@ public class FlightSchoolStudentManager : MonoBehaviour
             if (provider == null)
                 provider = placed.GetComponentInChildren<InteractionProvider>(true);
 
-            if (provider == null || !provider.InteractionsEnabled)
+            // The chair's named child points are enough to configure a
+            // provider at runtime when the prefab does not already have one.
+            if (provider == null && seatInteractionDefinition != null)
+                provider = placed.gameObject.AddComponent<InteractionProvider>();
+
+            if (provider == null)
+                continue;
+
+            if (seatInteractionDefinition != null)
+                provider.AddInteractionDefinition(seatInteractionDefinition);
+
+            if (!provider.InteractionsEnabled)
                 continue;
 
             InteractionDefinition seatInteraction = null;
