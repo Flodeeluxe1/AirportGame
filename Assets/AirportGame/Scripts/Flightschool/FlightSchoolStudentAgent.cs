@@ -10,6 +10,7 @@ public class FlightSchoolStudentAgent : MonoBehaviour
 {
     private PedestrianMovementController movement;
     private TrafficTestVehicle vehicle;
+    private Renderer[] studentRenderers;
 
     private InteractionProvider reservedSeat;
     private InteractionDefinition seatInteraction;
@@ -35,6 +36,7 @@ public class FlightSchoolStudentAgent : MonoBehaviour
     public void Initialize(TrafficTestVehicle assignedVehicle)
     {
         vehicle = assignedVehicle;
+        studentRenderers = GetComponentsInChildren<Renderer>(true);
 
         // Students follow the school timetable, not the hobby-pilot Utility AI.
         DisablePilotAutonomy<PilotInteractionController>();
@@ -52,6 +54,19 @@ public class FlightSchoolStudentAgent : MonoBehaviour
         movement.PathFailed -= HandlePathFailed;
         movement.Arrived += HandleMovementArrived;
         movement.PathFailed += HandlePathFailed;
+    }
+
+    /// <summary>Hides or restores the student model while the lesson is in progress.</summary>
+    public void SetStudentVisible(bool visible)
+    {
+        if (studentRenderers == null)
+            studentRenderers = GetComponentsInChildren<Renderer>(true);
+
+        foreach (Renderer studentRenderer in studentRenderers)
+        {
+            if (studentRenderer != null)
+                studentRenderer.enabled = visible;
+        }
     }
 
     private void DisablePilotAutonomy<T>() where T : Behaviour
