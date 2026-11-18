@@ -415,30 +415,21 @@ public class PedestrianPathfinder : MonoBehaviour
             AddAdjacentApproachCell(result, anchor + Vector2Int.up, anchor);
             AddAdjacentApproachCell(result, anchor + Vector2Int.down, anchor);
 
-            // The preferred interaction cell may be offset from the provider
-            // pivot. Only accept its immediate cardinal neighbours too.
+            // The preferred interaction point is the intended boarding side
+            // of the vehicle. Include its own cell when walkable, not only the
+            // cells around it.
             Vector2Int preferred = gridManager.WorldToGrid(preferredWorld);
-            if (preferred != anchor)
-            {
-                AddAdjacentApproachCell(result, preferred + Vector2Int.right, preferred);
-                AddAdjacentApproachCell(result, preferred + Vector2Int.left, preferred);
-                AddAdjacentApproachCell(result, preferred + Vector2Int.up, preferred);
-                AddAdjacentApproachCell(result, preferred + Vector2Int.down, preferred);
-            }
+            AddWalkableApproachCell(result, preferred);
 
-            // Parking positions can be surrounded by blocked/non-pedestrian
-            // cells (for example, the vehicle's own occupied tile or adjacent
-            // road/obstacle cells). If none of the immediate cells are valid,
-            // expand a small distance through walkable cells. The bounded
-            // cardinal flood respects wall and door edges, so it cannot select
-            // a boarding point on the other side of a wall.
-            if (result.Count == 0)
-            {
-                AddNearbyApproachCells(result, anchor, 2);
-
-                if (preferred != anchor)
-                    AddNearbyApproachCells(result, preferred, 2);
-            }
+            // Vehicle pivots and parking positions can sit on blocked cells,
+            // while the actual boarding side may be offset from that pivot.
+            // Collect nearby walkable cells around both reference points
+            // without requiring an edge crossing from the vehicle's cell:
+            // that cell may be occupied by the vehicle or bordered by a curb.
+            // The subsequent A* search still validates the pedestrian's
+            // complete route, including every wall and door edge.
+            AddNearbyApproachCells(result, preferred, 2);
+            AddNearbyApproachCells(result, anchor, 2);
 
             return result;
         }
@@ -514,53 +505,34 @@ public class PedestrianPathfinder : MonoBehaviour
         cells.Add(candidate);
     }
 
+    private void AddWalkableApproachCell(
+        List<Vector2Int> cells,
+        Vector2Int candidate)
+    {
+        if (!cells.Contains(candidate) && IsWalkable(candidate))
+            cells.Add(candidate);
+    }
+
     private void AddNearbyApproachCells(
         List<Vector2Int> cells,
         Vector2Int anchor,
         int maximumRadius)
     {
-        Queue<Vector2Int> queue = new Queue<Vector2Int>();
-        Dictionary<Vector2Int, int> distances =
-            new Dictionary<Vector2Int, int>();
-
-        // The anchor may be occupied by the vehicle itself. It is treated as
-        // the flood origin, but every cell entered after it must be walkable.
-        queue.Enqueue(anchor);
-        distances[anchor] = 0;
-
-        Vector2Int[] cardinalOffsets =
+        // Scan a bounded square instead of flood-filling from the vehicle
+        // pivot. The pivot can be on a road/occupied cell or separated from
+        // the pedestrian area by a curb, so it is not a reliable flood origin.
+        // Only candidate cells need to be walkable; FindPath validates the
+        // pedestrian's route to each candidate with normal edge checks.
+        for (int x = -maximumRadius; x <= maximumRadius; x++)
         {
-            Vector2Int.right,
-            Vector2Int.left,
-            Vector2Int.up,
-            Vector2Int.down
-        };
-
-        while (queue.Count > 0)
-        {
-            Vector2Int current = queue.Dequeue();
-            int currentDistance = distances[current];
-
-            if (currentDistance >= maximumRadius)
-                continue;
-
-            for (int i = 0; i < cardinalOffsets.Length; i++)
+            for (int y = -maximumRadius; y <= maximumRadius; y++)
             {
-                Vector2Int next = current + cardinalOffsets[i];
-
-                if (distances.ContainsKey(next) ||
-                    !IsWalkable(next) ||
-                    !CanMoveCardinal(current, next))
-                {
+                if (x == 0 && y == 0)
                     continue;
-                }
 
-                int nextDistance = currentDistance + 1;
-                distances[next] = nextDistance;
-                queue.Enqueue(next);
-
-                if (!cells.Contains(next))
-                    cells.Add(next);
+                AddWalkableApproachCell(
+                    cells,
+                    anchor + new Vector2Int(x, y));
             }
         }
     }
