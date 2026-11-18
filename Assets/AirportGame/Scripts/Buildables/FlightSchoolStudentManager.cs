@@ -593,6 +593,9 @@ public class FlightSchoolStudentManager : MonoBehaviour
 
     private void HandleSchoolClosing()
     {
+        foreach (Vector2Int roomAnchor in readyAircraftByRoom.Keys)
+            flightSchoolManager.CancelStudentReadyForLesson(roomAnchor);
+
         readyAircraftByRoom.Clear();
 
         for (int i = students.Count - 1; i >= 0; i--)
