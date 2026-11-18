@@ -311,7 +311,8 @@ public class PedestrianPathfinder : MonoBehaviour
         Vector3 providerWorld,
         PlacedBuilding targetBuilding,
         out Vector3 selectedDestination,
-        out List<Vector3> worldPath)
+        out List<Vector3> worldPath,
+        bool logFailure = true)
     {
         selectedDestination = preferredWorld;
         worldPath = FindWorldPath(startWorld, preferredWorld);
@@ -357,14 +358,17 @@ public class PedestrianPathfinder : MonoBehaviour
                 : $"origin={targetBuilding.Origin}, size={targetBuilding.Width}x{targetBuilding.Depth}, " +
                   $"edge={targetBuilding.IsEdgeBuilding}, surfacePlaced={targetBuilding.IsSurfacePlaced}";
 
-            Debug.LogWarning(
-                $"PedestrianPathfinder: No interaction approach route. " +
-                $"Start={startWorld} cell={startCell} startWalkable={IsWalkable(startCell)}; " +
-                $"Preferred={preferredWorld} cell={gridManager.WorldToGrid(preferredWorld)}; " +
-                $"Provider={providerWorld} cell={gridManager.WorldToGrid(providerWorld)}; " +
-                $"PlacedBuilding={buildingInfo}; candidates={approachCells.Count}, " +
-                $"reachable={reachableCandidateCount}. " +
-                $"Candidate cells: {string.Join(", ", approachCells)}.");
+            if (logFailure)
+            {
+                Debug.LogWarning(
+                    $"PedestrianPathfinder: No interaction approach route. " +
+                    $"Start={startWorld} cell={startCell} startWalkable={IsWalkable(startCell)}; " +
+                    $"Preferred={preferredWorld} cell={gridManager.WorldToGrid(preferredWorld)}; " +
+                    $"Provider={providerWorld} cell={gridManager.WorldToGrid(providerWorld)}; " +
+                    $"PlacedBuilding={buildingInfo}; candidates={approachCells.Count}, " +
+                    $"reachable={reachableCandidateCount}. " +
+                    $"Candidate cells: {string.Join(", ", approachCells)}.");
+            }
             return false;
         }
 
