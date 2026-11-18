@@ -154,7 +154,8 @@ public class ParkingSpace : MonoBehaviour
 
     public bool ParkVehicle(
         GameObject vehicle,
-        float parkingDuration)
+        float parkingDuration,
+        bool holdUntilReleased = false)
     {
         CleanWaitingVehicles();
 
@@ -173,9 +174,9 @@ public class ParkingSpace : MonoBehaviour
 
         parkedVehicle = vehicle;
 
-        occupiedUntil =
-            Time.time +
-            Mathf.Max(0f, parkingDuration);
+        occupiedUntil = holdUntilReleased
+            ? float.PositiveInfinity
+            : Time.time + Mathf.Max(0f, parkingDuration);
 
         RefreshDebugQueueStatus(
             $"PARKED: {vehicle.name}.");
