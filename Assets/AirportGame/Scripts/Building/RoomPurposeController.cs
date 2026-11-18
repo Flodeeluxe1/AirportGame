@@ -587,7 +587,6 @@ public class RoomPurposeController : MonoBehaviour
         if (!ValidateRoomStructure(room, out reason))
             return false;
 
-        int desks = 0;
         int seats = 0;
 
         HashSet<Vector2Int> roomCells =
@@ -612,14 +611,12 @@ public class RoomPurposeController : MonoBehaviour
             if (!BuildingTouchesRoom(placed, roomCells))
                 continue;
 
-            if ((role & RoomFurnitureRole.Desk) != 0)
-                desks++;
             if ((role & RoomFurnitureRole.Chair) != 0)
                 seats++;
         }
 
         int wallBoards = CountWallBoardsOnBoundary(room);
-        return ValidateFurnitureCounts(desks, seats, wallBoards, out reason);
+        return ValidateFurnitureCounts(seats, wallBoards, out reason);
     }
 
     public bool ValidatePilotsLounge(
@@ -725,7 +722,6 @@ public class RoomPurposeController : MonoBehaviour
 
     public bool ValidateFlightSchool(
         RoomDetectionController.DetectedRoom room,
-        int desks,
         int studentSeats,
         int wallBoards,
         out string reason)
@@ -734,7 +730,6 @@ public class RoomPurposeController : MonoBehaviour
             return false;
 
         return ValidateFurnitureCounts(
-            desks,
             studentSeats,
             wallBoards,
             out reason);
@@ -769,18 +764,11 @@ public class RoomPurposeController : MonoBehaviour
     }
 
     private bool ValidateFurnitureCounts(
-        int desks,
         int seats,
         int wallBoards,
         out string reason)
     {
         reason = "";
-
-        if (desks < 1)
-        {
-            reason = "Needs at least one desk.";
-            return false;
-        }
 
         if (seats < 1)
         {
