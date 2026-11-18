@@ -12,6 +12,7 @@ public class FuelTruckSpawner : MonoBehaviour
     [SerializeField] private Transform exitPoint;
     [SerializeField] private GridManager gridManager;
     [SerializeField] private RoadNetwork roadNetwork;
+    [SerializeField] private GameTimeManager gameTimeManager;
 
     [Header("Fuel Delivery")]
     [Min(1f)]
@@ -56,9 +57,9 @@ public class FuelTruckSpawner : MonoBehaviour
         return network != null && activeNetworks.Contains(network);
     }
 
-    private readonly Dictionary<PipelineNetworkManager.PipelineNetwork, float>
+    private readonly Dictionary<PipelineNetworkManager.PipelineNetwork, long>
         networkRetryTimes =
-            new Dictionary<PipelineNetworkManager.PipelineNetwork, float>();
+            new Dictionary<PipelineNetworkManager.PipelineNetwork, long>();
 
     private class StationRoute
     {
@@ -76,12 +77,14 @@ public class FuelTruckSpawner : MonoBehaviour
         if (roadNetwork == null)
             roadNetwork = FindFirstObjectByType<RoadNetwork>();
 
+        if (gameTimeManager == null)
+            gameTimeManager = FindFirstObjectByType<GameTimeManager>();
     }
 
     private void Start()
     {
         if (fuelTruckPrefab == null || spawnPoint == null || exitPoint == null ||
-            gridManager == null || roadNetwork == null)
+            gridManager == null || roadNetwork == null || gameTimeManager == null)
         {
             Debug.LogError(
                 "FuelTruckSpawner: Assign the tanker prefab, spawn point, exit point, GridManager and RoadNetwork.",
@@ -104,9 +107,9 @@ public class FuelTruckSpawner : MonoBehaviour
             activeNetworks.Contains(network))
             return false;
 
-        if (networkRetryTimes.TryGetValue(network, out float retryTime))
+        if (networkRetryTimes.TryGetValue(network, out long retryGameSecond))
         {
-            if (Time.time < retryTime)
+            if (GetAbsoluteGameTimeSeconds() < retryGameSecond)
                 return false;
 
             networkRetryTimes.Remove(network);
@@ -322,6 +325,13 @@ public class FuelTruckSpawner : MonoBehaviour
         return true;
     }
 
+    private long GetAbsoluteGameTimeSeconds()
+    {
+        return
+            (gameTimeManager.CurrentDay - 1) * 86400L +
+            gameTimeManager.GetGameTimeSeconds();
+    }
+
     private void RegisterFailedDispatch(
         PipelineNetworkManager.PipelineNetwork network)
     {
@@ -330,7 +340,7 @@ public class FuelTruckSpawner : MonoBehaviour
 
         activeNetworks.Remove(network);
         networkRetryTimes[network] =
-            Time.time + Mathf.Max(0f, retryCooldownAfterFailureSeconds);
+            GetAbsoluteGameTimeSeconds() + Mathf.CeilToInt(Mathf.Max(0f, retryCooldownAfterFailureSeconds));
     }
 
     public void NotifyTruckFinished(
