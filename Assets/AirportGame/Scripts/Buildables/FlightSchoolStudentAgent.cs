@@ -35,6 +35,14 @@ public class FlightSchoolStudentAgent : MonoBehaviour
     {
         vehicle = assignedVehicle;
 
+        // Students follow the school timetable, not the hobby-pilot Utility AI.
+        DisablePilotAutonomy<PilotInteractionController>();
+        DisablePilotAutonomy<PilotWanderingController>();
+        DisablePilotAutonomy<PilotSocialInteractionController>();
+        DisablePilotAutonomy<PilotSocialSeatingController>();
+        DisablePilotAutonomy<PilotGroupConversationController>();
+        DisablePilotAutonomy<PilotDepartureController>();
+
         movement = GetComponent<PedestrianMovementController>();
         if (movement == null)
             movement = gameObject.AddComponent<PedestrianMovementController>();
@@ -43,6 +51,14 @@ public class FlightSchoolStudentAgent : MonoBehaviour
         movement.PathFailed -= HandlePathFailed;
         movement.Arrived += HandleMovementArrived;
         movement.PathFailed += HandlePathFailed;
+    }
+
+    private void DisablePilotAutonomy<T>() where T : Behaviour
+    {
+        T behaviour = GetComponent<T>();
+
+        if (behaviour != null)
+            behaviour.enabled = false;
     }
 
     public bool AssignSeat(
