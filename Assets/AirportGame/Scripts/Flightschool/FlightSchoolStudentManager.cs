@@ -526,6 +526,13 @@ public class FlightSchoolStudentManager : MonoBehaviour
             if (seat.provider == null || seat.interaction == null)
                 continue;
 
+            // The room's seat list is a snapshot taken before the cohort arrives.
+            // Another student or pilot may have reserved a chair since then.
+            // Treat that as normal contention and try the next available chair
+            // instead of asking AssignSeat to reserve a known-unavailable slot.
+            if (!seat.provider.CanOffer(seat.interaction))
+                continue;
+
             if (student.AssignSeat(seat.provider, seat.interaction))
                 return true;
 
