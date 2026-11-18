@@ -206,21 +206,17 @@ public class FlightSchoolManager : MonoBehaviour
             return false;
         }
 
-        int qualityDemand;
+        // Room quality contributes up to 14 students (70 quality points).
+        // Each designated Flight School parking spot adds 3 more students.
+        // The final demand is always limited by the room's student seating.
+        int qualityDemand =
+            Mathf.RoundToInt(assessment.facilityQualityScore / 5f);
 
-        if (assessment.facilityQualityScore < 20)
-            qualityDemand = 0;
-        else if (assessment.facilityQualityScore < 40)
-            qualityDemand = 2;
-        else if (assessment.facilityQualityScore < 60)
-            qualityDemand = 4;
-        else if (assessment.facilityQualityScore < 80)
-            qualityDemand = 6;
-        else
-            qualityDemand = 8;
+        int parkingDemand =
+            Mathf.Max(0, assessment.designatedTrainingParkingSpotCount) * 3;
 
         int seatCount = Mathf.Max(0, assessment.studentSeatCount);
-        dailyDemand = Mathf.Min(qualityDemand, seatCount);
+        dailyDemand = Mathf.Min(qualityDemand + parkingDemand, seatCount);
 
         return true;
     }
