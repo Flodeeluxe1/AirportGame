@@ -216,8 +216,168 @@ public class PedestrianPathfinder : MonoBehaviour
             gridManager.WorldToGrid(startWorld),
             gridManager.WorldToGrid(targetWorld));
 
-        gridPath = SmoothPath(gridPath);
-        worldPath.Capacity = gridPath.Count;
+        return ConvertGridPathToWorld(SmoothPath(gridPath));
+    }
+
+    /// <summary>
+    /// Tries the provider's preferred InteractionPoint first. If that cell is
+    /// blocked or unreachable, searches the cells immediately surrounding the
+    /// provider's occupied footprint and returns the shortest reachable route.
+    /// </summary>
+    public bool TryFindBestApproachPath(
+        Vector3 startWorld,
+        Vector3 preferredWorld,
+        PlacedBuilding targetBuilding,
+        out Vector3 selectedDestination,
+        out List<Vector3> worldPath)
+    {
+        selectedDestination = preferredWorld;
+        worldPath = FindWorldPath(startWorld, preferredWorld);
+
+        // Preserve existing behaviour whenever the preferred point is reachable.
+        if (worldPath.Count > 0)
+            return true;
+
+        List<Vector2Int> approachCells =
+            GetApproachCells(targetBuilding, preferredWorld);
+
+        Vector2Int startCell = gridManager.WorldToGrid(startWorld);
+        List<Vector2Int> bestPath = null;
+        Vector2Int bestTarget = default;
+        int bestCost = int.MaxValue;
+
+        for (int i = 0; i < approachCells.Count; i++)
+        {
+            Vector2Int candidate = approachCells[i];
+            List<Vector2Int> candidatePath = FindPath(startCell, candidate);
+
+            if (candidatePath.Count == 0)
+                continue;
+
+            int candidateCost = CalculatePathCost(candidatePath);
+            if (candidateCost >= bestCost)
+                continue;
+
+            bestCost = candidateCost;
+            bestTarget = candidate;
+            bestPath = candidatePath;
+        }
+
+        if (bestPath == null)
+            return false;
+
+        worldPath = ConvertGridPathToWorld(SmoothPath(bestPath));
+        selectedDestination = gridManager.GridToWorldCenter(bestTarget);
+        selectedDestination.y += pathHeightOffset;
+        return worldPath.Count > 0;
+    }
+
+    private List<Vector2Int> GetApproachCells(
+        PlacedBuilding targetBuilding,
+        Vector3 preferredWorld)
+    {
+        List<Vector2Int> result = new List<Vector2Int>(16);
+
+        if (targetBuilding != null &&
+            targetBuilding.IsSurfacePlaced &&
+            targetBuilding.SupportingSurface != null)
+        {
+            targetBuilding = targetBuilding.SupportingSurface;
+        }
+
+        if (targetBuilding == null)
+        {
+            Vector2Int preferredCell = gridManager.WorldToGrid(preferredWorld);
+            for (int x = -1; x <= 1; x++)
+            {
+                for (int y = -1; y <= 1; y++)
+                {
+                    if (x == 0 && y == 0)
+                        continue;
+
+                    AddApproachCell(
+                        result,
+                        preferredCell + new Vector2Int(x, y));
+                }
+            }
+
+            return result;
+        }
+
+        if (targetBuilding.IsEdgeBuilding)
+        {
+            for (int i = 0; i < targetBuilding.EdgeLength; i++)
+            {
+                if (targetBuilding.EdgeDirection == EdgeDirection.Horizontal)
+                {
+                    Vector2Int edgeCell =
+                        targetBuilding.Origin + new Vector2Int(i, 0);
+                    AddApproachCell(result, edgeCell);
+                    AddApproachCell(result, edgeCell + Vector2Int.down);
+                }
+                else
+                {
+                    Vector2Int edgeCell =
+                        targetBuilding.Origin + new Vector2Int(0, i);
+                    AddApproachCell(result, edgeCell);
+                    AddApproachCell(result, edgeCell + Vector2Int.left);
+                }
+            }
+
+            return result;
+        }
+
+        int minX = targetBuilding.Origin.x;
+        int minY = targetBuilding.Origin.y;
+        int maxX = minX + Mathf.Max(1, targetBuilding.Width) - 1;
+        int maxY = minY + Mathf.Max(1, targetBuilding.Depth) - 1;
+
+        for (int x = minX - 1; x <= maxX + 1; x++)
+        {
+            AddApproachCell(result, new Vector2Int(x, minY - 1));
+            AddApproachCell(result, new Vector2Int(x, maxY + 1));
+        }
+
+        for (int y = minY; y <= maxY; y++)
+        {
+            AddApproachCell(result, new Vector2Int(minX - 1, y));
+            AddApproachCell(result, new Vector2Int(maxX + 1, y));
+        }
+
+        return result;
+    }
+
+    private void AddApproachCell(
+        List<Vector2Int> cells,
+        Vector2Int candidate)
+    {
+        if (cells.Contains(candidate) ||
+            !IsWalkable(candidate))
+        {
+            return;
+        }
+
+        cells.Add(candidate);
+    }
+
+    private static int CalculatePathCost(List<Vector2Int> path)
+    {
+        int cost = 0;
+
+        for (int i = 1; i < path.Count; i++)
+        {
+            Vector2Int difference = path[i] - path[i - 1];
+            cost += difference.x != 0 && difference.y != 0
+                ? DiagonalMoveCost
+                : StraightMoveCost;
+        }
+
+        return cost;
+    }
+
+    private List<Vector3> ConvertGridPathToWorld(List<Vector2Int> gridPath)
+    {
+        List<Vector3> worldPath = new List<Vector3>(gridPath.Count);
 
         foreach (Vector2Int cell in gridPath)
         {
