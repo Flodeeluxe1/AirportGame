@@ -17,6 +17,7 @@ public class FlightSchoolStudentAgent : MonoBehaviour
     private bool walkingToSeat;
     private bool walkingToAircraft;
     private bool walkingToCar;
+    private bool departureStarted;
 
     public event Action<FlightSchoolStudentAgent> SeatReached;
     public event Action<FlightSchoolStudentAgent> AircraftReached;
@@ -155,13 +156,13 @@ public class FlightSchoolStudentAgent : MonoBehaviour
     /// <summary>
     /// Leaves the classroom seat and walks back to this student's own parked car.
     /// </summary>
-    public void BeginDeparture()
+    public bool BeginDeparture()
     {
+        if (departureStarted)
+            return walkingToCar;
+
         if (vehicle == null || movement == null)
-        {
-            PathFailed?.Invoke(this);
-            return;
-        }
+            return false;
 
         ReleaseSeat();
 
@@ -174,7 +175,13 @@ public class FlightSchoolStudentAgent : MonoBehaviour
             vehicle.transform.right * 1.5f;
 
         if (!movement.TryMoveTo(carSidePosition))
-            HandlePathFailed();
+        {
+            walkingToCar = false;
+            return false;
+        }
+
+        departureStarted = true;
+        return true;
     }
 
     private void HandleMovementArrived()
