@@ -91,13 +91,11 @@ public class FlightSchoolStudentAgent : MonoBehaviour
         walkingToAircraft = false;
         walkingToCar = false;
 
-        Vector3 seatTarget = provider.InteractionPosition;
-
-        if (!movement.MoveTo(seatTarget))
+        if (!movement.MoveTo(provider))
         {
             Debug.LogError(
                 $"FlightSchoolStudentAgent {name}: Reserved chair {provider.name}, " +
-                $"but PedestrianMovementController.MoveTo failed. Target={seatTarget}.",
+                $"but no reachable approach cell was found. Preferred target={provider.InteractionPosition}.",
                 this);
             ReleaseSeat();
             return false;
@@ -105,7 +103,7 @@ public class FlightSchoolStudentAgent : MonoBehaviour
 
         Debug.Log(
             $"FlightSchoolStudentAgent {name}: Reserved chair {provider.name}; " +
-            $"walking to InteractionPoint at {seatTarget}.",
+            $"walking to selected approach point at {movement.Destination}.",
             this);
 
         return true;
@@ -143,7 +141,7 @@ public class FlightSchoolStudentAgent : MonoBehaviour
         walkingToAircraft = false;
         walkingToCar = false;
 
-        return movement.MoveTo(reservedSeat.InteractionPosition);
+        return movement.MoveTo(reservedSeat);
     }
 
     /// <summary>
