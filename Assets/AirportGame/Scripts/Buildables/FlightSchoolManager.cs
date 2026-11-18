@@ -693,6 +693,36 @@ public class FlightSchoolManager : MonoBehaviour
             this);
     }
 
+    /// <summary>
+    /// Returns the current daily student demand for a detected Flight School room.
+    /// The demand calculation remains owned by this manager so student spawning
+    /// uses exactly the same quota as lesson scheduling.
+    /// </summary>
+    public bool TryGetDailyStudentDemand(
+        Vector2Int roomAnchor,
+        out int dailyDemand)
+    {
+        dailyDemand = 0;
+
+        RefreshSchoolRooms();
+
+        if (!operations.TryGetValue(
+                roomAnchor,
+                out SchoolOperation operation) ||
+            !operation.assigned ||
+            !operation.valid)
+        {
+            return false;
+        }
+
+        EnsureDailyDemandIsCurrent(operation);
+
+        return TryGetDailyDemand(
+            operation,
+            out dailyDemand,
+            out _);
+    }
+
     private void OnDestroy()
     {
         if (activeManager == this)
