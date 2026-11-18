@@ -66,10 +66,24 @@ public class FlightSchoolStudentAgent : MonoBehaviour
         InteractionDefinition interaction)
     {
         if (provider == null || interaction == null || movement == null)
+        {
+            Debug.LogError(
+                $"FlightSchoolStudentAgent {name}: Cannot assign chair. " +
+                $"ProviderMissing={provider == null}, InteractionMissing={interaction == null}, " +
+                $"MovementControllerMissing={movement == null}.",
+                this);
             return false;
+        }
 
         if (!provider.TryReserve(this, interaction))
+        {
+            Debug.LogWarning(
+                $"FlightSchoolStudentAgent {name}: Chair reservation failed. " +
+                $"Provider={provider.name}, Interaction={interaction.InteractionId}, " +
+                $"Enabled={provider.InteractionsEnabled}, CanOffer={provider.CanOffer(interaction)}.",
+                provider);
             return false;
+        }
 
         reservedSeat = provider;
         seatInteraction = interaction;
@@ -77,11 +91,22 @@ public class FlightSchoolStudentAgent : MonoBehaviour
         walkingToAircraft = false;
         walkingToCar = false;
 
-        if (!movement.MoveTo(provider.InteractionPosition))
+        Vector3 seatTarget = provider.InteractionPosition;
+
+        if (!movement.MoveTo(seatTarget))
         {
+            Debug.LogError(
+                $"FlightSchoolStudentAgent {name}: Reserved chair {provider.name}, " +
+                $"but PedestrianMovementController.MoveTo failed. Target={seatTarget}.",
+                this);
             ReleaseSeat();
             return false;
         }
+
+        Debug.Log(
+            $"FlightSchoolStudentAgent {name}: Reserved chair {provider.name}; " +
+            $"walking to InteractionPoint at {seatTarget}.",
+            this);
 
         return true;
     }
@@ -147,6 +172,12 @@ public class FlightSchoolStudentAgent : MonoBehaviour
 
     private void HandleMovementArrived()
     {
+        Debug.Log(
+            $"FlightSchoolStudentAgent {name}: Movement arrived. " +
+            $"WalkingToSeat={walkingToSeat}, WalkingToAircraft={walkingToAircraft}, " +
+            $"WalkingToCar={walkingToCar}.",
+            this);
+
         if (walkingToSeat)
         {
             walkingToSeat = false;
@@ -179,6 +210,12 @@ public class FlightSchoolStudentAgent : MonoBehaviour
 
     private void HandlePathFailed()
     {
+        Debug.LogError(
+            $"FlightSchoolStudentAgent {name}: Pedestrian path failed. " +
+            $"WalkingToSeat={walkingToSeat}, WalkingToAircraft={walkingToAircraft}, " +
+            $"WalkingToCar={walkingToCar}, ReservedSeat={(reservedSeat != null ? reservedSeat.name : "none")}.",
+            this);
+
         if (walkingToSeat && !walkingToAircraft)
             ReleaseSeat();
 
