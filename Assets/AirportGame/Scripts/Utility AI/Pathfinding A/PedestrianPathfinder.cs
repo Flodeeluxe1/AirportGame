@@ -227,6 +227,7 @@ public class PedestrianPathfinder : MonoBehaviour
     public bool TryFindBestApproachPath(
         Vector3 startWorld,
         Vector3 preferredWorld,
+        Vector3 providerWorld,
         PlacedBuilding targetBuilding,
         out Vector3 selectedDestination,
         out List<Vector3> worldPath)
@@ -242,13 +243,14 @@ public class PedestrianPathfinder : MonoBehaviour
             return false;
 
         List<Vector2Int> approachCells =
-            GetApproachCells(targetBuilding, preferredWorld);
+            GetApproachCells(targetBuilding, preferredWorld, providerWorld);
 
         Vector2Int startCell = gridManager.WorldToGrid(startWorld);
         List<Vector2Int> bestPath = null;
         Vector2Int bestTarget = default;
         int bestCost = int.MaxValue;
 
+        int reachableCandidateCount = 0;
         for (int i = 0; i < approachCells.Count; i++)
         {
             Vector2Int candidate = approachCells[i];
@@ -257,6 +259,7 @@ public class PedestrianPathfinder : MonoBehaviour
             if (candidatePath.Count == 0)
                 continue;
 
+            reachableCandidateCount++;
             int candidateCost = CalculatePathCost(candidatePath);
             if (candidateCost >= bestCost)
                 continue;
@@ -267,7 +270,22 @@ public class PedestrianPathfinder : MonoBehaviour
         }
 
         if (bestPath == null)
+        {
+            string buildingInfo = targetBuilding == null
+                ? "none"
+                : $"origin={targetBuilding.Origin}, size={targetBuilding.Width}x{targetBuilding.Depth}, " +
+                  $"edge={targetBuilding.IsEdgeBuilding}, surfacePlaced={targetBuilding.IsSurfacePlaced}";
+
+            Debug.LogWarning(
+                $"PedestrianPathfinder: No interaction approach route. " +
+                $"Start={startWorld} cell={startCell} startWalkable={IsWalkable(startCell)}; " +
+                $"Preferred={preferredWorld} cell={gridManager.WorldToGrid(preferredWorld)}; " +
+                $"Provider={providerWorld} cell={gridManager.WorldToGrid(providerWorld)}; " +
+                $"PlacedBuilding={buildingInfo}; candidates={approachCells.Count}, " +
+                $"reachable={reachableCandidateCount}. " +
+                $"Candidate cells: {string.Join(", ", approachCells)}.");
             return false;
+        }
 
         worldPath = ConvertGridPathToWorld(SmoothPath(bestPath));
         selectedDestination = gridManager.GridToWorldCenter(bestTarget);
@@ -277,73 +295,110 @@ public class PedestrianPathfinder : MonoBehaviour
 
     private List<Vector2Int> GetApproachCells(
         PlacedBuilding targetBuilding,
-        Vector3 preferredWorld)
+        Vector3 preferredWorld,
+        Vector3 providerWorld)
     {
-        List<Vector2Int> result = new List<Vector2Int>(16);
+        List<Vector2Int> result = new List<Vector2Int>(48);
 
+        // A surface-placed item may not have a supporting surface reference
+        // (for example, when the object is restored or spawned dynamically).
+        // In that case use its own world position as the local search anchor.
         if (targetBuilding != null && targetBuilding.IsSurfacePlaced)
             targetBuilding = targetBuilding.SupportingSurface;
 
         if (targetBuilding == null)
         {
-            Vector2Int preferredCell = gridManager.WorldToGrid(preferredWorld);
-            for (int x = -1; x <= 1; x++)
-            {
-                for (int y = -1; y <= 1; y++)
-                {
-                    if (x == 0 && y == 0)
-                        continue;
-
-                    AddApproachCell(
-                        result,
-                        preferredCell + new Vector2Int(x, y));
-                }
-            }
-
+            AddApproachRings(
+                result,
+                gridManager.WorldToGrid(providerWorld),
+                3);
+            AddApproachRings(
+                result,
+                gridManager.WorldToGrid(preferredWorld),
+                3);
             return result;
         }
 
         if (targetBuilding.IsEdgeBuilding)
         {
-            for (int i = 0; i < targetBuilding.EdgeLength; i++)
-            {
-                if (targetBuilding.EdgeDirection == EdgeDirection.Horizontal)
-                {
-                    Vector2Int edgeCell =
-                        targetBuilding.Origin + new Vector2Int(i, 0);
-                    AddApproachCell(result, edgeCell);
-                    AddApproachCell(result, edgeCell + Vector2Int.down);
-                }
-                else
-                {
-                    Vector2Int edgeCell =
-                        targetBuilding.Origin + new Vector2Int(0, i);
-                    AddApproachCell(result, edgeCell);
-                    AddApproachCell(result, edgeCell + Vector2Int.left);
-                }
-            }
+            int minX = targetBuilding.Origin.x;
+            int minY = targetBuilding.Origin.y;
+            int maxX = minX;
+            int maxY = minY;
 
+            if (targetBuilding.EdgeDirection == EdgeDirection.Horizontal)
+                maxX += Mathf.Max(1, targetBuilding.EdgeLength) - 1;
+            else
+                maxY += Mathf.Max(1, targetBuilding.EdgeLength) - 1;
+
+            AddRectangleApproachRings(result, minX, minY, maxX, maxY, 3);
             return result;
         }
 
-        int minX = targetBuilding.Origin.x;
-        int minY = targetBuilding.Origin.y;
-        int maxX = minX + Mathf.Max(1, targetBuilding.Width) - 1;
-        int maxY = minY + Mathf.Max(1, targetBuilding.Depth) - 1;
+        int footprintMinX = targetBuilding.Origin.x;
+        int footprintMinY = targetBuilding.Origin.y;
+        int footprintMaxX =
+            footprintMinX + Mathf.Max(1, targetBuilding.Width) - 1;
+        int footprintMaxY =
+            footprintMinY + Mathf.Max(1, targetBuilding.Depth) - 1;
 
-        for (int x = minX - 1; x <= maxX + 1; x++)
-        {
-            AddApproachCell(result, new Vector2Int(x, minY - 1));
-            AddApproachCell(result, new Vector2Int(x, maxY + 1));
-        }
+        AddRectangleApproachRings(
+            result,
+            footprintMinX,
+            footprintMinY,
+            footprintMaxX,
+            footprintMaxY,
+            3);
 
-        for (int y = minY; y <= maxY; y++)
-        {
-            AddApproachCell(result, new Vector2Int(minX - 1, y));
-            AddApproachCell(result, new Vector2Int(maxX + 1, y));
-        }
-
+        // Include cells around the provider's actual transform as a safety net
+        // for prefab pivots that do not sit at the footprint centre.
+        AddApproachRings(result, gridManager.WorldToGrid(providerWorld), 2);
         return result;
+    }
+
+    private void AddRectangleApproachRings(
+        List<Vector2Int> cells,
+        int minX,
+        int minY,
+        int maxX,
+        int maxY,
+        int maximumRadius)
+    {
+        for (int radius = 1; radius <= maximumRadius; radius++)
+        {
+            for (int x = minX - radius; x <= maxX + radius; x++)
+            {
+                AddApproachCell(cells, new Vector2Int(x, minY - radius));
+                AddApproachCell(cells, new Vector2Int(x, maxY + radius));
+            }
+
+            for (int y = minY - radius + 1; y <= maxY + radius - 1; y++)
+            {
+                AddApproachCell(cells, new Vector2Int(minX - radius, y));
+                AddApproachCell(cells, new Vector2Int(maxX + radius, y));
+            }
+        }
+    }
+
+    private void AddApproachRings(
+        List<Vector2Int> cells,
+        Vector2Int centre,
+        int maximumRadius)
+    {
+        for (int radius = 1; radius <= maximumRadius; radius++)
+        {
+            for (int x = centre.x - radius; x <= centre.x + radius; x++)
+            {
+                AddApproachCell(cells, new Vector2Int(x, centre.y - radius));
+                AddApproachCell(cells, new Vector2Int(x, centre.y + radius));
+            }
+
+            for (int y = centre.y - radius + 1; y <= centre.y + radius - 1; y++)
+            {
+                AddApproachCell(cells, new Vector2Int(centre.x - radius, y));
+                AddApproachCell(cells, new Vector2Int(centre.x + radius, y));
+            }
+        }
     }
 
     private void AddApproachCell(
