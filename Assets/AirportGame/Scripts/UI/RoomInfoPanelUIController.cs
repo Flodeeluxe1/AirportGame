@@ -523,7 +523,6 @@ public class RoomInfoPanelUIController : MonoBehaviour
                 selectedRoom.CellCount >= roomPurposeController.MinimumFoundationCells);
             AddRequirement("Fully enclosed by walls or doors", true);
             AddRequirement("At least one door", hasDoor);
-            AddRequirement("At least one desk", desks >= 1);
             AddRequirement("At least one chair", seats >= 1);
             AddRequirement("At least one wall board", wallBoards >= 1);
 
@@ -671,26 +670,46 @@ public class RoomInfoPanelUIController : MonoBehaviour
                 ? "OPERATIONAL"
                 : "NOT OPERATIONAL";
 
+        int baseStudentDemand =
+            Mathf.RoundToInt(assessment.facilityQualityScore / 5f);
+
+        int parkingStudentDemand =
+            Mathf.Max(0, assessment.designatedTrainingParkingSpotCount) * 3;
+
+        int dailyStudentDemand = Mathf.Min(
+            baseStudentDemand + parkingStudentDemand,
+            Mathf.Max(0, assessment.studentCapacity));
+
         assessmentLabel.text =
             $"FACILITY QUALITY\n" +
-            $"{assessment.facilityQualityScore}/100\n\n" +
+            $"{assessment.facilityQualityScore}/70\n\n" +
 
             $"Quality breakdown:\n" +
-            $"• Room area: {assessment.areaQualityPoints}/40\n" +
-            $"• Student seating: {assessment.seatingQualityPoints}/40\n" +
-            $"• Desk quality: " +
-            $"{assessment.instructorDeskQualityPoints}/20\n\n" +
+            $"• Room area: {assessment.areaQualityPoints}/25\n" +
+            $"• Student seating: {assessment.seatingQualityPoints}/25\n" +
+            $"• Optional equipment: {assessment.equipmentQualityPoints}/20\n\n" +
+
+            $"OPTIONAL EQUIPMENT\n" +
+            $"• Books: {assessment.bookCount}\n" +
+            $"• Computers: {assessment.computerCount}\n" +
+            $"• Printers: {assessment.printerCount}\n" +
+            $"• Projectors: {assessment.projectorCount}\n\n" +
 
             $"FACILITY DETAILS\n" +
             $"• Foundation cells: {assessment.usableFoundationCells}\n" +
             $"• Student seats: {assessment.studentSeatCount}\n" +
             $"• Student capacity: {assessment.studentCapacity}\n" +
-            $"• Desks: {assessment.instructorDeskCount}\n" +
             $"• Wall boards: {assessment.wallBoardCount}\n\n" +
 
             $"OPERATIONAL STATUS\n" +
             $"{operationalStatus}\n" +
             $"{assessment.operationalRequirementMessage}\n\n" +
+
+            $"DAILY STUDENT DEMAND\n" +
+            $"{dailyStudentDemand} students\n" +
+            $"• Room quality: {baseStudentDemand}\n" +
+            $"• Reserved parking: +{parkingStudentDemand}\n" +
+            $"• Limited by seats: {assessment.studentCapacity}\n\n" +
 
             $"SHARED AIRPORT TRAINING PARKING\n" +
             $"• Designated spots: " +
