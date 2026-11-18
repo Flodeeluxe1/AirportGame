@@ -229,6 +229,7 @@ public class PedestrianMovementController : MonoBehaviour
         bool foundPath = pathfinder.TryFindBestApproachPath(
             transform.position,
             provider.InteractionPosition,
+            provider.transform.position,
             provider.GetComponentInParent<PlacedBuilding>(),
             out selectedDestination,
             out estimatedPath);
@@ -284,6 +285,23 @@ public class PedestrianMovementController : MonoBehaviour
     /// </summary>
     public bool MoveTo(Vector3 worldDestination)
     {
+        return MoveToWorldPosition(worldDestination, true);
+    }
+
+    /// <summary>
+    /// Attempts a route without raising PathFailed when the initial route
+    /// cannot be calculated. The caller owns handling the false result.
+    /// Runtime movement failures continue to use the normal event.
+    /// </summary>
+    public bool TryMoveTo(Vector3 worldDestination)
+    {
+        return MoveToWorldPosition(worldDestination, false);
+    }
+
+    private bool MoveToWorldPosition(
+        Vector3 worldDestination,
+        bool notifyOnImmediateFailure)
+    {
         StopInternal("Calculating route");
         lastApproachProvider = null;
 
@@ -293,7 +311,8 @@ public class PedestrianMovementController : MonoBehaviour
         if (pathfinder == null)
         {
             movementStatus = "Pathfinder missing";
-            PathFailed?.Invoke();
+            if (notifyOnImmediateFailure)
+                PathFailed?.Invoke();
             return false;
         }
 
@@ -306,7 +325,8 @@ public class PedestrianMovementController : MonoBehaviour
         if (calculatedPath == null || calculatedPath.Count == 0)
         {
             movementStatus = "No path found";
-            PathFailed?.Invoke();
+            if (notifyOnImmediateFailure)
+                PathFailed?.Invoke();
             return false;
         }
 
@@ -320,13 +340,30 @@ public class PedestrianMovementController : MonoBehaviour
     /// </summary>
     public bool MoveTo(InteractionProvider provider)
     {
+        return MoveToInteraction(provider, true);
+    }
+
+    /// <summary>
+    /// Attempts to reach an interaction without raising PathFailed for an
+    /// immediate route-calculation failure. The caller handles the false result.
+    /// </summary>
+    public bool TryMoveTo(InteractionProvider provider)
+    {
+        return MoveToInteraction(provider, false);
+    }
+
+    private bool MoveToInteraction(
+        InteractionProvider provider,
+        bool notifyOnImmediateFailure)
+    {
         StopInternal("Calculating interaction route");
         lastApproachProvider = null;
 
         if (provider == null)
         {
             movementStatus = "Interaction provider missing";
-            PathFailed?.Invoke();
+            if (notifyOnImmediateFailure)
+                PathFailed?.Invoke();
             return false;
         }
 
@@ -336,9 +373,13 @@ public class PedestrianMovementController : MonoBehaviour
         if (pathfinder == null)
         {
             movementStatus = "Pathfinder missing";
-            PathFailed?.Invoke();
+            if (notifyOnImmediateFailure)
+                PathFailed?.Invoke();
             return false;
         }
+
+        PlacedBuilding targetBuilding =
+            provider.GetComponentInParent<PlacedBuilding>();
 
         Vector3 selectedDestination;
         List<Vector3> calculatedPath;
@@ -346,14 +387,16 @@ public class PedestrianMovementController : MonoBehaviour
         bool foundPath = pathfinder.TryFindBestApproachPath(
             transform.position,
             provider.InteractionPosition,
-            provider.GetComponentInParent<PlacedBuilding>(),
+            provider.transform.position,
+            targetBuilding,
             out selectedDestination,
             out calculatedPath);
 
         if (!foundPath)
         {
             movementStatus = "No interaction approach path found";
-            PathFailed?.Invoke();
+            if (notifyOnImmediateFailure)
+                PathFailed?.Invoke();
             return false;
         }
 
