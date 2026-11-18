@@ -136,6 +136,22 @@ public class InteractionProvider : MonoBehaviour
         UtilityAISpatialRegistry<InteractionProvider>.Register(this);
     }
 
+    /// <summary>
+    /// Adds an interaction definition at runtime when a system configures
+    /// a provider dynamically (for example, reservable classroom seats).
+    /// </summary>
+    public void AddInteractionDefinition(InteractionDefinition definition)
+    {
+        if (definition == null)
+            return;
+
+        if (interactions == null)
+            interactions = new List<InteractionDefinition>();
+
+        if (!interactions.Contains(definition))
+            interactions.Add(definition);
+    }
+
     public bool InteractionsEnabled =>
         interactionsEnabled && isActiveAndEnabled && gameObject.activeInHierarchy;
 
