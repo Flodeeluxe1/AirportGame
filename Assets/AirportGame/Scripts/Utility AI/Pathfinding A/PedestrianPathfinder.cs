@@ -319,7 +319,7 @@ public class PedestrianPathfinder : MonoBehaviour
             gridManager.WorldToGrid(targetWorld),
             accessProfile);
 
-        return ConvertGridPathToWorld(SmoothPath(gridPath));
+        return ConvertGridPathToWorld(SmoothPath(gridPath, accessProfile));
     }
 
     /// <summary>
@@ -348,7 +348,7 @@ public class PedestrianPathfinder : MonoBehaviour
             return false;
 
         List<Vector2Int> approachCells =
-            GetApproachCells(targetBuilding, preferredWorld, providerWorld);
+            GetApproachCells(targetBuilding, preferredWorld, providerWorld, accessProfile);
 
         Vector2Int startCell = gridManager.WorldToGrid(startWorld);
         List<Vector2Int> bestPath = null;
@@ -395,7 +395,7 @@ public class PedestrianPathfinder : MonoBehaviour
             return false;
         }
 
-        worldPath = ConvertGridPathToWorld(SmoothPath(bestPath));
+        worldPath = ConvertGridPathToWorld(SmoothPath(bestPath, accessProfile));
         selectedDestination = gridManager.GridToWorldCenter(bestTarget);
         selectedDestination.y += pathHeightOffset;
         return worldPath.Count > 0;
@@ -404,7 +404,8 @@ public class PedestrianPathfinder : MonoBehaviour
     private List<Vector2Int> GetApproachCells(
         PlacedBuilding targetBuilding,
         Vector3 preferredWorld,
-        Vector3 providerWorld)
+        Vector3 providerWorld,
+        PedestrianAccessProfile accessProfile)
     {
         List<Vector2Int> result = new List<Vector2Int>(16);
 
@@ -418,10 +419,10 @@ public class PedestrianPathfinder : MonoBehaviour
         if (targetBuilding == null)
         {
             Vector2Int anchor = gridManager.WorldToGrid(providerWorld);
-            AddAdjacentApproachCell(result, anchor + Vector2Int.right, anchor);
-            AddAdjacentApproachCell(result, anchor + Vector2Int.left, anchor);
-            AddAdjacentApproachCell(result, anchor + Vector2Int.up, anchor);
-            AddAdjacentApproachCell(result, anchor + Vector2Int.down, anchor);
+            AddAdjacentApproachCell(result, anchor + Vector2Int.right, anchor, accessProfile);
+            AddAdjacentApproachCell(result, anchor + Vector2Int.left, anchor, accessProfile);
+            AddAdjacentApproachCell(result, anchor + Vector2Int.up, anchor, accessProfile);
+            AddAdjacentApproachCell(result, anchor + Vector2Int.down, anchor, accessProfile);
 
             // The preferred interaction point is the intended boarding side
             // of the vehicle. Include its own cell when walkable, not only the
@@ -454,7 +455,7 @@ public class PedestrianPathfinder : MonoBehaviour
             else
                 maxY += Mathf.Max(1, targetBuilding.EdgeLength) - 1;
 
-            AddFootprintBoundaryApproachCells(result, minX, minY, maxX, maxY);
+            AddFootprintBoundaryApproachCells(result, minX, minY, maxX, maxY, accessProfile);
             return result;
         }
 
@@ -470,7 +471,8 @@ public class PedestrianPathfinder : MonoBehaviour
             footprintMinX,
             footprintMinY,
             footprintMaxX,
-            footprintMaxY);
+            footprintMaxY,
+            accessProfile);
 
         return result;
     }
@@ -480,32 +482,34 @@ public class PedestrianPathfinder : MonoBehaviour
         int minX,
         int minY,
         int maxX,
-        int maxY)
+        int maxY,
+        PedestrianAccessProfile accessProfile)
     {
         // Approach cells must touch the footprint directly. This avoids
         // treating cells several tiles away, or on the far side of a wall,
         // as valid interaction positions.
         for (int x = minX; x <= maxX; x++)
         {
-            AddAdjacentApproachCell(cells, new Vector2Int(x, minY - 1), new Vector2Int(x, minY));
-            AddAdjacentApproachCell(cells, new Vector2Int(x, maxY + 1), new Vector2Int(x, maxY));
+            AddAdjacentApproachCell(cells, new Vector2Int(x, minY - 1), new Vector2Int(x, minY), accessProfile);
+            AddAdjacentApproachCell(cells, new Vector2Int(x, maxY + 1), new Vector2Int(x, maxY), accessProfile);
         }
 
         for (int y = minY; y <= maxY; y++)
         {
-            AddAdjacentApproachCell(cells, new Vector2Int(minX - 1, y), new Vector2Int(minX, y));
-            AddAdjacentApproachCell(cells, new Vector2Int(maxX + 1, y), new Vector2Int(maxX, y));
+            AddAdjacentApproachCell(cells, new Vector2Int(minX - 1, y), new Vector2Int(minX, y), accessProfile);
+            AddAdjacentApproachCell(cells, new Vector2Int(maxX + 1, y), new Vector2Int(maxX, y), accessProfile);
         }
     }
 
     private void AddAdjacentApproachCell(
         List<Vector2Int> cells,
         Vector2Int candidate,
-        Vector2Int footprintCell)
+        Vector2Int footprintCell,
+        PedestrianAccessProfile accessProfile)
     {
         if (cells.Contains(candidate) ||
             !IsWalkable(candidate) ||
-            !CanMoveCardinal(footprintCell, candidate))
+            !CanMoveCardinal(footprintCell, candidate, accessProfile))
         {
             return;
         }
@@ -587,7 +591,7 @@ public class PedestrianPathfinder : MonoBehaviour
     /// collision-safe straight segment can connect the remaining cells.
     /// A limited look-ahead preserves the overall shape of randomized routes.
     /// </summary>
-    private List<Vector2Int> SmoothPath(List<Vector2Int> path)
+    private List<Vector2Int> SmoothPath(List<Vector2Int> path, PedestrianAccessProfile accessProfile)
     {
         if (path == null || path.Count <= 2 || smoothingLookAheadCells <= 1)
             return path;
@@ -610,7 +614,8 @@ public class PedestrianPathfinder : MonoBehaviour
             {
                 if (HasClearLineOfSight(
                     path[anchorIndex],
-                    path[candidateIndex]))
+                    path[candidateIndex],
+                    accessProfile))
                 {
                     chosenIndex = candidateIndex;
                     break;
@@ -628,7 +633,7 @@ public class PedestrianPathfinder : MonoBehaviour
     /// Uses a grid traversal between cell centres and validates every
     /// crossed step with the same walkability, wall and corner rules as A*.
     /// </summary>
-    private bool HasClearLineOfSight(Vector2Int from, Vector2Int to)
+    private bool HasClearLineOfSight(Vector2Int from, Vector2Int to, PedestrianAccessProfile accessProfile = null)
     {
         int deltaX = Mathf.Abs(to.x - from.x);
         int deltaY = Mathf.Abs(to.y - from.y);
@@ -655,7 +660,7 @@ public class PedestrianPathfinder : MonoBehaviour
                 next.y += stepY;
             }
 
-            if (!CanMoveBetween(current, next))
+            if (!CanMoveBetween(current, next, accessProfile))
                 return false;
 
             current = next;
@@ -669,7 +674,7 @@ public class PedestrianPathfinder : MonoBehaviour
     /// cells and crosses only permitted grid edges. Used to keep local
     /// pedestrian avoidance from steering through walls or blocked cells.
     /// </summary>
-    public bool CanMoveBetweenWorldPositions(Vector3 fromWorld, Vector3 toWorld)
+    public bool CanMoveBetweenWorldPositions(Vector3 fromWorld, Vector3 toWorld, PedestrianAccessProfile accessProfile = null)
     {
         if (!HasValidReferences())
             return false;
@@ -680,15 +685,16 @@ public class PedestrianPathfinder : MonoBehaviour
         if (from == to)
             return IsWalkable(from);
 
-        return HasClearLineOfSight(from, to);
+        return HasClearLineOfSight(from, to, accessProfile);
     }
 
     public bool TryFindPath(
         Vector2Int start,
         Vector2Int target,
-        out List<Vector2Int> path)
+        out List<Vector2Int> path,
+        PedestrianAccessProfile accessProfile = null)
     {
-        path = FindPath(start, target);
+        path = FindPath(start, target, accessProfile);
         return path.Count > 0;
     }
 
