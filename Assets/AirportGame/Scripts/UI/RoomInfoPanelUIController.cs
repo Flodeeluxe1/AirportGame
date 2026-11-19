@@ -466,8 +466,7 @@ public class RoomInfoPanelUIController : MonoBehaviour
         int printers = 0;
 
         PlacedBuilding[] placedBuildings = FindObjectsByType<PlacedBuilding>(
-            FindObjectsInactive.Exclude,
-            FindObjectsSortMode.None);
+            FindObjectsInactive.Exclude);
 
         foreach (PlacedBuilding placed in placedBuildings)
         {
