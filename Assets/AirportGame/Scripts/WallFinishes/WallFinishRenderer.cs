@@ -18,7 +18,7 @@ public class WallFinishRenderer : MonoBehaviour
         if (gridSurface == null)
         {
             GridManager gridManager =
-                FindFirstObjectByType<GridManager>();
+                FindAnyObjectByType<GridManager>();
 
             if (gridManager != null)
                 gridSurface = gridManager.GetComponent<GridSurface>();
