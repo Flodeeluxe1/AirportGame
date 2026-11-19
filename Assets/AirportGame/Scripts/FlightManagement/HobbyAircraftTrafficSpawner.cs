@@ -397,9 +397,7 @@ public class HobbyAircraftTrafficSpawner : MonoBehaviour
         }
 
         AircraftRunway[] runways =
-            FindObjectsByType<AircraftRunway>(
-                FindObjectsSortMode.None
-            );
+            FindObjectsByType<AircraftRunway>();
 
         foreach (AircraftRunway runway in runways)
         {
@@ -432,9 +430,7 @@ public class HobbyAircraftTrafficSpawner : MonoBehaviour
         available = 0;
 
         HobbyAircraftParkingSpot[] spots =
-            FindObjectsByType<HobbyAircraftParkingSpot>(
-                FindObjectsSortMode.None
-            );
+            FindObjectsByType<HobbyAircraftParkingSpot>();
 
         foreach (HobbyAircraftParkingSpot spot in spots)
         {
@@ -457,9 +453,7 @@ public class HobbyAircraftTrafficSpawner : MonoBehaviour
     private int CountActiveHobbyAircraft()
     {
         AircraftFlightIdentity[] identities =
-            FindObjectsByType<AircraftFlightIdentity>(
-                FindObjectsSortMode.None
-            );
+            FindObjectsByType<AircraftFlightIdentity>();
 
         int count = 0;
 
@@ -684,9 +678,7 @@ public class HobbyAircraftTrafficSpawner : MonoBehaviour
             bool inUse = false;
 
             AircraftFlightIdentity[] identities =
-                FindObjectsByType<AircraftFlightIdentity>(
-                    FindObjectsSortMode.None
-                );
+                FindObjectsByType<AircraftFlightIdentity>();
 
             foreach (AircraftFlightIdentity identity in identities)
             {
