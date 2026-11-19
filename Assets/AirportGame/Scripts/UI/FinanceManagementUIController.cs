@@ -47,18 +47,18 @@ public class FinanceManagementUIController : MonoBehaviour
         if (uiDocument == null)
         {
             FuelManagementUIController fuelUI =
-                FindFirstObjectByType<FuelManagementUIController>();
+                FindAnyObjectByType<FuelManagementUIController>();
 
             if (fuelUI != null)
                 uiDocument = fuelUI.UiDocument;
         }
 
         if (uiDocument == null)
-            uiDocument = FindFirstObjectByType<UIDocument>();
+            uiDocument = FindAnyObjectByType<UIDocument>();
 
         if (airportManagementController == null)
             airportManagementController =
-                FindFirstObjectByType<AirportManagementController>();
+                FindAnyObjectByType<AirportManagementController>();
 
         if (uiDocument == null)
         {
@@ -92,7 +92,7 @@ public class FinanceManagementUIController : MonoBehaviour
     {
         if (airportManagementController == null)
             airportManagementController =
-                FindFirstObjectByType<AirportManagementController>();
+                FindAnyObjectByType<AirportManagementController>();
 
         if (subscribedController == airportManagementController)
             return;
