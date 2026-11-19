@@ -1727,16 +1727,17 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 736971620}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 0cb38dc4818c360498cff4f875ac4bc7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PerformanceMonitoringManager
   sampleInterval: 1
-  frameSpikeThresholdMs: 33.3
+  frameSpikeThresholdMs: 350
   startVisible: 1
-  toggleKey: 289
-  overlayPosition: {x: 12, y: 12}
+  pauseEditorOnSpike: 0
+  pauseThresholdMs: 100
+  overlayPosition: {x: 140, y: 12}
   overlayWidth: 340
 --- !u!1 &751787731
 GameObject:
