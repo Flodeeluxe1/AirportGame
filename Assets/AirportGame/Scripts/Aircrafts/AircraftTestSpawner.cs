@@ -20,7 +20,7 @@ public class AircraftTestSpawner : MonoBehaviour
         if (gridManager == null)
         {
             gridManager =
-                FindFirstObjectByType<GridManager>();
+                FindAnyObjectByType<GridManager>();
         }
     }
 
