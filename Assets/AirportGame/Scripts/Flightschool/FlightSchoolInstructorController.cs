@@ -92,6 +92,9 @@ public class FlightSchoolInstructorController : MonoBehaviour
 
     private void OnDisable()
     {
+        if (currentStudent != null)
+            currentStudent.SetInstructorConversationActive(false);
+
         if (movement != null)
         {
             movement.Arrived -= HandleMovementArrived;
@@ -115,6 +118,13 @@ public class FlightSchoolInstructorController : MonoBehaviour
 
     private void Update()
     {
+        if ((state == InstructorState.MovingToStudent ||
+             state == InstructorState.TalkingToStudent) &&
+            (currentStudent == null || !currentStudent.IsInstructorConversationActive))
+        {
+            ReturnToBoard();
+        }
+
         if (!initialized || movement == null || movement.IsMoving ||
             Time.time < nextActionTime)
         {
@@ -232,6 +242,7 @@ public class FlightSchoolInstructorController : MonoBehaviour
         }
 
         currentStudent = student;
+        currentStudent.SetInstructorConversationActive(true);
         currentVisitIsWelcome = isWelcome;
         lastVisitedStudent = student;
         state = InstructorState.MovingToStudent;
@@ -267,6 +278,9 @@ public class FlightSchoolInstructorController : MonoBehaviour
 
     private void ReturnToBoard()
     {
+        if (currentStudent != null)
+            currentStudent.SetInstructorConversationActive(false);
+
         currentStudent = null;
         currentVisitIsWelcome = false;
         currentActivity = "Returning to the wallboard";
@@ -316,6 +330,9 @@ public class FlightSchoolInstructorController : MonoBehaviour
         if (state == InstructorState.MovingToStudent ||
             state == InstructorState.TalkingToStudent)
         {
+            if (currentStudent != null)
+                currentStudent.SetInstructorConversationActive(false);
+
             currentStudent = null;
             currentVisitIsWelcome = false;
             ScheduleNextStudentVisit();
