@@ -266,9 +266,7 @@ public class AircraftHobbyLandingController : MonoBehaviour
     private bool SelectLandingRunway()
     {
         AircraftRunway[] runways =
-            FindObjectsByType<AircraftRunway>(
-                FindObjectsSortMode.None
-            );
+            FindObjectsByType<AircraftRunway>();
 
         if (runways.Length == 0)
             return false;
@@ -942,9 +940,7 @@ public class AircraftHobbyLandingController : MonoBehaviour
         else
         {
             HobbyAircraftParkingSpot[] parkingSpots =
-                FindObjectsByType<HobbyAircraftParkingSpot>(
-                    FindObjectsSortMode.None
-                );
+                FindObjectsByType<HobbyAircraftParkingSpot>();
 
             HobbyAircraftParkingSpot reservedSpot = null;
 
