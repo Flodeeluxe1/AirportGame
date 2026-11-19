@@ -92,19 +92,19 @@ public class AirportGroundVehicleMovement : MonoBehaviour
     private void Awake()
     {
         if (gridManager == null)
-            gridManager = FindFirstObjectByType<GridManager>();
+            gridManager = FindAnyObjectByType<GridManager>();
 
         if (gridOccupancy == null)
-            gridOccupancy = FindFirstObjectByType<GridOccupancy>();
+            gridOccupancy = FindAnyObjectByType<GridOccupancy>();
 
         if (gridSurface == null)
-            gridSurface = FindFirstObjectByType<GridSurface>();
+            gridSurface = FindAnyObjectByType<GridSurface>();
 
         if (roadNetwork == null)
-            roadNetwork = FindFirstObjectByType<RoadNetwork>();
+            roadNetwork = FindAnyObjectByType<RoadNetwork>();
 
         if (taxiwayNetwork == null)
-            taxiwayNetwork = FindFirstObjectByType<TaxiwayNetwork>();
+            taxiwayNetwork = FindAnyObjectByType<TaxiwayNetwork>();
 
         if (gridManager == null)
         {
