@@ -27,19 +27,19 @@ public class FloorFinishPainter : MonoBehaviour
             mainCamera = Camera.main;
 
         if (gridManager == null)
-            gridManager = FindFirstObjectByType<GridManager>();
+            gridManager = FindAnyObjectByType<GridManager>();
 
         if (gridSurface == null && gridManager != null)
             gridSurface = gridManager.GetComponent<GridSurface>();
 
         if (floorFinishRenderer == null)
-            floorFinishRenderer = FindFirstObjectByType<FloorFinishRenderer>();
+            floorFinishRenderer = FindAnyObjectByType<FloorFinishRenderer>();
 
         if (buildController == null)
-            buildController = FindFirstObjectByType<BuildController>();
+            buildController = FindAnyObjectByType<BuildController>();
 
         if (uiDocument == null)
-            uiDocument = FindFirstObjectByType<UIDocument>();
+            uiDocument = FindAnyObjectByType<UIDocument>();
 
         if (uiDocument != null)
             buildWindow = uiDocument.rootVisualElement.Q<VisualElement>("build-window");
