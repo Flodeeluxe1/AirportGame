@@ -55,10 +55,10 @@ public class AircraftCleaningVehicleController : MonoBehaviour
             groundVehicleMovement = GetComponent<AirportGroundVehicleMovement>();
 
         if (gameTimeManager == null)
-            gameTimeManager = FindFirstObjectByType<GameTimeManager>();
+            gameTimeManager = FindAnyObjectByType<GameTimeManager>();
 
         if (wasteCollectionManager == null)
-            wasteCollectionManager = FindFirstObjectByType<WasteCollectionManager>();
+            wasteCollectionManager = FindAnyObjectByType<WasteCollectionManager>();
 
         if (!activeVehicles.Contains(this))
             activeVehicles.Add(this);
@@ -136,7 +136,7 @@ public class AircraftCleaningVehicleController : MonoBehaviour
         }
 
         AircraftGateRegistry registry =
-            FindFirstObjectByType<AircraftGateRegistry>();
+            FindAnyObjectByType<AircraftGateRegistry>();
 
         if (registry == null ||
             !registry.TryGetGate(identity.ActualGateStableId, out AircraftGate gate) ||
@@ -383,7 +383,7 @@ public class AircraftCleaningVehicleController : MonoBehaviour
         }
 
         if (wasteCollectionManager == null)
-            wasteCollectionManager = FindFirstObjectByType<WasteCollectionManager>();
+            wasteCollectionManager = FindAnyObjectByType<WasteCollectionManager>();
 
         if (wasteCollectionManager == null)
         {
