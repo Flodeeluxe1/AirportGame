@@ -148,13 +148,13 @@ public class AircraftHobbyLandingController : MonoBehaviour
         if (gridManager == null)
         {
             gridManager =
-                FindFirstObjectByType<GridManager>();
+                FindAnyObjectByType<GridManager>();
         }
 
         if (weather == null)
         {
             weather =
-                FindFirstObjectByType<Weather>();
+                FindAnyObjectByType<Weather>();
         }
 
         if (gridManager == null || weather == null)
@@ -239,7 +239,7 @@ public class AircraftHobbyLandingController : MonoBehaviour
         if (trafficManager == null)
         {
             trafficManager =
-                FindFirstObjectByType<AircraftRunwayTrafficManager>();
+                FindAnyObjectByType<AircraftRunwayTrafficManager>();
         }
 
         if (trafficManager != null)
@@ -274,7 +274,7 @@ public class AircraftHobbyLandingController : MonoBehaviour
             return false;
 
         AircraftRunwayTrafficManager trafficManager =
-            FindFirstObjectByType<AircraftRunwayTrafficManager>();
+            FindAnyObjectByType<AircraftRunwayTrafficManager>();
 
         if (trafficManager == null)
         {
