@@ -27,6 +27,7 @@ public class FlightSchoolManager : MonoBehaviour
 
     [Header("Training Aircraft")]
     [SerializeField] private GameObject trainingAircraftPrefab;
+    [SerializeField, Min(0.1f)] private float spawnRetryInterval = 1f;
 
     [Header("Lesson Reward")]
     [SerializeField, Min(1)] private int lessonReward = 300;
@@ -50,6 +51,8 @@ public class FlightSchoolManager : MonoBehaviour
 
         public GameObject aircraft;
         public HobbyAircraftParkingSpot parkingSpot;
+        public TrainingFlightController trainingController;
+        public float nextSpawnAttemptTime;
 
         public bool rewardPaid;
         public bool lessonRestartPending;
@@ -73,6 +76,8 @@ public class FlightSchoolManager : MonoBehaviour
     private GameTimeManager gameTimeManager;
 
     private float nextRoomRefreshTime;
+    private HobbyAircraftParkingSpot[] cachedParkingSpots =
+        Array.Empty<HobbyAircraftParkingSpot>();
     private static FlightSchoolManager activeManager;
 
     public GameObject TrainingAircraftPrefab => trainingAircraftPrefab;
@@ -111,6 +116,7 @@ public class FlightSchoolManager : MonoBehaviour
                 Time.unscaledTime + Mathf.Max(0.1f, roomRefreshInterval);
 
             RefreshSchoolRooms();
+            RefreshParkingSpotCache();
         }
 
         foreach (SchoolOperation operation in operations.Values)
@@ -367,6 +373,11 @@ public class FlightSchoolManager : MonoBehaviour
         return anchor;
     }
 
+    private void RefreshParkingSpotCache()
+    {
+        cachedParkingSpots = FindObjectsByType<HobbyAircraftParkingSpot>();
+    }
+
     private void TrySpawnTrainingAircraft(SchoolOperation operation)
     {
         if (!CanStartNewLesson(operation, out string reason))
@@ -382,10 +393,13 @@ public class FlightSchoolManager : MonoBehaviour
             return;
         }
 
-        HobbyAircraftParkingSpot[] parkingSpots =
-            FindObjectsByType<HobbyAircraftParkingSpot>();
+        if (Time.unscaledTime < operation.nextSpawnAttemptTime)
+            return;
 
-        foreach (HobbyAircraftParkingSpot spot in parkingSpots)
+        operation.nextSpawnAttemptTime =
+            Time.unscaledTime + Mathf.Max(0.1f, spawnRetryInterval);
+
+        foreach (HobbyAircraftParkingSpot spot in cachedParkingSpots)
         {
             if (spot == null ||
                 !spot.IsPlacedBuilding ||
@@ -441,6 +455,7 @@ public class FlightSchoolManager : MonoBehaviour
             // to board and for the aircraft to be prepared.
             operation.aircraft = aircraft;
             operation.parkingSpot = spot;
+            operation.trainingController = trainingController;
             operation.rewardPaid = false;
             operation.lessonRestartPending = false;
 
@@ -510,8 +525,7 @@ public class FlightSchoolManager : MonoBehaviour
         if (operation.aircraft == null)
             return;
 
-        TrainingFlightController trainingController =
-            operation.aircraft.GetComponent<TrainingFlightController>();
+        TrainingFlightController trainingController = operation.trainingController;
 
         if (trainingController == null)
         {
@@ -821,6 +835,7 @@ public class FlightSchoolManager : MonoBehaviour
 
             Destroy(operation.aircraft);
             operation.aircraft = null;
+            operation.trainingController = null;
         }
     }
 }
