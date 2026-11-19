@@ -24,6 +24,7 @@ public class FlightSchoolStudentAgent : MonoBehaviour
     private bool walkingToCar;
     private bool departureStarted;
     private bool groupConversationActive;
+    private bool instructorConversationActive;
     private FlightSchoolStudentGroupConversationController groupConversationController;
     [Header("Diagnostics")]
     [SerializeField] private bool logMovementArrivals;
@@ -78,11 +79,20 @@ public class FlightSchoolStudentAgent : MonoBehaviour
     public InteractionProvider ReservedSeat => reservedSeat;
     public bool IsSeated => atSeat && reservedSeat != null &&
         !walkingToSeat && !walkingToAircraft && !walkingToCar &&
-        !walkingToNeedInteraction && !performingNeedInteraction;
+        !walkingToNeedInteraction && !performingNeedInteraction &&
+        !instructorConversationActive;
+
+    public bool IsInstructorConversationActive => instructorConversationActive;
+
+    public void SetInstructorConversationActive(bool active)
+    {
+        instructorConversationActive = active;
+    }
 
     public void Initialize(TrafficTestVehicle assignedVehicle, Vector2Int classroomAnchor)
     {
         vehicle = assignedVehicle;
+        instructorConversationActive = false;
         needs = GetComponent<UtilityNeeds>();
         accessProfile = GetComponent<PedestrianAccessProfile>();
         roomPurposeController = FindAnyObjectByType<RoomPurposeController>();
@@ -327,6 +337,7 @@ public class FlightSchoolStudentAgent : MonoBehaviour
             return false;
 
         InterruptGroupConversationForDeparture();
+        instructorConversationActive = false;
 
         // A seated student is aligned to the chair animation point, which
         // can be on a non-walkable cell. Move back to the saved approach point
