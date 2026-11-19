@@ -339,7 +339,7 @@ public class CellPlacementHandler : IPlacementHandler
         if (placedObject.GetComponent<AircraftRunway>() != null)
         {
             TaxiwayNetwork runwayNetwork =
-                Object.FindFirstObjectByType<TaxiwayNetwork>();
+                Object.FindAnyObjectByType<TaxiwayNetwork>();
 
             if (runwayNetwork == null)
             {
