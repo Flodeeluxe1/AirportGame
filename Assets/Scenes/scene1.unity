@@ -1688,6 +1688,56 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &736971620
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 736971621}
+  - component: {fileID: 736971622}
+  m_Layer: 0
+  m_Name: PerformanceMonitoringManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &736971621
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 736971620}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 23.86553, y: -0, z: 35.95784}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &736971622
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 736971620}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0cb38dc4818c360498cff4f875ac4bc7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PerformanceMonitoringManager
+  sampleInterval: 1
+  frameSpikeThresholdMs: 33.3
+  startVisible: 1
+  toggleKey: 289
+  overlayPosition: {x: 12, y: 12}
+  overlayWidth: 340
 --- !u!1 &751787731
 GameObject:
   m_ObjectHideFlags: 0
@@ -2779,6 +2829,7 @@ MonoBehaviour:
   gridSurface: {fileID: 0}
   gridOccupancy: {fileID: 0}
   edgeOccupancy: {fileID: 0}
+  roadNetwork: {fileID: 0}
   pathHeightOffset: 0.05
   randomStepPenalty: 3
   smoothingLookAheadCells: 3
@@ -5457,6 +5508,7 @@ SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
   - {fileID: 1577763652}
+  - {fileID: 736971621}
   - {fileID: 410087041}
   - {fileID: 832575519}
   - {fileID: 1057917666}
