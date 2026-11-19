@@ -483,7 +483,7 @@ public class FlightSchoolStudentManager : MonoBehaviour
         if (student == null)
             student = studentObject.AddComponent<FlightSchoolStudentAgent>();
 
-        student.Initialize(vehicle);
+        student.Initialize(vehicle, record.roomAnchor);
         student.SeatReached += HandleStudentSeated;
         student.AircraftReached += HandleStudentReachedAircraft;
         student.PathFailed += HandleStudentPathFailed;
