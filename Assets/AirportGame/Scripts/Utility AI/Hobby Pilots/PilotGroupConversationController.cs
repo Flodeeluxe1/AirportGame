@@ -447,7 +447,7 @@ public class PilotGroupConversationController : MonoBehaviour
     private void ResolveGameTimeManager()
     {
         if (gameTimeManager == null)
-            gameTimeManager = FindFirstObjectByType<GameTimeManager>();
+            gameTimeManager = FindAnyObjectByType<GameTimeManager>();
         if (gameTimeManager == null || subscribedToGameTime)
             return;
         gameTimeManager.GameTimeAdvanced += HandleGameTimeAdvanced;
