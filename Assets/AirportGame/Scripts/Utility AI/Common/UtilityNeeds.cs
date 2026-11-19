@@ -183,6 +183,44 @@ public class UtilityNeeds : MonoBehaviour
         }
     }
 
+    [Serializable]
+    private class NeedConsiderationSettings
+    {
+        public bool thirst = true;
+        public bool hunger = true;
+        public bool bladder = true;
+        public bool energy = true;
+        public bool social = true;
+        public bool entertainment = true;
+        public bool comfort = true;
+        public bool boredom = true;
+
+        public bool IsEnabled(NeedType need)
+        {
+            return need switch
+            {
+                NeedType.Thirst => thirst,
+                NeedType.Hunger => hunger,
+                NeedType.Bladder => bladder,
+                NeedType.Energy => energy,
+                NeedType.Social => social,
+                NeedType.Entertainment => entertainment,
+                NeedType.Comfort => comfort,
+                NeedType.Boredom => boredom,
+                _ => false
+            };
+        }
+    }
+
+    [Header("Needs Considered By Utility AI")]
+    [Tooltip("Disabled needs continue to decay and can be replenished, but they do not influence utility scoring.")]
+    [SerializeField] private NeedConsiderationSettings consideredNeeds = new NeedConsiderationSettings();
+
+    public bool IsNeedConsidered(NeedType need)
+    {
+        return consideredNeeds == null || consideredNeeds.IsEnabled(need);
+    }
+
     [Header("Initial State")]
     [Tooltip("When enabled, each need receives an independently randomised value when a new visit starts.")]
     [SerializeField] private bool randomizeInitialNeeds = true;
@@ -252,6 +290,9 @@ public class UtilityNeeds : MonoBehaviour
     /// </summary>
     public float GetUrgency(NeedType need)
     {
+        if (!IsNeedConsidered(need))
+            return 0f;
+
         float normalizedUrgency = Mathf.Clamp01((100f - GetValue(need)) / 100f);
         AnimationCurve curve = urgencyCurves != null ? urgencyCurves.GetCurve(need) : null;
         float curvedUrgency = curve != null ? curve.Evaluate(normalizedUrgency) : normalizedUrgency;
@@ -263,6 +304,9 @@ public class UtilityNeeds : MonoBehaviour
     /// </summary>
     public float GetUtilityWeight(NeedType need)
     {
+        if (!IsNeedConsidered(need))
+            return 0f;
+
         return utilityWeights != null ? Mathf.Max(0f, utilityWeights.GetWeight(need)) : 1f;
     }
 
