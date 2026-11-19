@@ -394,6 +394,11 @@ public class DoorPlacementHandler : IPlacementHandler
         GameObject placedDoor = Object.Instantiate(definition.prefab);
         ApplyDoorTransform(placedDoor, currentEdge);
 
+        // Keep legacy door prefabs compatible. Configured prefabs retain
+        // their inspector-authored access groups; an empty controller is public.
+        if (placedDoor.GetComponent<DoorAccessController>() == null)
+            placedDoor.AddComponent<DoorAccessController>();
+
         PlacedBuilding placedBuilding =
             placedDoor.AddComponent<PlacedBuilding>();
 
