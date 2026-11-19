@@ -389,7 +389,10 @@ public class FlightSchoolStudentGroupConversationController : MonoBehaviour
                 candidate.student.EndGroupConversationAndReturnToSeat();
         }
 
-        ReleaseReservedCells();
+        foreach (Vector2Int cell in selectedCells)
+            ReservedMeetingCells.Remove(cell);
+        selectedCells.Clear();
+        selectedTargets.Clear();
         members.Clear();
     }
 
@@ -466,15 +469,8 @@ public class FlightSchoolStudentGroupConversationController : MonoBehaviour
         if (!isLeader || state != GroupState.Talking)
             return;
 
-        long previousAbsolute = GetAbsoluteGameSecond(previousSecond);
-        long currentAbsolute = GetAbsoluteGameSecond(currentSecond);
-        if (currentAbsolute - conversationStartGameSecond >= conversationDurationGameSeconds)
+        if (currentSecond - conversationStartGameSecond >= conversationDurationGameSeconds)
             CompleteGroup();
-    }
-
-    private long GetAbsoluteGameSecond(long secondsOfDay)
-    {
-        return (gameTimeManager.CurrentDay - 1) * 86400L + secondsOfDay;
     }
 
     private long GetCurrentAbsoluteGameSecond()
