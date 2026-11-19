@@ -101,7 +101,10 @@ public class PedestrianPathfinder : MonoBehaviour
     /// Finds a path between two grid cells. The returned path includes both endpoints.
     /// Returns an empty list when no valid path exists.
     /// </summary>
-    public List<Vector2Int> FindPath(Vector2Int start, Vector2Int target)
+    public List<Vector2Int> FindPath(
+        Vector2Int start,
+        Vector2Int target,
+        PedestrianAccessProfile accessProfile = null)
     {
         if (!HasValidReferences() ||
             !IsWalkable(start) ||
@@ -169,7 +172,7 @@ public class PedestrianPathfinder : MonoBehaviour
                 Vector2Int next = current + NeighborOffsets[neighborOrder[i]];
 
                 if (closedSet.Contains(next) ||
-                    !CanMoveBetween(current, next))
+                    !CanMoveBetween(current, next, accessProfile))
                 {
                     continue;
                 }
@@ -301,7 +304,10 @@ public class PedestrianPathfinder : MonoBehaviour
     /// <summary>
     /// Finds a path using world positions. The returned list contains world-space cell centres.
     /// </summary>
-    public List<Vector3> FindWorldPath(Vector3 startWorld, Vector3 targetWorld)
+    public List<Vector3> FindWorldPath(
+        Vector3 startWorld,
+        Vector3 targetWorld,
+        PedestrianAccessProfile accessProfile = null)
     {
         List<Vector3> worldPath = new List<Vector3>();
 
@@ -310,7 +316,8 @@ public class PedestrianPathfinder : MonoBehaviour
 
         List<Vector2Int> gridPath = FindPath(
             gridManager.WorldToGrid(startWorld),
-            gridManager.WorldToGrid(targetWorld));
+            gridManager.WorldToGrid(targetWorld),
+            accessProfile);
 
         return ConvertGridPathToWorld(SmoothPath(gridPath));
     }
@@ -327,10 +334,11 @@ public class PedestrianPathfinder : MonoBehaviour
         PlacedBuilding targetBuilding,
         out Vector3 selectedDestination,
         out List<Vector3> worldPath,
-        bool logFailure = true)
+        bool logFailure = true,
+        PedestrianAccessProfile accessProfile = null)
     {
         selectedDestination = preferredWorld;
-        worldPath = FindWorldPath(startWorld, preferredWorld);
+        worldPath = FindWorldPath(startWorld, preferredWorld, accessProfile);
 
         // Preserve existing behaviour whenever the preferred point is reachable.
         if (worldPath.Count > 0)
@@ -351,7 +359,7 @@ public class PedestrianPathfinder : MonoBehaviour
         for (int i = 0; i < approachCells.Count; i++)
         {
             Vector2Int candidate = approachCells[i];
-            List<Vector2Int> candidatePath = FindPath(startCell, candidate);
+            List<Vector2Int> candidatePath = FindPath(startCell, candidate, accessProfile);
 
             if (candidatePath.Count == 0)
                 continue;
@@ -724,7 +732,10 @@ public class PedestrianPathfinder : MonoBehaviour
         return true;
     }
 
-    private bool CanMoveBetween(Vector2Int from, Vector2Int to)
+    private bool CanMoveBetween(
+        Vector2Int from,
+        Vector2Int to,
+        PedestrianAccessProfile accessProfile)
     {
         if (!IsWalkable(to))
             return false;
@@ -748,16 +759,19 @@ public class PedestrianPathfinder : MonoBehaviour
                 return false;
             }
 
-            return CanMoveCardinal(from, horizontalCell) &&
-                   CanMoveCardinal(from, verticalCell) &&
-                   CanMoveCardinal(horizontalCell, to) &&
-                   CanMoveCardinal(verticalCell, to);
+            return CanMoveCardinal(from, horizontalCell, accessProfile) &&
+                   CanMoveCardinal(from, verticalCell, accessProfile) &&
+                   CanMoveCardinal(horizontalCell, to, accessProfile) &&
+                   CanMoveCardinal(verticalCell, to, accessProfile);
         }
 
-        return CanMoveCardinal(from, to);
+        return CanMoveCardinal(from, to, accessProfile);
     }
 
-    private bool CanMoveCardinal(Vector2Int from, Vector2Int to)
+    private bool CanMoveCardinal(
+        Vector2Int from,
+        Vector2Int to,
+        PedestrianAccessProfile accessProfile)
     {
         Vector2Int difference = to - from;
         GridEdge crossedEdge;
@@ -804,10 +818,20 @@ public class PedestrianPathfinder : MonoBehaviour
         PlacedBuilding edgeBuilding =
             edgeOccupant.GetComponent<PlacedBuilding>();
 
-        // Door objects occupy the same grid edges as walls but allow passage.
-        return edgeBuilding != null &&
-               edgeBuilding.Definition != null &&
-               edgeBuilding.Definition.category == BuildCategory.Door;
+        // Door objects occupy the same grid edges as walls. Their optional
+        // access controller decides whether this pedestrian may cross.
+        if (edgeBuilding == null ||
+            edgeBuilding.Definition == null ||
+            edgeBuilding.Definition.category != BuildCategory.Door)
+        {
+            return false;
+        }
+
+        DoorAccessController doorAccess =
+            edgeOccupant.GetComponent<DoorAccessController>();
+
+        // Existing doors without a controller remain unrestricted.
+        return doorAccess == null || doorAccess.CanPass(accessProfile);
     }
 
     private bool HasValidReferences()
