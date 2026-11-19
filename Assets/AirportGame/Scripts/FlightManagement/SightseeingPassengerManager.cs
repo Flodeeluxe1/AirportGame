@@ -106,7 +106,8 @@ public class SightseeingPassengerManager : MonoBehaviour
         {
             initialSchedulePrepared = true;
             long currentSlot = gameTimeManager.CurrentDay * 24L + gameTimeManager.Hour;
-            HandleFlightScheduled(currentSlot + 1L);
+            if (SightseeingAircraftSpawner.HasTicketDeskPlaced())
+                HandleFlightScheduled(currentSlot + 1L);
         }
 
         if (passengerPrefab == null || passengerCarPrefab == null ||
@@ -144,6 +145,9 @@ public class SightseeingPassengerManager : MonoBehaviour
 
     private void HandleFlightScheduled(long hourSlot)
     {
+        if (!SightseeingAircraftSpawner.HasTicketDeskPlaced())
+            return;
+
         if (passengerPrefab == null || passengerCarPrefab == null || trafficSpawner == null)
         {
             Debug.LogWarning("SightseeingPassengerManager: Assign passenger and passenger-car prefabs before the next scheduled flight.", this);
@@ -290,7 +294,12 @@ public class SightseeingPassengerManager : MonoBehaviour
             publicTerminalWaitingArea != null ? publicTerminalWaitingArea : transform,
             waitingAreaRadiusCells);
 
-        TryBeginCheckIn(agent);
+        // A car may finish parking after boarding has already started.
+        // Such a late arrival must leave again rather than miss the flight.
+        if (group != null && group.boardingStarted)
+            agent.BeginReturnToCar();
+        else
+            TryBeginCheckIn(agent);
     }
 
     public bool TryBeginCheckIn(SightseeingPassengerAgent agent)
@@ -539,7 +548,9 @@ public class SightseeingPassengerManager : MonoBehaviour
 
     private void TryRemoveFinishedGroup(FlightGroup group)
     {
-        if (group == null) return;
+        // Keep the manifest attached until the aircraft has returned. This
+        // prevents a zero-passenger cohort from falling back to random demand.
+        if (group == null || !group.returned) return;
         for (int i = 0; i < group.passengers.Count; i++)
             if (group.passengers[i] != null && !group.passengers[i].completed) return;
 
