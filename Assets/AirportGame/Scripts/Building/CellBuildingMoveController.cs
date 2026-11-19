@@ -518,7 +518,7 @@ public class CellBuildingMoveController : MonoBehaviour
         );
 
         BuildingSelectionController selectionController =
-            FindFirstObjectByType<BuildingSelectionController>();
+            FindAnyObjectByType<BuildingSelectionController>();
 
         if (selectionController != null)
         {
