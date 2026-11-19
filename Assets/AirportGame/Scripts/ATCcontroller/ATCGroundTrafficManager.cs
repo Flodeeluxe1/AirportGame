@@ -280,7 +280,7 @@ public class ATCGroundTrafficManager : MonoBehaviour
             return;
 
         ATCGroundTrafficManager existing =
-            FindFirstObjectByType<ATCGroundTrafficManager>();
+            FindAnyObjectByType<ATCGroundTrafficManager>();
 
         if (existing != null)
         {
@@ -340,10 +340,10 @@ public class ATCGroundTrafficManager : MonoBehaviour
     private void ResolveReferences()
     {
         if (gridManager == null)
-            gridManager = FindFirstObjectByType<GridManager>();
+            gridManager = FindAnyObjectByType<GridManager>();
 
         if (taxiwayNetwork == null)
-            taxiwayNetwork = FindFirstObjectByType<TaxiwayNetwork>();
+            taxiwayNetwork = FindAnyObjectByType<TaxiwayNetwork>();
     }
 
     /// <summary>
