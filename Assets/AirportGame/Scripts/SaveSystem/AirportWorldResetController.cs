@@ -94,8 +94,7 @@ public class AirportWorldResetController : MonoBehaviour
 
         PlacedBuilding[] placedBuildings =
             FindObjectsByType<PlacedBuilding>(
-                FindObjectsInactive.Include,
-                FindObjectsSortMode.None);
+                FindObjectsInactive.Include);
 
         foreach (PlacedBuilding placedBuilding in placedBuildings)
         {
@@ -350,8 +349,7 @@ public class AirportWorldResetController : MonoBehaviour
 
         PlacedBuilding[] buildings =
             FindObjectsByType<PlacedBuilding>(
-                FindObjectsInactive.Include,
-                FindObjectsSortMode.None);
+                FindObjectsInactive.Include);
 
         foreach (PlacedBuilding building in buildings)
         {
@@ -1082,8 +1080,7 @@ public class AirportWorldResetController : MonoBehaviour
         // registrations. Reassert the final runway surface afterward.
         RunwayNetworkRegistration[] runwayRegistrations =
             FindObjectsByType<RunwayNetworkRegistration>(
-                FindObjectsInactive.Include,
-                FindObjectsSortMode.None);
+                FindObjectsInactive.Include);
 
         foreach (RunwayNetworkRegistration registration
                  in runwayRegistrations)
