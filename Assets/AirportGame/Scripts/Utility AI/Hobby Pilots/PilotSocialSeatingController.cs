@@ -64,6 +64,8 @@ public class PilotSocialSeatingController : MonoBehaviour
     private UtilityNeeds needs;
     private PedestrianMovementController movement;
     private PilotInteractionController interactionController;
+    private RoomPurposeController roomPurposeController;
+    private PedestrianAccessProfile accessProfile;
     private GameTimeManager gameTimeManager;
     private bool subscribedToGameTime;
     private PilotSocialSeatingController partner;
@@ -86,6 +88,8 @@ public class PilotSocialSeatingController : MonoBehaviour
         needs = GetComponent<UtilityNeeds>();
         movement = GetComponent<PedestrianMovementController>();
         interactionController = GetComponent<PilotInteractionController>();
+        accessProfile = GetComponent<PedestrianAccessProfile>();
+        roomPurposeController = FindFirstObjectByType<RoomPurposeController>();
         ResolveGameTimeManager();
     }
 
@@ -234,7 +238,9 @@ public class PilotSocialSeatingController : MonoBehaviour
 
                 if (firstSeat.Provider == secondSeat.Provider ||
                     Vector3.Distance(firstSeat.Position, secondSeat.Position) >
-                    maximumDistanceBetweenSeats)
+                    maximumDistanceBetweenSeats ||
+                    !other.CanAccessSeat(firstSeat.Provider, other.accessProfile) ||
+                    !other.CanAccessSeat(secondSeat.Provider, other.accessProfile))
                 {
                     continue;
                 }
@@ -308,7 +314,9 @@ public class PilotSocialSeatingController : MonoBehaviour
                     SeatOption secondSeat = availableSeats[j];
 
                     float seatDistance = Vector3.Distance(firstSeat.Position, secondSeat.Position);
-                    if (seatDistance > maximumDistanceBetweenSeats)
+                    if (seatDistance > maximumDistanceBetweenSeats ||
+                        !candidate.CanAccessSeat(firstSeat.Provider, candidate.accessProfile) ||
+                        !candidate.CanAccessSeat(secondSeat.Provider, candidate.accessProfile))
                         continue;
 
                     float ownFirst = movement.EstimateTravelTime(firstSeat.Provider);
@@ -348,14 +356,15 @@ public class PilotSocialSeatingController : MonoBehaviour
         }
 }
 
-    private static List<SeatOption> GetAvailableSeats(IReadOnlyList<InteractionProvider> providers)
+    private List<SeatOption> GetAvailableSeats(IReadOnlyList<InteractionProvider> providers)
     {
         List<SeatOption> seats = new List<SeatOption>(providers.Count);
 
         for (int providerIndex = 0; providerIndex < providers.Count; providerIndex++)
         {
             InteractionProvider provider = providers[providerIndex];
-            if (provider == null || !provider.InteractionsEnabled)
+            if (provider == null || !provider.InteractionsEnabled ||
+                !CanAccessSeat(provider, accessProfile))
                 continue;
 
             IReadOnlyList<InteractionDefinition> definitions = provider.Interactions;
@@ -376,6 +385,16 @@ public class PilotSocialSeatingController : MonoBehaviour
         }
 
         return seats;
+    }
+
+    private bool CanAccessSeat(
+        InteractionProvider provider,
+        PedestrianAccessProfile pedestrian)
+    {
+        return provider != null &&
+               (roomPurposeController == null ||
+                roomPurposeController.IsPositionAccessibleToPedestrian(
+                    provider.InteractionPosition, pedestrian));
     }
 
     private static bool IsSeatInteraction(InteractionDefinition definition)
