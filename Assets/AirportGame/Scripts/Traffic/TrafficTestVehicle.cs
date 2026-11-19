@@ -165,17 +165,17 @@ public class TrafficTestVehicle : MonoBehaviour
     {
         if (roadNetwork == null)
         {
-            roadNetwork = FindFirstObjectByType<RoadNetwork>();
+            roadNetwork = FindAnyObjectByType<RoadNetwork>();
         }
 
         if (gridManager == null)
         {
-            gridManager = FindFirstObjectByType<GridManager>();
+            gridManager = FindAnyObjectByType<GridManager>();
         }
 
         if (intersectionManager == null)
         {
-            intersectionManager = FindFirstObjectByType<IntersectionManager>();
+            intersectionManager = FindAnyObjectByType<IntersectionManager>();
         }
 
         currentSpeed = speed;
