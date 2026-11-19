@@ -28,7 +28,7 @@ public class FlightOperationsStatusPanel : MonoBehaviour
             uiDocument = GetComponent<UIDocument>();
 
         if (gateRegistry == null)
-            gateRegistry = FindFirstObjectByType<AircraftGateRegistry>();
+            gateRegistry = FindAnyObjectByType<AircraftGateRegistry>();
 
         if (uiDocument == null)
         {
