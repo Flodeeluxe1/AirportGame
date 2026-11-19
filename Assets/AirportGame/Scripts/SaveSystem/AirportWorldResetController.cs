@@ -87,7 +87,7 @@ public class AirportWorldResetController : MonoBehaviour
         buildController.CancelBuilding();
 
         if (floorFinishRenderer == null)
-            floorFinishRenderer = FindFirstObjectByType<FloorFinishRenderer>();
+            floorFinishRenderer = FindAnyObjectByType<FloorFinishRenderer>();
 
         if (floorFinishRenderer != null)
             floorFinishRenderer.ClearAllFinishes();
@@ -181,13 +181,13 @@ public class AirportWorldResetController : MonoBehaviour
         if (roadModuleRuleManager == null)
         {
             roadModuleRuleManager =
-                FindFirstObjectByType<RoadModuleRuleManager>();
+                FindAnyObjectByType<RoadModuleRuleManager>();
         }
 
         if (taxiwayPrefabRuleManager == null)
         {
             taxiwayPrefabRuleManager =
-                FindFirstObjectByType<TaxiwayPrefabRuleManager>();
+                FindAnyObjectByType<TaxiwayPrefabRuleManager>();
         }
 
         ResolvePipelineReferences();
@@ -217,11 +217,11 @@ public class AirportWorldResetController : MonoBehaviour
     {
         if (pipelinePrefabRuleManager == null)
             pipelinePrefabRuleManager =
-                FindFirstObjectByType<PipelinePrefabRuleManager>();
+                FindAnyObjectByType<PipelinePrefabRuleManager>();
 
         if (pipelineNetworkManager == null)
             pipelineNetworkManager =
-                FindFirstObjectByType<PipelineNetworkManager>();
+                FindAnyObjectByType<PipelineNetworkManager>();
     }
 
     private void ResolveRoomPurposeReferences()
@@ -229,13 +229,13 @@ public class AirportWorldResetController : MonoBehaviour
         if (roomPurposeController == null)
         {
             roomPurposeController =
-                FindFirstObjectByType<RoomPurposeController>();
+                FindAnyObjectByType<RoomPurposeController>();
         }
 
         if (roomDetectionController == null)
         {
             roomDetectionController =
-                FindFirstObjectByType<RoomDetectionController>();
+                FindAnyObjectByType<RoomDetectionController>();
         }
     }
 
@@ -244,7 +244,7 @@ public class AirportWorldResetController : MonoBehaviour
         if (flightManagementUIController == null)
         {
             flightManagementUIController =
-                FindFirstObjectByType<FlightManagementUIController>();
+                FindAnyObjectByType<FlightManagementUIController>();
         }
 
         if (flightManagementUIController == null)
@@ -265,7 +265,7 @@ public class AirportWorldResetController : MonoBehaviour
         if (economyManager == null)
         {
             economyManager =
-                FindFirstObjectByType<AirportEconomyManager>();
+                FindAnyObjectByType<AirportEconomyManager>();
         }
 
         if (economyManager == null)
@@ -300,7 +300,7 @@ public class AirportWorldResetController : MonoBehaviour
         ResolveRoomPurposeReferences();
 
         if (floorFinishRenderer == null)
-            floorFinishRenderer = FindFirstObjectByType<FloorFinishRenderer>();
+            floorFinishRenderer = FindAnyObjectByType<FloorFinishRenderer>();
 
         if (floorFinishRenderer == null)
         {
@@ -312,7 +312,7 @@ public class AirportWorldResetController : MonoBehaviour
         AirportManagementController airportManagementController =
             AirportManagementController.Instance != null
                 ? AirportManagementController.Instance
-                : FindFirstObjectByType<AirportManagementController>();
+                : FindAnyObjectByType<AirportManagementController>();
 
         AirportSaveData data = new AirportSaveData
         {
@@ -919,7 +919,7 @@ public class AirportWorldResetController : MonoBehaviour
         // Restore wall finishes after all foundation cells exist, so the
         // renderer can identify the inner face from adjacent foundation cells.
         if (wallFinishRenderer == null)
-            wallFinishRenderer = FindFirstObjectByType<WallFinishRenderer>();
+            wallFinishRenderer = FindAnyObjectByType<WallFinishRenderer>();
 
         if (wallFinishRenderer != null)
         {
@@ -1098,7 +1098,7 @@ public class AirportWorldResetController : MonoBehaviour
             tarmacTilemapController.RefreshFromGridSurface();
 
         if (floorFinishRenderer == null)
-            floorFinishRenderer = FindFirstObjectByType<FloorFinishRenderer>();
+            floorFinishRenderer = FindAnyObjectByType<FloorFinishRenderer>();
 
         if (floorFinishRenderer != null)
             floorFinishRenderer.RestoreSaveData(data.floorFinishCells);
@@ -1132,7 +1132,7 @@ public class AirportWorldResetController : MonoBehaviour
         AirportManagementController airportManagementController =
             AirportManagementController.Instance != null
                 ? AirportManagementController.Instance
-                : FindFirstObjectByType<AirportManagementController>();
+                : FindAnyObjectByType<AirportManagementController>();
 
         if (airportManagementController != null)
         {
