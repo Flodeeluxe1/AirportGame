@@ -18,7 +18,7 @@ public class TarmacTilemapController : MonoBehaviour
             tarmacTilemap = GetComponent<Tilemap>();
 
         if (gridManager == null)
-            gridManager = FindFirstObjectByType<GridManager>();
+            gridManager = FindAnyObjectByType<GridManager>();
 
         if (gridSurface == null && gridManager != null)
             gridSurface = gridManager.GetComponent<GridSurface>();
