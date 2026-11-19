@@ -354,7 +354,7 @@ public class FlightSchoolStudentGroupConversationController : MonoBehaviour
         List<FlightSchoolStudentGroupConversationController> groupCandidates)
     {
         UtilityAISpatialRegistry<PedestrianMovementController>.GetNearby(
-            position, 0.8f, NearbyMovements);
+            position, 2f, NearbyMovements);
 
         for (int i = 0; i < NearbyMovements.Count; i++)
         {
@@ -372,8 +372,9 @@ public class FlightSchoolStudentGroupConversationController : MonoBehaviour
                 }
             }
 
-            if (!isGroupMember &&
-                Vector3.Distance(nearby.transform.position, position) < 0.65f)
+            Vector3 offset = nearby.transform.position - position;
+            offset.y = 0f;
+            if (!isGroupMember && offset.sqrMagnitude < 0.65f * 0.65f)
                 return true;
         }
 
