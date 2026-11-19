@@ -28,6 +28,13 @@ public class SightseeingFlightEconomy : MonoBehaviour
     [Range(0f, 1f)]
     [SerializeField] private float airportCommissionRate = 0.20f;
 
+    [Header("Ticket Sales Runtime Totals")]
+    [SerializeField] private int ticketsSold;
+    [SerializeField] private long totalTicketSalesValue;
+
+    public int TicketsSold => ticketsSold;
+    public long TotalTicketSalesValue => totalTicketSalesValue;
+
     public int TicketPrice => Mathf.Max(1, ticketPrice);
     public float AirportCommissionRate => airportCommissionRate;
 
@@ -44,6 +51,17 @@ public class SightseeingFlightEconomy : MonoBehaviour
         }
 
         Instance = this;
+    }
+
+    /// <summary>
+    /// Records a completed sightseeing ticket purchase. Ticket sales are
+    /// tracked separately from the airport's commission to avoid counting
+    /// the airline's full fare as airport income.
+    /// </summary>
+    public void RegisterTicketSale()
+    {
+        ticketsSold++;
+        totalTicketSalesValue += TicketPrice;
     }
 
     /// <summary>
