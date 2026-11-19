@@ -24,6 +24,7 @@ public class FlightSchoolManager : MonoBehaviour
     [Header("Room Detection")]
     [SerializeField] private RoomPurposeController roomPurposeController;
     [SerializeField, Min(0.1f)] private float roomRefreshInterval = 0.5f;
+    [SerializeField, Min(0.5f)] private float parkingSpotRefreshInterval = 2f;
 
     [Header("Training Aircraft")]
     [SerializeField] private GameObject trainingAircraftPrefab;
@@ -76,6 +77,7 @@ public class FlightSchoolManager : MonoBehaviour
     private GameTimeManager gameTimeManager;
 
     private float nextRoomRefreshTime;
+    private float nextParkingSpotRefreshTime;
     private HobbyAircraftParkingSpot[] cachedParkingSpots =
         Array.Empty<HobbyAircraftParkingSpot>();
     private static FlightSchoolManager activeManager;
@@ -116,6 +118,12 @@ public class FlightSchoolManager : MonoBehaviour
                 Time.unscaledTime + Mathf.Max(0.1f, roomRefreshInterval);
 
             RefreshSchoolRooms();
+        }
+
+        if (Time.unscaledTime >= nextParkingSpotRefreshTime)
+        {
+            nextParkingSpotRefreshTime =
+                Time.unscaledTime + Mathf.Max(0.5f, parkingSpotRefreshInterval);
             RefreshParkingSpotCache();
         }
 
