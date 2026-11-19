@@ -64,7 +64,7 @@ public static class EnvironmentScoreCalculator
         score = Mathf.Clamp(score, 0f, 100f);
 
         if (roomPurposeController == null)
-            roomPurposeController = Object.FindFirstObjectByType<RoomPurposeController>();
+            roomPurposeController = Object.FindAnyObjectByType<RoomPurposeController>();
 
         if (roomPurposeController != null)
             score = roomPurposeController.ApplyRoomEnvironmentEffect(worldPosition, score);
