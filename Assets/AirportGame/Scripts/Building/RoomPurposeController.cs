@@ -130,7 +130,7 @@ public class RoomPurposeController : MonoBehaviour
             return true;
 
         Vector2Int anchor = GetAnchor(room);
-        int profileId = pedestrian != null ? pedestrian.GetInstanceID() : 0;
+        int profileId = pedestrian != null ? pedestrian.GetEntityId() : 0;
 
         if (!roomAccessCache.TryGetValue(profileId, out var profileCache))
         {
