@@ -115,9 +115,9 @@ public class AircraftAirportFees : MonoBehaviour
     private void Awake()
     {
         if (economyManager == null)
-            economyManager = FindFirstObjectByType<AirportEconomyManager>();
+            economyManager = FindAnyObjectByType<AirportEconomyManager>();
         if (gameTimeManager == null)
-            gameTimeManager = FindFirstObjectByType<GameTimeManager>();
+            gameTimeManager = FindAnyObjectByType<GameTimeManager>();
 
         aircraftStatus = aircraftStatus != null ? aircraftStatus : GetComponent<AircraftStatus>();
         turnaroundController = turnaroundController != null ? turnaroundController : GetComponent<AircraftTurnaroundController>();
@@ -128,9 +128,9 @@ public class AircraftAirportFees : MonoBehaviour
     private void Update()
     {
         if (economyManager == null)
-            economyManager = FindFirstObjectByType<AirportEconomyManager>();
+            economyManager = FindAnyObjectByType<AirportEconomyManager>();
         if (gameTimeManager == null)
-            gameTimeManager = FindFirstObjectByType<GameTimeManager>();
+            gameTimeManager = FindAnyObjectByType<GameTimeManager>();
         if (economyManager == null || gameTimeManager == null)
             return;
 
@@ -225,7 +225,7 @@ public class AircraftAirportFees : MonoBehaviour
             return true;
 
         if (economyManager == null)
-            economyManager = FindFirstObjectByType<AirportEconomyManager>();
+            economyManager = FindAnyObjectByType<AirportEconomyManager>();
 
         if (economyManager == null)
         {
