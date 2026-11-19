@@ -201,7 +201,7 @@ public class PilotInteractionController : MonoBehaviour
         seatingController = GetComponent<PilotSocialSeatingController>();
         groupController = GetComponent<PilotGroupConversationController>();
         accessProfile = GetComponent<PedestrianAccessProfile>();
-        roomPurposeController = FindFirstObjectByType<RoomPurposeController>();
+        roomPurposeController = FindAnyObjectByType<RoomPurposeController>();
     }
 
     private void OnEnable()
