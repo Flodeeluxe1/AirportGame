@@ -383,8 +383,7 @@ public class FlightSchoolManager : MonoBehaviour
         }
 
         HobbyAircraftParkingSpot[] parkingSpots =
-            FindObjectsByType<HobbyAircraftParkingSpot>(
-                FindObjectsSortMode.None);
+            FindObjectsByType<HobbyAircraftParkingSpot>();
 
         foreach (HobbyAircraftParkingSpot spot in parkingSpots)
         {
