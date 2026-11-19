@@ -14,6 +14,17 @@ public class DoorAccessController : MonoBehaviour
 
     public IReadOnlyList<AccessGroup> AllowedGroups => allowedGroups;
 
+    /// <summary>
+    /// Replaces this door's access rules with the groups restored from an
+    /// airport save. An empty list intentionally makes the door unrestricted.
+    /// </summary>
+    public void RestoreAllowedGroups(IReadOnlyList<AccessGroup> groups)
+    {
+        allowedGroups = groups != null
+            ? new List<AccessGroup>(groups)
+            : new List<AccessGroup>();
+    }
+
     public bool CanPass(PedestrianAccessProfile pedestrian)
     {
         long performanceTimingStart = System.Diagnostics.Stopwatch.GetTimestamp();
