@@ -311,8 +311,7 @@ public class TrafficTestVehicle : MonoBehaviour
     private bool TryFindParkingSpace()
     {
         ParkingSpace[] parkingSpaces =
-            FindObjectsByType<ParkingSpace>(
-                FindObjectsSortMode.None);
+            FindObjectsByType<ParkingSpace>();
 
         if (parkingSpaces.Length == 0)
             return false;
