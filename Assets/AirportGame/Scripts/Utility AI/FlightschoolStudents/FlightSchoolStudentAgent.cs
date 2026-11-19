@@ -328,7 +328,8 @@ public class FlightSchoolStudentAgent : MonoBehaviour
 
             if (queuedNeedProvider != null)
             {
-                if (!queuedNeedProvider.Queue.IsActive(this))
+                if (queuedNeedProvider.Queue == null ||
+                    !queuedNeedProvider.Queue.IsActive(this))
                     return;
 
                 needProvider = queuedNeedProvider;
@@ -371,8 +372,28 @@ public class FlightSchoolStudentAgent : MonoBehaviour
             $"WalkingToCar={walkingToCar}, ReservedSeat={(reservedSeat != null ? reservedSeat.name : "none")}.",
             this);
 
-        if (walkingToNeedInteraction || performingNeedInteraction ||
-            queuedNeedProvider != null || needProvider != null)
+        bool needRouteFailed =
+            walkingToNeedInteraction || queuedNeedProvider != null ||
+            (needProvider != null && !performingNeedInteraction);
+
+        if (needRouteFailed)
+        {
+            CancelNeedInteraction();
+            nextNeedDecisionTime = Time.time + needDecisionInterval;
+
+            // A failed need destination should not send the student home.
+            // Keep the classroom reservation and return to the chair instead.
+            if (reservedSeat != null && movement != null)
+            {
+                atSeat = false;
+                walkingToSeat = true;
+                if (movement.TryMoveTo(reservedSeat))
+                    return;
+
+                walkingToSeat = false;
+            }
+        }
+        else if (performingNeedInteraction)
         {
             CancelNeedInteraction();
             nextNeedDecisionTime = Time.time + needDecisionInterval;
