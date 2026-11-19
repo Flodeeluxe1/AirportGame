@@ -79,7 +79,7 @@ public class SightseeingAircraftSpawner : MonoBehaviour
         PlacedBuilding.BuildingChanged += HandleBuildingChanged;
         RebuildTicketDeskCache();
         if (gameTimeManager == null)
-            gameTimeManager = FindFirstObjectByType<GameTimeManager>();
+            gameTimeManager = FindAnyObjectByType<GameTimeManager>();
         SubscribeToGameTime();
     }
 
@@ -150,7 +150,7 @@ public class SightseeingAircraftSpawner : MonoBehaviour
     private void Start()
     {
         if (gameTimeManager == null)
-            gameTimeManager = FindFirstObjectByType<GameTimeManager>();
+            gameTimeManager = FindAnyObjectByType<GameTimeManager>();
 
         if (sightseeingAircraftPrefab == null ||
             spawnPoint == null ||
