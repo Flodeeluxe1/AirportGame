@@ -1,4 +1,5 @@
 
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -24,6 +25,9 @@ public class SightseeingAircraftSpawner : MonoBehaviour
 
     private const string TicketDeskDefinitionId =
         "airport.sightseeing.ticketdesk";
+
+    public event Action<long> FlightScheduled;
+    public event Action<AircraftFlightIdentity, AircraftSSTurnaroundController> AircraftSpawned;
 
     private static SightseeingAircraftSpawner activeSpawner;
     private static readonly HashSet<PlacedBuilding> ticketDeskBuildings = new HashSet<PlacedBuilding>();
@@ -264,6 +268,7 @@ public class SightseeingAircraftSpawner : MonoBehaviour
         }
 
         flightPending = true;
+        FlightScheduled?.Invoke(currentSlot);
         retryTimer = 0f;
         waitingMessageLogged = false;
 
@@ -468,6 +473,10 @@ public class SightseeingAircraftSpawner : MonoBehaviour
             flightNumber,
             startMinute,
             gameTimeManager.CurrentDay);
+
+        AircraftSpawned?.Invoke(
+            identity,
+            aircraft.GetComponent<AircraftSSTurnaroundController>());
 
         if (logSpawnDetails)
         {
