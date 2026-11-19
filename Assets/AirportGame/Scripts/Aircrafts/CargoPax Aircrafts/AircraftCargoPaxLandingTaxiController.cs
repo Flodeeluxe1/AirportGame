@@ -180,20 +180,20 @@ public class AircraftCargoPaxLandingTaxiController : MonoBehaviour
             flightIdentity = GetComponent<AircraftFlightIdentity>();
 
         if (gridManager == null)
-            gridManager = FindFirstObjectByType<GridManager>();
+            gridManager = FindAnyObjectByType<GridManager>();
 
         if (taxiwayPathfinder == null)
-            taxiwayPathfinder = FindFirstObjectByType<TaxiwayPathfinder>();
+            taxiwayPathfinder = FindAnyObjectByType<TaxiwayPathfinder>();
 
         if (taxiwayNetwork == null && taxiwayPathfinder != null)
             taxiwayNetwork =
                 taxiwayPathfinder.GetComponent<TaxiwayNetwork>();
 
         if (taxiwayNetwork == null)
-            taxiwayNetwork = FindFirstObjectByType<TaxiwayNetwork>();
+            taxiwayNetwork = FindAnyObjectByType<TaxiwayNetwork>();
 
         if (gateRegistry == null)
-            gateRegistry = FindFirstObjectByType<AircraftGateRegistry>();
+            gateRegistry = FindAnyObjectByType<AircraftGateRegistry>();
 
         trafficFollowing = GetComponent<AircraftTaxiTrafficFollowing>();
         aircraftStatus = GetComponent<AircraftStatus>();
