@@ -56,6 +56,7 @@ public class SightseeingAircraftSpawner : MonoBehaviour
 
     [Header("Runtime Status")]
     [SerializeField] private bool flightPending;
+    [SerializeField] private long pendingFlightHourSlot;
     [SerializeField] private long lastObservedHourSlot;
     [SerializeField] private float retryTimer;
     [SerializeField] private string scheduleStatus = "Initializing";
@@ -65,6 +66,7 @@ public class SightseeingAircraftSpawner : MonoBehaviour
 
     public GameObject SightseeingAircraftPrefab => sightseeingAircraftPrefab;
     public bool FlightPending => flightPending;
+    public long PendingFlightHourSlot => pendingFlightHourSlot;
     public bool HourlyScheduleEnabled => hourlyScheduleEnabled;
     public string ScheduleStatus => scheduleStatus;
 
@@ -246,9 +248,11 @@ public class SightseeingAircraftSpawner : MonoBehaviour
         if (currentSlot <= lastObservedHourSlot)
             return;
 
-        // Record the newest slot even if several hours were skipped.
-        // Never queue one flight per missed hour.
+        // Prepare passengers one in-game hour before the next scheduled slot.
+        // Notify even when the current aircraft is still pending: skipped slots
+        // must not leave passengers waiting for a flight that will never spawn.
         lastObservedHourSlot = currentSlot;
+        FlightScheduled?.Invoke(currentSlot + 1L);
 
         if (flightPending)
         {
@@ -268,7 +272,7 @@ public class SightseeingAircraftSpawner : MonoBehaviour
         }
 
         flightPending = true;
-        FlightScheduled?.Invoke(currentSlot);
+        pendingFlightHourSlot = currentSlot;
         retryTimer = 0f;
         waitingMessageLogged = false;
 
@@ -298,6 +302,7 @@ public class SightseeingAircraftSpawner : MonoBehaviour
         {
             case SpawnAttemptResult.Spawned:
                 flightPending = false;
+                pendingFlightHourSlot = 0L;
                 retryTimer = 0f;
                 waitingMessageLogged = false;
                 scheduleStatus = "Flight spawned; waiting for next hour";
@@ -465,14 +470,16 @@ public class SightseeingAircraftSpawner : MonoBehaviour
 
         string flightNumber = GetNextFlightNumber();
 
-        int startMinute =
-            gameTimeManager.Hour * 60 +
-            gameTimeManager.Minute;
+        long scheduledSlot = pendingFlightHourSlot > 0L
+            ? pendingFlightHourSlot
+            : GetCurrentHourSlot();
+        long scheduledDay = scheduledSlot / 24L;
+        int startMinute = (int)(scheduledSlot % 24L) * 60;
 
         identity.InitializeHobbyFlight(
             flightNumber,
             startMinute,
-            gameTimeManager.CurrentDay);
+            scheduledDay);
 
         AircraftSpawned?.Invoke(
             identity,
