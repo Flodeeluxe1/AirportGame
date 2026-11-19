@@ -971,11 +971,14 @@ public class FlightSchoolStudentManager : MonoBehaviour
                 continue;
             }
 
-            float halfPatrolLength = Mathf.Max(
-                0.25f,
-                wallBoard.EdgeLength * gridManager.CellSize * 0.5f - 0.4f);
+            // Patrol across the full wallboard length, one grid unit in
+            // front of the wallboard's own transform.
+            float halfPatrolLength =
+                wallBoard.EdgeLength * gridManager.CellSize * 0.5f;
 
-            Vector3 patrolCenter = boardCenter + inwardDirection * 1.25f;
+            Vector3 patrolCenter =
+                wallBoard.transform.position +
+                wallBoard.transform.forward * gridManager.CellSize;
             Vector3 patrolStart = patrolCenter - boardAxis * halfPatrolLength;
             Vector3 patrolEnd = patrolCenter + boardAxis * halfPatrolLength;
 
