@@ -309,7 +309,7 @@ public class AircraftHobbyVisitController : MonoBehaviour
     private HobbyAircraftParkingSpot FindReservedParkingSpot()
     {
         HobbyAircraftParkingSpot[] spots =
-            FindObjectsByType<HobbyAircraftParkingSpot>(FindObjectsSortMode.None);
+            FindObjectsByType<HobbyAircraftParkingSpot>();
 
         foreach (HobbyAircraftParkingSpot spot in spots)
         {
