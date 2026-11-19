@@ -57,6 +57,14 @@ public class AircraftSSTakeoffController : MonoBehaviour
     [Min(1f)]
     [SerializeField] private float targetAltitudeAboveRunway = 60f;
 
+    [Header("Sightseeing Cruise")]
+    [Min(1)]
+    [SerializeField] private int sightseeingFlightDurationMinutes = 30;
+    [Min(10f)]
+    [SerializeField] private float cruiseOrbitRadius = 80f;
+    [Min(0.1f)]
+    [SerializeField] private float cruiseOrbitDegreesPerGameMinute = 18f;
+
     [Min(0f)]
     [SerializeField] private float runwayClearanceBuffer = 1f;
 
@@ -82,6 +90,13 @@ public class AircraftSSTakeoffController : MonoBehaviour
     private float runwaySurfaceY;
     private float groundLevelY;
     private float rotationTriggerSpeedKnots;
+    private bool sightseeingCruiseActive;
+    private long returnLandingGameSecond;
+    private long lastCruiseGameSecond;
+    private Vector3 cruiseCenter;
+    private float cruiseAngleDegrees;
+    private AircraftSSLandingController landingController;
+    private AircraftSSLandingTaxiController landingTaxiController;
 
     public TakeoffState CurrentState => currentState;
 
@@ -97,12 +112,31 @@ public class AircraftSSTakeoffController : MonoBehaviour
     private void Awake()
     {
         ResolveReferences();
+        landingController = GetComponent<AircraftSSLandingController>();
+        landingTaxiController = GetComponent<AircraftSSLandingTaxiController>();
+    }
+
+    private void OnEnable()
+    {
+        if (gameTimeManager == null)
+            gameTimeManager = FindAnyObjectByType<GameTimeManager>();
+        if (gameTimeManager != null)
+            gameTimeManager.GameTimeAdvanced += HandleGameTimeAdvanced;
+    }
+
+    private void OnDisable()
+    {
+        if (gameTimeManager != null)
+            gameTimeManager.GameTimeAdvanced -= HandleGameTimeAdvanced;
     }
 
     private void Update()
     {
         if (currentState == TakeoffState.Completed)
+        {
+            UpdateSightseeingCruise();
             return;
+        }
 
         ResolveReferences();
 
@@ -494,10 +528,93 @@ public class AircraftSSTakeoffController : MonoBehaviour
         PaySightseeingCommissionOnce();
         ReleaseRunwayReservations();
 
-        debugStatus = "Takeoff complete. Aircraft despawning.";
+        debugStatus = "Takeoff complete. Beginning sightseeing cruise.";
 
-        
-        Destroy(gameObject);
+        BeginSightseeingCruise();
+    }
+
+    private void BeginSightseeingCruise()
+    {
+        if (gameTimeManager == null)
+            gameTimeManager = FindAnyObjectByType<GameTimeManager>();
+
+        if (gameTimeManager == null || landingController == null ||
+            landingTaxiController == null)
+        {
+            Debug.LogError(
+                $"{name}: Cannot start the return flight because GameTimeManager " +
+                "or a sightseeing landing controller is missing. Aircraft remains parked in flight state.",
+                this);
+            return;
+        }
+
+        long now = GetAbsoluteGameSecond();
+        returnLandingGameSecond = now + Mathf.Max(1, sightseeingFlightDurationMinutes) * 60L;
+        lastCruiseGameSecond = now;
+        cruiseCenter = transform.position;
+        cruiseAngleDegrees = Mathf.Atan2(takeoffDirection.z, takeoffDirection.x) * Mathf.Rad2Deg;
+        sightseeingCruiseActive = true;
+        debugStatus = $"Sightseeing cruise. Return in {sightseeingFlightDurationMinutes} in-game minutes.";
+    }
+
+    private void UpdateSightseeingCruise()
+    {
+        if (!sightseeingCruiseActive || gameTimeManager == null)
+            return;
+
+        long now = GetAbsoluteGameSecond();
+        long elapsed = Mathf.Max(0L, now - lastCruiseGameSecond);
+        if (elapsed > 0)
+        {
+            cruiseAngleDegrees += elapsed / 60f * cruiseOrbitDegreesPerGameMinute;
+            lastCruiseGameSecond = now;
+        }
+
+        float angle = cruiseAngleDegrees * Mathf.Deg2Rad;
+        Vector3 orbitPosition = cruiseCenter + new Vector3(
+            Mathf.Cos(angle) * cruiseOrbitRadius,
+            0f,
+            Mathf.Sin(angle) * cruiseOrbitRadius);
+        orbitPosition.y = cruiseCenter.y;
+        transform.position = orbitPosition;
+
+        Vector3 tangent = new Vector3(-Mathf.Sin(angle), 0f, Mathf.Cos(angle));
+        if (tangent.sqrMagnitude > 0.001f)
+        {
+            Quaternion target = Quaternion.LookRotation(tangent, Vector3.up) *
+                                Quaternion.Euler(modelRotationOffset);
+            transform.rotation = Quaternion.Slerp(
+                transform.rotation, target, rotationRateDegreesPerSecond * Time.deltaTime);
+        }
+    }
+
+    private void HandleGameTimeAdvanced(long previousSecond, long currentSecond)
+    {
+        if (!sightseeingCruiseActive || currentSecond < returnLandingGameSecond)
+            return;
+
+        sightseeingCruiseActive = false;
+        if (landingTaxiController != null)
+            landingTaxiController.ResetForReturnLanding();
+
+        if (landingController == null || !landingController.BeginReturnLanding())
+        {
+            Debug.LogError(
+                $"{name}: Could not initialize the return landing. The aircraft will remain in the cruise state.",
+                this);
+            sightseeingCruiseActive = true;
+            returnLandingGameSecond = currentSecond + 60L;
+        }
+        else
+        {
+            debugStatus = "Return flight complete. Beginning approach to the airport.";
+        }
+    }
+
+    private long GetAbsoluteGameSecond()
+    {
+        return (gameTimeManager.CurrentDay - 1) * 86400L +
+               gameTimeManager.GetGameTimeSeconds();
     }
 
     private void PaySightseeingCommissionOnce()
