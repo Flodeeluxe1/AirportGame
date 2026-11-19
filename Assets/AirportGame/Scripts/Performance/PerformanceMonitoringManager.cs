@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Text;
 using UnityEngine;
 using UnityEngine.Profiling;
 using UnityEngine.InputSystem;
@@ -42,6 +44,15 @@ public class PerformanceMonitoringManager : MonoBehaviour
     private float worstFrameTimeMs;
     private string cachedOverlayText;
     private bool isVisible;
+
+    private struct TrackedMethodTiming
+    {
+        public double TotalMilliseconds;
+        public int Calls;
+    }
+
+    private static readonly Dictionary<string, TrackedMethodTiming> TrackedTimings =
+        new Dictionary<string, TrackedMethodTiming>(8);
 
     private void Awake()
     {
@@ -112,6 +123,57 @@ public class PerformanceMonitoringManager : MonoBehaviour
         minimumFrameTime = float.MaxValue;
         maximumFrameTime = 0f;
         spikeCount = 0;
+    }
+
+
+    /// <summary>Records elapsed time for selected methods; reports only on frame spikes.</summary>
+    public static void RecordTrackedMethod(string methodName, long startTimestamp)
+    {
+        double elapsedMilliseconds =
+            (System.Diagnostics.Stopwatch.GetTimestamp() - startTimestamp) *
+            1000.0 / System.Diagnostics.Stopwatch.Frequency;
+
+        TrackedTimings.TryGetValue(methodName, out TrackedMethodTiming timing);
+        timing.TotalMilliseconds += elapsedMilliseconds;
+        timing.Calls++;
+        TrackedTimings[methodName] = timing;
+    }
+
+    private void LateUpdate()
+    {
+        float frameMilliseconds = Time.unscaledDeltaTime * 1000f;
+        if (frameMilliseconds >= frameSpikeThresholdMs)
+            LogSpikeTimings(frameMilliseconds);
+
+        TrackedTimings.Clear();
+    }
+
+    private static void LogSpikeTimings(float frameMilliseconds)
+    {
+        if (TrackedTimings.Count == 0)
+        {
+            Debug.LogWarning(
+                $"Performance spike: {frameMilliseconds:0.0} ms. " +
+                "No instrumented methods ran during this frame.");
+            return;
+        }
+
+        List<KeyValuePair<string, TrackedMethodTiming>> timings =
+            new List<KeyValuePair<string, TrackedMethodTiming>>(TrackedTimings);
+        timings.Sort((a, b) => b.Value.TotalMilliseconds.CompareTo(a.Value.TotalMilliseconds));
+
+        StringBuilder report = new StringBuilder(256);
+        report.AppendLine($"Performance spike: {frameMilliseconds:0.0} ms. Slowest instrumented methods (inclusive timings):");
+        int count = Mathf.Min(8, timings.Count);
+        for (int i = 0; i < count; i++)
+        {
+            TrackedMethodTiming timing = timings[i].Value;
+            report.AppendLine(
+                $"{i + 1}. {timings[i].Key}: {timing.TotalMilliseconds:0.00} ms total " +
+                $"({timing.Calls} call(s), {timing.TotalMilliseconds / timing.Calls:0.00} ms avg)");
+        }
+
+        Debug.LogWarning(report.ToString());
     }
 
     private void UpdateMemoryStats()
