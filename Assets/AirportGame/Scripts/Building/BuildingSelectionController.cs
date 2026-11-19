@@ -399,7 +399,7 @@ public class BuildingSelectionController : MonoBehaviour
         HashSet<Vector2Int> newTaxiwaySelection = new HashSet<Vector2Int>();
 
         PlacedBuilding[] buildings =
-            FindObjectsByType<PlacedBuilding>(FindObjectsSortMode.None);
+            FindObjectsByType<PlacedBuilding>();
 
         foreach (PlacedBuilding building in buildings)
         {
