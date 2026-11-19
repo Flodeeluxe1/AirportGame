@@ -32,7 +32,7 @@ public class AirportVisitorExperience : MonoBehaviour
     {
         needs = GetComponent<UtilityNeeds>();
         environmentMonitor = GetComponent<EnvironmentScoreMonitor>();
-        gameTimeManager = FindFirstObjectByType<GameTimeManager>();
+        gameTimeManager = FindAnyObjectByType<GameTimeManager>();
     }
 
     private void OnEnable()
@@ -42,7 +42,7 @@ public class AirportVisitorExperience : MonoBehaviour
         if (environmentMonitor == null)
             environmentMonitor = GetComponent<EnvironmentScoreMonitor>();
         if (gameTimeManager == null)
-            gameTimeManager = FindFirstObjectByType<GameTimeManager>();
+            gameTimeManager = FindAnyObjectByType<GameTimeManager>();
 
         if (needs == null || environmentMonitor == null || gameTimeManager == null)
         {
