@@ -120,6 +120,10 @@ public class AircraftSSLandingController : MonoBehaviour
         if (trafficManager != null)
             trafficManager.UnregisterLandingTraffic(this);
 
+        AircraftStatus aircraftStatus = GetComponent<AircraftStatus>();
+        if (aircraftStatus != null)
+            aircraftStatus.ResetForReturnFlight();
+
         selectedRunway = null;
         runwayDirection = Vector3.zero;
         touchdownPoint = Vector3.zero;
