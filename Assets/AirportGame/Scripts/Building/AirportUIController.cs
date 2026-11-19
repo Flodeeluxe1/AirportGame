@@ -126,7 +126,7 @@ public class AirportUIController : MonoBehaviour
         if (buildingSelectionController == null)
         {
             buildingSelectionController =
-                FindFirstObjectByType<BuildingSelectionController>();
+                FindAnyObjectByType<BuildingSelectionController>();
         }
 
         categoryButtons[BuildCategory.Floor] =
@@ -587,7 +587,7 @@ public class AirportUIController : MonoBehaviour
         if (buildingSelectionController == null)
         {
             buildingSelectionController =
-                FindFirstObjectByType<BuildingSelectionController>();
+                FindAnyObjectByType<BuildingSelectionController>();
         }
 
         if (buildingSelectionController == null)
