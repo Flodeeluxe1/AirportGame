@@ -350,8 +350,7 @@ public class FlightSchoolAssessmentController : MonoBehaviour
 
         PlacedBuilding[] placedBuildings =
             FindObjectsByType<PlacedBuilding>(
-                FindObjectsInactive.Exclude,
-                FindObjectsSortMode.None);
+                FindObjectsInactive.Exclude);
 
         foreach (PlacedBuilding building in placedBuildings)
         {
@@ -497,8 +496,7 @@ public class FlightSchoolAssessmentController : MonoBehaviour
         available = 0;
 
         HobbyAircraftParkingSpot[] spots =
-            FindObjectsByType<HobbyAircraftParkingSpot>(
-                FindObjectsSortMode.None);
+            FindObjectsByType<HobbyAircraftParkingSpot>();
 
         foreach (HobbyAircraftParkingSpot spot in spots)
         {
