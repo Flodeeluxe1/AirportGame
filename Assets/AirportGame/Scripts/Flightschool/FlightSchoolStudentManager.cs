@@ -473,6 +473,12 @@ public class FlightSchoolStudentManager : MonoBehaviour
             spawnPosition,
             vehicle.transform.rotation);
 
+        // Match the hobby-pilot visit lifecycle: prefab values are defaults,
+        // but every newly spawned student starts with independently randomized needs.
+        UtilityNeeds studentNeeds = studentObject.GetComponent<UtilityNeeds>();
+        if (studentNeeds != null)
+            studentNeeds.ResetForNewVisit();
+
         Collider studentCollider = studentObject.GetComponent<Collider>();
         if (studentCollider == null)
             studentCollider = studentObject.GetComponentInChildren<Collider>();
