@@ -239,6 +239,7 @@ public class FlightSchoolStudentManager : MonoBehaviour
             if (dailyDemand <= 0)
             {
                 debugStatus = $"No usable chair interaction points found at {anchor}.";
+                TryDespawnInstructorIfFinished(anchor);
                 continue;
             }
 
@@ -924,7 +925,7 @@ public class FlightSchoolStudentManager : MonoBehaviour
 
     private void UpdateInstructorSpawns(int currentSeconds, int openingSeconds)
     {
-        if (instructorPrefab == null ||
+        if (instructorPrefab == null || studentPrefab == null || studentCarPrefab == null ||
             currentSeconds < openingSeconds - instructorSpawnLeadMinutes * 60 ||
             currentSeconds >= openingSeconds ||
             Time.unscaledTime < nextInstructorSpawnCheckTime)
@@ -1205,5 +1206,13 @@ public class FlightSchoolStudentManager : MonoBehaviour
             if (record.student != null)
                 RemoveStudentSubscriptions(record.student);
         }
+
+        foreach (FlightSchoolInstructorController instructor in instructors.Values)
+        {
+            if (instructor != null)
+                Destroy(instructor.gameObject);
+        }
+
+        instructors.Clear();
     }
 }
