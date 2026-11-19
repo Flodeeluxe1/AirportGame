@@ -168,7 +168,7 @@ public class AircraftSSTurnaroundController : MonoBehaviour
         {
             Debug.Log(
                 $"SIGHTSEEING BOARDING STARTED | {name} | " +
-                $"Expected passengers: {(passengerManifestConfigured ? expectedPassengers : "demand-based")}.",
+                $"Expected passengers: {(passengerManifestConfigured ? expectedPassengers.ToString() : "demand-based")}.",
                 this);
         }
     }
