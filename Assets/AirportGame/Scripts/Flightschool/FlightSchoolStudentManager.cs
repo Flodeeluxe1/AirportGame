@@ -31,6 +31,7 @@ public class FlightSchoolStudentManager : MonoBehaviour
     [SerializeField] private RoomPurposeController roomPurposeController;
     [SerializeField] private GameTimeManager gameTimeManager;
     [SerializeField] private PedestrianPathfinder pedestrianPathfinder;
+    [SerializeField] private GridManager gridManager;
 
     [Header("Operating Hours")]
     [SerializeField, Range(0, 23)] private int openingHour = 8;
@@ -152,6 +153,9 @@ public class FlightSchoolStudentManager : MonoBehaviour
 
         if (pedestrianPathfinder == null)
             pedestrianPathfinder = FindAnyObjectByType<PedestrianPathfinder>();
+
+        if (gridManager == null)
+            gridManager = FindAnyObjectByType<GridManager>();
     }
 
     private void SubscribeToGameTime()
@@ -531,12 +535,6 @@ public class FlightSchoolStudentManager : MonoBehaviour
         student.PathFailed += HandleStudentPathFailed;
         record.student = student;
 
-        if (instructors.TryGetValue(record.roomAnchor, out FlightSchoolInstructorController instructor) &&
-            instructor != null)
-        {
-            instructor.NotifyStudentArrived(student);
-        }
-
         Debug.Log(
             $"FlightSchoolStudentManager: Spawned {studentObject.name} for {vehicle.name}; " +
             $"trying to reserve one of {GetSeatCount(record.roomAnchor)} classroom seats.",
@@ -596,6 +594,12 @@ public class FlightSchoolStudentManager : MonoBehaviour
 
         if (record == null)
             return;
+
+        if (instructors.TryGetValue(record.roomAnchor, out FlightSchoolInstructorController instructor) &&
+            instructor != null)
+        {
+            instructor.NotifyStudentArrived(student);
+        }
 
         if (record.returningFromLesson)
         {
@@ -931,7 +935,6 @@ public class FlightSchoolStudentManager : MonoBehaviour
         nextInstructorSpawnCheckTime =
             Time.unscaledTime + Mathf.Max(0.25f, instructorSpawnCheckInterval);
 
-        GridManager gridManager = FindAnyObjectByType<GridManager>();
         if (gridManager == null || pedestrianPathfinder == null)
             return;
 
