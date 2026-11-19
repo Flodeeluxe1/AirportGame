@@ -37,7 +37,7 @@ public sealed class PipelinePlacementHandler : IPlacementHandler
         EdgeOccupancy edgeOccupancy)
     {
         this.gridManager = gridManager;
-        pipelineManager = Object.FindFirstObjectByType<PipelinePrefabRuleManager>();
+        pipelineManager = Object.FindAnyObjectByType<PipelinePrefabRuleManager>();
 
         if (this.gridManager == null)
             Debug.LogError("PipelinePlacementHandler: GridManager was not found.");
