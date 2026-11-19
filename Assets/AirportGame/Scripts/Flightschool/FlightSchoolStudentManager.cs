@@ -76,6 +76,7 @@ public class FlightSchoolStudentManager : MonoBehaviour
 
     private long nextRoomCheckGameSecond;
     private bool subscribedToLessons;
+    private bool subscribedToGameTime;
 
     private void Awake()
     {
@@ -86,6 +87,7 @@ public class FlightSchoolStudentManager : MonoBehaviour
     {
         ResolveReferences();
         SubscribeToLessons();
+        SubscribeToGameTime();
 
         if (flightSchoolManager == null ||
             roomPurposeController == null ||
@@ -103,12 +105,9 @@ public class FlightSchoolStudentManager : MonoBehaviour
         if (currentSeconds >= closingSeconds)
         {
             HandleSchoolClosing();
-            UpdateStudentDepartureTimers();
             debugStatus = "Flight School is closed. Remaining active lessons are being completed.";
             return;
         }
-
-        UpdateStudentDepartureTimers();
 
         if (currentSeconds < openingSeconds)
             return;
@@ -140,6 +139,20 @@ public class FlightSchoolStudentManager : MonoBehaviour
 
         if (pedestrianPathfinder == null)
             pedestrianPathfinder = FindAnyObjectByType<PedestrianPathfinder>();
+    }
+
+    private void SubscribeToGameTime()
+    {
+        if (subscribedToGameTime || gameTimeManager == null)
+            return;
+
+        gameTimeManager.GameTimeAdvanced += HandleGameTimeAdvanced;
+        subscribedToGameTime = true;
+    }
+
+    private void HandleGameTimeAdvanced(long previousSecond, long currentSecond)
+    {
+        UpdateStudentDepartureTimers(currentSecond);
     }
 
     private void SubscribeToLessons()
@@ -774,9 +787,8 @@ public class FlightSchoolStudentManager : MonoBehaviour
         }
     }
 
-    private void UpdateStudentDepartureTimers()
+    private void UpdateStudentDepartureTimers(long currentGameSeconds)
     {
-        long currentGameSeconds = GetAbsoluteGameTimeSeconds();
 
         for (int i = 0; i < students.Count; i++)
         {
@@ -909,6 +921,10 @@ public class FlightSchoolStudentManager : MonoBehaviour
 
     private void OnDestroy()
     {
+        if (subscribedToGameTime && gameTimeManager != null)
+            gameTimeManager.GameTimeAdvanced -= HandleGameTimeAdvanced;
+        subscribedToGameTime = false;
+
         if (subscribedToLessons && flightSchoolManager != null)
         {
             flightSchoolManager.LessonReady -= HandleLessonReady;
