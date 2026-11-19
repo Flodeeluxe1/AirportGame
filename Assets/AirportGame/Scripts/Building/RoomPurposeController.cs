@@ -107,6 +107,9 @@ public class RoomPurposeController : MonoBehaviour
 
     public bool IsPositionInPilotsLounge(Vector3 worldPosition)
     {
+        long performanceTimingStart = System.Diagnostics.Stopwatch.GetTimestamp();
+        try
+        {
         ResolveReferences();
 
         if (gridManager == null || roomDetection == null)
@@ -121,10 +124,19 @@ public class RoomPurposeController : MonoBehaviour
 
         return roomPurposeByCell.TryGetValue(cell, out RoomPurpose purpose) &&
                purpose == RoomPurpose.PilotsLounge;
-    }
+    
+        }
+        finally
+        {
+            PerformanceMonitoringManager.RecordTrackedMethod("IsPositionInPilotsLounge", performanceTimingStart);
+        }
+}
 
     private void RebuildRoomEnvironmentCache()
     {
+        long performanceTimingStart = System.Diagnostics.Stopwatch.GetTimestamp();
+        try
+        {
         roomPurposeByCell.Clear();
 
         if (roomDetection != null)
@@ -143,7 +155,13 @@ public class RoomPurposeController : MonoBehaviour
         }
 
         roomEnvironmentCacheDirty = false;
-    }
+    
+        }
+        finally
+        {
+            PerformanceMonitoringManager.RecordTrackedMethod("RebuildRoomEnvironmentCache", performanceTimingStart);
+        }
+}
 
     private void Update()
     {
