@@ -135,6 +135,25 @@ public class AircraftSSLandingTaxiController : MonoBehaviour
     // Becomes true only after the aircraft finishes its parking turn.
     public bool HasArrivedAtParking => phase == TaxiPhase.Parked;
 
+    public void ResetForReturnLanding()
+    {
+        routeAttempted = false;
+        currentRouteIndex = 0;
+        route.Clear();
+        taxiMovementPath.Clear();
+        selectedRunway = null;
+        landingDirection = Vector3.zero;
+        runwayExitPoint = Vector3.zero;
+        taxiwayJoinPoint = Vector3.zero;
+        phase = TaxiPhase.WaitingForLanding;
+        hasPublishedParkedStatus = false;
+        lastPublishedTaxiRoute = null;
+
+        AircraftStatus status = GetComponent<AircraftStatus>();
+        if (status != null)
+            status.SetParked(false);
+    }
+
     private void Awake()
     {
         if (landingController == null)
