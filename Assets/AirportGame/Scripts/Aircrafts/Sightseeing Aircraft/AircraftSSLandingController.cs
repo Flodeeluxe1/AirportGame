@@ -110,10 +110,10 @@ public class AircraftSSLandingController : MonoBehaviour
     private void Start()
     {
         if (gridManager == null)
-            gridManager = FindFirstObjectByType<GridManager>();
+            gridManager = FindAnyObjectByType<GridManager>();
 
         if (weather == null)
-            weather = FindFirstObjectByType<Weather>();
+            weather = FindAnyObjectByType<Weather>();
 
         if (gridManager == null || weather == null)
         {
@@ -184,7 +184,7 @@ public class AircraftSSLandingController : MonoBehaviour
         }
 
         if (trafficManager == null)
-            trafficManager = FindFirstObjectByType<AircraftRunwayTrafficManager>();
+            trafficManager = FindAnyObjectByType<AircraftRunwayTrafficManager>();
 
         if (trafficManager != null)
         {
@@ -211,7 +211,7 @@ public class AircraftSSLandingController : MonoBehaviour
             return false;
 
         trafficManager =
-            FindFirstObjectByType<AircraftRunwayTrafficManager>();
+            FindAnyObjectByType<AircraftRunwayTrafficManager>();
 
         Vector3 windFrom = weather.WindFromDirection;
         windFrom.y = 0f;
