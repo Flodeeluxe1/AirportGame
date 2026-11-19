@@ -757,8 +757,7 @@ public class RoomPurposeController : MonoBehaviour
 
         PlacedBuilding[] placedBuildings =
             FindObjectsByType<PlacedBuilding>(
-                FindObjectsInactive.Exclude,
-                FindObjectsSortMode.None);
+                FindObjectsInactive.Exclude);
 
         foreach (PlacedBuilding placed in placedBuildings)
         {
@@ -828,8 +827,7 @@ public class RoomPurposeController : MonoBehaviour
 
         PlacedBuilding[] placedBuildings =
             FindObjectsByType<PlacedBuilding>(
-                FindObjectsInactive.Exclude,
-                FindObjectsSortMode.None);
+                FindObjectsInactive.Exclude);
 
         foreach (PlacedBuilding placed in placedBuildings)
         {
@@ -1009,8 +1007,7 @@ public class RoomPurposeController : MonoBehaviour
 
         PlacedBuilding[] placedBuildings =
             FindObjectsByType<PlacedBuilding>(
-                FindObjectsInactive.Exclude,
-                FindObjectsSortMode.None);
+                FindObjectsInactive.Exclude);
 
         foreach (PlacedBuilding placed in placedBuildings)
         {
