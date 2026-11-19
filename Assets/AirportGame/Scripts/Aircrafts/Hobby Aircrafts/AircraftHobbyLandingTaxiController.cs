@@ -141,13 +141,13 @@ public class AircraftHobbyLandingTaxiController : MonoBehaviour
         }
 
         if (gridManager == null)
-            gridManager = FindFirstObjectByType<GridManager>();
+            gridManager = FindAnyObjectByType<GridManager>();
 
         if (taxiwayNetwork == null)
-            taxiwayNetwork = FindFirstObjectByType<TaxiwayNetwork>();
+            taxiwayNetwork = FindAnyObjectByType<TaxiwayNetwork>();
 
         if (taxiwayPathfinder == null)
-            taxiwayPathfinder = FindFirstObjectByType<TaxiwayPathfinder>();
+            taxiwayPathfinder = FindAnyObjectByType<TaxiwayPathfinder>();
     }
 
     private void Update()
