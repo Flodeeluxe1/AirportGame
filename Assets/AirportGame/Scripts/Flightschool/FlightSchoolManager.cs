@@ -140,19 +140,19 @@ public class FlightSchoolManager : MonoBehaviour
     {
         if (roomPurposeController == null)
             roomPurposeController =
-                FindFirstObjectByType<RoomPurposeController>();
+                FindAnyObjectByType<RoomPurposeController>();
 
         if (economyManager == null)
             economyManager =
-                FindFirstObjectByType<AirportEconomyManager>();
+                FindAnyObjectByType<AirportEconomyManager>();
 
         if (assessmentController == null)
             assessmentController =
-                FindFirstObjectByType<FlightSchoolAssessmentController>();
+                FindAnyObjectByType<FlightSchoolAssessmentController>();
 
         if (gameTimeManager == null)
             gameTimeManager =
-                FindFirstObjectByType<GameTimeManager>();
+                FindAnyObjectByType<GameTimeManager>();
     }
 
     private long GetAbsoluteGameTimeSeconds()
@@ -622,7 +622,7 @@ public class FlightSchoolManager : MonoBehaviour
         {
             if (economyManager == null)
                 economyManager =
-                    FindFirstObjectByType<AirportEconomyManager>();
+                    FindAnyObjectByType<AirportEconomyManager>();
 
             if (economyManager == null)
             {
