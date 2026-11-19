@@ -264,7 +264,7 @@ public class AircraftCargoPaxDepartureTaxiController : MonoBehaviour
         }
 
         AircraftRunway[] runways =
-            FindObjectsByType<AircraftRunway>(FindObjectsSortMode.None);
+            FindObjectsByType<AircraftRunway>();
 
         if (runways.Length == 0)
         {
