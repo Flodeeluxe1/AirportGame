@@ -136,7 +136,7 @@ public class AirportFuelTruckController : MonoBehaviour
             groundVehicleMovement = GetComponent<AirportGroundVehicleMovement>();
 
         if (gameTimeManager == null)
-            gameTimeManager = FindFirstObjectByType<GameTimeManager>();
+            gameTimeManager = FindAnyObjectByType<GameTimeManager>();
 
         truckFuelCapacityLitres = Mathf.Max(1f, truckFuelCapacityLitres);
         currentTruckFuelLitres = Mathf.Clamp(
@@ -258,7 +258,7 @@ public class AirportFuelTruckController : MonoBehaviour
         }
 
         AircraftGateRegistry gateRegistry =
-            FindFirstObjectByType<AircraftGateRegistry>();
+            FindAnyObjectByType<AircraftGateRegistry>();
 
         if (gateRegistry == null ||
             !gateRegistry.TryGetGate(
@@ -511,7 +511,7 @@ public class AirportFuelTruckController : MonoBehaviour
             return;
 
         AircraftFuelStation fuelStation =
-            FindFirstObjectByType<AircraftFuelStation>();
+            FindAnyObjectByType<AircraftFuelStation>();
 
         if (fuelStation == null)
         {
@@ -656,7 +656,7 @@ public class AirportFuelTruckController : MonoBehaviour
 
         if (pipelineNetworkManager == null)
             pipelineNetworkManager =
-                FindFirstObjectByType<PipelineNetworkManager>();
+                FindAnyObjectByType<PipelineNetworkManager>();
 
         if (refillFuelConnector == null)
         {
