@@ -49,6 +49,14 @@ public class RoomPurposeController : MonoBehaviour
 
     private bool roomEnvironmentCacheDirty = true;
 
+    // Room-level access results are shared by every decision made by the
+    // same pedestrian profile, avoiding repeated boundary/door checks.
+    private readonly Dictionary<Vector2Int, RoomDetectionController.DetectedRoom> roomByCell =
+        new Dictionary<Vector2Int, RoomDetectionController.DetectedRoom>();
+    private readonly Dictionary<int, Dictionary<Vector2Int, bool>> roomAccessCache =
+        new Dictionary<int, Dictionary<Vector2Int, bool>>();
+    private bool roomAccessLookupDirty = true;
+
     private Vector2Int previousClickCell;
     private float previousClickTime = -10f;
 
@@ -65,18 +73,155 @@ public class RoomPurposeController : MonoBehaviour
 
         if (roomDetection != null)
             roomDetection.RoomsChanged += HandleRoomLayoutChanged;
+
+        DoorAccessController.AccessRulesChanged += HandleDoorAccessRulesChanged;
     }
 
     private void OnDisable()
     {
         if (roomDetection != null)
             roomDetection.RoomsChanged -= HandleRoomLayoutChanged;
+
+        DoorAccessController.AccessRulesChanged -= HandleDoorAccessRulesChanged;
     }
 
     private void HandleRoomLayoutChanged()
     {
         roomEnvironmentCacheDirty = true;
+        roomAccessLookupDirty = true;
+        roomAccessCache.Clear();
         EnvironmentScoreCalculator.NotifyRoomEnvironmentChanged();
+    }
+
+    private void HandleDoorAccessRulesChanged()
+    {
+        roomAccessCache.Clear();
+    }
+
+    /// <summary>
+    /// Returns whether a pedestrian may enter the enclosed room containing
+    /// this position. A room with multiple doors is accessible when at least
+    /// one door permits passage. Rooms without doors remain accessible.
+    /// </summary>
+    public bool IsPositionAccessibleToPedestrian(
+        Vector3 worldPosition,
+        PedestrianAccessProfile pedestrian)
+    {
+        ResolveReferences();
+        if (gridManager == null)
+            return true;
+
+        return IsCellAccessibleToPedestrian(
+            gridManager.WorldToGrid(worldPosition), pedestrian);
+    }
+
+    public bool IsCellAccessibleToPedestrian(
+        Vector2Int cell,
+        PedestrianAccessProfile pedestrian)
+    {
+        ResolveReferences();
+        if (roomDetection == null)
+            return true;
+
+        roomDetection.RefreshRooms();
+        RebuildRoomAccessLookupIfNeeded();
+
+        if (!roomByCell.TryGetValue(cell, out var room) || room == null)
+            return true;
+
+        Vector2Int anchor = GetAnchor(room);
+        int profileId = pedestrian != null ? pedestrian.GetInstanceID() : 0;
+
+        if (!roomAccessCache.TryGetValue(profileId, out var profileCache))
+        {
+            profileCache = new Dictionary<Vector2Int, bool>();
+            roomAccessCache.Add(profileId, profileCache);
+        }
+
+        if (profileCache.TryGetValue(anchor, out bool cachedAccess))
+            return cachedAccess;
+
+        bool canAccess = CanAccessRoomThroughAnyDoor(room, pedestrian);
+        profileCache[anchor] = canAccess;
+        return canAccess;
+    }
+
+    private void RebuildRoomAccessLookupIfNeeded()
+    {
+        if (!roomAccessLookupDirty)
+            return;
+
+        roomByCell.Clear();
+        if (roomDetection != null)
+        {
+            foreach (RoomDetectionController.DetectedRoom room in roomDetection.Rooms)
+            {
+                if (room == null || room.cells == null)
+                    continue;
+
+                foreach (Vector2Int cell in room.cells)
+                    roomByCell[cell] = room;
+            }
+        }
+
+        roomAccessLookupDirty = false;
+        roomAccessCache.Clear();
+    }
+
+    private bool CanAccessRoomThroughAnyDoor(
+        RoomDetectionController.DetectedRoom room,
+        PedestrianAccessProfile pedestrian)
+    {
+        bool foundDoor = false;
+
+        foreach (Vector2Int cell in room.cells)
+        {
+            if (CanPassThroughDoorAtEdge(
+                    new GridEdge(cell, EdgeDirection.Horizontal), pedestrian,
+                    ref foundDoor) ||
+                CanPassThroughDoorAtEdge(
+                    new GridEdge(cell + Vector2Int.up, EdgeDirection.Horizontal), pedestrian,
+                    ref foundDoor) ||
+                CanPassThroughDoorAtEdge(
+                    new GridEdge(cell, EdgeDirection.Vertical), pedestrian,
+                    ref foundDoor) ||
+                CanPassThroughDoorAtEdge(
+                    new GridEdge(cell + Vector2Int.right, EdgeDirection.Vertical), pedestrian,
+                    ref foundDoor))
+            {
+                return true;
+            }
+        }
+
+        // No door means this room has no additional door-based restriction.
+        return !foundDoor;
+    }
+
+    private bool CanPassThroughDoorAtEdge(
+        GridEdge edge,
+        PedestrianAccessProfile pedestrian,
+        ref bool foundDoor)
+    {
+        if (edgeOccupancy == null ||
+            !edgeOccupancy.TryGetOccupant(edge, out GameObject boundaryObject) ||
+            boundaryObject == null)
+        {
+            return false;
+        }
+
+        PlacedBuilding placed = boundaryObject.GetComponent<PlacedBuilding>();
+        if (placed == null || placed.Definition == null ||
+            placed.Definition.category != BuildCategory.Door)
+        {
+            return false;
+        }
+
+        foundDoor = true;
+        DoorAccessController access =
+            boundaryObject.GetComponent<DoorAccessController>();
+
+        // Legacy doors without an access controller remain unrestricted.
+        return access == null || access.CanPass(pedestrian);
     }
 
     public float ApplyRoomEnvironmentEffect(Vector3 worldPosition, float score)
