@@ -58,6 +58,29 @@ public class PedestrianMovementController : MonoBehaviour
     [SerializeField] private int waypointCount;
 
     private readonly List<Vector3> movementPath = new List<Vector3>();
+
+    private struct TravelEstimateCacheEntry
+    {
+        public float CachedAt;
+        public Vector3 StartPosition;
+        public Vector3 TargetPosition;
+        public float TravelTime;
+    }
+
+    // These caches are per pedestrian because route reachability depends on
+    // this pedestrian's position and access profile. All AI systems using
+    // this controller share the same recent estimates.
+    private readonly Dictionary<InteractionProvider, TravelEstimateCacheEntry>
+        providerTravelEstimateCache =
+            new Dictionary<InteractionProvider, TravelEstimateCacheEntry>();
+
+    private readonly Dictionary<Vector3Int, TravelEstimateCacheEntry>
+        destinationTravelEstimateCache =
+            new Dictionary<Vector3Int, TravelEstimateCacheEntry>();
+
+    private const float TravelEstimateCacheLifetime = 1.5f;
+    private const float TravelEstimateStartMovementThreshold = 0.75f;
+    private const float TravelEstimateTargetMovementThreshold = 0.25f;
     private Vector3 destination;
     private float movementHeight;
     private float individualSpeedMultiplier = 1f;
@@ -226,10 +249,32 @@ public class PedestrianMovementController : MonoBehaviour
         Vector3 target = worldDestination;
         target.y = start.y;
 
+        Vector3Int cacheKey = new Vector3Int(
+            Mathf.RoundToInt(target.x * 2f),
+            0,
+            Mathf.RoundToInt(target.z * 2f));
+
+        if (TryGetCachedTravelEstimate(
+                destinationTravelEstimateCache,
+                cacheKey,
+                target,
+                out float cachedTravelTime))
+        {
+            return cachedTravelTime;
+        }
+
         List<Vector3> estimatedPath =
             pathfinder.FindWorldPath(start, target, AccessProfile);
 
-        return EstimateTravelTime(start, target, estimatedPath);
+        float travelTime = EstimateTravelTime(start, target, estimatedPath);
+        StoreTravelEstimate(
+            destinationTravelEstimateCache,
+            cacheKey,
+            start,
+            target,
+            travelTime);
+
+        return travelTime;
     
         }
         finally
@@ -256,6 +301,16 @@ public class PedestrianMovementController : MonoBehaviour
         if (pathfinder == null)
             return float.PositiveInfinity;
 
+        Vector3 providerTarget = provider.InteractionPosition;
+        if (TryGetCachedTravelEstimate(
+                providerTravelEstimateCache,
+                provider,
+                providerTarget,
+                out float cachedTravelTime))
+        {
+            return cachedTravelTime;
+        }
+
         Vector3 selectedDestination;
         List<Vector3> estimatedPath;
 
@@ -270,19 +325,88 @@ public class PedestrianMovementController : MonoBehaviour
             AccessProfile);
 
         if (!foundPath)
+        {
+            StoreTravelEstimate(
+                providerTravelEstimateCache,
+                provider,
+                transform.position,
+                providerTarget,
+                float.PositiveInfinity);
+
             return float.PositiveInfinity;
+        }
 
         selectedDestination.y = transform.position.y;
-        return EstimateTravelTime(
+        float travelTime = EstimateTravelTime(
             transform.position,
             selectedDestination,
             estimatedPath);
+
+        StoreTravelEstimate(
+            providerTravelEstimateCache,
+            provider,
+            transform.position,
+            providerTarget,
+            travelTime);
+
+        return travelTime;
     
         }
         finally
         {
             PerformanceMonitoringManager.RecordTrackedMethod("PedestrianMovementController.EstimateTravelTime(InteractionProvider)", performanceTimingStart);
         }
+    }
+
+    private bool TryGetCachedTravelEstimate<TKey>(
+        Dictionary<TKey, TravelEstimateCacheEntry> cache,
+        TKey key,
+        Vector3 targetPosition,
+        out float travelTime)
+    {
+        travelTime = float.PositiveInfinity;
+
+        if (!cache.TryGetValue(key, out TravelEstimateCacheEntry entry))
+            return false;
+
+        bool expired =
+            Time.time - entry.CachedAt > TravelEstimateCacheLifetime;
+        bool pedestrianMoved =
+            HorizontalDistance(transform.position, entry.StartPosition) >=
+            TravelEstimateStartMovementThreshold;
+        bool targetMoved =
+            HorizontalDistance(targetPosition, entry.TargetPosition) >=
+            TravelEstimateTargetMovementThreshold;
+
+        if (expired || pedestrianMoved || targetMoved)
+        {
+            cache.Remove(key);
+            return false;
+        }
+
+        travelTime = entry.TravelTime;
+        return true;
+    }
+
+    private void StoreTravelEstimate<TKey>(
+        Dictionary<TKey, TravelEstimateCacheEntry> cache,
+        TKey key,
+        Vector3 startPosition,
+        Vector3 targetPosition,
+        float travelTime)
+    {
+        // Keep the cache bounded if a pedestrian evaluates many unique
+        // temporary destinations, such as conversation meeting points.
+        if (cache.Count >= 128)
+            cache.Clear();
+
+        cache[key] = new TravelEstimateCacheEntry
+        {
+            CachedAt = Time.time,
+            StartPosition = startPosition,
+            TargetPosition = targetPosition,
+            TravelTime = travelTime
+        };
     }
 
     private float EstimateTravelTime(
