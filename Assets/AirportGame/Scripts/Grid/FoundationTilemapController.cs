@@ -23,7 +23,7 @@ public class FoundationTilemapController : MonoBehaviour
         if (gridManager == null)
         {
             gridManager =
-                FindFirstObjectByType<GridManager>();
+                FindAnyObjectByType<GridManager>();
         }
 
         if (gridSurface == null &&
