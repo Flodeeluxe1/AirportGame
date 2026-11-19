@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 2441741470410130843}
   - component: {fileID: 497652449320250805}
   - component: {fileID: 2338498571254170503}
+  - component: {fileID: -1076235452981819176}
   - component: {fileID: 9192837465012345678}
   - component: {fileID: 8273649182736450918}
   - component: {fileID: 7462819304756128391}
@@ -124,6 +125,20 @@ CapsuleCollider:
   m_Height: 2
   m_Direction: 1
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &-1076235452981819176
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1552182806160375558}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e7a542f747dfa0f499c8ad5004609305, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PedestrianAccessProfile
+  accessGroups:
+  - {fileID: 11400000, guid: c7709be7244004e4c82c90fbd2f24d5d, type: 2}
 --- !u!114 &9192837465012345678
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -192,6 +207,8 @@ MonoBehaviour:
     entertainment: 0.08
     comfort: 0.05
     boredom: 0.05
+  comfortDecayMultiplierAtZeroEnvironment: 2
+  comfortDecayMultiplierAtFullEnvironment: 0
   urgencyCurves:
     thirst:
       serializedVersion: 2
@@ -634,6 +651,7 @@ MonoBehaviour:
   shortlistSize: 4
   timeCostPerSecond: 0.02
   interactionSearchRadius: 100
+  pilotsLoungeUtilityMultiplier: 1.15
   queuePositionRefreshInterval: 0.25
   currentStatus: Idle
   currentInteractionName: 
@@ -730,6 +748,8 @@ MonoBehaviour:
   destinationSearchAttempts: 40
   maximumFoundationPathAttempts: 12
   enterFoundationWhenOutside: 1
+  loungeDestinationWeight: 2
+  loungeStayWeight: 2
   minimumIdleIntervalSeconds: 20
   maximumIdleIntervalSeconds: 40
   minimumPauseSeconds: 5
