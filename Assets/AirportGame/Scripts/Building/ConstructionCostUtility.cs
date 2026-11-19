@@ -57,7 +57,7 @@ public static class ConstructionCostUtility
         }
 
         AirportEconomyManager economyManager =
-            Object.FindFirstObjectByType<AirportEconomyManager>();
+            Object.FindAnyObjectByType<AirportEconomyManager>();
 
         if (economyManager == null)
         {
