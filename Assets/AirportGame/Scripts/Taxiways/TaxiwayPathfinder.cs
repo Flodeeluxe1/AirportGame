@@ -32,7 +32,7 @@ public class TaxiwayPathfinder : MonoBehaviour
         if (taxiwayNetwork == null)
         {
             taxiwayNetwork =
-                FindFirstObjectByType<TaxiwayNetwork>();
+                FindAnyObjectByType<TaxiwayNetwork>();
         }
     }
 
