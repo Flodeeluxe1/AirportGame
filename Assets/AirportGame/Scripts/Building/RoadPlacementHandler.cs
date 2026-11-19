@@ -37,9 +37,9 @@ public class RoadPlacementHandler : IPlacementHandler
         this.gridOccupancy = gridOccupancy;
         this.edgeOccupancy = edgeOccupancy;
 
-        roadNetwork = Object.FindFirstObjectByType<RoadNetwork>();
+        roadNetwork = Object.FindAnyObjectByType<RoadNetwork>();
         roadModuleRuleManager =
-            Object.FindFirstObjectByType<RoadModuleRuleManager>();
+            Object.FindAnyObjectByType<RoadModuleRuleManager>();
 
         if (roadNetwork == null)
             Debug.LogError("RoadPlacementHandler: No RoadNetwork was found.");
