@@ -24,8 +24,7 @@ public class AircraftTaxiTrafficFollowing : MonoBehaviour
         activeAircraft.Clear();
 
         AircraftTaxiTrafficFollowing[] foundAircraft =
-            FindObjectsByType<AircraftTaxiTrafficFollowing>(
-                FindObjectsSortMode.None);
+            FindObjectsByType<AircraftTaxiTrafficFollowing>();
 
         for (int i = 0; i < foundAircraft.Length; i++)
             RegisterActiveAircraft(foundAircraft[i]);
