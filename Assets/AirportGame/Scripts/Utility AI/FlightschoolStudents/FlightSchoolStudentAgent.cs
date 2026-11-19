@@ -62,6 +62,7 @@ public class FlightSchoolStudentAgent : MonoBehaviour
     private float nextNeedDecisionTime;
     private float nextQueuePositionRefresh;
     private Vector3 lastQueueDestination;
+    private string lastNeedDecisionDiagnostic;
 
 
     public event Action<FlightSchoolStudentAgent> SeatReached;
@@ -603,7 +604,7 @@ public class FlightSchoolStudentAgent : MonoBehaviour
         }
 
         LogNeedDecisionDiagnostic(
-            "Selected " + selected.definition.DisplayName + " at " + selected.provider.name +
+            "Selected " + selected.definition.DisplayName + " at " + selected.provider.name
             + "; Candidates=" + needShortlist.Count + ", TravelTime=" + selected.travelTime.ToString("0.0") + "s.");
 
         if (atSeat && reservedSeat != null)
