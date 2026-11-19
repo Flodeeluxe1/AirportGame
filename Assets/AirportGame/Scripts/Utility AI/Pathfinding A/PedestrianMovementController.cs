@@ -706,7 +706,7 @@ public class PedestrianMovementController : MonoBehaviour
     private void ResolvePathfinder()
     {
         if (pathfinder == null)
-            pathfinder = FindFirstObjectByType<PedestrianPathfinder>();
+            pathfinder = FindAnyObjectByType<PedestrianPathfinder>();
     }
 
     private void UpdateMovement()
