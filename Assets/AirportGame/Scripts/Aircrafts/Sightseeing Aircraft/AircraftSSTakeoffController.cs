@@ -159,13 +159,13 @@ public class AircraftSSTakeoffController : MonoBehaviour
 
         if (trafficManager == null)
             trafficManager =
-                FindFirstObjectByType<AircraftRunwayTrafficManager>();
+                FindAnyObjectByType<AircraftRunwayTrafficManager>();
 
         if (gameTimeManager == null)
-            gameTimeManager = FindFirstObjectByType<GameTimeManager>();
+            gameTimeManager = FindAnyObjectByType<GameTimeManager>();
 
         if (gridManager == null)
-            gridManager = FindFirstObjectByType<GridManager>();
+            gridManager = FindAnyObjectByType<GridManager>();
 
         if (aircraftCollider == null)
             aircraftCollider = GetComponentInChildren<BoxCollider>(true);
