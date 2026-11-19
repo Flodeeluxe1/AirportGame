@@ -95,7 +95,7 @@ public class ScheduledAircraftSpawner : MonoBehaviour
     private void OnEnable()
     {
         if (gameTimeManager == null)
-            gameTimeManager = FindFirstObjectByType<GameTimeManager>();
+            gameTimeManager = FindAnyObjectByType<GameTimeManager>();
 
         if (gameTimeManager != null)
             gameTimeManager.GameTimeAdvanced += HandleGameTimeAdvanced;
@@ -114,10 +114,10 @@ public class ScheduledAircraftSpawner : MonoBehaviour
     private void Start()
     {
         if (flightCatalog == null)
-            flightCatalog = FindFirstObjectByType<TestFlightCatalog>();
+            flightCatalog = FindAnyObjectByType<TestFlightCatalog>();
 
         if (gameTimeManager == null)
-            gameTimeManager = FindFirstObjectByType<GameTimeManager>();
+            gameTimeManager = FindAnyObjectByType<GameTimeManager>();
 
         if (aircraftPrefab == null)
         {
@@ -221,7 +221,7 @@ public class ScheduledAircraftSpawner : MonoBehaviour
         if (airportManagementController == null)
         {
             airportManagementController =
-                FindFirstObjectByType<AirportManagementController>();
+                FindAnyObjectByType<AirportManagementController>();
         }
 
         return airportManagementController != null &&
