@@ -117,12 +117,12 @@ public class AirportManagementController : MonoBehaviour
 
             if (roomPurposeController == null)
                 roomPurposeController =
-                    FindFirstObjectByType<RoomPurposeController>();
+                    FindAnyObjectByType<RoomPurposeController>();
         }
 
         if (roomDetectionController == null)
             roomDetectionController =
-                FindFirstObjectByType<RoomDetectionController>();
+                FindAnyObjectByType<RoomDetectionController>();
     }
 
     private void SubscribeToChanges()
@@ -250,26 +250,26 @@ public class AirportManagementController : MonoBehaviour
         };
 
         HobbyAircraftTrafficSpawner hobbySpawner =
-            FindFirstObjectByType<HobbyAircraftTrafficSpawner>();
+            FindAnyObjectByType<HobbyAircraftTrafficSpawner>();
         if (hobbySpawner != null)
             CopyPrefabDefaults(hobbySpawner.HobbyAircraftPrefab, defaultFeeSettings.hobby);
 
         FlightSchoolManager flightSchoolManager =
-            FindFirstObjectByType<FlightSchoolManager>();
+            FindAnyObjectByType<FlightSchoolManager>();
         if (flightSchoolManager != null)
             CopyPrefabDefaults(
                 flightSchoolManager.TrainingAircraftPrefab,
                 defaultFeeSettings.flightSchool);
 
         SightseeingAircraftSpawner sightseeingSpawner =
-            FindFirstObjectByType<SightseeingAircraftSpawner>();
+            FindAnyObjectByType<SightseeingAircraftSpawner>();
         if (sightseeingSpawner != null)
             CopyPrefabDefaults(
                 sightseeingSpawner.SightseeingAircraftPrefab,
                 defaultFeeSettings.sightseeing);
 
         ScheduledAircraftSpawner scheduledSpawner =
-            FindFirstObjectByType<ScheduledAircraftSpawner>();
+            FindAnyObjectByType<ScheduledAircraftSpawner>();
 
         if (scheduledSpawner != null)
         {
