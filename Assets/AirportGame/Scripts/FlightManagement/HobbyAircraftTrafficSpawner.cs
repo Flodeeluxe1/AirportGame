@@ -112,10 +112,10 @@ public class HobbyAircraftTrafficSpawner : MonoBehaviour
     private void Start()
     {
         if (gameTimeManager == null)
-            gameTimeManager = FindFirstObjectByType<GameTimeManager>();
+            gameTimeManager = FindAnyObjectByType<GameTimeManager>();
 
         if (gridManager == null)
-            gridManager = FindFirstObjectByType<GridManager>();
+            gridManager = FindAnyObjectByType<GridManager>();
 
         if (hobbyAircraftPrefab == null)
         {
@@ -287,7 +287,7 @@ public class HobbyAircraftTrafficSpawner : MonoBehaviour
         if (airportManagementController == null)
         {
             airportManagementController =
-                FindFirstObjectByType<AirportManagementController>();
+                FindAnyObjectByType<AirportManagementController>();
         }
 
         if (airportManagementController == null ||
@@ -339,7 +339,7 @@ public class HobbyAircraftTrafficSpawner : MonoBehaviour
         if (!ignoreDemandRoll)
         {
             bool hasFuelStation =
-                FindFirstObjectByType<AircraftFuelStation>() != null;
+                FindAnyObjectByType<AircraftFuelStation>() != null;
 
             float probability = CalculateArrivalProbability(
                 parkingSpotCount,
@@ -385,13 +385,13 @@ public class HobbyAircraftTrafficSpawner : MonoBehaviour
         usableRunwayCount = 0;
 
         if (gridManager == null)
-            gridManager = FindFirstObjectByType<GridManager>();
+            gridManager = FindAnyObjectByType<GridManager>();
 
         if (gridManager == null ||
-            FindFirstObjectByType<Weather>() == null ||
-            FindFirstObjectByType<AircraftRunwayTrafficManager>() == null ||
-            FindFirstObjectByType<TaxiwayNetwork>() == null ||
-            FindFirstObjectByType<TaxiwayPathfinder>() == null)
+            FindAnyObjectByType<Weather>() == null ||
+            FindAnyObjectByType<AircraftRunwayTrafficManager>() == null ||
+            FindAnyObjectByType<TaxiwayNetwork>() == null ||
+            FindAnyObjectByType<TaxiwayPathfinder>() == null)
         {
             return false;
         }
@@ -646,7 +646,7 @@ public class HobbyAircraftTrafficSpawner : MonoBehaviour
     private void InitializeVisitorFuel(GameObject aircraft)
     {
         if (aircraft == null ||
-            FindFirstObjectByType<AircraftFuelStation>() == null)
+            FindAnyObjectByType<AircraftFuelStation>() == null)
         {
             return;
         }
