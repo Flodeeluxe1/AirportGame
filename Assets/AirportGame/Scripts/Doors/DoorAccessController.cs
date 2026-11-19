@@ -9,6 +9,7 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class DoorAccessController : MonoBehaviour
 {
+    public static event System.Action AccessRulesChanged;
     [SerializeField] private List<AccessGroup> allowedGroups =
         new List<AccessGroup>();
 
@@ -23,6 +24,14 @@ public class DoorAccessController : MonoBehaviour
         allowedGroups = groups != null
             ? new List<AccessGroup>(groups)
             : new List<AccessGroup>();
+
+        AccessRulesChanged?.Invoke();
+    }
+
+    private void OnValidate()
+    {
+        if (Application.isPlaying)
+            AccessRulesChanged?.Invoke();
     }
 
     public bool CanPass(PedestrianAccessProfile pedestrian)
