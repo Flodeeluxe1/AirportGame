@@ -111,7 +111,7 @@ public class TrainingFlightController : MonoBehaviour
 
         if (trafficManager == null)
             trafficManager =
-                FindFirstObjectByType<AircraftRunwayTrafficManager>();
+                FindAnyObjectByType<AircraftRunwayTrafficManager>();
     }
 
     private void Update()
@@ -280,7 +280,7 @@ public class TrainingFlightController : MonoBehaviour
             return false;
 
         GridManager gridManager =
-            FindFirstObjectByType<GridManager>();
+            FindAnyObjectByType<GridManager>();
 
         if (gridManager == null ||
             !runway.TryGetGeometry(
