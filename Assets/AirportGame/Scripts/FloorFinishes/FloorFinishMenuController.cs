@@ -22,10 +22,10 @@ public class FloorFinishMenuController : MonoBehaviour
             uiDocument = GetComponent<UIDocument>();
 
         if (uiDocument == null)
-            uiDocument = FindFirstObjectByType<UIDocument>();
+            uiDocument = FindAnyObjectByType<UIDocument>();
 
         if (painter == null)
-            painter = FindFirstObjectByType<FloorFinishPainter>();
+            painter = FindAnyObjectByType<FloorFinishPainter>();
 
         if (uiDocument == null)
         {
