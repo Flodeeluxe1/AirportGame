@@ -94,7 +94,7 @@ public class IncomingCargoCollectionSpawner : MonoBehaviour
         spawnPosition = GetRoadModuleCenter(startCell);
         spawnPosition.y += spawnHeightOffset;
 
-        gameTimeManager = FindFirstObjectByType<GameTimeManager>();
+        gameTimeManager = FindAnyObjectByType<GameTimeManager>();
         if (gameTimeManager == null)
         {
             Debug.LogError(
@@ -115,7 +115,7 @@ public class IncomingCargoCollectionSpawner : MonoBehaviour
             return;
 
         IncomingCargoCollectionSpawner spawner =
-            FindFirstObjectByType<IncomingCargoCollectionSpawner>();
+            FindAnyObjectByType<IncomingCargoCollectionSpawner>();
 
         if (spawner != null)
             spawner.pendingOutgoingRecoveryOperations.Add(operationId);
