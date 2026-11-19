@@ -146,6 +146,9 @@ public class RoomDetectionController : MonoBehaviour
 
     public void RefreshRooms()
     {
+        long performanceTimingStart = System.Diagnostics.Stopwatch.GetTimestamp();
+        try
+        {
         if (!isDirty && hasCompletedInitialRefresh)
             return;
 
@@ -236,6 +239,12 @@ public class RoomDetectionController : MonoBehaviour
         // Boundary edits can change room validity (for example, wall to
         // door) without changing the room's cell signature.
         RoomsChanged?.Invoke();
+    
+        }
+        finally
+        {
+            PerformanceMonitoringManager.RecordTrackedMethod("RoomDetectionController.RefreshRooms", performanceTimingStart);
+        }
     }
 
     private List<Vector2Int> CollectRoomComponent(
