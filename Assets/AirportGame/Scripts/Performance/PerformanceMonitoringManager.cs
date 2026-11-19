@@ -17,6 +17,10 @@ public class PerformanceMonitoringManager : MonoBehaviour
     [SerializeField, Min(1f)] private float frameSpikeThresholdMs = 33.3f;
     [SerializeField] private bool startVisible = true;
 
+    [Header("Spike Pause (Unity Editor)")]
+    [SerializeField] private bool pauseEditorOnSpike = true;
+    [SerializeField, Min(1f)] private float pauseThresholdMs = 100f;
+
     [Header("Overlay")]
     [SerializeField] private Vector2 overlayPosition = new Vector2(12f, 12f);
     [SerializeField] private float overlayWidth = 340f;
@@ -44,6 +48,8 @@ public class PerformanceMonitoringManager : MonoBehaviour
     private float worstFrameTimeMs;
     private string cachedOverlayText;
     private bool isVisible;
+    private bool spikePauseTriggered;
+    private bool skipSpikeDetectionAfterResume;
 
     private struct TrackedMethodTiming
     {
@@ -68,6 +74,15 @@ public class PerformanceMonitoringManager : MonoBehaviour
     {
         if (Keyboard.current != null && Keyboard.current.f8Key.wasPressedThisFrame)
             isVisible = !isVisible;
+
+#if UNITY_EDITOR
+        // Re-arm spike pausing after the Editor has been manually resumed.
+        if (spikePauseTriggered && !UnityEditor.EditorApplication.isPaused)
+        {
+            spikePauseTriggered = false;
+            skipSpikeDetectionAfterResume = true;
+        }
+#endif
 
         float frameTime = Time.unscaledDeltaTime;
         if (frameTime <= 0f)
@@ -142,9 +157,31 @@ public class PerformanceMonitoringManager : MonoBehaviour
     private void LateUpdate()
     {
         float frameMilliseconds = Time.unscaledDeltaTime * 1000f;
-        if (frameMilliseconds >= frameSpikeThresholdMs)
-            LogSpikeTimings(frameMilliseconds);
 
+        if (!skipSpikeDetectionAfterResume)
+        {
+            if (frameMilliseconds >= frameSpikeThresholdMs)
+                LogSpikeTimings(frameMilliseconds);
+
+            if (pauseEditorOnSpike &&
+                !spikePauseTriggered &&
+                frameMilliseconds >= pauseThresholdMs)
+            {
+                spikePauseTriggered = true;
+                Debug.LogError(
+                    $"Performance spike reached {frameMilliseconds:0.0} ms. " +
+                    "Pausing the Unity Editor so this frame can be inspected in the Profiler.");
+
+#if UNITY_EDITOR
+                Debug.Break();
+#else
+                Debug.LogWarning("Automatic spike pausing is available only while running in the Unity Editor.");
+                spikePauseTriggered = false;
+#endif
+            }
+        }
+
+        skipSpikeDetectionAfterResume = false;
         TrackedTimings.Clear();
     }
 
@@ -233,6 +270,7 @@ public class PerformanceMonitoringManager : MonoBehaviour
     {
         sampleInterval = Mathf.Max(0.1f, sampleInterval);
         frameSpikeThresholdMs = Mathf.Max(1f, frameSpikeThresholdMs);
+        pauseThresholdMs = Mathf.Max(1f, pauseThresholdMs);
         overlayWidth = Mathf.Max(240f, overlayWidth);
     }
 }
