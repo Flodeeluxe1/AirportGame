@@ -90,10 +90,10 @@ public class FlightOperationsBoardUI : MonoBehaviour
         Instance = this;
 
         if (flightCatalog == null)
-            flightCatalog = FindFirstObjectByType<TestFlightCatalog>();
+            flightCatalog = FindAnyObjectByType<TestFlightCatalog>();
 
         if (gameTimeManager == null)
-            gameTimeManager = FindFirstObjectByType<GameTimeManager>();
+            gameTimeManager = FindAnyObjectByType<GameTimeManager>();
     }
 
     private void OnEnable()
