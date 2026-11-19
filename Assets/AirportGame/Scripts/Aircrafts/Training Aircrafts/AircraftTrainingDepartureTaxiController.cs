@@ -197,20 +197,20 @@ public class AircraftTrainingDepartureTaxiController : MonoBehaviour
     private void ResolveReferences()
     {
         if (gridManager == null)
-            gridManager = FindFirstObjectByType<GridManager>();
+            gridManager = FindAnyObjectByType<GridManager>();
 
         if (weather == null)
-            weather = FindFirstObjectByType<Weather>();
+            weather = FindAnyObjectByType<Weather>();
 
         if (trafficManager == null)
             trafficManager =
-                FindFirstObjectByType<AircraftRunwayTrafficManager>();
+                FindAnyObjectByType<AircraftRunwayTrafficManager>();
 
         if (taxiwayNetwork == null)
-            taxiwayNetwork = FindFirstObjectByType<TaxiwayNetwork>();
+            taxiwayNetwork = FindAnyObjectByType<TaxiwayNetwork>();
 
         if (taxiwayPathfinder == null)
-            taxiwayPathfinder = FindFirstObjectByType<TaxiwayPathfinder>();
+            taxiwayPathfinder = FindAnyObjectByType<TaxiwayPathfinder>();
 
         if (aircraftCollider == null)
             aircraftCollider = GetComponentInChildren<BoxCollider>(true);
