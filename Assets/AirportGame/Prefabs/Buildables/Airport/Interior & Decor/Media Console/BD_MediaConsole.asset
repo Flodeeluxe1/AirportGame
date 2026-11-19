@@ -18,7 +18,7 @@ MonoBehaviour:
   placementType: 0
   requiredSurface: 1
   width: 1
-  depth: 1
+  depth: 3
   edgeLength: 1
   requiresExistingWall: 0
   isWallMounted: 0
@@ -27,6 +27,8 @@ MonoBehaviour:
   canRotate: 1
   buildCost: 90
   blocksPathfinding: 1
+  environmentValue: 0
+  environmentRadius: 0
   menuCategory: Interior & Decor
   category: 3
   icon: {fileID: 2800000, guid: 17b61180eaf1d3e44ab12807437e6b23, type: 3}

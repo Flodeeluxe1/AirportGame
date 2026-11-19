@@ -1597,7 +1597,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FlightSchoolManager
   roomPurposeController: {fileID: 0}
   roomRefreshInterval: 0.5
+  parkingSpotRefreshInterval: 2
   trainingAircraftPrefab: {fileID: 2931056182657766213, guid: 8afccdf60d37e4246b1afa298d184735, type: 3}
+  spawnRetryInterval: 1
   lessonReward: 300
   turnaroundMinutes: 30
   debugStatus: Waiting for an assigned Flight School room.
@@ -1630,12 +1632,16 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FlightSchoolStudentManager
   studentCarPrefab: {fileID: 2154428240389558112, guid: 9150906fb3da9b049807bba55795f99b, type: 3}
   studentPrefab: {fileID: 1552182806160375558, guid: d810372275650df4184270e88fa81619, type: 3}
+  instructorPrefab: {fileID: 4030123196640186262, guid: b3ebe92cea1a0f54cb09347c67995dae, type: 3}
+  instructorSpawnLeadMinutes: 15
+  instructorSpawnCheckInterval: 1
   seatInteractionDefinition: {fileID: 11400000, guid: d10a1b2c3d4e5f67890123456789abcd, type: 2}
   trafficSpawner: {fileID: 2134991059}
   flightSchoolManager: {fileID: 732156763}
   roomPurposeController: {fileID: 1399790236}
   gameTimeManager: {fileID: 449210932}
   pedestrianPathfinder: {fileID: 0}
+  gridManager: {fileID: 728659359}
   openingHour: 9
   closingHour: 18
   carSpawnInterval: 3
