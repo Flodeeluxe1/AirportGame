@@ -19,9 +19,7 @@ public class AircraftGateRegistry : MonoBehaviour
         gates.Clear();
 
         AircraftGate[] foundGates =
-            FindObjectsByType<AircraftGate>(
-                FindObjectsSortMode.None
-            );
+            FindObjectsByType<AircraftGate>();
 
         foreach (AircraftGate gate in foundGates)
         {
