@@ -16,7 +16,6 @@ public class PerformanceMonitoringManager : MonoBehaviour
     [SerializeField] private bool startVisible = true;
 
     [Header("Overlay")]
-    [SerializeField] private Key toggleKey = Key.F8;
     [SerializeField] private Vector2 overlayPosition = new Vector2(12f, 12f);
     [SerializeField] private float overlayWidth = 340f;
 
@@ -56,7 +55,7 @@ public class PerformanceMonitoringManager : MonoBehaviour
 
     private void Update()
     {
-        if (Keyboard.current != null && Keyboard.current[toggleKey].wasPressedThisFrame)
+        if (Keyboard.current != null && Keyboard.current.f8Key.wasPressedThisFrame)
             isVisible = !isVisible;
 
         float frameTime = Time.unscaledDeltaTime;
