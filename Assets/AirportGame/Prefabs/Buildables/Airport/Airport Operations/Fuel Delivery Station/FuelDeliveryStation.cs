@@ -35,7 +35,7 @@ public class FuelDeliveryStation : MonoBehaviour
         get
         {
             PipelineNetworkManager manager =
-                FindFirstObjectByType<PipelineNetworkManager>();
+                FindAnyObjectByType<PipelineNetworkManager>();
             return manager != null && Connector != null
                 ? manager.GetNetworkFor(Connector)
                 : null;
