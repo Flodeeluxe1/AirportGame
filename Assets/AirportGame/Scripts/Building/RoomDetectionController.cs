@@ -122,7 +122,7 @@ public class RoomDetectionController : MonoBehaviour
     private void ResolveReferences()
     {
         if (gridManager == null)
-            gridManager = FindFirstObjectByType<GridManager>();
+            gridManager = FindAnyObjectByType<GridManager>();
 
         if (gridSurface == null && gridManager != null)
         {
@@ -133,7 +133,7 @@ public class RoomDetectionController : MonoBehaviour
         if (edgeOccupancy == null)
         {
             edgeOccupancy =
-                FindFirstObjectByType<EdgeOccupancy>();
+                FindAnyObjectByType<EdgeOccupancy>();
         }
     }
 
