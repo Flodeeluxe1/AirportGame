@@ -154,8 +154,7 @@ public class WallFinishRenderer : MonoBehaviour
     {
         WallFinishSurface[] surfaces =
             FindObjectsByType<WallFinishSurface>(
-                FindObjectsInactive.Include,
-                FindObjectsSortMode.None);
+                FindObjectsInactive.Include);
 
         foreach (WallFinishSurface surface in surfaces)
         {
