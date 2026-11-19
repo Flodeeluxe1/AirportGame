@@ -196,6 +196,9 @@ public class FlightSchoolStudentGroupConversationController : MonoBehaviour
 
     private void TryStartGroup()
     {
+        if (roomDetection == null || gridManager == null || pathfinder == null)
+            ResolveSceneReferences();
+
         if (!CanJoin() || roomDetection == null || gridManager == null || pathfinder == null)
             return;
 
