@@ -46,10 +46,10 @@ public class WasteCollectionManager : MonoBehaviour
 
     private void Awake()
     {
-        economyManager = FindFirstObjectByType<AirportEconomyManager>();
+        economyManager = FindAnyObjectByType<AirportEconomyManager>();
 
         if (garbageCollectorSpawner == null)
-            garbageCollectorSpawner = FindFirstObjectByType<GarbageCollectorSpawner>();
+            garbageCollectorSpawner = FindAnyObjectByType<GarbageCollectorSpawner>();
 
         if (garbageCollectorSpawner == null)
         {
@@ -212,7 +212,7 @@ public class WasteCollectionManager : MonoBehaviour
             return false;
 
         if (economyManager == null)
-            economyManager = FindFirstObjectByType<AirportEconomyManager>();
+            economyManager = FindAnyObjectByType<AirportEconomyManager>();
 
         if (economyManager == null)
         {
