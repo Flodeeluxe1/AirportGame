@@ -167,7 +167,7 @@ public class CargoTugLotSpawner : MonoBehaviour
         }
 
         economyManager =
-            FindFirstObjectByType<AirportEconomyManager>();
+            FindAnyObjectByType<AirportEconomyManager>();
 
         SpawnRestoredTrailers();
 
@@ -274,7 +274,7 @@ public class CargoTugLotSpawner : MonoBehaviour
         if (economyManager == null)
         {
             economyManager =
-                FindFirstObjectByType<AirportEconomyManager>();
+                FindAnyObjectByType<AirportEconomyManager>();
         }
 
         if (economyManager == null)
