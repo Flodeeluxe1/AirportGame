@@ -179,7 +179,7 @@ public class AircraftFuelStation : MonoBehaviour
     private void ResolvePipelineReferences()
     {
         if (pipelineNetworkManager == null)
-            pipelineNetworkManager = FindFirstObjectByType<PipelineNetworkManager>();
+            pipelineNetworkManager = FindAnyObjectByType<PipelineNetworkManager>();
 
         if (fuelConnector == null)
             fuelConnector = GetComponentInChildren<FuelConnector>(true);
