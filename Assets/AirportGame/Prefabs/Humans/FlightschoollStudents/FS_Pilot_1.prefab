@@ -180,11 +180,11 @@ MonoBehaviour:
     thirst: 1
     hunger: 1
     bladder: 1
-    energy: 1
-    social: 1
-    entertainment: 1
-    comfort: 1
-    boredom: 1
+    energy: 0
+    social: 0
+    entertainment: 0
+    comfort: 0
+    boredom: 0
   randomizeInitialNeeds: 1
   initialNeedRanges:
     thirstMin: 50
