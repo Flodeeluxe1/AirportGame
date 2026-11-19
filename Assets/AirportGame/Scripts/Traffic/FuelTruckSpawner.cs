@@ -72,13 +72,13 @@ public class FuelTruckSpawner : MonoBehaviour
     private void Awake()
     {
         if (gridManager == null)
-            gridManager = FindFirstObjectByType<GridManager>();
+            gridManager = FindAnyObjectByType<GridManager>();
 
         if (roadNetwork == null)
-            roadNetwork = FindFirstObjectByType<RoadNetwork>();
+            roadNetwork = FindAnyObjectByType<RoadNetwork>();
 
         if (gameTimeManager == null)
-            gameTimeManager = FindFirstObjectByType<GameTimeManager>();
+            gameTimeManager = FindAnyObjectByType<GameTimeManager>();
     }
 
     private void Start()
