@@ -489,6 +489,14 @@ public class FlightSchoolStudentAgent : MonoBehaviour
             return false;
         }
 
+        // The seated pose is aligned to the chair's AnimationPoint, which
+        // can be inside its occupied grid cell. Path estimates must start from
+        // the chair's saved walkable approach point, just like lesson/departure
+        // routing does. Restore the seated pose if no interaction is selected.
+        bool wasSeatedAtDecision = IsSeated;
+        if (wasSeatedAtDecision)
+            movement.AlignToInteractionPoint(reservedSeat);
+
         UtilityAISpatialRegistry<InteractionProvider>.GetNearby(
             transform.position, needInteractionSearchRadius, nearbyNeedProviders);
 
@@ -596,7 +604,9 @@ public class FlightSchoolStudentAgent : MonoBehaviour
                 ", ThirstUrgency=" + needs.GetUrgency(UtilityNeeds.NeedType.Thirst).ToString("0.0") +
                 ", ThirstWeight=" + needs.GetUtilityWeight(UtilityNeeds.NeedType.Thirst).ToString("0.0") +
                 ", Position=" + transform.position + ".");
-            if (!atSeat && !walkingToSeat && !walkingToAircraft && !walkingToCar)
+            if (wasSeatedAtDecision && reservedSeat != null)
+                movement.AlignToAnimationPoint(reservedSeat);
+            else if (!atSeat && !walkingToSeat && !walkingToAircraft && !walkingToCar)
                 ReturnToSeat();
             return false;
         }
