@@ -138,6 +138,9 @@ public class PilotWanderingController : MonoBehaviour
 
     private void Update()
     {
+        long performanceTimingStart = System.Diagnostics.Stopwatch.GetTimestamp();
+        try
+        {
         if (gameTimeManager == null)
             ResolveGameTimeManager();
 
@@ -199,10 +202,19 @@ public class PilotWanderingController : MonoBehaviour
             return;
 
         TryStartWander();
+    
+        }
+        finally
+        {
+            PerformanceMonitoringManager.RecordTrackedMethod("PilotWanderingController.Update", performanceTimingStart);
+        }
     }
 
     private bool IsOnFoundation()
     {
+        long performanceTimingStart = System.Diagnostics.Stopwatch.GetTimestamp();
+        try
+        {
         if (gridManager == null || gridSurface == null)
             ResolveWorldReferences();
 
@@ -212,6 +224,12 @@ public class PilotWanderingController : MonoBehaviour
         Vector2Int currentCell = gridManager.WorldToGrid(transform.position);
         return gridManager.IsInsideGrid(currentCell) &&
                gridSurface.GetSurface(currentCell) == BuildSurface.Foundation;
+    
+        }
+        finally
+        {
+            PerformanceMonitoringManager.RecordTrackedMethod("PilotWanderingController.IsOnFoundation", performanceTimingStart);
+        }
     }
 
     private void TryEnterFoundation()
@@ -225,6 +243,9 @@ public class PilotWanderingController : MonoBehaviour
 
     private IEnumerator TryEnterFoundationRoutine()
     {
+        long performanceTimingStart = System.Diagnostics.Stopwatch.GetTimestamp();
+        try
+        {
         if (gridManager == null || gridSurface == null || pathfinder == null)
             ResolveWorldReferences();
 
@@ -284,9 +305,18 @@ public class PilotWanderingController : MonoBehaviour
         nextWanderGameSecond = GetCurrentAbsoluteGameSecond() + 30;
         enteringFoundation = false;
         foundationEntryRoutine = null;
+    
+        }
+        finally
+        {
+            PerformanceMonitoringManager.RecordTrackedMethod("PilotWanderingController.TryEnterFoundationRoutine", performanceTimingStart);
+        }
     }
     private void TryStartWander()
     {
+        long performanceTimingStart = System.Diagnostics.Stopwatch.GetTimestamp();
+        try
+        {
         if (gridManager == null || gridSurface == null || pathfinder == null)
             ResolveWorldReferences();
 
@@ -313,6 +343,9 @@ public class PilotWanderingController : MonoBehaviour
 
         for (int attempt = 0; attempt < destinationSearchAttempts; attempt++)
         {
+            long candidateTimingStart = System.Diagnostics.Stopwatch.GetTimestamp();
+            try
+            {
             int radius = Random.Range(minimumRadiusCells, maximumRadiusCells + 1);
             float angle = Random.Range(0f, Mathf.PI * 2f);
             Vector2Int offset = new Vector2Int(
@@ -354,10 +387,23 @@ public class PilotWanderingController : MonoBehaviour
             waitingAtDestination = false;
             currentStatus = "Wandering";
             return;
+        
+            }
+            finally
+            {
+                PerformanceMonitoringManager.RecordTrackedMethod(
+                    "PilotWanderingController.WanderCandidateCheck", candidateTimingStart);
+            }
         }
 
         currentStatus = "No reachable Foundation destination";
         nextWanderGameSecond = GetCurrentAbsoluteGameSecond() + 30;
+    
+        }
+        finally
+        {
+            PerformanceMonitoringManager.RecordTrackedMethod("PilotWanderingController.TryStartWander", performanceTimingStart);
+        }
     }
 
     private void HandleMovementArrived()
