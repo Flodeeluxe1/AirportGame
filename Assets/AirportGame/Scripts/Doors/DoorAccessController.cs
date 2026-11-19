@@ -16,6 +16,9 @@ public class DoorAccessController : MonoBehaviour
 
     public bool CanPass(PedestrianAccessProfile pedestrian)
     {
+        long performanceTimingStart = System.Diagnostics.Stopwatch.GetTimestamp();
+        try
+        {
         // No configured restrictions means the door remains public.
         if (allowedGroups == null || allowedGroups.Count == 0)
             return true;
@@ -33,5 +36,11 @@ public class DoorAccessController : MonoBehaviour
         }
 
         return pedestrian.HasAnyAccessGroup(allowedGroups);
+    
+        }
+        finally
+        {
+            PerformanceMonitoringManager.RecordTrackedMethod("DoorAccessController.CanPass", performanceTimingStart);
+        }
     }
 }
