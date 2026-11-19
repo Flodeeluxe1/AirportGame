@@ -204,10 +204,10 @@ public sealed class PipelineNetworkManager : MonoBehaviour
     private void ResolveReferences()
     {
         if (pipelineRuleManager == null)
-            pipelineRuleManager = FindFirstObjectByType<PipelinePrefabRuleManager>();
+            pipelineRuleManager = FindAnyObjectByType<PipelinePrefabRuleManager>();
 
         if (fuelTruckSpawner == null)
-            fuelTruckSpawner = FindFirstObjectByType<FuelTruckSpawner>();
+            fuelTruckSpawner = FindAnyObjectByType<FuelTruckSpawner>();
     }
 
     public PipelineNetwork GetNetworkFor(FuelConnector connector)
