@@ -349,7 +349,10 @@ public class PilotInteractionController : MonoBehaviour
         for (int providerIndex = 0; providerIndex < nearbyProviders.Count; providerIndex++)
         {
             InteractionProvider provider = nearbyProviders[providerIndex];
-            if (provider == null || !provider.InteractionsEnabled)
+            if (provider == null || !provider.InteractionsEnabled ||
+                (roomPurposeController != null &&
+                 !roomPurposeController.IsPositionAccessibleToPedestrian(
+                     provider.InteractionPosition, accessProfile)))
                 continue;
 
             bool travelTimeCalculated = false;
