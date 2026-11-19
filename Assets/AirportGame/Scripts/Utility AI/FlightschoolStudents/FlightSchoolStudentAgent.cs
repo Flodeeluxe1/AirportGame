@@ -77,7 +77,7 @@ public class FlightSchoolStudentAgent : MonoBehaviour
         vehicle = assignedVehicle;
         needs = GetComponent<UtilityNeeds>();
         accessProfile = GetComponent<PedestrianAccessProfile>();
-        roomPurposeController = FindFirstObjectByType<RoomPurposeController>();
+        roomPurposeController = FindAnyObjectByType<RoomPurposeController>();
         studentRenderers = GetComponentsInChildren<Renderer>(true);
 
         // Students follow the school timetable, not the hobby-pilot Utility AI.
@@ -296,7 +296,7 @@ public class FlightSchoolStudentAgent : MonoBehaviour
 
     private string GridCellForDiagnostics(Vector3 worldPosition)
     {
-        GridManager grid = FindFirstObjectByType<GridManager>();
+        GridManager grid = FindAnyObjectByType<GridManager>();
         return grid != null
             ? grid.WorldToGrid(worldPosition).ToString()
             : "unknown";
