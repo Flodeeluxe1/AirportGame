@@ -37,10 +37,10 @@ public class TaxiwayPlacementHandler : IPlacementHandler
             : null;
 
         prefabRuleManager =
-            Object.FindFirstObjectByType<TaxiwayPrefabRuleManager>();
+            Object.FindAnyObjectByType<TaxiwayPrefabRuleManager>();
 
         taxiwayNetwork =
-            Object.FindFirstObjectByType<TaxiwayNetwork>();
+            Object.FindAnyObjectByType<TaxiwayNetwork>();
 
         if (gridManager == null)
         {
