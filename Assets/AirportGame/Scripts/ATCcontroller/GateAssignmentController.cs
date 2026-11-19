@@ -75,16 +75,16 @@ public class GateAssignmentController : MonoBehaviour
         Instance = this;
 
         if (gateRegistry == null)
-            gateRegistry = FindFirstObjectByType<AircraftGateRegistry>();
+            gateRegistry = FindAnyObjectByType<AircraftGateRegistry>();
 
         if (gridManager == null)
-            gridManager = FindFirstObjectByType<GridManager>();
+            gridManager = FindAnyObjectByType<GridManager>();
 
         if (taxiwayNetwork == null)
-            taxiwayNetwork = FindFirstObjectByType<TaxiwayNetwork>();
+            taxiwayNetwork = FindAnyObjectByType<TaxiwayNetwork>();
 
         if (taxiwayPathfinder == null)
-            taxiwayPathfinder = FindFirstObjectByType<TaxiwayPathfinder>();
+            taxiwayPathfinder = FindAnyObjectByType<TaxiwayPathfinder>();
 
         if (gateRegistry == null ||
             gridManager == null ||
@@ -774,7 +774,7 @@ public class GateAssignmentController : MonoBehaviour
     private void DebugGateAvailability()
     {
         if (gateRegistry == null)
-            gateRegistry = FindFirstObjectByType<AircraftGateRegistry>();
+            gateRegistry = FindAnyObjectByType<AircraftGateRegistry>();
 
         if (gateRegistry == null)
         {
