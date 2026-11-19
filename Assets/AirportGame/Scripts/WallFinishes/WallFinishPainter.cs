@@ -40,16 +40,16 @@ public class WallFinishPainter : MonoBehaviour
             mainCamera = Camera.main;
 
         if (gridManager == null)
-            gridManager = FindFirstObjectByType<GridManager>();
+            gridManager = FindAnyObjectByType<GridManager>();
 
         if (wallFinishRenderer == null)
-            wallFinishRenderer = FindFirstObjectByType<WallFinishRenderer>();
+            wallFinishRenderer = FindAnyObjectByType<WallFinishRenderer>();
 
         if (buildController == null)
-            buildController = FindFirstObjectByType<BuildController>();
+            buildController = FindAnyObjectByType<BuildController>();
 
         if (uiDocument == null)
-            uiDocument = FindFirstObjectByType<UIDocument>();
+            uiDocument = FindAnyObjectByType<UIDocument>();
 
         if (uiDocument != null)
             buildWindow = uiDocument.rootVisualElement.Q<VisualElement>("build-window");
