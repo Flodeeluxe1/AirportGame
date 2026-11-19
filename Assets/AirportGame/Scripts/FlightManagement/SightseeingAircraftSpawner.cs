@@ -94,7 +94,7 @@ public class SightseeingAircraftSpawner : MonoBehaviour
     private static void RebuildTicketDeskCache()
     {
         ticketDeskBuildings.Clear();
-        PlacedBuilding[] buildings = FindObjectsByType<PlacedBuilding>(FindObjectsSortMode.None);
+        PlacedBuilding[] buildings = FindObjectsByType<PlacedBuilding>();
         foreach (PlacedBuilding building in buildings)
             AddTicketDeskIfRelevant(building);
     }
@@ -486,8 +486,7 @@ public class SightseeingAircraftSpawner : MonoBehaviour
     private SightseeingAircraftParkingSpot FindAvailableParkingSpot()
     {
         SightseeingAircraftParkingSpot[] spots =
-            FindObjectsByType<SightseeingAircraftParkingSpot>(
-                FindObjectsSortMode.None);
+            FindObjectsByType<SightseeingAircraftParkingSpot>();
 
         foreach (SightseeingAircraftParkingSpot spot in spots)
         {
@@ -523,8 +522,7 @@ public class SightseeingAircraftSpawner : MonoBehaviour
     private bool IsFlightNumberInUse(string candidate)
     {
         AircraftFlightIdentity[] identities =
-            FindObjectsByType<AircraftFlightIdentity>(
-                FindObjectsSortMode.None);
+            FindObjectsByType<AircraftFlightIdentity>();
 
         foreach (AircraftFlightIdentity identity in identities)
         {
