@@ -224,7 +224,7 @@ public class PedestrianMovementController : MonoBehaviour
         target.y = start.y;
 
         List<Vector3> estimatedPath =
-            pathfinder.FindWorldPath(start, target);
+            pathfinder.FindWorldPath(start, target, AccessProfile);
 
         return EstimateTravelTime(start, target, estimatedPath);
     }
@@ -463,7 +463,9 @@ public class PedestrianMovementController : MonoBehaviour
             provider.transform.position,
             targetBuilding,
             out selectedDestination,
-            out calculatedPath);
+            out calculatedPath,
+            true,
+            AccessProfile);
 
         if (!foundPath)
         {
