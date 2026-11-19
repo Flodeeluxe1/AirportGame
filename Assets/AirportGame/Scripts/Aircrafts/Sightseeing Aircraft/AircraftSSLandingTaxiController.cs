@@ -704,8 +704,7 @@ public class AircraftSSLandingTaxiController : MonoBehaviour
     private SightseeingAircraftParkingSpot FindReservedParkingSpot()
     {
         SightseeingAircraftParkingSpot[] spots =
-            FindObjectsByType<SightseeingAircraftParkingSpot>(
-                FindObjectsSortMode.None);
+            FindObjectsByType<SightseeingAircraftParkingSpot>();
 
         foreach (SightseeingAircraftParkingSpot spot in spots)
         {
