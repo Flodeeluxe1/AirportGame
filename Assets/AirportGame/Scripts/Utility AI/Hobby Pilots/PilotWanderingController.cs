@@ -95,7 +95,7 @@ public class PilotWanderingController : MonoBehaviour
         movement = GetComponent<PedestrianMovementController>();
         interactionController = GetComponent<PilotInteractionController>();
         accessProfile = GetComponent<PedestrianAccessProfile>();
-        roomPurposeController = FindFirstObjectByType<RoomPurposeController>();
+        roomPurposeController = FindAnyObjectByType<RoomPurposeController>();
         ResolveWorldReferences();
         ResolveGameTimeManager();
     }
@@ -334,7 +334,7 @@ public class PilotWanderingController : MonoBehaviour
         Vector2Int origin = gridManager.WorldToGrid(transform.position);
 
         if (roomPurposeController == null)
-            roomPurposeController = FindFirstObjectByType<RoomPurposeController>();
+            roomPurposeController = FindAnyObjectByType<RoomPurposeController>();
 
         bool currentlyInsideLounge = roomPurposeController != null &&
             roomPurposeController.IsPositionInPilotsLounge(transform.position);
@@ -459,16 +459,16 @@ public class PilotWanderingController : MonoBehaviour
     private void ResolveWorldReferences()
     {
         if (gridManager == null)
-            gridManager = FindFirstObjectByType<GridManager>();
+            gridManager = FindAnyObjectByType<GridManager>();
 
         if (gridManager != null && gridSurface == null)
             gridSurface = gridManager.GetComponent<GridSurface>();
 
         if (gridSurface == null)
-            gridSurface = FindFirstObjectByType<GridSurface>();
+            gridSurface = FindAnyObjectByType<GridSurface>();
 
         if (pathfinder == null)
-            pathfinder = FindFirstObjectByType<PedestrianPathfinder>();
+            pathfinder = FindAnyObjectByType<PedestrianPathfinder>();
 
         UpdateFoundationSurfaceSubscription();
     }
@@ -534,7 +534,7 @@ public class PilotWanderingController : MonoBehaviour
     private void ResolveGameTimeManager()
     {
         if (gameTimeManager == null)
-            gameTimeManager = FindFirstObjectByType<GameTimeManager>();
+            gameTimeManager = FindAnyObjectByType<GameTimeManager>();
 
         if (gameTimeManager == null || subscribedToGameTime)
             return;
