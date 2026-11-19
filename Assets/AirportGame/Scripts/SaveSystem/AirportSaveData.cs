@@ -6,7 +6,7 @@ using UnityEngine;
 [Serializable]
 public class AirportSaveData
 {
-    public const int CurrentSchemaVersion = 6;
+    public const int CurrentSchemaVersion = 7;
 
     public int schemaVersion = CurrentSchemaVersion;
     public string saveName = "";
@@ -61,8 +61,14 @@ public class AirportSaveData
 
         foreach (PlacedBuildingSaveData building in placedBuildings)
         {
-            if (building != null && building.purchasedCargoTrailerSlots == null)
+            if (building == null)
+                continue;
+
+            if (building.purchasedCargoTrailerSlots == null)
                 building.purchasedCargoTrailerSlots = new List<int>();
+
+            if (building.allowedDoorAccessGroupIds == null)
+                building.allowedDoorAccessGroupIds = new List<string>();
         }
 
         if (roadCells == null)
@@ -138,6 +144,11 @@ public class PlacedBuildingSaveData
     // the prefab's existing default designation.
     public bool hasFlightSchoolParkingDesignation;
     public bool reservedForFlightSchool;
+
+    // Door access configuration. The flag preserves prefab defaults for
+    // older saves and distinguishes an intentionally unrestricted door.
+    public bool hasSavedDoorAccessSettings;
+    public List<string> allowedDoorAccessGroupIds = new List<string>();
 
     // Purchased cargo trailer parking slots for CargoTugLotSpawner.
     public List<int> purchasedCargoTrailerSlots = new List<int>();
