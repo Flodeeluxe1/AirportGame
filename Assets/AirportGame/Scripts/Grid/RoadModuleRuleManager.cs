@@ -47,10 +47,10 @@ public class RoadModuleRuleManager : MonoBehaviour
     private void Awake()
     {
         if (gridManager == null)
-            gridManager = FindFirstObjectByType<GridManager>();
+            gridManager = FindAnyObjectByType<GridManager>();
 
         if (roadNetwork == null)
-            roadNetwork = FindFirstObjectByType<RoadNetwork>();
+            roadNetwork = FindAnyObjectByType<RoadNetwork>();
 
         if (moduleParent == null)
             moduleParent = transform;
