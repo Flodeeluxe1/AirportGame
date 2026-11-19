@@ -28,7 +28,7 @@ public class GameTimeUIController : MonoBehaviour
         if (gameTimeManager == null)
         {
             gameTimeManager =
-                FindFirstObjectByType<GameTimeManager>();
+                FindAnyObjectByType<GameTimeManager>();
         }
 
         if (uiDocument == null)
