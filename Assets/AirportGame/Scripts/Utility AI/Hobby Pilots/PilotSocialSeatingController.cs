@@ -238,25 +238,36 @@ public class PilotSocialSeatingController : MonoBehaviour
 
                 if (firstSeat.Provider == secondSeat.Provider ||
                     Vector3.Distance(firstSeat.Position, secondSeat.Position) >
-                    maximumDistanceBetweenSeats ||
-                    !other.CanAccessSeat(firstSeat.Provider, other.accessProfile) ||
-                    !other.CanAccessSeat(secondSeat.Provider, other.accessProfile))
+                    maximumDistanceBetweenSeats)
                 {
                     continue;
                 }
 
-                float ownFirst = movement.EstimateTravelTime(firstSeat.Provider);
-                float otherSecond = other.movement.EstimateTravelTime(secondSeat.Provider);
-                float ownSecond = movement.EstimateTravelTime(secondSeat.Provider);
-                float otherFirst = other.movement.EstimateTravelTime(firstSeat.Provider);
+                bool firstAssignmentAllowed =
+                    other.CanAccessSeat(secondSeat.Provider, other.accessProfile);
+                bool secondAssignmentAllowed =
+                    other.CanAccessSeat(firstSeat.Provider, other.accessProfile);
 
-                bool firstAssignmentReachable =
-                    !float.IsInfinity(ownFirst) && !float.IsNaN(ownFirst) &&
-                    !float.IsInfinity(otherSecond) && !float.IsNaN(otherSecond);
+                bool firstAssignmentReachable = false;
+                bool secondAssignmentReachable = false;
 
-                bool secondAssignmentReachable =
-                    !float.IsInfinity(ownSecond) && !float.IsNaN(ownSecond) &&
-                    !float.IsInfinity(otherFirst) && !float.IsNaN(otherFirst);
+                if (firstAssignmentAllowed)
+                {
+                    float ownFirst = movement.EstimateTravelTime(firstSeat.Provider);
+                    float otherSecond = other.movement.EstimateTravelTime(secondSeat.Provider);
+                    firstAssignmentReachable =
+                        !float.IsInfinity(ownFirst) && !float.IsNaN(ownFirst) &&
+                        !float.IsInfinity(otherSecond) && !float.IsNaN(otherSecond);
+                }
+
+                if (secondAssignmentAllowed)
+                {
+                    float ownSecond = movement.EstimateTravelTime(secondSeat.Provider);
+                    float otherFirst = other.movement.EstimateTravelTime(firstSeat.Provider);
+                    secondAssignmentReachable =
+                        !float.IsInfinity(ownSecond) && !float.IsNaN(ownSecond) &&
+                        !float.IsInfinity(otherFirst) && !float.IsNaN(otherFirst);
+                }
 
                 if (firstAssignmentReachable || secondAssignmentReachable)
                     return true;
@@ -314,18 +325,33 @@ public class PilotSocialSeatingController : MonoBehaviour
                     SeatOption secondSeat = availableSeats[j];
 
                     float seatDistance = Vector3.Distance(firstSeat.Position, secondSeat.Position);
-                    if (seatDistance > maximumDistanceBetweenSeats ||
-                        !candidate.CanAccessSeat(firstSeat.Provider, candidate.accessProfile) ||
-                        !candidate.CanAccessSeat(secondSeat.Provider, candidate.accessProfile))
+                    if (seatDistance > maximumDistanceBetweenSeats)
                         continue;
 
-                    float ownFirst = movement.EstimateTravelTime(firstSeat.Provider);
-                    float partnerSecond = candidate.movement.EstimateTravelTime(secondSeat.Provider);
-                    float ownSecond = movement.EstimateTravelTime(secondSeat.Provider);
-                    float partnerFirst = candidate.movement.EstimateTravelTime(firstSeat.Provider);
+                    bool firstAssignmentAllowed =
+                        candidate.CanAccessSeat(secondSeat.Provider, candidate.accessProfile);
+                    bool secondAssignmentAllowed =
+                        candidate.CanAccessSeat(firstSeat.Provider, candidate.accessProfile);
+                    if (!firstAssignmentAllowed && !secondAssignmentAllowed)
+                        continue;
 
-                    float firstAssignment = ownFirst + partnerSecond;
-                    float secondAssignment = ownSecond + partnerFirst;
+                    float firstAssignment = float.PositiveInfinity;
+                    float secondAssignment = float.PositiveInfinity;
+
+                    if (firstAssignmentAllowed)
+                    {
+                        float ownFirst = movement.EstimateTravelTime(firstSeat.Provider);
+                        float partnerSecond = candidate.movement.EstimateTravelTime(secondSeat.Provider);
+                        firstAssignment = ownFirst + partnerSecond;
+                    }
+
+                    if (secondAssignmentAllowed)
+                    {
+                        float ownSecond = movement.EstimateTravelTime(secondSeat.Provider);
+                        float partnerFirst = candidate.movement.EstimateTravelTime(firstSeat.Provider);
+                        secondAssignment = ownSecond + partnerFirst;
+                    }
+
                     bool swap = secondAssignment < firstAssignment;
                     float totalTravel = Mathf.Min(firstAssignment, secondAssignment);
 
