@@ -37,7 +37,7 @@ public class CargoZone : MonoBehaviour
         registryInitialized = true;
 
         CargoZone[] existingZones =
-            FindObjectsByType<CargoZone>(FindObjectsSortMode.None);
+            FindObjectsByType<CargoZone>();
 
         foreach (CargoZone zone in existingZones)
         {
