@@ -131,18 +131,18 @@ public class RoomInfoPanelUIController : MonoBehaviour
         if (roomPurposeController == null)
         {
             roomPurposeController =
-                FindFirstObjectByType<RoomPurposeController>();
+                FindAnyObjectByType<RoomPurposeController>();
         }
 
         if (gridManager == null)
         {
-            gridManager = FindFirstObjectByType<GridManager>();
+            gridManager = FindAnyObjectByType<GridManager>();
         }
 
         if (flightSchoolAssessmentController == null)
         {
             flightSchoolAssessmentController =
-                FindFirstObjectByType<FlightSchoolAssessmentController>();
+                FindAnyObjectByType<FlightSchoolAssessmentController>();
         }
     }
 
