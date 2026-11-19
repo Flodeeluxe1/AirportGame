@@ -38,7 +38,7 @@ public class HobbyAircraftIdentityInitializer : MonoBehaviour
         }
 
         GameTimeManager timeManager =
-            FindFirstObjectByType<GameTimeManager>();
+            FindAnyObjectByType<GameTimeManager>();
 
         int startMinute = timeManager != null
             ? timeManager.Hour * 60 + timeManager.Minute
