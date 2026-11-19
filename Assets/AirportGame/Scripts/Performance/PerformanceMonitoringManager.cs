@@ -1,6 +1,7 @@
 using System;
 using UnityEngine;
 using UnityEngine.Profiling;
+using UnityEngine.InputSystem;
 
 /// <summary>
 /// Lightweight runtime performance overlay. Add this component to an empty
@@ -15,7 +16,7 @@ public class PerformanceMonitoringManager : MonoBehaviour
     [SerializeField] private bool startVisible = true;
 
     [Header("Overlay")]
-    [SerializeField] private KeyCode toggleKey = KeyCode.F8;
+    [SerializeField] private Key toggleKey = Key.F8;
     [SerializeField] private Vector2 overlayPosition = new Vector2(12f, 12f);
     [SerializeField] private float overlayWidth = 340f;
 
@@ -55,7 +56,7 @@ public class PerformanceMonitoringManager : MonoBehaviour
 
     private void Update()
     {
-        if (Input.GetKeyDown(toggleKey))
+        if (Keyboard.current != null && Keyboard.current[toggleKey].wasPressedThisFrame)
             isVisible = !isVisible;
 
         float frameTime = Time.unscaledDeltaTime;
