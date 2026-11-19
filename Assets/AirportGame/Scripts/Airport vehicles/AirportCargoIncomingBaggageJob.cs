@@ -49,7 +49,7 @@ public class AirportCargoIncomingBaggageJob : MonoBehaviour
         vehicle = GetComponent<AirportCargoVehicleController>();
 
         if (gameTimeManager == null)
-            gameTimeManager = FindFirstObjectByType<GameTimeManager>();
+            gameTimeManager = FindAnyObjectByType<GameTimeManager>();
     }
 
     public bool BeginIncomingBaggageJob(
