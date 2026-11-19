@@ -14,6 +14,18 @@ public class PedestrianMovementController : MonoBehaviour
 
     [Header("Pathfinding")]
     [SerializeField] private PedestrianPathfinder pathfinder;
+    private PedestrianAccessProfile accessProfile;
+
+    private PedestrianAccessProfile AccessProfile
+    {
+        get
+        {
+            if (accessProfile == null)
+                accessProfile = GetComponent<PedestrianAccessProfile>();
+
+            return accessProfile;
+        }
+    }
 
     [Header("Movement")]
     [Min(0.1f)]
@@ -242,7 +254,8 @@ public class PedestrianMovementController : MonoBehaviour
             provider.GetComponentInParent<PlacedBuilding>(),
             out selectedDestination,
             out estimatedPath,
-            false);
+            false,
+            AccessProfile);
 
         if (!foundPath)
             return float.PositiveInfinity;
@@ -330,7 +343,7 @@ public class PedestrianMovementController : MonoBehaviour
         target.y = transform.position.y;
 
         List<Vector3> calculatedPath =
-            pathfinder.FindWorldPath(transform.position, target);
+            pathfinder.FindWorldPath(transform.position, target, AccessProfile);
 
         if (calculatedPath == null || calculatedPath.Count == 0)
         {
@@ -373,7 +386,9 @@ public class PedestrianMovementController : MonoBehaviour
             approachAnchorWorld,
             targetBuilding,
             out selectedDestination,
-            out calculatedPath);
+            out calculatedPath,
+            true,
+            AccessProfile);
 
         if (!foundPath)
         {
