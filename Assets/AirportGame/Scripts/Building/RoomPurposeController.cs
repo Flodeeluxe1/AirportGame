@@ -54,7 +54,7 @@ public class RoomPurposeController : MonoBehaviour
     private readonly Dictionary<Vector2Int, RoomDetectionController.DetectedRoom> roomByCell =
         new Dictionary<Vector2Int, RoomDetectionController.DetectedRoom>();
     private readonly Dictionary<EntityId, Dictionary<Vector2Int, bool>> roomAccessCache =
-        new Dictionary<int, Dictionary<Vector2Int, bool>>();
+        new Dictionary<EntityId, Dictionary<Vector2Int, bool>>();
     private bool roomAccessLookupDirty = true;
 
     private Vector2Int previousClickCell;
