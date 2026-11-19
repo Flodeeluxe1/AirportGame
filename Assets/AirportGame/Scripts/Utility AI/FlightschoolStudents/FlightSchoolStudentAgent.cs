@@ -25,6 +25,9 @@ public class FlightSchoolStudentAgent : MonoBehaviour
     private bool departureStarted;
     private bool groupConversationActive;
     private FlightSchoolStudentGroupConversationController groupConversationController;
+    [Header("Diagnostics")]
+    [SerializeField] private bool logMovementArrivals;
+
     [Header("Student Needs")]
     [Min(0.1f)]
     [SerializeField] private float needDecisionInterval = 2f;
@@ -373,11 +376,14 @@ public class FlightSchoolStudentAgent : MonoBehaviour
 
     private void HandleMovementArrived()
     {
-        Debug.Log(
-            $"FlightSchoolStudentAgent {name}: Movement arrived. " +
-            $"WalkingToSeat={walkingToSeat}, WalkingToAircraft={walkingToAircraft}, " +
-            $"WalkingToCar={walkingToCar}.",
-            this);
+        if (logMovementArrivals)
+        {
+            Debug.Log(
+                $"FlightSchoolStudentAgent {name}: Movement arrived. " +
+                $"WalkingToSeat={walkingToSeat}, WalkingToAircraft={walkingToAircraft}, " +
+                $"WalkingToCar={walkingToCar}.",
+                this);
+        }
 
         if (walkingToSeat)
         {
