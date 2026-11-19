@@ -654,7 +654,8 @@ public class PedestrianMovementController : MonoBehaviour
         if (pathfinder != null &&
             !pathfinder.CanMoveBetweenWorldPositions(
                 transform.position,
-                nextPosition))
+                nextPosition,
+                AccessProfile))
         {
             currentAvoidanceOffset = Vector3.Lerp(
                 currentAvoidanceOffset,
@@ -667,7 +668,8 @@ public class PedestrianMovementController : MonoBehaviour
 
             if (!pathfinder.CanMoveBetweenWorldPositions(
                     transform.position,
-                    nextPosition))
+                    nextPosition,
+                    AccessProfile))
             {
                 return false;
             }
