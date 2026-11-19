@@ -138,12 +138,12 @@ public class CargoTugLotShopUIController : MonoBehaviour
             mainCamera = Camera.main;
 
         if (buildController == null)
-            buildController = FindFirstObjectByType<BuildController>();
+            buildController = FindAnyObjectByType<BuildController>();
 
         if (economyManager == null)
         {
             economyManager =
-                FindFirstObjectByType<AirportEconomyManager>();
+                FindAnyObjectByType<AirportEconomyManager>();
         }
     }
 
@@ -374,7 +374,7 @@ public class CargoTugLotShopUIController : MonoBehaviour
         if (economyManager == null)
         {
             economyManager =
-                FindFirstObjectByType<AirportEconomyManager>();
+                FindAnyObjectByType<AirportEconomyManager>();
         }
 
         int balance = economyManager != null
