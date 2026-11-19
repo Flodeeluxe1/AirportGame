@@ -363,9 +363,7 @@ public class FlightSchoolStudentAgent : MonoBehaviour
             if (needProvider == null || needInteraction == null)
                 return;
 
-            movement.AlignToAnimationPoint(needProvider);
-            performingNeedInteraction = true;
-            needInteractionRoutine = StartCoroutine(PerformNeedInteraction());
+            StartNeedInteractionAtProvider();
             return;
         }
 
@@ -386,6 +384,19 @@ public class FlightSchoolStudentAgent : MonoBehaviour
 
             Destroy(gameObject);
         }
+    }
+
+    private void StartNeedInteractionAtProvider()
+    {
+        if (performingNeedInteraction || needInteractionRoutine != null ||
+            needProvider == null || needInteraction == null ||
+            !needProvider.isActiveAndEnabled)
+            return;
+
+        walkingToNeedInteraction = false;
+        movement.AlignToAnimationPoint(needProvider);
+        performingNeedInteraction = true;
+        needInteractionRoutine = StartCoroutine(PerformNeedInteraction());
     }
 
     private void HandlePathFailed()
@@ -647,8 +658,16 @@ public class FlightSchoolStudentAgent : MonoBehaviour
             needProvider = queuedNeedProvider;
             needInteraction = queuedNeedInteraction;
 
+            if (movement.IsAtInteractionApproach(queuedNeedProvider))
+            {
+                // The queue may become active while the student is already
+                // standing at the provider. In that case no Arrived event will
+                // fire, so explicitly begin the interaction here.
+                StartNeedInteractionAtProvider();
+                return;
+            }
+
             if (!movement.IsMoving &&
-                !movement.IsAtInteractionApproach(queuedNeedProvider) &&
                 Time.time >= nextQueuePositionRefresh)
             {
                 nextQueuePositionRefresh = Time.time + queuePositionRefreshInterval;
