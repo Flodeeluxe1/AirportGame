@@ -37,12 +37,14 @@ public class FlightSchoolInstructorController : MonoBehaviour
     private readonly Vector3[] boardPatrolPoints = new Vector3[2];
     private readonly List<FlightSchoolStudentAgent> seatedStudents =
         new List<FlightSchoolStudentAgent>(12);
+    private readonly Queue<FlightSchoolStudentAgent> pendingWelcomeStudents =
+        new Queue<FlightSchoolStudentAgent>(8);
+    private readonly HashSet<FlightSchoolStudentAgent> welcomedStudents =
+        new HashSet<FlightSchoolStudentAgent>();
 
     private InstructorState state;
-    private FlightSchoolStudentAgent pendingWelcomeStudent;
     private FlightSchoolStudentAgent currentStudent;
     private FlightSchoolStudentAgent lastVisitedStudent;
-    private bool hasWelcomedStudent;
     private bool currentVisitIsWelcome;
     private bool movingToRight;
     private float nextActionTime;
@@ -133,10 +135,9 @@ public class FlightSchoolInstructorController : MonoBehaviour
 
         if (state == InstructorState.BoardPause)
         {
-            if (pendingWelcomeStudent != null)
+            if (pendingWelcomeStudents.Count > 0)
             {
-                FlightSchoolStudentAgent welcome = pendingWelcomeStudent;
-                pendingWelcomeStudent = null;
+                FlightSchoolStudentAgent welcome = pendingWelcomeStudents.Dequeue();
                 BeginStudentVisit(welcome, true);
                 return;
             }
@@ -163,11 +164,10 @@ public class FlightSchoolInstructorController : MonoBehaviour
 
     public void NotifyStudentArrived(FlightSchoolStudentAgent student)
     {
-        if (student == null || hasWelcomedStudent)
+        if (student == null || !welcomedStudents.Add(student))
             return;
 
-        hasWelcomedStudent = true;
-        pendingWelcomeStudent = student;
+        pendingWelcomeStudents.Enqueue(student);
     }
 
     private bool TryChooseStudentToVisit()
