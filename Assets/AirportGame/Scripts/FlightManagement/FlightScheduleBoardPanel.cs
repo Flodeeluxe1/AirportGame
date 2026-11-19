@@ -78,13 +78,13 @@ public class FlightScheduleBoardPanel : MonoBehaviour
             uiDocument = GetComponent<UIDocument>();
 
         if (flightCatalog == null)
-            flightCatalog = FindFirstObjectByType<TestFlightCatalog>();
+            flightCatalog = FindAnyObjectByType<TestFlightCatalog>();
 
         if (gateRegistry == null)
-            gateRegistry = FindFirstObjectByType<AircraftGateRegistry>();
+            gateRegistry = FindAnyObjectByType<AircraftGateRegistry>();
 
         if (gameTimeManager == null)
-            gameTimeManager = FindFirstObjectByType<GameTimeManager>();
+            gameTimeManager = FindAnyObjectByType<GameTimeManager>();
 
         if (uiDocument == null || gameTimeManager == null)
         {
