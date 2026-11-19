@@ -26,6 +26,7 @@ public class SightseeingPassengerAgent : MonoBehaviour
     private PedestrianMovementController movement;
     private UtilityNeeds needs;
     private PilotInteractionController interactionController;
+    private PilotWanderingController pilotWanderingController;
     private PedestrianPathfinder pathfinder;
     private InteractionProvider checkInProvider;
     private InteractionDefinition checkInDefinition;
@@ -73,6 +74,12 @@ public class SightseeingPassengerAgent : MonoBehaviour
         if (interactionController == null)
             interactionController = gameObject.AddComponent<PilotInteractionController>();
         interactionController.enabled = false;
+
+        // Passenger roaming is constrained to the assigned public terminal
+        // area below; do not run the hobby-pilot's airport-wide wanderer.
+        pilotWanderingController = GetComponent<PilotWanderingController>();
+        if (pilotWanderingController != null)
+            pilotWanderingController.enabled = false;
 
         pathfinder = FindAnyObjectByType<PedestrianPathfinder>();
         renderers = GetComponentsInChildren<Renderer>(true);
@@ -216,6 +223,11 @@ public class SightseeingPassengerAgent : MonoBehaviour
             checkInQueue.Complete(this);
         else if (reservationHeld && completedProvider != null)
             completedProvider.ReleaseReservation(this, checkInDefinition);
+
+        // The animation anchor can occupy the desk's blocked footprint.
+        // Return to the saved walkable InteractionPoint before terminal roaming.
+        if (completedProvider != null)
+            movement.AlignToInteractionPoint(completedProvider);
 
         reservationHeld = false;
         ClearCheckInReferences();
