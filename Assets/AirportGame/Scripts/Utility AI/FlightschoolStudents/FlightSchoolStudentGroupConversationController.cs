@@ -19,8 +19,7 @@ public class FlightSchoolStudentGroupConversationController : MonoBehaviour
     private static readonly List<FlightSchoolStudentGroupConversationController> CandidateControllers =
         new List<FlightSchoolStudentGroupConversationController>(16);
     private static readonly List<Vector2Int> FreeMeetingCells = new List<Vector2Int>(128);
-    private static readonly Dictionary<Vector2Int, Vector3> WalkableMeetingTargets =
-        new Dictionary<Vector2Int, Vector3>(128);
+    private static readonly List<Vector3> FreeMeetingTargets = new List<Vector3>(128);
     private static readonly Dictionary<Vector2Int, float> NextRoomSearchTime =
         new Dictionary<Vector2Int, float>();
     private static readonly HashSet<Vector2Int> ReservedMeetingCells =
@@ -105,7 +104,7 @@ public class FlightSchoolStudentGroupConversationController : MonoBehaviour
             ReservedMeetingCells.Clear();
             CandidateControllers.Clear();
             FreeMeetingCells.Clear();
-            WalkableMeetingTargets.Clear();
+            FreeMeetingTargets.Clear();
         }
 
         if (movement != null)
@@ -243,9 +242,22 @@ public class FlightSchoolStudentGroupConversationController : MonoBehaviour
         if (candidates.Count < 2)
             return;
 
-        candidates.Sort((a, b) =>
-            Vector3.Distance(transform.position, a.transform.position)
-                .CompareTo(Vector3.Distance(transform.position, b.transform.position)));
+        // In-place insertion sort avoids creating a comparison delegate/closure.
+        for (int i = 1; i < candidates.Count; i++)
+        {
+            FlightSchoolStudentGroupConversationController item = candidates[i];
+            float itemDistance = (item.transform.position - transform.position).sqrMagnitude;
+            int j = i - 1;
+
+            while (j >= 0 &&
+                   (candidates[j].transform.position - transform.position).sqrMagnitude > itemDistance)
+            {
+                candidates[j + 1] = candidates[j];
+                j--;
+            }
+
+            candidates[j + 1] = item;
+        }
 
         int groupSize = Random.Range(2, Mathf.Min(maximumGroupSize, candidates.Count) + 1);
         candidates.RemoveRange(groupSize, candidates.Count - groupSize);
@@ -309,9 +321,9 @@ public class FlightSchoolStudentGroupConversationController : MonoBehaviour
             return false;
 
         List<Vector2Int> freeCells = FreeMeetingCells;
-        Dictionary<Vector2Int, Vector3> walkableTargets = WalkableMeetingTargets;
+        List<Vector3> freeTargets = FreeMeetingTargets;
         freeCells.Clear();
-        walkableTargets.Clear();
+        freeTargets.Clear();
 
         for (int i = 0; i < room.cells.Count; i++)
         {
@@ -329,7 +341,7 @@ public class FlightSchoolStudentGroupConversationController : MonoBehaviour
                 continue;
 
             freeCells.Add(cell);
-            walkableTargets[cell] = walkablePosition;
+            freeTargets.Add(walkablePosition);
         }
 
         // Shuffle so groups do not repeatedly gather in the same part of the room.
@@ -347,8 +359,7 @@ public class FlightSchoolStudentGroupConversationController : MonoBehaviour
         for (int i = 0; i < freeCells.Count && selectedCells.Count < requiredCount; i++)
         {
             Vector2Int cell = freeCells[i];
-            if (!walkableTargets.TryGetValue(cell, out Vector3 target))
-                continue;
+            Vector3 target = freeTargets[i];
 
             bool tooClose = false;
             for (int j = 0; j < selectedTargets.Count; j++)
@@ -445,7 +456,16 @@ public class FlightSchoolStudentGroupConversationController : MonoBehaviour
         if (!isLeader || state != GroupState.Travelling)
             return;
 
-        Member member = members.Find(item => item.Controller == controller);
+        Member member = null;
+        for (int i = 0; i < members.Count; i++)
+        {
+            if (members[i].Controller == controller)
+            {
+                member = members[i];
+                break;
+            }
+        }
+
         if (member == null)
             return;
 
