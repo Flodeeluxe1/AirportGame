@@ -16,13 +16,10 @@ GameObject:
   - component: {fileID: 9192837465012345678}
   - component: {fileID: 8273649182736450918}
   - component: {fileID: 7462819304756128391}
-  - component: {fileID: 3894756102837465190}
-  - component: {fileID: 5947382019658473021}
   - component: {fileID: 7123456789012345678}
-  - component: {fileID: 8217346509182736450}
-  - component: {fileID: 6812345678901234567}
   - component: {fileID: 7349201846502739184}
   - component: {fileID: 1200000000000000001}
+  - component: {fileID: -8516816489209012854}
   m_Layer: 0
   m_Name: FS_Pilot_1
   m_TagString: Untagged
@@ -174,11 +171,20 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1552182806160375558}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c39a5d7e1f824b0d9a6c3e7f5b2d8146, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  consideredNeeds:
+    thirst: 1
+    hunger: 1
+    bladder: 1
+    energy: 1
+    social: 1
+    entertainment: 1
+    comfort: 1
+    boredom: 1
   randomizeInitialNeeds: 1
   initialNeedRanges:
     thirstMin: 50
@@ -642,7 +648,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1552182806160375558}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d4e7a1c93f5b4d2e8a6c0f1b3d5e7a92, type: 3}
   m_Name: 
@@ -655,55 +661,6 @@ MonoBehaviour:
   queuePositionRefreshInterval: 0.25
   currentStatus: Idle
   currentInteractionName: 
---- !u!114 &3894756102837465190
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1552182806160375558}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7f4a2c9e6b1d4a8f9c3e5d7b1a6f2048, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  searchInterval: 2
-  partnerSearchRadius: 8
-  maximumSocialNeedValue: 80
-  conversationDurationGameSeconds: 240
-  socialSatisfactionAmount: 15
-  entertainmentSatisfactionAmount: 10
-  boredomSatisfactionAmount: 10
-  conversationDistance: 0.7
-  travelTimeout: 30
-  facingRotationSpeed: 540
-  currentStatus: Idle
-  currentPartnerName: 
---- !u!114 &5947382019658473021
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1552182806160375558}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c8f1a5d7392e4b60a7d3f9c1e5b28416, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  searchInterval: 3
-  searchRadius: 12
-  maximumDistanceBetweenSeats: 2.5
-  maximumSocialNeedValue: 80
-  socializingDurationGameSeconds: 600
-  socialSatisfactionAmount: 25
-  comfortSatisfactionAmount: 10
-  entertainmentSatisfactionAmount: 15
-  boredomSatisfactionAmount: 15
-  travelTimeout: 45
-  facingRotationSpeed: 540
-  currentStatus: Idle
-  currentPartnerName: 
 --- !u!114 &7123456789012345678
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -731,49 +688,6 @@ MonoBehaviour:
   facingRotationSpeed: 540
   currentStatus: Idle
   currentGroupSize: 0
---- !u!114 &8217346509182736450
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1552182806160375558}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3e8a1c7d5f924b60a2d9e4c7b1f63850, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  minimumRadiusCells: 3
-  maximumRadiusCells: 6
-  destinationSearchAttempts: 40
-  maximumFoundationPathAttempts: 12
-  enterFoundationWhenOutside: 1
-  loungeDestinationWeight: 2
-  loungeStayWeight: 2
-  minimumIdleIntervalSeconds: 20
-  maximumIdleIntervalSeconds: 40
-  minimumPauseSeconds: 5
-  maximumPauseSeconds: 15
-  maximumSocialNeedValue: 80
-  currentStatus: Idle
---- !u!114 &6812345678901234567
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1552182806160375558}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6b8f2d4a9c1e47f0a3d5b7c2e8f61490, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  aircraftClearance: 2
-  retryInterval: 2
-  isDeparting: 0
-  currentStatus: Available
-  currentWaypoint: 0
-  totalWaypoints: 0
 --- !u!114 &7349201846502739184
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -805,3 +719,15 @@ MonoBehaviour:
   currentNeedSatisfaction: 50
   currentEnvironmentExperience: 50
   recordedVisitGameMinutes: 0
+--- !u!114 &-8516816489209012854
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1552182806160375558}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6b38c1a0a9d24d6f8c4b1e7a2f9d5031, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FlightSchoolStudentAgent
