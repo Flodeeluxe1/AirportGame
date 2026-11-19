@@ -112,6 +112,18 @@ public class AircraftStatus : MonoBehaviour
             NotifyStatusChanged();
     }
 
+    public void ResetForReturnFlight()
+    {
+        bool changed = IsTaxiing || IsParked || !IsFlying || HasCompletedLanding;
+        IsTaxiing = false;
+        IsParked = false;
+        IsFlying = true;
+        HasCompletedLanding = false;
+        CurrentSpeedKnots = 0f;
+        if (changed)
+            NotifyStatusChanged();
+    }
+
     public void MarkLandingComplete()
     {
         if (HasCompletedLanding)
