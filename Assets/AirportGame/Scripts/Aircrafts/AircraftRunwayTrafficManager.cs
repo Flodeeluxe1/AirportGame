@@ -588,7 +588,7 @@ public class AircraftRunwayTrafficManager : MonoBehaviour
             return false;
 
         if (gridManager == null)
-            gridManager = FindFirstObjectByType<GridManager>();
+            gridManager = FindAnyObjectByType<GridManager>();
 
         // Fail safe: if the runway footprint cannot be determined,
         // don't permit departure based on uncertain clearance.
