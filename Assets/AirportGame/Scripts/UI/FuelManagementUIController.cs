@@ -453,8 +453,7 @@ public class FuelManagementUIController : MonoBehaviour
     private void RefreshAircraftSummary()
     {
         AircraftTurnaroundController[] aircraft =
-            FindObjectsByType<AircraftTurnaroundController>(
-                FindObjectsSortMode.None);
+            FindObjectsByType<AircraftTurnaroundController>();
 
         int requiringFuel = 0;
 
