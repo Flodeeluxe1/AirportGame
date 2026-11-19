@@ -85,6 +85,7 @@ public class PilotInteractionController : MonoBehaviour
     private PilotSocialSeatingController seatingController;
     private PilotGroupConversationController groupController;
     private RoomPurposeController roomPurposeController;
+    private PedestrianAccessProfile accessProfile;
     private InteractionProvider reservedProvider;
     private InteractionDefinition reservedInteraction;
     private InteractionProvider queuedProvider;
@@ -199,6 +200,7 @@ public class PilotInteractionController : MonoBehaviour
         socialController = GetComponent<PilotSocialInteractionController>();
         seatingController = GetComponent<PilotSocialSeatingController>();
         groupController = GetComponent<PilotGroupConversationController>();
+        accessProfile = GetComponent<PedestrianAccessProfile>();
         roomPurposeController = FindFirstObjectByType<RoomPurposeController>();
     }
 
@@ -284,7 +286,10 @@ public class PilotInteractionController : MonoBehaviour
         for (int providerIndex = 0; providerIndex < nearbyProviders.Count; providerIndex++)
         {
             InteractionProvider provider = nearbyProviders[providerIndex];
-            if (provider == null || !provider.InteractionsEnabled)
+            if (provider == null || !provider.InteractionsEnabled ||
+                (roomPurposeController != null &&
+                 !roomPurposeController.IsPositionAccessibleToPedestrian(
+                     provider.InteractionPosition, accessProfile)))
                 continue;
 
             bool travelTimeCalculated = false;
