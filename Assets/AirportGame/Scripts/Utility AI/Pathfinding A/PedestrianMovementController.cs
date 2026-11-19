@@ -213,6 +213,9 @@ public class PedestrianMovementController : MonoBehaviour
     /// </summary>
     public float EstimateTravelTime(Vector3 worldDestination)
     {
+        long performanceTimingStart = System.Diagnostics.Stopwatch.GetTimestamp();
+        try
+        {
         if (pathfinder == null)
             ResolvePathfinder();
 
@@ -227,6 +230,12 @@ public class PedestrianMovementController : MonoBehaviour
             pathfinder.FindWorldPath(start, target, AccessProfile);
 
         return EstimateTravelTime(start, target, estimatedPath);
+    
+        }
+        finally
+        {
+            PerformanceMonitoringManager.RecordTrackedMethod("PedestrianMovementController.EstimateTravelTime(Vector3)", performanceTimingStart);
+        }
     }
 
     /// <summary>
@@ -235,6 +244,9 @@ public class PedestrianMovementController : MonoBehaviour
     /// </summary>
     public float EstimateTravelTime(InteractionProvider provider)
     {
+        long performanceTimingStart = System.Diagnostics.Stopwatch.GetTimestamp();
+        try
+        {
         if (provider == null)
             return float.PositiveInfinity;
 
@@ -265,6 +277,12 @@ public class PedestrianMovementController : MonoBehaviour
             transform.position,
             selectedDestination,
             estimatedPath);
+    
+        }
+        finally
+        {
+            PerformanceMonitoringManager.RecordTrackedMethod("PedestrianMovementController.EstimateTravelTime(InteractionProvider)", performanceTimingStart);
+        }
     }
 
     private float EstimateTravelTime(
