@@ -525,9 +525,9 @@ public class FlightSchoolStudentAgent : MonoBehaviour
 
     private void Update()
     {
-        if (departureStarted || groupConversationActive || walkingToAircraft || walkingToCar ||
-            walkingToSeat || walkingToNeedInteraction || performingNeedInteraction ||
-            movement == null || needs == null || movement.IsMoving)
+        if (departureStarted || groupConversationActive || instructorConversationActive ||
+            walkingToAircraft || walkingToCar || walkingToSeat || walkingToNeedInteraction ||
+            performingNeedInteraction || movement == null || needs == null || movement.IsMoving)
             return;
 
         if (queuedNeedProvider != null)
