@@ -58,6 +58,8 @@ public class PilotInteractionController : MonoBehaviour
     [SerializeField] private float timeCostPerSecond = 0.02f;
     [Min(1f)]
     [SerializeField] private float interactionSearchRadius = 100f;
+    [Min(0.1f)]
+    [SerializeField] private float failedPathRetryInterval = 10f;
 
     [Header("Room Preferences")]
     [Min(1f)]
@@ -94,6 +96,16 @@ public class PilotInteractionController : MonoBehaviour
     private Vector3 lastQueueDestination;
     private readonly List<UtilityNeeds.NeedType> replenishingNeeds =
         new List<UtilityNeeds.NeedType>();
+
+    private struct FailedPathCacheEntry
+    {
+        public float RetryAfter;
+        public Vector3 PilotPosition;
+    }
+
+    private readonly Dictionary<InteractionProvider, FailedPathCacheEntry>
+        failedProviderPaths =
+            new Dictionary<InteractionProvider, FailedPathCacheEntry>();
 
     public string CurrentStatus => currentStatus;
     public string CurrentInteractionName => currentInteractionName;
@@ -285,17 +297,26 @@ public class PilotInteractionController : MonoBehaviour
             if (provider == null || !provider.InteractionsEnabled)
                 continue;
 
+            bool travelTimeCalculated = false;
+            float providerTravelTime = float.PositiveInfinity;
+
             foreach (InteractionDefinition definition in provider.Interactions)
             {
                 if (definition == null || !provider.CanOffer(definition) ||
                     CalculateUtility(definition) <= 0f)
                     continue;
 
-                float travelTime =
-                    movement.EstimateTravelTime(provider);
+                if (!travelTimeCalculated)
+                {
+                    travelTimeCalculated = true;
+                    TryEstimateProviderTravelTime(provider, out providerTravelTime);
+                }
 
-                if (!float.IsInfinity(travelTime) && !float.IsNaN(travelTime))
+                if (!float.IsInfinity(providerTravelTime) &&
+                    !float.IsNaN(providerTravelTime))
+                {
                     return true;
+                }
             }
         }
 
@@ -336,6 +357,9 @@ public class PilotInteractionController : MonoBehaviour
             if (provider == null || !provider.InteractionsEnabled)
                 continue;
 
+            bool travelTimeCalculated = false;
+            float providerTravelTime = float.PositiveInfinity;
+
             foreach (InteractionDefinition definition in provider.Interactions)
             {
                 if (definition == null || !provider.CanOffer(definition))
@@ -353,9 +377,13 @@ public class PilotInteractionController : MonoBehaviour
                     utility *= pilotsLoungeUtilityMultiplier;
                 }
 
-                float travelTime =
-                    movement.EstimateTravelTime(provider);
+                if (!travelTimeCalculated)
+                {
+                    travelTimeCalculated = true;
+                    TryEstimateProviderTravelTime(provider, out providerTravelTime);
+                }
 
+                float travelTime = providerTravelTime;
                 if (float.IsInfinity(travelTime) || float.IsNaN(travelTime))
                     continue;
 
@@ -464,6 +492,54 @@ public class PilotInteractionController : MonoBehaviour
             PerformanceMonitoringManager.RecordTrackedMethod("TryStartSelectedInteraction", performanceTimingStart);
         }
 }
+
+    /// <summary>
+    /// Estimates a route once per provider scan. Failed routes are briefly
+    /// cached so repeated AI eligibility checks do not rerun the same
+    /// expensive A* search against an inaccessible door every second.
+    /// Moving away from the position where the route failed invalidates the
+    /// entry, allowing a new approach to be tested.
+    /// </summary>
+    private bool TryEstimateProviderTravelTime(
+        InteractionProvider provider,
+        out float travelTime)
+    {
+        travelTime = float.PositiveInfinity;
+
+        if (provider == null || movement == null)
+            return false;
+
+        if (failedProviderPaths.TryGetValue(
+                provider,
+                out FailedPathCacheEntry cachedFailure))
+        {
+            const float positionChangeThreshold = 2f;
+            bool pilotMoved =
+                (transform.position - cachedFailure.PilotPosition).sqrMagnitude >=
+                positionChangeThreshold * positionChangeThreshold;
+
+            if (!pilotMoved && Time.time < cachedFailure.RetryAfter)
+                return false;
+
+            failedProviderPaths.Remove(provider);
+        }
+
+        travelTime = movement.EstimateTravelTime(provider);
+
+        if (float.IsInfinity(travelTime) || float.IsNaN(travelTime))
+        {
+            failedProviderPaths[provider] = new FailedPathCacheEntry
+            {
+                RetryAfter = Time.time + failedPathRetryInterval,
+                PilotPosition = transform.position
+            };
+
+            return false;
+        }
+
+        failedProviderPaths.Remove(provider);
+        return true;
+    }
 
     private void AddToShortlist(InteractionCandidate candidate)
     {
