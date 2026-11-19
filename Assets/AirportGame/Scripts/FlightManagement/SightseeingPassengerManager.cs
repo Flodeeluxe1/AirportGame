@@ -60,6 +60,7 @@ public class SightseeingPassengerManager : MonoBehaviour
         public int nextBoardingIndex;
         public bool boardingStarted;
         public bool returned;
+        public bool cancelled;
     }
 
     private readonly List<FlightGroup> activeGroups = new List<FlightGroup>();
@@ -89,6 +90,9 @@ public class SightseeingPassengerManager : MonoBehaviour
     {
         ResolveReferences();
         SubscribeToSpawner();
+
+        if (!SightseeingAircraftSpawner.HasTicketDeskPlaced())
+            CancelUnspawnedGroupsWithoutDesk();
 
         activePassengers = 0;
         for (int i = 0; i < activeGroups.Count; i++)
@@ -172,15 +176,10 @@ public class SightseeingPassengerManager : MonoBehaviour
         for (int i = activeGroups.Count - 1; i >= 0; i--)
         {
             FlightGroup stale = activeGroups[i];
-            if (stale.turnaround == null &&
+            if (stale.turnaround == null && !stale.cancelled &&
                 stale.scheduledHourSlot < hourSlot &&
                 stale.scheduledHourSlot != pendingAircraftSlot)
-            {
-                for (int j = 0; j < stale.passengers.Count; j++)
-                    if (stale.passengers[j]?.agent != null)
-                        stale.passengers[j].agent.BeginReturnToCar();
-                activeGroups.RemoveAt(i);
-            }
+                CancelGroup(stale);
         }
 
         for (int i = 0; i < activeGroups.Count; i++)
@@ -237,7 +236,7 @@ public class SightseeingPassengerManager : MonoBehaviour
         FlightGroup group = null;
         for (int i = 0; i < activeGroups.Count; i++)
         {
-            if (activeGroups[i].scheduledHourSlot == flightSlot)
+            if (!activeGroups[i].cancelled && activeGroups[i].scheduledHourSlot == flightSlot)
             {
                 group = activeGroups[i];
                 break;
@@ -264,8 +263,14 @@ public class SightseeingPassengerManager : MonoBehaviour
 
     private void HandleCarParked(TrafficTestVehicle car)
     {
-        PassengerRecord record = FindRecord(car, out _);
+        PassengerRecord record = FindRecord(car, out FlightGroup group);
         if (record == null || car == null) return;
+        if (group != null && (group.cancelled || group.boardingStarted))
+        {
+            record.completed = true;
+            car.RequestDeparture();
+            return;
+        }
 
         Vector3 desired = car.ParkingPosition + car.transform.right * carExitOffset;
         if (passengerPrefab == null || pedestrianPathfinder == null ||
@@ -499,6 +504,37 @@ public class SightseeingPassengerManager : MonoBehaviour
         TryRemoveFinishedGroup(group);
     }
 
+    private void CancelUnspawnedGroupsWithoutDesk()
+    {
+        for (int i = 0; i < activeGroups.Count; i++)
+        {
+            FlightGroup group = activeGroups[i];
+            if (group.turnaround == null && !group.cancelled)
+                CancelGroup(group);
+        }
+    }
+
+    private void CancelGroup(FlightGroup group)
+    {
+        if (group == null || group.cancelled) return;
+        group.cancelled = true;
+
+        for (int i = 0; i < group.passengers.Count; i++)
+        {
+            PassengerRecord record = group.passengers[i];
+            if (record == null) continue;
+
+            if (record.agent != null)
+                record.agent.BeginReturnToCar();
+            else if (record.vehicle != null && record.vehicle.IsParked)
+                record.vehicle.RequestDeparture();
+            else if (record.vehicle == null)
+                record.completed = true;
+        }
+
+        TryRemoveFinishedGroup(group);
+    }
+
     private void RetryCheckIn()
     {
         for (int i = 0; i < activeGroups.Count; i++)
@@ -550,7 +586,7 @@ public class SightseeingPassengerManager : MonoBehaviour
     {
         // Keep the manifest attached until the aircraft has returned. This
         // prevents a zero-passenger cohort from falling back to random demand.
-        if (group == null || !group.returned) return;
+        if (group == null || (!group.returned && !group.cancelled)) return;
         for (int i = 0; i < group.passengers.Count; i++)
             if (group.passengers[i] != null && !group.passengers[i].completed) return;
 
