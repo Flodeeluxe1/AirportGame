@@ -41,7 +41,7 @@ public class GameMenuUIController : MonoBehaviour
             uiDocument = GetComponent<UIDocument>();
 
         if (gameTimeManager == null)
-            gameTimeManager = FindFirstObjectByType<GameTimeManager>();
+            gameTimeManager = FindAnyObjectByType<GameTimeManager>();
 
         if (uiDocument == null)
         {
