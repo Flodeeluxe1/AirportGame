@@ -401,7 +401,7 @@ public class AircraftTurnaroundController : MonoBehaviour
         aircraftFuelTank = GetComponent<AircraftFuelTank>();
 
         if (gameTimeManager == null)
-            gameTimeManager = FindFirstObjectByType<GameTimeManager>();
+            gameTimeManager = FindAnyObjectByType<GameTimeManager>();
 
         if (loadingManifest == null)
             loadingManifest = GetComponent<AircraftLoadingManifest>();
@@ -609,7 +609,7 @@ public class AircraftTurnaroundController : MonoBehaviour
         }
 
         AircraftGateRegistry gateRegistry =
-            FindFirstObjectByType<AircraftGateRegistry>();
+            FindAnyObjectByType<AircraftGateRegistry>();
 
         if (gateRegistry == null ||
             !gateRegistry.TryGetGate(
