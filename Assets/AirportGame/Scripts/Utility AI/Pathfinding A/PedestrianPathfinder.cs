@@ -106,6 +106,9 @@ public class PedestrianPathfinder : MonoBehaviour
         Vector2Int target,
         PedestrianAccessProfile accessProfile = null)
     {
+        long performanceTimingStart = System.Diagnostics.Stopwatch.GetTimestamp();
+        try
+        {
         if (!HasValidReferences() ||
             !IsWalkable(start) ||
             !IsWalkable(target))
@@ -218,6 +221,12 @@ public class PedestrianPathfinder : MonoBehaviour
         }
 
         return new List<Vector2Int>();
+    
+        }
+        finally
+        {
+            PerformanceMonitoringManager.RecordTrackedMethod("PedestrianPathfinder.FindPath", performanceTimingStart);
+        }
     }
 
     /// <summary>
@@ -337,6 +346,9 @@ public class PedestrianPathfinder : MonoBehaviour
         bool logFailure = true,
         PedestrianAccessProfile accessProfile = null)
     {
+        long performanceTimingStart = System.Diagnostics.Stopwatch.GetTimestamp();
+        try
+        {
         selectedDestination = preferredWorld;
         worldPath = FindWorldPath(startWorld, preferredWorld, accessProfile);
 
@@ -399,6 +411,12 @@ public class PedestrianPathfinder : MonoBehaviour
         selectedDestination = gridManager.GridToWorldCenter(bestTarget);
         selectedDestination.y += pathHeightOffset;
         return worldPath.Count > 0;
+    
+        }
+        finally
+        {
+            PerformanceMonitoringManager.RecordTrackedMethod("PedestrianPathfinder.TryFindBestApproachPath", performanceTimingStart);
+        }
     }
 
     private List<Vector2Int> GetApproachCells(
