@@ -6,7 +6,7 @@ using UnityEngine;
 /// </summary>
 [CreateAssetMenu(
     fileName = "AccessGroup",
-    menuName = "Airport Game/Access/Access Group")]
+    menuName = "Airport/Access/Access Group")]
 public class AccessGroup : ScriptableObject
 {
     [SerializeField] private string displayName;
