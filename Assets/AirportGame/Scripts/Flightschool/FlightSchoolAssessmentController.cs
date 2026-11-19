@@ -179,11 +179,11 @@ public class FlightSchoolAssessmentController : MonoBehaviour
         if (roomPurposeController == null)
         {
             roomPurposeController =
-                FindFirstObjectByType<RoomPurposeController>();
+                FindAnyObjectByType<RoomPurposeController>();
         }
 
         if (roomDetection == null)
-            roomDetection = FindFirstObjectByType<RoomDetectionController>();
+            roomDetection = FindAnyObjectByType<RoomDetectionController>();
     }
 
     [ContextMenu("Refresh Flight School Assessments")]
