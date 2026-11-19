@@ -103,43 +103,43 @@ public class BuildingSelectionController : MonoBehaviour
             gridSurface = gridManager.GetComponent<GridSurface>();
 
         if (moveController == null)
-            moveController = FindFirstObjectByType<CellBuildingMoveController>();
+            moveController = FindAnyObjectByType<CellBuildingMoveController>();
 
         if (floorFinishPainter == null)
-            floorFinishPainter = FindFirstObjectByType<FloorFinishPainter>();
+            floorFinishPainter = FindAnyObjectByType<FloorFinishPainter>();
 
         if (wallFinishPainter == null)
-            wallFinishPainter = FindFirstObjectByType<WallFinishPainter>();
+            wallFinishPainter = FindAnyObjectByType<WallFinishPainter>();
 
         if (foundationTilemapController == null)
         {
             foundationTilemapController =
-                FindFirstObjectByType<FoundationTilemapController>();
+                FindAnyObjectByType<FoundationTilemapController>();
         }
 
         if (roadNetwork == null)
-            roadNetwork = FindFirstObjectByType<RoadNetwork>();
+            roadNetwork = FindAnyObjectByType<RoadNetwork>();
 
         if (roadModuleRuleManager == null)
         {
             roadModuleRuleManager =
-                FindFirstObjectByType<RoadModuleRuleManager>();
+                FindAnyObjectByType<RoadModuleRuleManager>();
         }
 
         if (roadTilemapController == null)
-            roadTilemapController = FindFirstObjectByType<RoadTilemapController>();
+            roadTilemapController = FindAnyObjectByType<RoadTilemapController>();
 
         if (taxiwayNetwork == null)
-            taxiwayNetwork = FindFirstObjectByType<TaxiwayNetwork>();
+            taxiwayNetwork = FindAnyObjectByType<TaxiwayNetwork>();
 
         if (taxiwayPrefabRuleManager == null)
         {
             taxiwayPrefabRuleManager =
-                FindFirstObjectByType<TaxiwayPrefabRuleManager>();
+                FindAnyObjectByType<TaxiwayPrefabRuleManager>();
         }
 
         if (pipelinePrefabRuleManager == null)
-            pipelinePrefabRuleManager = FindFirstObjectByType<PipelinePrefabRuleManager>();
+            pipelinePrefabRuleManager = FindAnyObjectByType<PipelinePrefabRuleManager>();
 
         CreateHighlightMaterial();
         CreateSelectionBoxMaterial();
@@ -1101,7 +1101,7 @@ public class BuildingSelectionController : MonoBehaviour
             if (isTarmac)
             {
                 tarmacTilemapController =
-                    FindFirstObjectByType<TarmacTilemapController>();
+                    FindAnyObjectByType<TarmacTilemapController>();
             }
 
             for (int x = 0; x < selectionWidth; x++)
@@ -1120,7 +1120,7 @@ public class BuildingSelectionController : MonoBehaviour
                     if (!isTarmac)
                     {
                         FloorFinishRenderer finishRenderer =
-                            FindFirstObjectByType<FloorFinishRenderer>();
+                            FindAnyObjectByType<FloorFinishRenderer>();
 
                         if (finishRenderer != null)
                             finishRenderer.ClearFinish(cell);
@@ -1176,7 +1176,7 @@ public class BuildingSelectionController : MonoBehaviour
             if (!string.IsNullOrWhiteSpace(gateStableId))
             {
                 FlightManagementUIController flightManagement =
-                    FindFirstObjectByType<FlightManagementUIController>();
+                    FindAnyObjectByType<FlightManagementUIController>();
 
                 if (flightManagement != null)
                 {
