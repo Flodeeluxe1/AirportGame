@@ -563,7 +563,7 @@ public class AircraftSSTakeoffController : MonoBehaviour
             return;
 
         long now = GetAbsoluteGameSecond();
-        long elapsed = Mathf.Max(0L, now - lastCruiseGameSecond);
+        long elapsed = System.Math.Max(0L, now - lastCruiseGameSecond);
         if (elapsed > 0)
         {
             cruiseAngleDegrees += elapsed / 60f * cruiseOrbitDegreesPerGameMinute;
