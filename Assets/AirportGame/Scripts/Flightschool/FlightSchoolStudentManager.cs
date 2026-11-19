@@ -281,8 +281,7 @@ public class FlightSchoolStudentManager : MonoBehaviour
 
         PlacedBuilding[] placedBuildings =
             FindObjectsByType<PlacedBuilding>(
-                FindObjectsInactive.Exclude,
-                FindObjectsSortMode.None);
+                FindObjectsInactive.Exclude);
 
         foreach (PlacedBuilding placed in placedBuildings)
         {
