@@ -53,7 +53,7 @@ public class RoomPurposeController : MonoBehaviour
     // same pedestrian profile, avoiding repeated boundary/door checks.
     private readonly Dictionary<Vector2Int, RoomDetectionController.DetectedRoom> roomByCell =
         new Dictionary<Vector2Int, RoomDetectionController.DetectedRoom>();
-    private readonly Dictionary<int, Dictionary<Vector2Int, bool>> roomAccessCache =
+    private readonly Dictionary<EntityId, Dictionary<Vector2Int, bool>> roomAccessCache =
         new Dictionary<int, Dictionary<Vector2Int, bool>>();
     private bool roomAccessLookupDirty = true;
 
@@ -130,7 +130,7 @@ public class RoomPurposeController : MonoBehaviour
             return true;
 
         Vector2Int anchor = GetAnchor(room);
-        int profileId = pedestrian != null ? pedestrian.GetEntityId() : 0;
+        EntityId profileId = pedestrian != null ? pedestrian.GetEntityId() : default;
 
         if (!roomAccessCache.TryGetValue(profileId, out var profileCache))
         {
