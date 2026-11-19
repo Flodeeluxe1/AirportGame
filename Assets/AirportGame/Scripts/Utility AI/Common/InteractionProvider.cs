@@ -79,7 +79,7 @@ public class InteractionProvider : MonoBehaviour
 
             if (!gridManagerLookupAttempted)
             {
-                cachedGridManager = FindFirstObjectByType<GridManager>();
+                cachedGridManager = FindAnyObjectByType<GridManager>();
                 gridManagerLookupAttempted = true;
             }
 
