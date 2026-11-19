@@ -30,7 +30,7 @@ public class SaveLoadMenuController : MonoBehaviour
         if (airportWorldResetController == null)
         {
             airportWorldResetController =
-                FindFirstObjectByType<AirportWorldResetController>();
+                FindAnyObjectByType<AirportWorldResetController>();
         }
     }
 
