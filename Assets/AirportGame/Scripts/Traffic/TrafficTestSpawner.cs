@@ -39,10 +39,10 @@ public class TrafficTestSpawner : MonoBehaviour
     private void Awake()
     {
         if (gridManager == null)
-            gridManager = FindFirstObjectByType<GridManager>();
+            gridManager = FindAnyObjectByType<GridManager>();
 
         if (gameTimeManager == null)
-            gameTimeManager = FindFirstObjectByType<GameTimeManager>();
+            gameTimeManager = FindAnyObjectByType<GameTimeManager>();
     }
 
     private void Start()
@@ -222,7 +222,7 @@ public class TrafficTestSpawner : MonoBehaviour
         GameObject vehiclePrefab)
     {
         if (gridManager == null)
-            gridManager = FindFirstObjectByType<GridManager>();
+            gridManager = FindAnyObjectByType<GridManager>();
 
         if (gridManager == null || exitPoint == null || vehiclePrefab == null)
         {
