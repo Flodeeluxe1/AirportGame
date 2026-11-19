@@ -16,6 +16,13 @@ public class FlightSchoolStudentGroupConversationController : MonoBehaviour
         new List<FlightSchoolStudentGroupConversationController>(32);
     private static readonly List<PedestrianMovementController> NearbyMovements =
         new List<PedestrianMovementController>(24);
+    private static readonly List<FlightSchoolStudentGroupConversationController> CandidateControllers =
+        new List<FlightSchoolStudentGroupConversationController>(16);
+    private static readonly List<Vector2Int> FreeMeetingCells = new List<Vector2Int>(128);
+    private static readonly Dictionary<Vector2Int, Vector3> WalkableMeetingTargets =
+        new Dictionary<Vector2Int, Vector3>(128);
+    private static readonly Dictionary<Vector2Int, float> NextRoomSearchTime =
+        new Dictionary<Vector2Int, float>();
     private static readonly HashSet<Vector2Int> ReservedMeetingCells =
         new HashSet<Vector2Int>();
 
@@ -92,6 +99,14 @@ public class FlightSchoolStudentGroupConversationController : MonoBehaviour
     private void OnDisable()
     {
         ActiveControllers.Remove(this);
+        if (ActiveControllers.Count == 0)
+        {
+            NextRoomSearchTime.Clear();
+            ReservedMeetingCells.Clear();
+            CandidateControllers.Clear();
+            FreeMeetingCells.Clear();
+            WalkableMeetingTargets.Clear();
+        }
 
         if (movement != null)
         {
@@ -202,8 +217,17 @@ public class FlightSchoolStudentGroupConversationController : MonoBehaviour
         if (!CanJoin() || roomDetection == null || gridManager == null || pathfinder == null)
             return;
 
-        List<FlightSchoolStudentGroupConversationController> candidates =
-            new List<FlightSchoolStudentGroupConversationController>(maximumGroupSize) { this };
+        if (NextRoomSearchTime.TryGetValue(classroomAnchor, out float nextRoomSearch) &&
+            Time.time < nextRoomSearch)
+            return;
+
+        NextRoomSearchTime[classroomAnchor] = Time.time + searchInterval;
+
+        // All students in one classroom share this search, rather than each
+        // independently scanning the same room and allocating their own lists.
+        List<FlightSchoolStudentGroupConversationController> candidates = CandidateControllers;
+        candidates.Clear();
+        candidates.Add(this);
 
         for (int i = 0; i < ActiveControllers.Count; i++)
         {
@@ -284,7 +308,11 @@ public class FlightSchoolStudentGroupConversationController : MonoBehaviour
             room == null || room.cells == null)
             return false;
 
-        List<Vector2Int> freeCells = new List<Vector2Int>(room.cells.Count);
+        List<Vector2Int> freeCells = FreeMeetingCells;
+        Dictionary<Vector2Int, Vector3> walkableTargets = WalkableMeetingTargets;
+        freeCells.Clear();
+        walkableTargets.Clear();
+
         for (int i = 0; i < room.cells.Count; i++)
         {
             Vector2Int cell = room.cells[i];
@@ -301,6 +329,7 @@ public class FlightSchoolStudentGroupConversationController : MonoBehaviour
                 continue;
 
             freeCells.Add(cell);
+            walkableTargets[cell] = walkablePosition;
         }
 
         // Shuffle so groups do not repeatedly gather in the same part of the room.
@@ -318,8 +347,7 @@ public class FlightSchoolStudentGroupConversationController : MonoBehaviour
         for (int i = 0; i < freeCells.Count && selectedCells.Count < requiredCount; i++)
         {
             Vector2Int cell = freeCells[i];
-            Vector3 cellCenter = gridManager.GridToWorldCenter(cell);
-            if (!pathfinder.TryFindNearestWalkablePosition(cellCenter, 0, out Vector3 target))
+            if (!walkableTargets.TryGetValue(cell, out Vector3 target))
                 continue;
 
             bool tooClose = false;
