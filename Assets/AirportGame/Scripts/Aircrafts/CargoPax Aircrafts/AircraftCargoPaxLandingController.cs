@@ -260,9 +260,7 @@ public class AircraftCargoPaxLandingController : MonoBehaviour
     private bool SelectLandingRunway()
     {
         AircraftRunway[] runways =
-            FindObjectsByType<AircraftRunway>(
-                FindObjectsSortMode.None
-            );
+            FindObjectsByType<AircraftRunway>();
 
         if (runways.Length == 0)
             return false;
