@@ -59,6 +59,6 @@ public sealed class FuelConnector : MonoBehaviour
     private void ResolveGridManager()
     {
         if (gridManager == null)
-            gridManager = FindFirstObjectByType<GridManager>();
+            gridManager = FindAnyObjectByType<GridManager>();
     }
 }
