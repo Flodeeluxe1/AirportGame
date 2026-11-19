@@ -73,13 +73,13 @@ public class FloorFinishRenderer : MonoBehaviour
     private void ResolveReferences()
     {
         if (gridManager == null)
-            gridManager = FindFirstObjectByType<GridManager>();
+            gridManager = FindAnyObjectByType<GridManager>();
 
         if (gridSurface == null && gridManager != null)
             gridSurface = gridManager.GetComponent<GridSurface>();
 
         if (edgeOccupancy == null)
-            edgeOccupancy = FindFirstObjectByType<EdgeOccupancy>();
+            edgeOccupancy = FindAnyObjectByType<EdgeOccupancy>();
     }
 
     private void InitializeCellData()
