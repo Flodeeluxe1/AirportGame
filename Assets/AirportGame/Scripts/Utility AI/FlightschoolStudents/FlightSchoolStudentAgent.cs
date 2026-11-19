@@ -12,6 +12,9 @@ public class FlightSchoolStudentAgent : MonoBehaviour
     private PedestrianMovementController movement;
     private TrafficTestVehicle vehicle;
     private Renderer[] studentRenderers;
+    private Vector3 hiddenLessonPosition;
+    private Quaternion hiddenLessonRotation;
+    private bool hasHiddenLessonPosition;
 
     private InteractionProvider reservedSeat;
     private InteractionDefinition seatInteraction;
@@ -103,6 +106,27 @@ public class FlightSchoolStudentAgent : MonoBehaviour
     {
         if (studentRenderers == null)
             studentRenderers = GetComponentsInChildren<Renderer>(true);
+
+        if (!visible)
+        {
+            // Keep the student at the aircraft boarding point throughout the
+            // lesson. Capture the pose only once in case the hide call repeats.
+            if (!hasHiddenLessonPosition)
+            {
+                hiddenLessonPosition = transform.position;
+                hiddenLessonRotation = transform.rotation;
+                hasHiddenLessonPosition = true;
+            }
+        }
+        else if (hasHiddenLessonPosition)
+        {
+            // Restore the boarding point before showing the student again.
+            // ReturnToSeat can then pathfind from the aircraft to the classroom.
+            transform.SetPositionAndRotation(
+                hiddenLessonPosition,
+                hiddenLessonRotation);
+            hasHiddenLessonPosition = false;
+        }
 
         foreach (Renderer studentRenderer in studentRenderers)
         {
