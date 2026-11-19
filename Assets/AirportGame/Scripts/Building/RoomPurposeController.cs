@@ -371,22 +371,22 @@ public class RoomPurposeController : MonoBehaviour
             mainCamera = Camera.main;
 
         if (gridManager == null)
-            gridManager = FindFirstObjectByType<GridManager>();
+            gridManager = FindAnyObjectByType<GridManager>();
 
         if (gridSurface == null && gridManager != null)
             gridSurface = gridManager.GetComponent<GridSurface>();
 
         if (edgeOccupancy == null)
-            edgeOccupancy = FindFirstObjectByType<EdgeOccupancy>();
+            edgeOccupancy = FindAnyObjectByType<EdgeOccupancy>();
 
         if (roomDetection == null)
-            roomDetection = FindFirstObjectByType<RoomDetectionController>();
+            roomDetection = FindAnyObjectByType<RoomDetectionController>();
 
         if (buildController == null)
-            buildController = FindFirstObjectByType<BuildController>();
+            buildController = FindAnyObjectByType<BuildController>();
 
         if (infoPanel == null)
-            infoPanel = FindFirstObjectByType<RoomInfoPanelUIController>();
+            infoPanel = FindAnyObjectByType<RoomInfoPanelUIController>();
     }
 
     private bool TryGetMouseCell(out Vector2Int cell)
