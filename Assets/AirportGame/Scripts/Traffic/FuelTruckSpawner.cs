@@ -194,7 +194,7 @@ public class FuelTruckSpawner : MonoBehaviour
         List<StationRoute> candidates = new List<StationRoute>();
 
         FuelDeliveryStation[] stations =
-            FindObjectsByType<FuelDeliveryStation>(FindObjectsSortMode.None);
+            FindObjectsByType<FuelDeliveryStation>();
 
         foreach (FuelDeliveryStation station in stations)
         {
