@@ -17,7 +17,7 @@ public class FuelManagementUIController : MonoBehaviour
             ? uiDocument
             : GetComponent<UIDocument>() != null
                 ? GetComponent<UIDocument>()
-                : FindFirstObjectByType<UIDocument>();
+                : FindAnyObjectByType<UIDocument>();
     [SerializeField] private PipelineNetworkManager pipelineNetworkManager;
     [SerializeField] private FuelTruckSpawner fuelTruckSpawner;
 
@@ -58,7 +58,7 @@ public class FuelManagementUIController : MonoBehaviour
             uiDocument = GetComponent<UIDocument>();
 
         if (uiDocument == null)
-            uiDocument = FindFirstObjectByType<UIDocument>();
+            uiDocument = FindAnyObjectByType<UIDocument>();
 
         ResolveDataSources();
 
@@ -115,11 +115,11 @@ public class FuelManagementUIController : MonoBehaviour
     {
         if (pipelineNetworkManager == null)
             pipelineNetworkManager =
-                FindFirstObjectByType<PipelineNetworkManager>();
+                FindAnyObjectByType<PipelineNetworkManager>();
 
         if (fuelTruckSpawner == null)
             fuelTruckSpawner =
-                FindFirstObjectByType<FuelTruckSpawner>();
+                FindAnyObjectByType<FuelTruckSpawner>();
     }
 
     private void CreateOpenButton()
