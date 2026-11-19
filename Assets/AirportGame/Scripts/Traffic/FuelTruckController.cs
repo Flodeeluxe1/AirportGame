@@ -81,9 +81,9 @@ public class FuelTruckController : MonoBehaviour
 
     private void Awake()
     {
-        roadNetwork = FindFirstObjectByType<RoadNetwork>();
-        gridManager = FindFirstObjectByType<GridManager>();
-        intersectionManager = FindFirstObjectByType<IntersectionManager>();
+        roadNetwork = FindAnyObjectByType<RoadNetwork>();
+        gridManager = FindAnyObjectByType<GridManager>();
+        intersectionManager = FindAnyObjectByType<IntersectionManager>();
 
         trafficFollowing = GetComponent<TrafficFollowing>();
         if (trafficFollowing == null)
@@ -116,12 +116,12 @@ public class FuelTruckController : MonoBehaviour
         ownerSpawner = spawner;
         deliveryLitres = amountLitres;
         fuelPricePerLitre = Mathf.Max(0.01f, pricePerLitre);
-        economyManager = FindFirstObjectByType<AirportEconomyManager>();
+        economyManager = FindAnyObjectByType<AirportEconomyManager>();
 
         if (roadNetwork == null)
-            roadNetwork = FindFirstObjectByType<RoadNetwork>();
+            roadNetwork = FindAnyObjectByType<RoadNetwork>();
         if (gridManager == null)
-            gridManager = FindFirstObjectByType<GridManager>();
+            gridManager = FindAnyObjectByType<GridManager>();
 
         stopPoint = deliveryStation != null
             ? deliveryStation.FuelTruckStopPoint
@@ -505,7 +505,7 @@ public class FuelTruckController : MonoBehaviour
         }
 
         if (economyManager == null)
-            economyManager = FindFirstObjectByType<AirportEconomyManager>();
+            economyManager = FindAnyObjectByType<AirportEconomyManager>();
 
         if (economyManager == null || targetFuelNetwork == null)
         {
