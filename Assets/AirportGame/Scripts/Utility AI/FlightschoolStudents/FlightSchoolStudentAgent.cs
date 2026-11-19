@@ -482,25 +482,44 @@ public class FlightSchoolStudentAgent : MonoBehaviour
     private bool TryStartNeedInteraction()
     {
         if (needs == null || movement == null || reservedSeat == null)
+        {
+            LogNeedDecisionDiagnostic("Cannot search: NeedsMissing=" + (needs == null) +
+                ", MovementMissing=" + (movement == null) + ", SeatMissing=" + (reservedSeat == null) + ".");
             return false;
+        }
 
         UtilityAISpatialRegistry<InteractionProvider>.GetNearby(
             transform.position, needInteractionSearchRadius, nearbyNeedProviders);
 
         needShortlist.Clear();
+        int inaccessibleProviders = 0;
+        int unavailableProviders = 0;
+        int noMatchingNeedProviders = 0;
+        int unreachableProviders = 0;
 
         for (int providerIndex = 0; providerIndex < nearbyNeedProviders.Count; providerIndex++)
         {
             InteractionProvider provider = nearbyNeedProviders[providerIndex];
-            if (provider == null || provider == reservedSeat ||
-                !provider.InteractionsEnabled ||
-                (roomPurposeController != null &&
-                 !roomPurposeController.IsPositionAccessibleToPedestrian(
-                     provider.InteractionPosition, accessProfile)))
+            if (provider == null || provider == reservedSeat)
                 continue;
+
+            if (!provider.InteractionsEnabled)
+            {
+                unavailableProviders++;
+                continue;
+            }
+
+            if (roomPurposeController != null &&
+                !roomPurposeController.IsPositionAccessibleToPedestrian(
+                    provider.InteractionPosition, accessProfile))
+            {
+                inaccessibleProviders++;
+                continue;
+            }
 
             float providerTravelTime = -1f;
 
+            bool providerMatchedNeed = false;
             foreach (InteractionDefinition definition in provider.Interactions)
             {
                 if (definition == null || !provider.CanOffer(definition))
@@ -510,12 +529,17 @@ public class FlightSchoolStudentAgent : MonoBehaviour
                 if (utility <= 0f)
                     continue;
 
+                providerMatchedNeed = true;
+
                 if (providerTravelTime < 0f)
                     providerTravelTime = movement.EstimateTravelTime(provider);
 
                 if (float.IsInfinity(providerTravelTime) ||
                     float.IsNaN(providerTravelTime))
+                {
+                    unreachableProviders++;
                     continue;
+                }
 
                 float waitingTime = provider.Queue != null && provider.Queue.QueueEnabled
                     ? provider.Queue.GetEstimatedWaitTime()
@@ -537,10 +561,24 @@ public class FlightSchoolStudentAgent : MonoBehaviour
                     });
                 }
             }
+
+            if (!providerMatchedNeed)
+                noMatchingNeedProviders++;
         }
 
         if (needShortlist.Count == 0)
         {
+            LogNeedDecisionDiagnostic(
+                "No eligible need interaction. NearbyProviders=" + nearbyNeedProviders.Count +
+                ", Inaccessible=" + inaccessibleProviders +
+                ", Disabled=" + unavailableProviders +
+                ", NoMatchingNeed=" + noMatchingNeedProviders +
+                ", Unreachable=" + unreachableProviders +
+                ", ThirstConsidered=" + needs.IsNeedConsidered(UtilityNeeds.NeedType.Thirst) +
+                ", ThirstValue=" + needs.GetValue(UtilityNeeds.NeedType.Thirst).ToString("0.0") +
+                ", ThirstUrgency=" + needs.GetUrgency(UtilityNeeds.NeedType.Thirst).ToString("0.0") +
+                ", ThirstWeight=" + needs.GetUtilityWeight(UtilityNeeds.NeedType.Thirst).ToString("0.0") +
+                ", Position=" + transform.position + ".");
             if (!atSeat && !walkingToSeat && !walkingToAircraft && !walkingToCar)
                 ReturnToSeat();
             return false;
@@ -563,6 +601,10 @@ public class FlightSchoolStudentAgent : MonoBehaviour
                 break;
             }
         }
+
+        LogNeedDecisionDiagnostic(
+            "Selected " + selected.definition.DisplayName + " at " + selected.provider.name +
+            + "; Candidates=" + needShortlist.Count + ", TravelTime=" + selected.travelTime.ToString("0.0") + "s.");
 
         if (atSeat && reservedSeat != null)
             movement.AlignToInteractionPoint(reservedSeat);
@@ -603,6 +645,15 @@ public class FlightSchoolStudentAgent : MonoBehaviour
         }
 
         return true;
+    }
+
+    private void LogNeedDecisionDiagnostic(string message)
+    {
+        if (lastNeedDecisionDiagnostic == message)
+            return;
+
+        lastNeedDecisionDiagnostic = message;
+        Debug.LogWarning("FlightSchoolStudentAgent " + name + ": " + message, this);
     }
 
     private float CalculateNeedUtility(InteractionDefinition definition)
