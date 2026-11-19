@@ -23,13 +23,13 @@ public class WallFinishMenuController : MonoBehaviour
             uiDocument = GetComponent<UIDocument>();
 
         if (uiDocument == null)
-            uiDocument = FindFirstObjectByType<UIDocument>();
+            uiDocument = FindAnyObjectByType<UIDocument>();
 
         if (painter == null)
-            painter = FindFirstObjectByType<WallFinishPainter>();
+            painter = FindAnyObjectByType<WallFinishPainter>();
 
         if (floorPainter == null)
-            floorPainter = FindFirstObjectByType<FloorFinishPainter>();
+            floorPainter = FindAnyObjectByType<FloorFinishPainter>();
 
         if (uiDocument == null)
         {
