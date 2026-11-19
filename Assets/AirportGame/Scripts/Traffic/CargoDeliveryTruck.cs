@@ -361,13 +361,13 @@ public class CargoDeliveryTruck : MonoBehaviour
             trafficFollowing = gameObject.AddComponent<TrafficFollowing>();
 
         if (roadNetwork == null)
-            roadNetwork = FindFirstObjectByType<RoadNetwork>();
+            roadNetwork = FindAnyObjectByType<RoadNetwork>();
 
         if (gridManager == null)
-            gridManager = FindFirstObjectByType<GridManager>();
+            gridManager = FindAnyObjectByType<GridManager>();
 
         if (intersectionManager == null)
-            intersectionManager = FindFirstObjectByType<IntersectionManager>();
+            intersectionManager = FindAnyObjectByType<IntersectionManager>();
 
         truckRenderers = GetComponentsInChildren<Renderer>(true);
         truckColliders = GetComponentsInChildren<Collider>(true);
