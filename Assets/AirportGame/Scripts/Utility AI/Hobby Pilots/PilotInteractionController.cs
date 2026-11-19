@@ -270,6 +270,9 @@ public class PilotInteractionController : MonoBehaviour
     /// </summary>
     public bool HasSuitableAvailableInteraction()
     {
+        long performanceTimingStart = System.Diagnostics.Stopwatch.GetTimestamp();
+        try
+        {
         if (needs == null || movement == null)
             return false;
 
@@ -297,7 +300,13 @@ public class PilotInteractionController : MonoBehaviour
         }
 
         return false;
-    }
+    
+        }
+        finally
+        {
+            PerformanceMonitoringManager.RecordTrackedMethod("HasSuitableAvailableInteraction", performanceTimingStart);
+        }
+}
 
     /// <summary>
     /// True while no utility interaction or social activity currently owns this pilot.
@@ -312,6 +321,9 @@ public class PilotInteractionController : MonoBehaviour
 
     private void TryStartSelectedInteraction()
     {
+        long performanceTimingStart = System.Diagnostics.Stopwatch.GetTimestamp();
+        try
+        {
         shortlist.Clear();
         debugCandidates.Clear();
 
@@ -445,7 +457,13 @@ public class PilotInteractionController : MonoBehaviour
         }
 
         currentStatus = "Walking to " + currentInteractionName;
-    }
+    
+        }
+        finally
+        {
+            PerformanceMonitoringManager.RecordTrackedMethod("TryStartSelectedInteraction", performanceTimingStart);
+        }
+}
 
     private void AddToShortlist(InteractionCandidate candidate)
     {
