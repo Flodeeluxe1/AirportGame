@@ -106,7 +106,7 @@ public class AirportRatingUI : MonoBehaviour
             uiDocument = GetComponent<UIDocument>();
 
         if (uiDocument == null)
-            uiDocument = FindFirstObjectByType<UIDocument>();
+            uiDocument = FindAnyObjectByType<UIDocument>();
 
         ResolveRatingManager();
     }
@@ -117,7 +117,7 @@ public class AirportRatingUI : MonoBehaviour
             ratingManager = AirportRatingManager.Instance;
 
         if (ratingManager == null)
-            ratingManager = FindFirstObjectByType<AirportRatingManager>();
+            ratingManager = FindAnyObjectByType<AirportRatingManager>();
     }
 
     private void CreateRatingButton()
