@@ -433,6 +433,25 @@ public class AirportWorldResetController : MonoBehaviour
             FoundationBoundaryOwnership boundaryOwnership =
                 building.GetComponent<FoundationBoundaryOwnership>();
 
+            DoorAccessController doorAccess =
+                building.GetComponent<DoorAccessController>();
+
+            if (doorAccess != null)
+            {
+                savedBuilding.hasSavedDoorAccessSettings = true;
+
+                IReadOnlyList<AccessGroup> allowedGroups =
+                    doorAccess.AllowedGroups;
+
+                for (int i = 0; i < allowedGroups.Count; i++)
+                {
+                    AccessGroup group = allowedGroups[i];
+
+                    if (group != null && !string.IsNullOrWhiteSpace(group.name))
+                        savedBuilding.allowedDoorAccessGroupIds.Add(group.name);
+                }
+            }
+
             if (boundaryOwnership != null)
             {
                 boundaryOwnership.Initialize(edgeOccupancy);
@@ -587,6 +606,12 @@ public class AirportWorldResetController : MonoBehaviour
         if (!ValidateSavedDefinitions(data, true))
             return false;
 
+        Dictionary<string, AccessGroup> accessGroupsById =
+            BuildAccessGroupLookup();
+
+        if (!ValidateSavedDoorAccessGroups(data, accessGroupsById))
+            return false;
+
         if (data.taxiwayCells.Count > 0 &&
             data.taxiwayAreas.Count == 0)
         {
@@ -731,6 +756,23 @@ public class AirportWorldResetController : MonoBehaviour
                     new KeyValuePair<PlacedBuilding, string>(
                         placedBuilding,
                         saved.supportingSurfaceInstanceId));
+            }
+
+            if (saved.hasSavedDoorAccessSettings)
+            {
+                List<AccessGroup> restoredAccessGroups =
+                    new List<AccessGroup>(saved.allowedDoorAccessGroupIds.Count);
+
+                foreach (string groupId in saved.allowedDoorAccessGroupIds)
+                    restoredAccessGroups.Add(accessGroupsById[groupId]);
+
+                DoorAccessController doorAccess =
+                    placedObject.GetComponent<DoorAccessController>();
+
+                if (doorAccess == null)
+                    doorAccess = placedObject.AddComponent<DoorAccessController>();
+
+                doorAccess.RestoreAllowedGroups(restoredAccessGroups);
             }
 
             CargoTugLotSpawner cargoTugLot =
@@ -1140,6 +1182,52 @@ public class AirportWorldResetController : MonoBehaviour
             $"speed: {gameTimeManager.CurrentSpeedMultiplier}x.");
 
         return scheduleRestored;
+    }
+
+    private Dictionary<string, AccessGroup> BuildAccessGroupLookup()
+    {
+        Dictionary<string, AccessGroup> groupsById =
+            new Dictionary<string, AccessGroup>();
+
+        AccessGroup[] loadedGroups =
+            Resources.FindObjectsOfTypeAll<AccessGroup>();
+
+        foreach (AccessGroup group in loadedGroups)
+        {
+            if (group == null || string.IsNullOrWhiteSpace(group.name))
+                continue;
+
+            if (!groupsById.ContainsKey(group.name))
+                groupsById.Add(group.name, group);
+        }
+
+        return groupsById;
+    }
+
+    private bool ValidateSavedDoorAccessGroups(
+        AirportSaveData data,
+        Dictionary<string, AccessGroup> groupsById)
+    {
+        foreach (PlacedBuildingSaveData saved in data.placedBuildings)
+        {
+            if (saved == null || !saved.hasSavedDoorAccessSettings)
+                continue;
+
+            foreach (string groupId in saved.allowedDoorAccessGroupIds)
+            {
+                if (groupsById.ContainsKey(groupId))
+                    continue;
+
+                Debug.LogError(
+                    $"AirportWorldResetController: Door access group " +
+                    $"'{groupId}' referenced by '{saved.definitionId}' " +
+                    "could not be found. The current airport has not been changed.");
+
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private bool ValidateBuildCatalog()
