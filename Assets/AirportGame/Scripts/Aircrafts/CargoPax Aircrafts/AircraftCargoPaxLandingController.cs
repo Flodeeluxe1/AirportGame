@@ -137,13 +137,13 @@ public class AircraftCargoPaxLandingController : MonoBehaviour
         if (gridManager == null)
         {
             gridManager =
-                FindFirstObjectByType<GridManager>();
+                FindAnyObjectByType<GridManager>();
         }
 
         if (weather == null)
         {
             weather =
-                FindFirstObjectByType<Weather>();
+                FindAnyObjectByType<Weather>();
         }
 
         if (gridManager == null || weather == null)
@@ -225,7 +225,7 @@ public class AircraftCargoPaxLandingController : MonoBehaviour
         if (trafficManager == null)
         {
             trafficManager =
-                FindFirstObjectByType<AircraftRunwayTrafficManager>();
+                FindAnyObjectByType<AircraftRunwayTrafficManager>();
         }
 
         if (trafficManager != null)
@@ -268,7 +268,7 @@ public class AircraftCargoPaxLandingController : MonoBehaviour
             return false;
 
         AircraftRunwayTrafficManager trafficManager =
-            FindFirstObjectByType<AircraftRunwayTrafficManager>();
+            FindAnyObjectByType<AircraftRunwayTrafficManager>();
 
         if (trafficManager == null)
         {
