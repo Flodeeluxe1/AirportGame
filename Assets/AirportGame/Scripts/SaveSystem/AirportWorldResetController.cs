@@ -1189,8 +1189,10 @@ public class AirportWorldResetController : MonoBehaviour
         Dictionary<string, AccessGroup> groupsById =
             new Dictionary<string, AccessGroup>();
 
+        // Access groups are stored in Resources/AccessGroups so they are
+        // reliably available in editor and player builds during restore.
         AccessGroup[] loadedGroups =
-            Resources.FindObjectsOfTypeAll<AccessGroup>();
+            Resources.LoadAll<AccessGroup>("AccessGroups");
 
         foreach (AccessGroup group in loadedGroups)
         {
