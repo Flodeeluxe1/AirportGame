@@ -211,6 +211,9 @@ public class PilotSocialSeatingController : MonoBehaviour
     /// </summary>
     public bool HasAvailableSeatPairWith(PilotSocialSeatingController other)
     {
+        long performanceTimingStart = System.Diagnostics.Stopwatch.GetTimestamp();
+        try
+        {
         if (other == null || !CanInitiate() || !other.CanJoin())
             return false;
 
@@ -255,10 +258,19 @@ public class PilotSocialSeatingController : MonoBehaviour
         }
 
         return false;
-    }
+    
+        }
+        finally
+        {
+            PerformanceMonitoringManager.RecordTrackedMethod("HasAvailableSeatPairWith", performanceTimingStart);
+        }
+}
 
     private void TryFindSeatingPartner()
     {
+        long performanceTimingStart = System.Diagnostics.Stopwatch.GetTimestamp();
+        try
+        {
         if (!CanInitiate())
             return;
 
@@ -328,7 +340,13 @@ public class PilotSocialSeatingController : MonoBehaviour
                 selectedOwnSeat,
                 selectedPartnerSeat);
         }
-    }
+    
+        }
+        finally
+        {
+            PerformanceMonitoringManager.RecordTrackedMethod("TryFindSeatingPartner", performanceTimingStart);
+        }
+}
 
     private static List<SeatOption> GetAvailableSeats(IReadOnlyList<InteractionProvider> providers)
     {
