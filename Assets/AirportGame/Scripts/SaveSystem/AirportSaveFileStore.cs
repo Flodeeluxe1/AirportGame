@@ -402,6 +402,13 @@ public static class AirportSaveFileStore
                 data.schemaVersion = 6;
             }
 
+            if (data.schemaVersion == 6 && CurrentSchemaVersion >= 7)
+            {
+                // Version 7 adds optional per-door access group settings.
+                // Older saves retain the door prefab's configured defaults.
+                data.schemaVersion = 7;
+            }
+
             if (data.schemaVersion != CurrentSchemaVersion)
             {
                 error =
