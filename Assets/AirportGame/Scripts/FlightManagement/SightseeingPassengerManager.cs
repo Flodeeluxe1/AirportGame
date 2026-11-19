@@ -62,9 +62,9 @@ public class SightseeingPassengerManager : MonoBehaviour
         public bool returned;
     }
 
-    private readonly Queue<FlightGroup> pendingGroups = new Queue<FlightGroup>();
     private readonly List<FlightGroup> activeGroups = new List<FlightGroup>();
     private bool subscribedToSpawner;
+    private bool initialSchedulePrepared;
     private float nextCheckInRetryTime;
 
     private void Awake() => ResolveReferences();
@@ -98,7 +98,16 @@ public class SightseeingPassengerManager : MonoBehaviour
             if (record != null && !record.completed && record.agent != null)
                 activePassengers++;
         }
-        pendingFlights = pendingGroups.Count;
+        pendingFlights = 0;
+        for (int i = 0; i < activeGroups.Count; i++)
+            if (activeGroups[i].turnaround == null) pendingFlights++;
+
+        if (!initialSchedulePrepared && aircraftSpawner != null && gameTimeManager != null)
+        {
+            initialSchedulePrepared = true;
+            long currentSlot = gameTimeManager.CurrentDay * 24L + gameTimeManager.Hour;
+            HandleFlightScheduled(currentSlot + 1L);
+        }
 
         if (passengerPrefab == null || passengerCarPrefab == null ||
             trafficSpawner == null || aircraftSpawner == null ||
@@ -151,9 +160,31 @@ public class SightseeingPassengerManager : MonoBehaviour
             ? sightseeingEconomy.CalculatePassengerDemand(capacity)
             : 0;
 
+        // Discard cohorts for hourly slots the aircraft scheduler skipped,
+        // while retaining the original slot of an aircraft still awaiting parking.
+        long pendingAircraftSlot = aircraftSpawner != null
+            ? aircraftSpawner.PendingFlightHourSlot
+            : 0L;
+        for (int i = activeGroups.Count - 1; i >= 0; i--)
+        {
+            FlightGroup stale = activeGroups[i];
+            if (stale.turnaround == null &&
+                stale.scheduledHourSlot < hourSlot &&
+                stale.scheduledHourSlot != pendingAircraftSlot)
+            {
+                for (int j = 0; j < stale.passengers.Count; j++)
+                    if (stale.passengers[j]?.agent != null)
+                        stale.passengers[j].agent.BeginReturnToCar();
+                activeGroups.RemoveAt(i);
+            }
+        }
+
+        for (int i = 0; i < activeGroups.Count; i++)
+            if (activeGroups[i].scheduledHourSlot == hourSlot)
+                return;
+
         FlightGroup group = new FlightGroup { scheduledHourSlot = hourSlot };
         activeGroups.Add(group);
-        pendingGroups.Enqueue(group);
 
         debugStatus = "Preparing " + demand + " sightseeing passenger(s) for the next hourly flight.";
         if (demand > 0) StartCoroutine(SpawnPassengerCars(group, demand));
@@ -196,8 +227,23 @@ public class SightseeingPassengerManager : MonoBehaviour
 
     private void HandleAircraftSpawned(AircraftFlightIdentity identity, AircraftSSTurnaroundController turnaround)
     {
-        FlightGroup group = pendingGroups.Count > 0 ? pendingGroups.Dequeue() : new FlightGroup();
-        if (!activeGroups.Contains(group)) activeGroups.Add(group);
+        long flightSlot = identity != null
+            ? identity.ScheduledDayIndex * 24L + identity.PlannedStartMinute / 60
+            : 0L;
+        FlightGroup group = null;
+        for (int i = 0; i < activeGroups.Count; i++)
+        {
+            if (activeGroups[i].scheduledHourSlot == flightSlot)
+            {
+                group = activeGroups[i];
+                break;
+            }
+        }
+        if (group == null)
+        {
+            group = new FlightGroup { scheduledHourSlot = flightSlot };
+            activeGroups.Add(group);
+        }
         group.identity = identity;
         group.turnaround = turnaround;
 
