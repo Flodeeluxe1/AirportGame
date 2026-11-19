@@ -67,7 +67,7 @@ public class PedestrianPathfinder : MonoBehaviour
             gridManager = GetComponent<GridManager>();
 
         if (gridManager == null)
-            gridManager = FindFirstObjectByType<GridManager>();
+            gridManager = FindAnyObjectByType<GridManager>();
 
         if (gridManager != null)
         {
@@ -85,16 +85,16 @@ public class PedestrianPathfinder : MonoBehaviour
         }
 
         if (gridSurface == null)
-            gridSurface = FindFirstObjectByType<GridSurface>();
+            gridSurface = FindAnyObjectByType<GridSurface>();
 
         if (gridOccupancy == null)
-            gridOccupancy = FindFirstObjectByType<GridOccupancy>();
+            gridOccupancy = FindAnyObjectByType<GridOccupancy>();
 
         if (edgeOccupancy == null)
-            edgeOccupancy = FindFirstObjectByType<EdgeOccupancy>();
+            edgeOccupancy = FindAnyObjectByType<EdgeOccupancy>();
 
         if (roadNetwork == null)
-            roadNetwork = FindFirstObjectByType<RoadNetwork>();
+            roadNetwork = FindAnyObjectByType<RoadNetwork>();
     }
 
     /// <summary>
