@@ -76,6 +76,7 @@ public class PilotWanderingController : MonoBehaviour
     private GridSurface gridSurface;
     private PedestrianPathfinder pathfinder;
     private RoomPurposeController roomPurposeController;
+    private PedestrianAccessProfile accessProfile;
     private GameTimeManager gameTimeManager;
     private bool subscribedToGameTime;
     private bool waitingAtDestination;
@@ -93,6 +94,7 @@ public class PilotWanderingController : MonoBehaviour
         needs = GetComponent<UtilityNeeds>();
         movement = GetComponent<PedestrianMovementController>();
         interactionController = GetComponent<PilotInteractionController>();
+        accessProfile = GetComponent<PedestrianAccessProfile>();
         roomPurposeController = FindFirstObjectByType<RoomPurposeController>();
         ResolveWorldReferences();
         ResolveGameTimeManager();
@@ -281,7 +283,9 @@ public class PilotWanderingController : MonoBehaviour
             int candidateIndex = (startIndex + attempt) % candidateCount;
             Vector2Int candidateCell = foundationCache.cells[candidateIndex];
 
-            if (pathfinder.IsWalkable(candidateCell))
+            if (pathfinder.IsWalkable(candidateCell) &&
+                (roomPurposeController == null ||
+                 roomPurposeController.IsCellAccessibleToPedestrian(candidateCell, accessProfile)))
             {
                 Vector3 destination = gridManager.GridToWorldCenter(candidateCell);
                 destination.y = transform.position.y;
@@ -359,7 +363,9 @@ public class PilotWanderingController : MonoBehaviour
 
             if (!gridManager.IsInsideGrid(candidateCell) ||
                 gridSurface.GetSurface(candidateCell) != BuildSurface.Foundation ||
-                !pathfinder.IsWalkable(candidateCell))
+                !pathfinder.IsWalkable(candidateCell) ||
+                (roomPurposeController != null &&
+                 !roomPurposeController.IsCellAccessibleToPedestrian(candidateCell, accessProfile)))
                 continue;
 
             Vector3 destination = gridManager.GridToWorldCenter(candidateCell);
