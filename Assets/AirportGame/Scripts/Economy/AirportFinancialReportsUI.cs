@@ -102,12 +102,12 @@ public class AirportFinancialReportsUI : MonoBehaviour
         if (uiDocument == null)
             uiDocument = GetComponent<UIDocument>();
         if (uiDocument == null)
-            uiDocument = FindFirstObjectByType<UIDocument>();
+            uiDocument = FindAnyObjectByType<UIDocument>();
 
         if (economyHUD == null)
             economyHUD = GetComponent<AirportEconomyHUD>();
         if (economyHUD == null)
-            economyHUD = FindFirstObjectByType<AirportEconomyHUD>();
+            economyHUD = FindAnyObjectByType<AirportEconomyHUD>();
 
         ResolveDataReferences();
     }
@@ -115,9 +115,9 @@ public class AirportFinancialReportsUI : MonoBehaviour
     private void ResolveDataReferences()
     {
         if (economyManager == null)
-            economyManager = FindFirstObjectByType<AirportEconomyManager>();
+            economyManager = FindAnyObjectByType<AirportEconomyManager>();
         if (gameTimeManager == null)
-            gameTimeManager = FindFirstObjectByType<GameTimeManager>();
+            gameTimeManager = FindAnyObjectByType<GameTimeManager>();
     }
 
     private void CreateWindow()
