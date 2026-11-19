@@ -89,7 +89,7 @@ public class PilotSocialSeatingController : MonoBehaviour
         movement = GetComponent<PedestrianMovementController>();
         interactionController = GetComponent<PilotInteractionController>();
         accessProfile = GetComponent<PedestrianAccessProfile>();
-        roomPurposeController = FindFirstObjectByType<RoomPurposeController>();
+        roomPurposeController = FindAnyObjectByType<RoomPurposeController>();
         ResolveGameTimeManager();
     }
 
@@ -536,7 +536,7 @@ public class PilotSocialSeatingController : MonoBehaviour
     private void ResolveGameTimeManager()
     {
         if (gameTimeManager == null)
-            gameTimeManager = FindFirstObjectByType<GameTimeManager>();
+            gameTimeManager = FindAnyObjectByType<GameTimeManager>();
 
         if (gameTimeManager == null || subscribedToGameTime)
             return;
