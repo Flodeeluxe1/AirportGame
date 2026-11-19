@@ -126,7 +126,7 @@ public class AircraftTaxiTrafficFollowing : MonoBehaviour
     private void Awake()
     {
         aircraftStatus = GetComponent<AircraftStatus>();
-        gridManager = FindFirstObjectByType<GridManager>();
+        gridManager = FindAnyObjectByType<GridManager>();
         UpdateDebugGridCell();
     }
 
@@ -138,7 +138,7 @@ public class AircraftTaxiTrafficFollowing : MonoBehaviour
     private void UpdateDebugGridCell()
     {
         if (gridManager == null)
-            gridManager = FindFirstObjectByType<GridManager>();
+            gridManager = FindAnyObjectByType<GridManager>();
 
         if (gridManager != null)
             debugCurrentGridCell = gridManager.WorldToGrid(transform.position);
@@ -147,7 +147,7 @@ public class AircraftTaxiTrafficFollowing : MonoBehaviour
     private void CorrectATCHoldOvershoot(Vector3 holdPosition)
     {
         if (gridManager == null)
-            gridManager = FindFirstObjectByType<GridManager>();
+            gridManager = FindAnyObjectByType<GridManager>();
 
         if (gridManager == null || plannedTaxiRoute.Count < 2)
             return;
