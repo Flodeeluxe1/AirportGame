@@ -167,19 +167,19 @@ public class AircraftTrainingTakeoffController : MonoBehaviour
         if (trafficManager == null)
         {
             trafficManager =
-                FindFirstObjectByType<AircraftRunwayTrafficManager>();
+                FindAnyObjectByType<AircraftRunwayTrafficManager>();
         }
 
         if (gameTimeManager == null)
         {
             gameTimeManager =
-                FindFirstObjectByType<GameTimeManager>();
+                FindAnyObjectByType<GameTimeManager>();
         }
 
         if (gridManager == null)
         {
             gridManager =
-                FindFirstObjectByType<GridManager>();
+                FindAnyObjectByType<GridManager>();
         }
 
         if (aircraftCollider == null)
