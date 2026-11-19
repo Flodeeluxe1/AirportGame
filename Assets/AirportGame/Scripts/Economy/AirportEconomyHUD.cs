@@ -32,7 +32,7 @@ public class AirportEconomyHUD : MonoBehaviour
         if (economyManager == null)
         {
             economyManager =
-                FindFirstObjectByType<AirportEconomyManager>();
+                FindAnyObjectByType<AirportEconomyManager>();
         }
 
         if (uiDocument == null)
