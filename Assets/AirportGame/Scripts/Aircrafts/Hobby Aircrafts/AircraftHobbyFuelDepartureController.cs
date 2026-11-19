@@ -157,7 +157,7 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
         bool mandatory = fuelPercentage < mandatoryRefuellingBelowFuelPercentage;
 
         AircraftFuelStation[] stations =
-            FindObjectsByType<AircraftFuelStation>(FindObjectsSortMode.None);
+            FindObjectsByType<AircraftFuelStation>();
 
         if (stations.Length == 0)
         {
