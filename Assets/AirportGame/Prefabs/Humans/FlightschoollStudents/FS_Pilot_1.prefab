@@ -16,10 +16,10 @@ GameObject:
   - component: {fileID: 9192837465012345678}
   - component: {fileID: 8273649182736450918}
   - component: {fileID: 7462819304756128391}
-  - component: {fileID: 7123456789012345678}
   - component: {fileID: 7349201846502739184}
   - component: {fileID: 1200000000000000001}
   - component: {fileID: -8516816489209012854}
+  - component: {fileID: -4176743594816912160}
   m_Layer: 0
   m_Name: FS_Pilot_1
   m_TagString: Untagged
@@ -661,33 +661,6 @@ MonoBehaviour:
   queuePositionRefreshInterval: 0.25
   currentStatus: Idle
   currentInteractionName: 
---- !u!114 &7123456789012345678
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1552182806160375558}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9d2f6a8c4b1e47d0a5c3f8e2b6d91470, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  searchInterval: 4
-  searchRadius: 12
-  minimumGroupSize: 3
-  maximumGroupSize: 5
-  maximumSocialNeedValue: 80
-  conversationDurationGameSeconds: 900
-  socialSatisfactionAmount: 35
-  entertainmentSatisfactionAmount: 20
-  boredomSatisfactionAmount: 20
-  standingCircleRadius: 0.5
-  seatClusterRadius: 40
-  travelTimeout: 60
-  facingRotationSpeed: 540
-  currentStatus: Idle
-  currentGroupSize: 0
 --- !u!114 &7349201846502739184
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -731,3 +704,33 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6b38c1a0a9d24d6f8c4b1e7a2f9d5031, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FlightSchoolStudentAgent
+  logMovementArrivals: 0
+  needDecisionInterval: 2
+  needInteractionSearchRadius: 100
+  needInteractionTimeCost: 0.02
+  queuePositionRefreshInterval: 0.25
+--- !u!114 &-4176743594816912160
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1552182806160375558}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8f4c2b1d6a7e4f90a3c5d8b1e2f60749, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FlightSchoolStudentGroupConversationController
+  searchInterval: 4
+  searchRadius: 12
+  maximumGroupSize: 5
+  socialNeedThreshold: 80
+  meetingAreaRadius: 4
+  minimumMemberSpacing: 0.9
+  minimumDurationMinutes: 4
+  maximumDurationMinutes: 12
+  socialSatisfactionAmount: 40
+  travelTimeout: 90
+  facingRotationSpeed: 540
+  currentStatus: Idle
+  currentGroupSize: 0
