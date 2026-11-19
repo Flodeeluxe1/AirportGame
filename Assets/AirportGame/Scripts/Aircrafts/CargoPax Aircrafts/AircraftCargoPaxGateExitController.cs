@@ -157,25 +157,25 @@ public class AircraftCargoPaxGateExitController : MonoBehaviour
         if (gateRegistry == null)
         {
             gateRegistry =
-                FindFirstObjectByType<AircraftGateRegistry>();
+                FindAnyObjectByType<AircraftGateRegistry>();
         }
 
         if (gridManager == null)
         {
             gridManager =
-                FindFirstObjectByType<GridManager>();
+                FindAnyObjectByType<GridManager>();
         }
 
         if (taxiwayNetwork == null)
         {
             taxiwayNetwork =
-                FindFirstObjectByType<TaxiwayNetwork>();
+                FindAnyObjectByType<TaxiwayNetwork>();
         }
 
         if (gameTimeManager == null)
         {
             gameTimeManager =
-                FindFirstObjectByType<GameTimeManager>();
+                FindAnyObjectByType<GameTimeManager>();
         }
     }
 
