@@ -23,6 +23,8 @@ public class FlightSchoolStudentAgent : MonoBehaviour
     private bool walkingToAircraft;
     private bool walkingToCar;
     private bool departureStarted;
+    private bool groupConversationActive;
+    private FlightSchoolStudentGroupConversationController groupConversationController;
     [Header("Student Needs")]
     [Min(0.1f)]
     [SerializeField] private float needDecisionInterval = 2f;
@@ -75,7 +77,7 @@ public class FlightSchoolStudentAgent : MonoBehaviour
         !walkingToSeat && !walkingToAircraft && !walkingToCar &&
         !walkingToNeedInteraction && !performingNeedInteraction;
 
-    public void Initialize(TrafficTestVehicle assignedVehicle)
+    public void Initialize(TrafficTestVehicle assignedVehicle, Vector2Int classroomAnchor)
     {
         vehicle = assignedVehicle;
         needs = GetComponent<UtilityNeeds>();
@@ -99,6 +101,11 @@ public class FlightSchoolStudentAgent : MonoBehaviour
         movement.PathFailed -= HandlePathFailed;
         movement.Arrived += HandleMovementArrived;
         movement.PathFailed += HandlePathFailed;
+
+        groupConversationController = GetComponent<FlightSchoolStudentGroupConversationController>();
+        if (groupConversationController == null)
+            groupConversationController = gameObject.AddComponent<FlightSchoolStudentGroupConversationController>();
+        groupConversationController.Initialize(classroomAnchor);
     }
 
     /// <summary>Hides or restores the student model while the lesson is in progress.</summary>
@@ -270,6 +277,42 @@ public class FlightSchoolStudentAgent : MonoBehaviour
     }
 
     /// <summary>
+    /// Temporarily leaves the reserved chair to join a standing student conversation.
+    /// </summary>
+    public bool PrepareForGroupConversation()
+    {
+        if (!IsSeated || reservedSeat == null || movement == null)
+            return false;
+
+        movement.AlignToInteractionPoint(reservedSeat);
+        atSeat = false;
+        groupConversationActive = true;
+        return true;
+    }
+
+    /// <summary>
+    /// Ends a group conversation and returns the student to their reserved chair.
+    /// </summary>
+    public void EndGroupConversationAndReturnToSeat()
+    {
+        if (!groupConversationActive)
+            return;
+
+        groupConversationActive = false;
+        if (departureStarted || walkingToCar)
+            return;
+
+        ReturnToSeat();
+    }
+
+    private void InterruptGroupConversationForDeparture()
+    {
+        groupConversationActive = false;
+        if (groupConversationController != null)
+            groupConversationController.InterruptForDeparture();
+    }
+
+    /// <summary>
     /// Leaves the classroom seat and walks back to this student's own parked car.
     /// </summary>
     public bool BeginDeparture()
@@ -279,6 +322,8 @@ public class FlightSchoolStudentAgent : MonoBehaviour
 
         if (vehicle == null || movement == null)
             return false;
+
+        InterruptGroupConversationForDeparture();
 
         // A seated student is aligned to the chair animation point, which
         // can be on a non-walkable cell. Move back to the saved approach point
@@ -401,6 +446,11 @@ public class FlightSchoolStudentAgent : MonoBehaviour
 
     private void HandlePathFailed()
     {
+        // The group coordinator handles conversation route failures and sends
+        // every affected student back to their reserved classroom chair.
+        if (groupConversationActive)
+            return;
+
         Debug.LogError(
             $"FlightSchoolStudentAgent {name}: Pedestrian path failed. " +
             $"WalkingToSeat={walkingToSeat}, WalkingToAircraft={walkingToAircraft}, " +
@@ -458,7 +508,7 @@ public class FlightSchoolStudentAgent : MonoBehaviour
 
     private void Update()
     {
-        if (departureStarted || walkingToAircraft || walkingToCar ||
+        if (departureStarted || groupConversationActive || walkingToAircraft || walkingToCar ||
             walkingToSeat || walkingToNeedInteraction || performingNeedInteraction ||
             movement == null || needs == null || movement.IsMoving)
             return;
