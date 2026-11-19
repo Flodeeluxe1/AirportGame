@@ -60,7 +60,7 @@ public class AirportEconomyManager : MonoBehaviour
 
     private void Awake()
     {
-        gameTimeManager = FindFirstObjectByType<GameTimeManager>();
+        gameTimeManager = FindAnyObjectByType<GameTimeManager>();
         if (transactions == null)
             transactions = new List<AirportFinancialTransaction>();
     }
@@ -197,7 +197,7 @@ public class AirportEconomyManager : MonoBehaviour
             transactions = new List<AirportFinancialTransaction>();
 
         if (gameTimeManager == null)
-            gameTimeManager = FindFirstObjectByType<GameTimeManager>();
+            gameTimeManager = FindAnyObjectByType<GameTimeManager>();
 
         long absoluteGameSecond = 0L;
         if (gameTimeManager != null)
