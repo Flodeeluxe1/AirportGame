@@ -123,10 +123,10 @@ public sealed class PipelinePrefabRuleManager : MonoBehaviour
     private void ResolveReferences()
     {
         if (gridManager == null)
-            gridManager = FindFirstObjectByType<GridManager>();
+            gridManager = FindAnyObjectByType<GridManager>();
 
         if (gridOccupancy == null)
-            gridOccupancy = FindFirstObjectByType<GridOccupancy>();
+            gridOccupancy = FindAnyObjectByType<GridOccupancy>();
 
         if (gridSurface == null && gridManager != null)
             gridSurface = gridManager.GetComponent<GridSurface>();
