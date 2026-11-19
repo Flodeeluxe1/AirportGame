@@ -90,10 +90,10 @@ public class GarbageCollectorController : MonoBehaviour
 
     private void Awake()
     {
-        wasteCollectionManager = FindFirstObjectByType<WasteCollectionManager>();
-        roadNetwork = FindFirstObjectByType<RoadNetwork>();
-        gridManager = FindFirstObjectByType<GridManager>();
-        intersectionManager = FindFirstObjectByType<IntersectionManager>();
+        wasteCollectionManager = FindAnyObjectByType<WasteCollectionManager>();
+        roadNetwork = FindAnyObjectByType<RoadNetwork>();
+        gridManager = FindAnyObjectByType<GridManager>();
+        intersectionManager = FindAnyObjectByType<IntersectionManager>();
 
         trafficFollowing = GetComponent<TrafficFollowing>();
         if (trafficFollowing == null)
@@ -116,14 +116,14 @@ public class GarbageCollectorController : MonoBehaviour
         ownerSpawner = spawner;
 
         if (wasteCollectionManager == null)
-            wasteCollectionManager = FindFirstObjectByType<WasteCollectionManager>();
+            wasteCollectionManager = FindAnyObjectByType<WasteCollectionManager>();
 
         if (roadNetwork == null)
-            roadNetwork = FindFirstObjectByType<RoadNetwork>();
+            roadNetwork = FindAnyObjectByType<RoadNetwork>();
         if (gridManager == null)
-            gridManager = FindFirstObjectByType<GridManager>();
+            gridManager = FindAnyObjectByType<GridManager>();
         if (intersectionManager == null)
-            intersectionManager = FindFirstObjectByType<IntersectionManager>();
+            intersectionManager = FindAnyObjectByType<IntersectionManager>();
 
         if (ownerSpawner == null || roadNetwork == null || gridManager == null ||
             firstDisposal == null || firstDisposal.GarbageCollectorStopPoint == null ||
@@ -547,7 +547,7 @@ public class GarbageCollectorController : MonoBehaviour
         if (currentWasteLoad > 0.001f)
         {
             if (wasteCollectionManager == null)
-                wasteCollectionManager = FindFirstObjectByType<WasteCollectionManager>();
+                wasteCollectionManager = FindAnyObjectByType<WasteCollectionManager>();
 
             if (wasteCollectionManager != null)
                 wasteCollectionManager.ChargeCompletedCollectionTrip(currentWasteLoad);
