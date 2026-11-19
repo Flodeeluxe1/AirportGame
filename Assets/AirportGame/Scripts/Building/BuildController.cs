@@ -50,7 +50,7 @@ public class BuildController : MonoBehaviour
         if (uiDocument == null)
         {
             uiDocument =
-                FindFirstObjectByType<UIDocument>();
+                FindAnyObjectByType<UIDocument>();
         }
 
         if (uiDocument != null)
