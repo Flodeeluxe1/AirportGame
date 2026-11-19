@@ -19,6 +19,46 @@ public class FlightSchoolStudentAgent : MonoBehaviour
     private bool walkingToAircraft;
     private bool walkingToCar;
     private bool departureStarted;
+    [Header("Student Needs")]
+    [Min(0.1f)]
+    [SerializeField] private float needDecisionInterval = 2f;
+    [Min(1f)]
+    [SerializeField] private float needInteractionSearchRadius = 100f;
+    [Min(0f)]
+    [SerializeField] private float needInteractionTimeCost = 0.02f;
+    [Min(0.05f)]
+    [SerializeField] private float queuePositionRefreshInterval = 0.25f;
+
+    private struct NeedInteractionCandidate
+    {
+        public InteractionProvider provider;
+        public InteractionDefinition definition;
+        public float score;
+        public float travelTime;
+    }
+
+    private readonly List<NeedInteractionCandidate> needShortlist =
+        new List<NeedInteractionCandidate>();
+    private readonly List<InteractionProvider> nearbyNeedProviders =
+        new List<InteractionProvider>(64);
+    private readonly List<UtilityNeeds.NeedType> replenishingNeeds =
+        new List<UtilityNeeds.NeedType>();
+
+    private UtilityNeeds needs;
+    private PedestrianAccessProfile accessProfile;
+    private RoomPurposeController roomPurposeController;
+    private InteractionProvider needProvider;
+    private InteractionDefinition needInteraction;
+    private InteractionProvider queuedNeedProvider;
+    private InteractionDefinition queuedNeedInteraction;
+    private Coroutine needInteractionRoutine;
+    private bool walkingToNeedInteraction;
+    private bool performingNeedInteraction;
+    private bool atSeat;
+    private float nextNeedDecisionTime;
+    private float nextQueuePositionRefresh;
+    private Vector3 lastQueueDestination;
+
 
     public event Action<FlightSchoolStudentAgent> SeatReached;
     public event Action<FlightSchoolStudentAgent> AircraftReached;
@@ -27,15 +67,16 @@ public class FlightSchoolStudentAgent : MonoBehaviour
 
     public TrafficTestVehicle Vehicle => vehicle;
     public InteractionProvider ReservedSeat => reservedSeat;
-    public bool IsSeated =>
-        reservedSeat != null &&
-        !walkingToSeat &&
-        !walkingToAircraft &&
-        !walkingToCar;
+    public bool IsSeated => atSeat && reservedSeat != null &&
+        !walkingToSeat && !walkingToAircraft && !walkingToCar &&
+        !walkingToNeedInteraction && !performingNeedInteraction;
 
     public void Initialize(TrafficTestVehicle assignedVehicle)
     {
         vehicle = assignedVehicle;
+        needs = GetComponent<UtilityNeeds>();
+        accessProfile = GetComponent<PedestrianAccessProfile>();
+        roomPurposeController = FindFirstObjectByType<RoomPurposeController>();
         studentRenderers = GetComponentsInChildren<Renderer>(true);
 
         // Students follow the school timetable, not the hobby-pilot Utility AI.
@@ -106,6 +147,9 @@ public class FlightSchoolStudentAgent : MonoBehaviour
         walkingToSeat = true;
         walkingToAircraft = false;
         walkingToCar = false;
+        walkingToNeedInteraction = false;
+        performingNeedInteraction = false;
+        atSeat = false;
 
         if (!movement.TryMoveTo(provider))
         {
@@ -141,6 +185,8 @@ public class FlightSchoolStudentAgent : MonoBehaviour
             movement.AlignToInteractionPoint(reservedSeat);
 
         walkingToSeat = false;
+        CancelNeedInteraction();
+        atSeat = false;
         walkingToAircraft = true;
         walkingToCar = false;
 
@@ -185,6 +231,8 @@ public class FlightSchoolStudentAgent : MonoBehaviour
         if (reservedSeat == null || movement == null)
             return false;
 
+        CancelNeedInteraction();
+        atSeat = false;
         walkingToSeat = true;
         walkingToAircraft = false;
         walkingToCar = false;
@@ -213,6 +261,8 @@ public class FlightSchoolStudentAgent : MonoBehaviour
         if (IsSeated && reservedSeat != null)
             movement.AlignToInteractionPoint(reservedSeat);
 
+        CancelNeedInteraction();
+        atSeat = false;
         ReleaseSeat();
 
         walkingToSeat = false;
@@ -266,7 +316,30 @@ public class FlightSchoolStudentAgent : MonoBehaviour
             if (reservedSeat != null)
                 movement.AlignToAnimationPoint(reservedSeat);
 
+            atSeat = true;
             SeatReached?.Invoke(this);
+            return;
+        }
+
+        if (walkingToNeedInteraction)
+        {
+            walkingToNeedInteraction = false;
+
+            if (queuedNeedProvider != null)
+            {
+                if (!queuedNeedProvider.Queue.IsActive(this))
+                    return;
+
+                needProvider = queuedNeedProvider;
+                needInteraction = queuedNeedInteraction;
+            }
+
+            if (needProvider == null || needInteraction == null)
+                return;
+
+            movement.AlignToAnimationPoint(needProvider);
+            performingNeedInteraction = true;
+            needInteractionRoutine = StartCoroutine(PerformNeedInteraction());
             return;
         }
 
@@ -297,12 +370,23 @@ public class FlightSchoolStudentAgent : MonoBehaviour
             $"WalkingToCar={walkingToCar}, ReservedSeat={(reservedSeat != null ? reservedSeat.name : "none")}.",
             this);
 
+        if (walkingToNeedInteraction || performingNeedInteraction ||
+            queuedNeedProvider != null || needProvider != null)
+        {
+            CancelNeedInteraction();
+            nextNeedDecisionTime = Time.time + needDecisionInterval;
+        }
+
         if (walkingToSeat && !walkingToAircraft)
+        {
+            atSeat = false;
             ReleaseSeat();
+        }
 
         walkingToSeat = false;
         walkingToAircraft = false;
         walkingToCar = false;
+        atSeat = false;
         PathFailed?.Invoke(this);
     }
 
@@ -315,8 +399,353 @@ public class FlightSchoolStudentAgent : MonoBehaviour
         seatInteraction = null;
     }
 
+    private void Update()
+    {
+        if (departureStarted || walkingToAircraft || walkingToCar ||
+            walkingToSeat || walkingToNeedInteraction || performingNeedInteraction ||
+            movement == null || needs == null || movement.IsMoving)
+            return;
+
+        if (queuedNeedProvider != null)
+        {
+            UpdateNeedQueueState();
+            return;
+        }
+
+        if (Time.time < nextNeedDecisionTime)
+            return;
+
+        nextNeedDecisionTime = Time.time + Mathf.Max(0.1f, needDecisionInterval);
+
+        // While seated, look for a useful interaction. After each interaction,
+        // continue with another need if one remains; otherwise return to the chair.
+        TryStartNeedInteraction();
+    }
+
+    private bool TryStartNeedInteraction()
+    {
+        if (needs == null || movement == null || reservedSeat == null)
+            return false;
+
+        UtilityAISpatialRegistry<InteractionProvider>.GetNearby(
+            transform.position, needInteractionSearchRadius, nearbyNeedProviders);
+
+        needShortlist.Clear();
+
+        for (int providerIndex = 0; providerIndex < nearbyNeedProviders.Count; providerIndex++)
+        {
+            InteractionProvider provider = nearbyNeedProviders[providerIndex];
+            if (provider == null || provider == reservedSeat ||
+                !provider.InteractionsEnabled ||
+                (roomPurposeController != null &&
+                 !roomPurposeController.IsPositionAccessibleToPedestrian(
+                     provider.InteractionPosition, accessProfile)))
+                continue;
+
+            float providerTravelTime = -1f;
+
+            foreach (InteractionDefinition definition in provider.Interactions)
+            {
+                if (definition == null || !provider.CanOffer(definition))
+                    continue;
+
+                float utility = CalculateNeedUtility(definition);
+                if (utility <= 0f)
+                    continue;
+
+                if (providerTravelTime < 0f)
+                    providerTravelTime = movement.EstimateTravelTime(provider);
+
+                if (float.IsInfinity(providerTravelTime) ||
+                    float.IsNaN(providerTravelTime))
+                    continue;
+
+                float waitingTime = provider.Queue != null && provider.Queue.QueueEnabled
+                    ? provider.Queue.GetEstimatedWaitTime()
+                    : 0f;
+
+                float totalTime = providerTravelTime + waitingTime +
+                                  definition.DurationSeconds;
+                float score = utility /
+                    (1f + totalTime * Mathf.Max(0f, needInteractionTimeCost));
+
+                if (score > 0f)
+                {
+                    needShortlist.Add(new NeedInteractionCandidate
+                    {
+                        provider = provider,
+                        definition = definition,
+                        score = score,
+                        travelTime = providerTravelTime
+                    });
+                }
+            }
+        }
+
+        if (needShortlist.Count == 0)
+        {
+            if (!atSeat && !walkingToSeat && !walkingToAircraft && !walkingToCar)
+                ReturnToSeat();
+            return false;
+        }
+
+        needShortlist.Sort((a, b) => b.score.CompareTo(a.score));
+        int candidateCount = Mathf.Min(4, needShortlist.Count);
+        float totalWeight = 0f;
+        for (int i = 0; i < candidateCount; i++)
+            totalWeight += needShortlist[i].score;
+
+        float roll = UnityEngine.Random.value * totalWeight;
+        NeedInteractionCandidate selected = needShortlist[0];
+        for (int i = 0; i < candidateCount; i++)
+        {
+            roll -= needShortlist[i].score;
+            if (roll <= 0f)
+            {
+                selected = needShortlist[i];
+                break;
+            }
+        }
+
+        if (atSeat && reservedSeat != null)
+            movement.AlignToInteractionPoint(reservedSeat);
+
+        atSeat = false;
+
+        if (selected.provider.Queue != null &&
+            selected.provider.Queue.QueueEnabled)
+        {
+            if (!selected.provider.Queue.TryJoin(
+                    this, selected.definition, selected.travelTime))
+            {
+                ReturnToSeat();
+                return false;
+            }
+
+            queuedNeedProvider = selected.provider;
+            queuedNeedInteraction = selected.definition;
+            UpdateNeedQueueState();
+            return true;
+        }
+
+        if (!selected.provider.TryReserve(this, selected.definition))
+        {
+            ReturnToSeat();
+            return false;
+        }
+
+        needProvider = selected.provider;
+        needInteraction = selected.definition;
+        walkingToNeedInteraction = true;
+
+        if (!movement.MoveTo(selected.provider))
+        {
+            CancelNeedInteraction();
+            ReturnToSeat();
+            return false;
+        }
+
+        return true;
+    }
+
+    private float CalculateNeedUtility(InteractionDefinition definition)
+    {
+        float score = 0f;
+
+        foreach (InteractionDefinition.NeedEffect effect in definition.NeedEffects)
+        {
+            if (effect == null || effect.satisfactionAmount <= 0f ||
+                !needs.IsNeedConsidered(effect.need) ||
+                needs.GetValue(effect.need) >= effect.maximumNeedValueToConsider)
+                continue;
+
+            float urgency = needs.GetUrgency(effect.need);
+            float weight = needs.GetUtilityWeight(effect.need);
+            score += urgency * weight *
+                     Mathf.Min(100f, effect.satisfactionAmount) / 100f;
+        }
+
+        if (score <= 0f)
+            return 0f;
+
+        foreach (InteractionDefinition.NeedConflict conflict in definition.NeedConflicts)
+        {
+            if (conflict == null || conflict.penaltyAtMaximumUrgency <= 0f)
+                continue;
+
+            float urgency = needs.GetUrgency(conflict.need) / 100f;
+            score *= 1f - Mathf.Clamp01(
+                urgency * conflict.penaltyAtMaximumUrgency);
+        }
+
+        return score;
+    }
+
+    private void UpdateNeedQueueState()
+    {
+        if (queuedNeedProvider == null || queuedNeedInteraction == null ||
+            !queuedNeedProvider.isActiveAndEnabled ||
+            queuedNeedProvider.Queue == null ||
+            !queuedNeedProvider.Queue.QueueEnabled ||
+            !queuedNeedProvider.Queue.IsQueued(this))
+        {
+            CancelNeedInteraction();
+            ReturnToSeat();
+            return;
+        }
+
+        InteractionQueue queue = queuedNeedProvider.Queue;
+
+        if (queue.IsActive(this))
+        {
+            needProvider = queuedNeedProvider;
+            needInteraction = queuedNeedInteraction;
+
+            if (!movement.IsMoving &&
+                !movement.IsAtInteractionApproach(queuedNeedProvider) &&
+                Time.time >= nextQueuePositionRefresh)
+            {
+                nextQueuePositionRefresh = Time.time + queuePositionRefreshInterval;
+                lastQueueDestination = queuedNeedProvider.InteractionPosition;
+                walkingToNeedInteraction = true;
+
+                if (!movement.MoveTo(queuedNeedProvider))
+                {
+                    walkingToNeedInteraction = false;
+                    CancelNeedInteraction();
+                    ReturnToSeat();
+                }
+            }
+
+            return;
+        }
+
+        if (Time.time < nextQueuePositionRefresh)
+            return;
+
+        nextQueuePositionRefresh = Time.time + queuePositionRefreshInterval;
+        Vector3 queuePosition = queue.GetQueuePosition(this);
+        bool destinationChanged =
+            Vector3.Distance(lastQueueDestination, queuePosition) > 0.15f;
+
+        if (!movement.IsMoving && destinationChanged)
+        {
+            lastQueueDestination = queuePosition;
+            movement.MoveTo(queuePosition);
+        }
+        else if (movement.IsMoving && destinationChanged &&
+                 Vector3.Distance(movement.Destination, queuePosition) > 0.15f)
+        {
+            lastQueueDestination = queuePosition;
+            movement.MoveTo(queuePosition);
+        }
+    }
+
+    private System.Collections.IEnumerator PerformNeedInteraction()
+    {
+        PauseNeedDecayForInteraction();
+        float duration = needInteraction.DurationSeconds;
+        float elapsed = 0f;
+
+        while (elapsed < duration)
+        {
+            if (needProvider == null || !needProvider.isActiveAndEnabled ||
+                needInteraction == null)
+            {
+                CancelNeedInteraction();
+                yield break;
+            }
+
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        InteractionProvider completedProvider = needProvider;
+        InteractionDefinition completedInteraction = needInteraction;
+        ResumeNeedDecayForInteraction();
+
+        if (completedInteraction != null && needs != null)
+        {
+            foreach (InteractionDefinition.NeedEffect effect in completedInteraction.NeedEffects)
+            {
+                if (effect != null && effect.satisfactionAmount > 0f)
+                    needs.SatisfyNeed(effect.need, effect.satisfactionAmount);
+            }
+        }
+
+        if (completedProvider != null)
+            movement.AlignToInteractionPoint(completedProvider);
+
+        if (queuedNeedProvider != null && queuedNeedProvider.Queue != null)
+            queuedNeedProvider.Queue.Complete(this);
+        else if (completedProvider != null && completedInteraction != null)
+            completedProvider.ReleaseReservation(this, completedInteraction);
+
+        queuedNeedProvider = null;
+        queuedNeedInteraction = null;
+        needProvider = null;
+        needInteraction = null;
+        performingNeedInteraction = false;
+        needInteractionRoutine = null;
+        nextNeedDecisionTime = Time.time + needDecisionInterval;
+    }
+
+    private void PauseNeedDecayForInteraction()
+    {
+        ResumeNeedDecayForInteraction();
+
+        if (needs == null || needInteraction == null)
+            return;
+
+        foreach (InteractionDefinition.NeedEffect effect in needInteraction.NeedEffects)
+        {
+            if (effect == null || effect.satisfactionAmount <= 0f ||
+                replenishingNeeds.Contains(effect.need))
+                continue;
+
+            needs.PauseNeedDecay(effect.need);
+            replenishingNeeds.Add(effect.need);
+        }
+    }
+
+    private void ResumeNeedDecayForInteraction()
+    {
+        if (needs != null)
+        {
+            foreach (UtilityNeeds.NeedType need in replenishingNeeds)
+                needs.ResumeNeedDecay(need);
+        }
+
+        replenishingNeeds.Clear();
+    }
+
+    private void CancelNeedInteraction()
+    {
+        ResumeNeedDecayForInteraction();
+
+        if (needInteractionRoutine != null)
+        {
+            StopCoroutine(needInteractionRoutine);
+            needInteractionRoutine = null;
+        }
+
+        if (queuedNeedProvider != null && queuedNeedProvider.Queue != null)
+            queuedNeedProvider.Queue.Leave(this);
+        else if (needProvider != null && needInteraction != null)
+            needProvider.ReleaseReservation(this, needInteraction);
+
+        queuedNeedProvider = null;
+        queuedNeedInteraction = null;
+        needProvider = null;
+        needInteraction = null;
+        walkingToNeedInteraction = false;
+        performingNeedInteraction = false;
+    }
+
     private void OnDestroy()
     {
+        CancelNeedInteraction();
+
         if (movement != null)
         {
             movement.Arrived -= HandleMovementArrived;
