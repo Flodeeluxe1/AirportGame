@@ -124,22 +124,22 @@ public class FlightSchoolStudentManager : MonoBehaviour
     private void ResolveReferences()
     {
         if (trafficSpawner == null)
-            trafficSpawner = FindFirstObjectByType<TrafficTestSpawner>();
+            trafficSpawner = FindAnyObjectByType<TrafficTestSpawner>();
 
         if (flightSchoolManager == null)
             flightSchoolManager = GetComponent<FlightSchoolManager>();
 
         if (flightSchoolManager == null)
-            flightSchoolManager = FindFirstObjectByType<FlightSchoolManager>();
+            flightSchoolManager = FindAnyObjectByType<FlightSchoolManager>();
 
         if (roomPurposeController == null)
-            roomPurposeController = FindFirstObjectByType<RoomPurposeController>();
+            roomPurposeController = FindAnyObjectByType<RoomPurposeController>();
 
         if (gameTimeManager == null)
-            gameTimeManager = FindFirstObjectByType<GameTimeManager>();
+            gameTimeManager = FindAnyObjectByType<GameTimeManager>();
 
         if (pedestrianPathfinder == null)
-            pedestrianPathfinder = FindFirstObjectByType<PedestrianPathfinder>();
+            pedestrianPathfinder = FindAnyObjectByType<PedestrianPathfinder>();
     }
 
     private void SubscribeToLessons()
