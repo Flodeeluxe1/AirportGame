@@ -15,6 +15,11 @@ public class FlightSchoolStudentManager : MonoBehaviour
     [Header("Prefab References")]
     [SerializeField] private GameObject studentCarPrefab;
     [SerializeField] private GameObject studentPrefab;
+    [SerializeField] private GameObject instructorPrefab;
+
+    [Header("Instructor")]
+    [SerializeField, Min(1)] private int instructorSpawnLeadMinutes = 30;
+    [SerializeField, Min(0.25f)] private float instructorSpawnCheckInterval = 1f;
 
     [Header("Classroom Seating")]
     [Tooltip("A sit interaction such as Sit_Rest. Used to make chair InteractionProviders reservable.")]
@@ -74,6 +79,12 @@ public class FlightSchoolStudentManager : MonoBehaviour
     private readonly List<StudentRecord> students =
         new List<StudentRecord>();
 
+    private readonly Dictionary<Vector2Int, FlightSchoolInstructorController> instructors =
+        new Dictionary<Vector2Int, FlightSchoolInstructorController>();
+    private readonly HashSet<Vector2Int> cohortSpawningRooms =
+        new HashSet<Vector2Int>();
+    private float nextInstructorSpawnCheckTime;
+
     private long nextRoomCheckGameSecond;
     private bool subscribedToLessons;
     private bool subscribedToGameTime;
@@ -101,6 +112,8 @@ public class FlightSchoolStudentManager : MonoBehaviour
         int currentSeconds = gameTimeManager.GetGameTimeSeconds();
         int openingSeconds = openingHour * 60 * 60;
         int closingSeconds = closingHour * 60 * 60;
+
+        UpdateInstructorSpawns(currentSeconds, openingSeconds);
 
         if (currentSeconds >= closingSeconds)
         {
@@ -227,6 +240,7 @@ public class FlightSchoolStudentManager : MonoBehaviour
 
             spawnedDayByRoom[anchor] = currentDay;
             seatsByRoom[anchor] = seats;
+            cohortSpawningRooms.Add(anchor);
             StartCoroutine(SpawnRoomCohort(anchor, dailyDemand, currentDay));
 
             debugStatus = $"Spawning {dailyDemand} student(s) for Flight School at {anchor}.";
@@ -244,6 +258,7 @@ public class FlightSchoolStudentManager : MonoBehaviour
                 gameTimeManager.CurrentDay != cohortDay ||
                 gameTimeManager.GetGameTimeSeconds() >= closingHour * 60 * 60)
             {
+                FinishCohortSpawn(roomAnchor);
                 yield break;
             }
 
@@ -284,6 +299,14 @@ public class FlightSchoolStudentManager : MonoBehaviour
                 }
             }
         }
+
+        FinishCohortSpawn(roomAnchor);
+    }
+
+    private void FinishCohortSpawn(Vector2Int roomAnchor)
+    {
+        cohortSpawningRooms.Remove(roomAnchor);
+        TryDespawnInstructorIfFinished(roomAnchor);
     }
 
     private List<SeatSlot> FindRoomSeats(
@@ -507,6 +530,12 @@ public class FlightSchoolStudentManager : MonoBehaviour
         student.AircraftReached += HandleStudentReachedAircraft;
         student.PathFailed += HandleStudentPathFailed;
         record.student = student;
+
+        if (instructors.TryGetValue(record.roomAnchor, out FlightSchoolInstructorController instructor) &&
+            instructor != null)
+        {
+            instructor.NotifyStudentArrived(student);
+        }
 
         Debug.Log(
             $"FlightSchoolStudentManager: Spawned {studentObject.name} for {vehicle.name}; " +
@@ -864,6 +893,7 @@ public class FlightSchoolStudentManager : MonoBehaviour
         vehicle.Parked -= HandleVehicleParked;
         vehicle.Exited -= HandleVehicleExited;
         students.Remove(record);
+        TryDespawnInstructorIfFinished(record.roomAnchor);
     }
 
     private StudentRecord FindRecord(TrafficTestVehicle vehicle)
@@ -886,6 +916,229 @@ public class FlightSchoolStudentManager : MonoBehaviour
         }
 
         return null;
+    }
+
+    private void UpdateInstructorSpawns(int currentSeconds, int openingSeconds)
+    {
+        if (instructorPrefab == null ||
+            currentSeconds < openingSeconds - instructorSpawnLeadMinutes * 60 ||
+            currentSeconds >= openingSeconds ||
+            Time.unscaledTime < nextInstructorSpawnCheckTime)
+        {
+            return;
+        }
+
+        nextInstructorSpawnCheckTime =
+            Time.unscaledTime + Mathf.Max(0.25f, instructorSpawnCheckInterval);
+
+        GridManager gridManager = FindAnyObjectByType<GridManager>();
+        if (gridManager == null || pedestrianPathfinder == null)
+            return;
+
+        List<RoomDetectionController.DetectedRoom> rooms =
+            roomPurposeController.GetAssignedFlightSchoolRooms();
+
+        foreach (RoomDetectionController.DetectedRoom room in rooms)
+        {
+            if (room == null || room.cells == null || room.cells.Count == 0)
+                continue;
+
+            Vector2Int roomAnchor = GetRoomAnchor(room);
+            if (instructors.TryGetValue(roomAnchor, out FlightSchoolInstructorController existing) &&
+                existing != null)
+            {
+                continue;
+            }
+
+            if (!flightSchoolManager.TryGetDailyStudentDemand(roomAnchor, out int demand) ||
+                demand <= 0)
+            {
+                continue;
+            }
+
+            if (!TryGetRoomWallBoard(
+                    room,
+                    gridManager,
+                    out PlacedBuilding wallBoard,
+                    out Vector3 boardCenter,
+                    out Vector3 inwardDirection,
+                    out Vector3 boardAxis))
+            {
+                continue;
+            }
+
+            float halfPatrolLength = Mathf.Max(
+                0.25f,
+                wallBoard.EdgeLength * gridManager.CellSize * 0.5f - 0.4f);
+
+            Vector3 patrolCenter = boardCenter + inwardDirection * 1.25f;
+            Vector3 patrolStart = patrolCenter - boardAxis * halfPatrolLength;
+            Vector3 patrolEnd = patrolCenter + boardAxis * halfPatrolLength;
+
+            if (!pedestrianPathfinder.TryFindNearestWalkablePosition(
+                    patrolCenter,
+                    3,
+                    out Vector3 spawnPosition))
+            {
+                continue;
+            }
+
+            GameObject instructorObject = Instantiate(
+                instructorPrefab,
+                spawnPosition,
+                Quaternion.LookRotation(-inwardDirection, Vector3.up));
+
+            if (instructorObject == null)
+                continue;
+
+            Collider instructorCollider = instructorObject.GetComponent<Collider>();
+            if (instructorCollider == null)
+                instructorCollider = instructorObject.GetComponentInChildren<Collider>();
+
+            if (instructorCollider != null)
+                instructorObject.transform.position +=
+                    Vector3.up * instructorCollider.bounds.extents.y;
+
+            FlightSchoolInstructorController controller =
+                instructorObject.GetComponent<FlightSchoolInstructorController>();
+
+            if (controller == null)
+                controller = instructorObject.AddComponent<FlightSchoolInstructorController>();
+
+            controller.Initialize(
+                roomAnchor,
+                boardCenter,
+                patrolStart,
+                patrolEnd,
+                this,
+                gameTimeManager);
+
+            instructors[roomAnchor] = controller;
+        }
+    }
+
+    private bool TryGetRoomWallBoard(
+        RoomDetectionController.DetectedRoom room,
+        GridManager gridManager,
+        out PlacedBuilding selectedBoard,
+        out Vector3 boardCenter,
+        out Vector3 inwardDirection,
+        out Vector3 boardAxis)
+    {
+        selectedBoard = null;
+        boardCenter = Vector3.zero;
+        inwardDirection = Vector3.zero;
+        boardAxis = Vector3.right;
+
+        HashSet<Vector2Int> roomCells = new HashSet<Vector2Int>(room.cells);
+
+        foreach (PlacedBuilding placed in PlacedBuilding.ActiveBuildings)
+        {
+            if (placed == null ||
+                placed.Definition == null ||
+                !placed.Definition.isWallMounted ||
+                (placed.Definition.roomFurnitureRole & RoomFurnitureRole.WallBoard) == 0)
+            {
+                continue;
+            }
+
+            bool horizontal = placed.EdgeDirection == EdgeDirection.Horizontal;
+            int edgeLength = Mathf.Max(1, placed.EdgeLength);
+
+            for (int i = 0; i < edgeLength; i++)
+            {
+                Vector2Int edgeCell = placed.Origin +
+                    (horizontal ? Vector2Int.right : Vector2Int.up) * i;
+
+                bool touchesRoom;
+                if (horizontal)
+                {
+                    if (roomCells.Contains(edgeCell))
+                    {
+                        inwardDirection = Vector3.forward;
+                        touchesRoom = true;
+                    }
+                    else if (roomCells.Contains(edgeCell + Vector2Int.down))
+                    {
+                        inwardDirection = Vector3.back;
+                        touchesRoom = true;
+                    }
+                    else
+                    {
+                        touchesRoom = false;
+                    }
+                }
+                else
+                {
+                    if (roomCells.Contains(edgeCell))
+                    {
+                        inwardDirection = Vector3.right;
+                        touchesRoom = true;
+                    }
+                    else if (roomCells.Contains(edgeCell + Vector2Int.left))
+                    {
+                        inwardDirection = Vector3.left;
+                        touchesRoom = true;
+                    }
+                    else
+                    {
+                        touchesRoom = false;
+                    }
+                }
+
+                if (!touchesRoom)
+                    continue;
+
+                boardAxis = horizontal ? Vector3.right : Vector3.forward;
+                boardCenter = gridManager.GridToWorld(placed.Origin) +
+                    boardAxis * (edgeLength * gridManager.CellSize * 0.5f);
+                boardCenter.y = placed.transform.position.y;
+                selectedBoard = placed;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private void TryDespawnInstructorIfFinished(Vector2Int roomAnchor)
+    {
+        if (cohortSpawningRooms.Contains(roomAnchor))
+            return;
+
+        for (int i = 0; i < students.Count; i++)
+        {
+            if (students[i] != null && students[i].roomAnchor == roomAnchor)
+                return;
+        }
+
+        if (instructors.TryGetValue(roomAnchor, out FlightSchoolInstructorController instructor))
+        {
+            instructors.Remove(roomAnchor);
+            if (instructor != null)
+                Destroy(instructor.gameObject);
+        }
+    }
+
+    public void CollectSeatedStudents(
+        Vector2Int roomAnchor,
+        List<FlightSchoolStudentAgent> results)
+    {
+        if (results == null)
+            return;
+
+        results.Clear();
+        for (int i = 0; i < students.Count; i++)
+        {
+            StudentRecord record = students[i];
+            if (record != null &&
+                record.roomAnchor == roomAnchor &&
+                record.student != null &&
+                record.student.IsSeated)
+            {
+                results.Add(record.student);
+            }
+        }
     }
 
     private long GetAbsoluteGameTimeSeconds()
