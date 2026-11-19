@@ -166,10 +166,10 @@ public class AircraftTrainingLandingController : MonoBehaviour
     private void ResolveReferences()
     {
         if (gridManager == null)
-            gridManager = FindFirstObjectByType<GridManager>();
+            gridManager = FindAnyObjectByType<GridManager>();
 
         if (weather == null)
-            weather = FindFirstObjectByType<Weather>();
+            weather = FindAnyObjectByType<Weather>();
     }
 
 
@@ -228,7 +228,7 @@ public class AircraftTrainingLandingController : MonoBehaviour
         if (trafficManager == null)
         {
             trafficManager =
-                FindFirstObjectByType<AircraftRunwayTrafficManager>();
+                FindAnyObjectByType<AircraftRunwayTrafficManager>();
         }
 
         if (trafficManager != null && selectedRunway != null)
@@ -246,7 +246,7 @@ public class AircraftTrainingLandingController : MonoBehaviour
     {
         if (trafficManager == null)
             trafficManager =
-                FindFirstObjectByType<AircraftRunwayTrafficManager>();
+                FindAnyObjectByType<AircraftRunwayTrafficManager>();
 
         if (trafficManager != null)
             trafficManager.UnregisterLandingTraffic(this);
@@ -346,7 +346,7 @@ public class AircraftTrainingLandingController : MonoBehaviour
             return false;
 
         AircraftRunwayTrafficManager trafficManager =
-            FindFirstObjectByType<AircraftRunwayTrafficManager>();
+            FindAnyObjectByType<AircraftRunwayTrafficManager>();
 
         if (trafficManager == null)
         {
