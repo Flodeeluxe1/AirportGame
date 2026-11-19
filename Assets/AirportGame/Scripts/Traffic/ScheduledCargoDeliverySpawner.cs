@@ -78,7 +78,7 @@ public class ScheduledCargoDeliverySpawner : MonoBehaviour
     private void OnEnable()
     {
         if (gameTimeManager == null)
-            gameTimeManager = FindFirstObjectByType<GameTimeManager>();
+            gameTimeManager = FindAnyObjectByType<GameTimeManager>();
 
         if (gameTimeManager != null)
             gameTimeManager.GameTimeAdvanced += HandleGameTimeAdvanced;
@@ -120,18 +120,18 @@ public class ScheduledCargoDeliverySpawner : MonoBehaviour
         }
 
         if (gridManager == null)
-            gridManager = FindFirstObjectByType<GridManager>();
+            gridManager = FindAnyObjectByType<GridManager>();
 
         if (flightManagement == null)
         {
             flightManagement =
-                FindFirstObjectByType<FlightManagementUIController>();
+                FindAnyObjectByType<FlightManagementUIController>();
         }
 
         if (gameTimeManager == null)
-            gameTimeManager = FindFirstObjectByType<GameTimeManager>();
+            gameTimeManager = FindAnyObjectByType<GameTimeManager>();
 
-        roadNetwork = FindFirstObjectByType<RoadNetwork>();
+        roadNetwork = FindAnyObjectByType<RoadNetwork>();
 
         if (gridManager == null ||
             flightManagement == null ||
@@ -490,7 +490,7 @@ public class ScheduledCargoDeliverySpawner : MonoBehaviour
         lastZoneBlockedOperationId = string.Empty;
 
         if (roadNetwork == null)
-            roadNetwork = FindFirstObjectByType<RoadNetwork>();
+            roadNetwork = FindAnyObjectByType<RoadNetwork>();
 
         if (roadNetwork == null || gridManager == null)
         {
