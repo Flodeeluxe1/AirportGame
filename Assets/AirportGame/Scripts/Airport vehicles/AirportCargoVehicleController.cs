@@ -428,7 +428,7 @@ public class AirportCargoVehicleController : MonoBehaviour
 
         Transform stopPoint = zone.AirportVehicleStopPoint;
         PlacedBuilding placedBuilding = zone.GetComponent<PlacedBuilding>();
-        GridManager grid = FindFirstObjectByType<GridManager>();
+        GridManager grid = FindAnyObjectByType<GridManager>();
 
         string targetCell = grid != null
             ? grid.WorldToGrid(stopPoint.position).ToString()
