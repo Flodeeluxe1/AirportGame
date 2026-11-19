@@ -109,6 +109,34 @@ public class AircraftSSLandingController : MonoBehaviour
 
     private void Start()
     {
+        InitializeLanding();
+    }
+
+    public bool BeginReturnLanding()
+    {
+        if (state != LandingState.LandingComplete && state != LandingState.Failed)
+            return false;
+
+        if (trafficManager != null)
+            trafficManager.UnregisterLandingTraffic(this);
+
+        selectedRunway = null;
+        runwayDirection = Vector3.zero;
+        touchdownPoint = Vector3.zero;
+        alignmentPoint = Vector3.zero;
+        flareDecisionMade = false;
+        rolloutElapsed = 0f;
+        return InitializeLanding();
+    }
+
+    private bool InitializeLanding()
+    {
+        if (gridManager == null)
+            gridManager = FindAnyObjectByType<GridManager>();
+
+        if (weather == null)
+            weather = FindAnyObjectByType<Weather>();
+
         if (gridManager == null)
             gridManager = FindAnyObjectByType<GridManager>();
 
@@ -118,13 +146,13 @@ public class AircraftSSLandingController : MonoBehaviour
         if (gridManager == null || weather == null)
         {
             Fail("GridManager or Weather is missing.");
-            return;
+            return false;
         }
 
         if (!SelectLandingRunway())
         {
             Fail("No usable runway with AircraftRunway was found.");
-            return;
+            return false;
         }
 
         currentSpeed = KnotsToWorldSpeed(approachSpeedKnots);
@@ -133,6 +161,7 @@ public class AircraftSSLandingController : MonoBehaviour
         state = LandingState.Aligning;
 
         debugStatus = "Flying toward the runway approach alignment point.";
+        return true;
     }
 
     private void Update()
