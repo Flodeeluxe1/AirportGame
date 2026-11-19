@@ -62,7 +62,6 @@ public class FlightSchoolStudentAgent : MonoBehaviour
     private float nextNeedDecisionTime;
     private float nextQueuePositionRefresh;
     private Vector3 lastQueueDestination;
-    private string lastNeedDecisionDiagnostic;
 
 
     public event Action<FlightSchoolStudentAgent> SeatReached;
@@ -484,8 +483,6 @@ public class FlightSchoolStudentAgent : MonoBehaviour
     {
         if (needs == null || movement == null || reservedSeat == null)
         {
-            LogNeedDecisionDiagnostic("Cannot search: NeedsMissing=" + (needs == null) +
-                ", MovementMissing=" + (movement == null) + ", SeatMissing=" + (reservedSeat == null) + ".");
             return false;
         }
 
@@ -501,12 +498,6 @@ public class FlightSchoolStudentAgent : MonoBehaviour
             transform.position, needInteractionSearchRadius, nearbyNeedProviders);
 
         needShortlist.Clear();
-        int inaccessibleProviders = 0;
-        int unavailableProviders = 0;
-        int noMatchingNeedProviders = 0;
-        int unavailableMatchingOffers = 0;
-        int unreachableProviders = 0;
-        List<string> unavailableMatchingOfferNames = new List<string>();
 
         for (int providerIndex = 0; providerIndex < nearbyNeedProviders.Count; providerIndex++)
         {
@@ -516,7 +507,6 @@ public class FlightSchoolStudentAgent : MonoBehaviour
 
             if (!provider.InteractionsEnabled)
             {
-                unavailableProviders++;
                 continue;
             }
 
@@ -524,13 +514,11 @@ public class FlightSchoolStudentAgent : MonoBehaviour
                 !roomPurposeController.IsPositionAccessibleToPedestrian(
                     provider.InteractionPosition, accessProfile))
             {
-                inaccessibleProviders++;
                 continue;
             }
 
             float providerTravelTime = -1f;
 
-            bool providerMatchedNeed = false;
             foreach (InteractionDefinition definition in provider.Interactions)
             {
                 if (definition == null)
@@ -540,17 +528,8 @@ public class FlightSchoolStudentAgent : MonoBehaviour
                 if (utility <= 0f)
                     continue;
 
-                providerMatchedNeed = true;
-
-                // Check utility before availability so diagnostics can distinguish
-                // a relevant interaction that is currently reserved/full from
-                // a provider that has no interaction for this student's needs.
                 if (!provider.CanOffer(definition))
                 {
-                    unavailableMatchingOffers++;
-                    if (unavailableMatchingOfferNames.Count < 8)
-                        unavailableMatchingOfferNames.Add(
-                            provider.name + " (" + definition.DisplayName + ")");
                     continue;
                 }
 
@@ -560,7 +539,6 @@ public class FlightSchoolStudentAgent : MonoBehaviour
                 if (float.IsInfinity(providerTravelTime) ||
                     float.IsNaN(providerTravelTime))
                 {
-                    unreachableProviders++;
                     continue;
                 }
 
@@ -584,26 +562,10 @@ public class FlightSchoolStudentAgent : MonoBehaviour
                     });
                 }
             }
-
-            if (!providerMatchedNeed)
-                noMatchingNeedProviders++;
         }
 
         if (needShortlist.Count == 0)
         {
-            LogNeedDecisionDiagnostic(
-                "No eligible need interaction. NearbyProviders=" + nearbyNeedProviders.Count +
-                ", Inaccessible=" + inaccessibleProviders +
-                ", Disabled=" + unavailableProviders +
-                ", NoMatchingNeed=" + noMatchingNeedProviders +
-                ", MatchingButUnavailable=" + unavailableMatchingOffers +
-                ", UnavailableExamples=[" + string.Join(", ", unavailableMatchingOfferNames) + "]" +
-                ", Unreachable=" + unreachableProviders +
-                ", ThirstConsidered=" + needs.IsNeedConsidered(UtilityNeeds.NeedType.Thirst) +
-                ", ThirstValue=" + needs.GetValue(UtilityNeeds.NeedType.Thirst).ToString("0.0") +
-                ", ThirstUrgency=" + needs.GetUrgency(UtilityNeeds.NeedType.Thirst).ToString("0.0") +
-                ", ThirstWeight=" + needs.GetUtilityWeight(UtilityNeeds.NeedType.Thirst).ToString("0.0") +
-                ", Position=" + transform.position + ".");
             if (wasSeatedAtDecision && reservedSeat != null)
                 movement.AlignToAnimationPoint(reservedSeat);
             else if (!atSeat && !walkingToSeat && !walkingToAircraft && !walkingToCar)
@@ -628,10 +590,6 @@ public class FlightSchoolStudentAgent : MonoBehaviour
                 break;
             }
         }
-
-        LogNeedDecisionDiagnostic(
-            "Selected " + selected.definition.DisplayName + " at " + selected.provider.name
-            + "; Candidates=" + needShortlist.Count + ", TravelTime=" + selected.travelTime.ToString("0.0") + "s.");
 
         if (atSeat && reservedSeat != null)
             movement.AlignToInteractionPoint(reservedSeat);
@@ -672,15 +630,6 @@ public class FlightSchoolStudentAgent : MonoBehaviour
         }
 
         return true;
-    }
-
-    private void LogNeedDecisionDiagnostic(string message)
-    {
-        if (lastNeedDecisionDiagnostic == message)
-            return;
-
-        lastNeedDecisionDiagnostic = message;
-        Debug.LogWarning("FlightSchoolStudentAgent " + name + ": " + message, this);
     }
 
     private float CalculateNeedUtility(InteractionDefinition definition)
