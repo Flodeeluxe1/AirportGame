@@ -77,7 +77,7 @@ public class AirportRatingManager : MonoBehaviour
         if (gameTimeManager != null)
             return;
 
-        gameTimeManager = FindFirstObjectByType<GameTimeManager>();
+        gameTimeManager = FindAnyObjectByType<GameTimeManager>();
         if (gameTimeManager != null)
             gameTimeManager.GameTimeAdvanced += HandleGameTimeAdvanced;
     }
@@ -99,7 +99,7 @@ public class AirportRatingManager : MonoBehaviour
             return null;
 
         if (instance == null)
-            instance = FindFirstObjectByType<AirportRatingManager>();
+            instance = FindAnyObjectByType<AirportRatingManager>();
 
         if (instance == null || !instance.isActiveAndEnabled)
             return null;
