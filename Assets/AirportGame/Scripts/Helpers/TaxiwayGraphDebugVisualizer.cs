@@ -61,10 +61,10 @@ public class TaxiwayGraphDebugVisualizer : MonoBehaviour
     private void ResolveReferences()
     {
         if (gridManager == null)
-            gridManager = FindFirstObjectByType<GridManager>();
+            gridManager = FindAnyObjectByType<GridManager>();
 
         if (taxiwayNetwork == null)
-            taxiwayNetwork = FindFirstObjectByType<TaxiwayNetwork>();
+            taxiwayNetwork = FindAnyObjectByType<TaxiwayNetwork>();
     }
 
     private void OnDrawGizmos()
