@@ -496,7 +496,9 @@ public class FlightSchoolStudentAgent : MonoBehaviour
         int inaccessibleProviders = 0;
         int unavailableProviders = 0;
         int noMatchingNeedProviders = 0;
+        int unavailableMatchingOffers = 0;
         int unreachableProviders = 0;
+        List<string> unavailableMatchingOfferNames = new List<string>();
 
         for (int providerIndex = 0; providerIndex < nearbyNeedProviders.Count; providerIndex++)
         {
@@ -523,7 +525,7 @@ public class FlightSchoolStudentAgent : MonoBehaviour
             bool providerMatchedNeed = false;
             foreach (InteractionDefinition definition in provider.Interactions)
             {
-                if (definition == null || !provider.CanOffer(definition))
+                if (definition == null)
                     continue;
 
                 float utility = CalculateNeedUtility(definition);
@@ -531,6 +533,18 @@ public class FlightSchoolStudentAgent : MonoBehaviour
                     continue;
 
                 providerMatchedNeed = true;
+
+                // Check utility before availability so diagnostics can distinguish
+                // a relevant interaction that is currently reserved/full from
+                // a provider that has no interaction for this student's needs.
+                if (!provider.CanOffer(definition))
+                {
+                    unavailableMatchingOffers++;
+                    if (unavailableMatchingOfferNames.Count < 8)
+                        unavailableMatchingOfferNames.Add(
+                            provider.name + " (" + definition.DisplayName + ")");
+                    continue;
+                }
 
                 if (providerTravelTime < 0f)
                     providerTravelTime = movement.EstimateTravelTime(provider);
@@ -574,6 +588,8 @@ public class FlightSchoolStudentAgent : MonoBehaviour
                 ", Inaccessible=" + inaccessibleProviders +
                 ", Disabled=" + unavailableProviders +
                 ", NoMatchingNeed=" + noMatchingNeedProviders +
+                ", MatchingButUnavailable=" + unavailableMatchingOffers +
+                ", UnavailableExamples=[" + string.Join(", ", unavailableMatchingOfferNames) + "]" +
                 ", Unreachable=" + unreachableProviders +
                 ", ThirstConsidered=" + needs.IsNeedConsidered(UtilityNeeds.NeedType.Thirst) +
                 ", ThirstValue=" + needs.GetValue(UtilityNeeds.NeedType.Thirst).ToString("0.0") +
