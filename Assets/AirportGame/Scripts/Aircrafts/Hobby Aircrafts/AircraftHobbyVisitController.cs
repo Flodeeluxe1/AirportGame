@@ -63,7 +63,7 @@ public class AircraftHobbyVisitController : MonoBehaviour
         flightIdentity = GetComponent<AircraftFlightIdentity>();
         landingController = GetComponent<AircraftHobbyLandingController>();
         hobbyTaxiController = GetComponent<AircraftHobbyLandingTaxiController>();
-        gameTimeManager = FindFirstObjectByType<GameTimeManager>();
+        gameTimeManager = FindAnyObjectByType<GameTimeManager>();
     }
 
     private void Update()
@@ -83,7 +83,7 @@ public class AircraftHobbyVisitController : MonoBehaviour
             hobbyTaxiController = GetComponent<AircraftHobbyLandingTaxiController>();
 
         if (gameTimeManager == null)
-            gameTimeManager = FindFirstObjectByType<GameTimeManager>();
+            gameTimeManager = FindAnyObjectByType<GameTimeManager>();
 
         if (!hasParked)
         {
