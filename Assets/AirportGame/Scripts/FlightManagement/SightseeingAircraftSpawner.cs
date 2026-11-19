@@ -229,6 +229,7 @@ public class SightseeingAircraftSpawner : MonoBehaviour
         if (!HasTicketDeskPlaced())
         {
             flightPending = false;
+            pendingFlightHourSlot = 0L;
             retryTimer = 0f;
             waitingMessageLogged = false;
             lastObservedHourSlot = GetCurrentHourSlot();
@@ -248,13 +249,23 @@ public class SightseeingAircraftSpawner : MonoBehaviour
         if (currentSlot <= lastObservedHourSlot)
             return;
 
-        // Prepare passengers one in-game hour before the next scheduled slot.
-        // Notify even when the current aircraft is still pending: skipped slots
-        // must not leave passengers waiting for a flight that will never spawn.
+        bool wasAlreadyPending = flightPending;
         lastObservedHourSlot = currentSlot;
+
+        if (!wasAlreadyPending)
+        {
+            flightPending = true;
+            pendingFlightHourSlot = currentSlot;
+            retryTimer = 0f;
+            waitingMessageLogged = false;
+            scheduleStatus = "Hourly flight due";
+        }
+
+        // At this boundary, passengers for the following hourly slot are
+        // spawned. The current slot's cohort was prepared one hour earlier.
         FlightScheduled?.Invoke(currentSlot + 1L);
 
-        if (flightPending)
+        if (wasAlreadyPending)
         {
             scheduleStatus =
                 "One flight is pending; additional hourly slots are skipped.";
@@ -270,13 +281,6 @@ public class SightseeingAircraftSpawner : MonoBehaviour
 
             return;
         }
-
-        flightPending = true;
-        pendingFlightHourSlot = currentSlot;
-        retryTimer = 0f;
-        waitingMessageLogged = false;
-
-        scheduleStatus = "Hourly flight due";
 
         if (logSpawnDetails)
         {
