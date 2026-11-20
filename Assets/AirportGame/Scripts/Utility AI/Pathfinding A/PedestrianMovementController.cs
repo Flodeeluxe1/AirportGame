@@ -83,6 +83,7 @@ public class PedestrianMovementController : MonoBehaviour
     private const float TravelEstimateTargetMovementThreshold = 0.25f;
     private Vector3 destination;
     private float movementHeight;
+    private float lastWalkableHeight;
     private float individualSpeedMultiplier = 1f;
     private float currentSpeed;
     private Vector3 currentAvoidanceOffset;
@@ -121,6 +122,7 @@ public class PedestrianMovementController : MonoBehaviour
     {
         ResolvePathfinder();
         movementHeight = transform.position.y;
+        lastWalkableHeight = movementHeight;
         alignmentColliders = GetComponentsInChildren<Collider>(true);
         alignmentRenderers = GetComponentsInChildren<Renderer>(true);
     }
@@ -159,10 +161,12 @@ public class PedestrianMovementController : MonoBehaviour
                 ? lastApproachPosition
                 : provider.InteractionPosition;
 
-        // Interaction approach positions are already pedestrian-root positions:
-        // the pathfinder creates them at the pedestrian's walking height.
-        // Do not add the collider half-height here. Doing so shifts the root
-        // upward after every completed interaction, accumulating vertical drift.
+        // Interaction approach positions are already pedestrian-root positions.
+        // If no matching approach was recorded (for example, a caller used a
+        // nearby-position route), the provider's raw point may be below the floor.
+        // Always restore the last known walking height rather than trusting the
+        // interaction anchor's Y coordinate.
+        approachPosition.y = lastWalkableHeight;
         transform.SetPositionAndRotation(
             approachPosition,
             provider.InteractionRotation);
@@ -639,6 +643,7 @@ public class PedestrianMovementController : MonoBehaviour
     {
         destination = worldDestination;
         movementHeight = transform.position.y;
+        lastWalkableHeight = movementHeight;
         destination.y = movementHeight;
 
         for (int i = 0; i < calculatedPath.Count; i++)
