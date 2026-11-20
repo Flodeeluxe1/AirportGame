@@ -59,9 +59,8 @@ public class SightseeingPassengerManager : MonoBehaviour
         public SightseeingAircraftParkingSpot parkingSpot;
         public readonly List<PassengerRecord> passengers = new List<PassengerRecord>();
         public int nextBoardingIndex;
-        public int eligibleGatherers;
-        public int gatheringResolvedCount;
-        public bool boardingSequenceReady;
+        public readonly Queue<PassengerRecord> waitingToBoard = new Queue<PassengerRecord>();
+        public bool boardingPassengerActive;
         public bool boardingStarted;
         public bool returned;
         public bool cancelled;
@@ -449,9 +448,8 @@ public class SightseeingPassengerManager : MonoBehaviour
                 record.agent.BeginReturnToCar();
         }
 
-        group.eligibleGatherers = eligible;
-        group.gatheringResolvedCount = 0;
-        group.boardingSequenceReady = false;
+        group.waitingToBoard.Clear();
+        group.boardingPassengerActive = false;
         turnaround.ConfigurePassengerManifest(eligible);
 
         if (marker == null)
@@ -463,9 +461,9 @@ public class SightseeingPassengerManager : MonoBehaviour
             return;
         }
 
-        // Everyone walks to a separate position around the BoardingPoint first.
-        // Once the whole group has gathered, passengers approach the aircraft
-        // one at a time using the existing boarding sequence.
+        // Everyone walks to a separate position around the BoardingPoint at once.
+        // Each passenger joins the boarding queue on arrival, so the first to
+        // reach the gathering area can board without waiting for the others.
         int slot = 0;
         float gatheringRadius = Mathf.Max(1.8f, eligible * 0.32f);
         for (int i = 0; i < group.passengers.Count; i++)
@@ -487,7 +485,6 @@ public class SightseeingPassengerManager : MonoBehaviour
             }
         }
 
-        TryStartBoardingSequence(group, marker);
     }
 
     private void ResolveGatheringFailure(FlightGroup group, PassengerRecord record)
@@ -496,7 +493,6 @@ public class SightseeingPassengerManager : MonoBehaviour
             return;
 
         record.gatheringResolved = true;
-        group.gatheringResolvedCount++;
         if (group.turnaround != null)
             group.turnaround.NotifyPassengerBoardingFailed();
         record.checkedIn = false;
@@ -504,31 +500,24 @@ public class SightseeingPassengerManager : MonoBehaviour
             record.agent.BeginReturnToCar();
     }
 
-    private void TryStartBoardingSequence(FlightGroup group, Transform marker)
-    {
-        if (group == null || group.boardingSequenceReady ||
-            group.gatheringResolvedCount < group.eligibleGatherers)
-            return;
-
-        group.boardingSequenceReady = true;
-        group.nextBoardingIndex = 0;
-        StartNextBoarding(group, marker);
-    }
-
     private void StartNextBoarding(FlightGroup group, Transform marker)
     {
         if (group == null || group.turnaround == null || marker == null ||
-            !group.boardingSequenceReady)
+            group.boardingPassengerActive)
             return;
 
-        while (group.nextBoardingIndex < group.passengers.Count)
+        while (group.waitingToBoard.Count > 0)
         {
-            PassengerRecord record = group.passengers[group.nextBoardingIndex++];
+            PassengerRecord record = group.waitingToBoard.Dequeue();
             if (record == null || !record.checkedIn || record.agent == null ||
                 !record.agent.isActiveAndEnabled)
                 continue;
 
-            if (record.agent.BeginBoarding(marker, group.parkingSpot)) return;
+            if (record.agent.BeginBoarding(marker, group.parkingSpot))
+            {
+                group.boardingPassengerActive = true;
+                return;
+            }
 
             group.turnaround.NotifyPassengerBoardingFailed();
             record.checkedIn = false;
@@ -544,12 +533,12 @@ public class SightseeingPassengerManager : MonoBehaviour
             return;
 
         record.gatheringResolved = true;
-        group.gatheringResolvedCount++;
+        group.waitingToBoard.Enqueue(record);
 
         Transform marker = group.parkingSpot != null
             ? group.parkingSpot.transform.Find("BoardingPoint")
             : null;
-        TryStartBoardingSequence(group, marker);
+        StartNextBoarding(group, marker);
     }
 
     public void HandlePassengerReachedAircraft(SightseeingPassengerAgent agent)
@@ -559,6 +548,7 @@ public class SightseeingPassengerManager : MonoBehaviour
             record.onBoard || !group.boardingStarted) return;
 
         record.onBoard = true;
+        group.boardingPassengerActive = false;
         agent.MarkOnBoard();
         group.turnaround.NotifyPassengerBoarded();
 
@@ -576,13 +566,10 @@ public class SightseeingPassengerManager : MonoBehaviour
         if (agent.IsGatheringForBoarding && group != null && group.turnaround != null)
         {
             ResolveGatheringFailure(group, record);
-            Transform marker = group.parkingSpot != null
-                ? group.parkingSpot.transform.Find("BoardingPoint")
-                : null;
-            TryStartBoardingSequence(group, marker);
         }
         else if (agent.IsWalkingToAircraft && group != null && group.turnaround != null)
         {
+            group.boardingPassengerActive = false;
             group.turnaround.NotifyPassengerBoardingFailed();
             record.checkedIn = false;
             agent.BeginReturnToCar();
