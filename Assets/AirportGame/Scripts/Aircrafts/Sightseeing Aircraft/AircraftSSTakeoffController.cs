@@ -684,6 +684,32 @@ public class AircraftSSTakeoffController : MonoBehaviour
         }
     }
 
+    public void ResetForNextFlight()
+    {
+        ReleaseRunwayReservations();
+        selectedRunway = null;
+        takeoffDirection = Vector3.zero;
+        runwayCenter = Vector3.zero;
+        runwayLength = 0f;
+        runwaySurfaceY = 0f;
+        groundLevelY = transform.position.y;
+        rotationTriggerSpeedKnots = 0f;
+        sightseeingCruiseActive = false;
+        returnLandingStarted = false;
+        returnLandingGameSecond = 0L;
+        cruiseCenter = Vector3.zero;
+        cruiseAngleDegrees = 0f;
+        currentState = TakeoffState.WaitingForLineUp;
+        currentSpeedKnots = 0f;
+        currentNoseUpDegrees = 0f;
+        currentAltitudeAboveRunway = 0f;
+        passengersOnBoard = 0;
+        commissionPaid = 0;
+        revenuePaid = false;
+        runwayReservationReleased = false;
+        debugStatus = "Waiting for line-up";
+    }
+
     private void OnDestroy()
     {
         ReleaseRunwayReservations();
