@@ -361,6 +361,8 @@ MonoBehaviour:
   referenceDemand: 4
   demandVariation: 0.25
   airportCommissionRate: 0.2
+  ticketsSold: 0
+  totalTicketSalesValue: 0
 --- !u!4 &133712791
 Transform:
   m_ObjectHideFlags: 0
@@ -1025,35 +1027,6 @@ MonoBehaviour:
   lastObservedHourSlot: 0
   retryTimer: 0
   scheduleStatus: Initializing
---- !u!114 &549940486
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 549940479}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6e9a7c2f4d1b48a5a3e7c9d2f1b60485, type: 3}
-  m_Name:
-  m_EditorClassIdentifier: Assembly-CSharp::SightseeingPassengerManager
-  passengerPrefab: {fileID: 1552182806160375558, guid: 5f6c3da8c2867f44aab7979bbc9a2435, type: 3}
-  passengerCarPrefab: {fileID: 2154428240389558112, guid: 9150906fb3da9b049807bba55795f99b, type: 3}
-  checkInInteraction: {fileID: 11400000, guid: 8a6b3d1f5c2e49a7b4d0e8f1c3a62579, type: 2}
-  checkInRetrySeconds: 5
-  publicTerminalWaitingArea: {fileID: 0}
-  waitingAreaRadiusCells: 8
-  carSpawnIntervalGameSeconds: 1.5
-  carExitOffset: 1.5
-  trafficSpawner: {fileID: 2134991059}
-  aircraftSpawner: {fileID: 549940480}
-  sightseeingEconomy: {fileID: 0}
-  gameTimeManager: {fileID: 449210932}
-  pedestrianPathfinder: {fileID: 0}
-  roomPurposeController: {fileID: 1399790236}
-  debugStatus: Waiting for sightseeing schedule.
-  activePassengers: 0
-  pendingFlights: 0
 --- !u!65 &549940482
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -1147,6 +1120,35 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &549940486
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 549940479}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6e9a7c2f4d1b48a5a3e7c9d2f1b60485, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SightseeingPassengerManager
+  passengerPrefab: {fileID: 100100000, guid: 5f6c3da8c2867f44aab7979bbc9a2435, type: 3}
+  passengerCarPrefab: {fileID: 2154428240389558112, guid: 9150906fb3da9b049807bba55795f99b, type: 3}
+  checkInInteraction: {fileID: 11400000, guid: 8a6b3d1f5c2e49a7b4d0e8f1c3a62579, type: 2}
+  checkInRetrySeconds: 5
+  publicTerminalWaitingArea: {fileID: 0}
+  waitingAreaRadiusCells: 8
+  carSpawnIntervalGameSeconds: 1.5
+  carExitOffset: 1.5
+  trafficSpawner: {fileID: 2134991059}
+  aircraftSpawner: {fileID: 549940480}
+  sightseeingEconomy: {fileID: 0}
+  gameTimeManager: {fileID: 449210932}
+  pedestrianPathfinder: {fileID: 0}
+  roomPurposeController: {fileID: 1399790236}
+  debugStatus: Waiting for sightseeing schedule.
+  activePassengers: 0
+  pendingFlights: 0
 --- !u!1 &555229055
 GameObject:
   m_ObjectHideFlags: 0
