@@ -58,10 +58,10 @@ public class SightseeingFlightEconomy : MonoBehaviour
     /// tracked separately from the airport's commission to avoid counting
     /// the airline's full fare as airport income.
     /// </summary>
-    public void RegisterTicketSale()
+    public void RegisterTicketSale(int soldTicketPrice)
     {
         ticketsSold++;
-        totalTicketSalesValue += TicketPrice;
+        totalTicketSalesValue += Mathf.Max(0, soldTicketPrice);
     }
 
     public void RegisterTicketRefund(int refundedTicketPrice)
