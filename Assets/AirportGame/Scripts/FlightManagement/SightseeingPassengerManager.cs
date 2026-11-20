@@ -396,6 +396,18 @@ public class SightseeingPassengerManager : MonoBehaviour
         debugStatus = "Passenger purchased a sightseeing ticket (" + price + ") and checked in.";
     }
 
+    public void HandlePassengerRefund(SightseeingPassengerAgent agent, int ticketPrice)
+    {
+        PassengerRecord record = FindRecord(agent, out _);
+        if (record == null || !record.checkedIn || record.onBoard)
+            return;
+
+        record.checkedIn = false;
+        if (sightseeingEconomy != null)
+            sightseeingEconomy.RegisterTicketRefund(ticketPrice);
+        debugStatus = "Sightseeing ticket refunded because the passenger could not board.";
+    }
+
     private void HandleBoardingStarted(AircraftSSTurnaroundController turnaround)
     {
         FlightGroup group = FindGroup(turnaround);
