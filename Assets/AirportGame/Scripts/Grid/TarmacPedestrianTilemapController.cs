@@ -18,7 +18,11 @@ public class TarmacPedestrianTilemapController : MonoBehaviour
     private void Awake()
     {
         if (pedestrianTarmacTilemap == null)
-            pedestrianTarmacTilemap = GetComponent<Tilemap>();
+        {
+            Transform tilemapChild = transform.Find("PedestrianTarmacTilemap");
+            if (tilemapChild != null)
+                pedestrianTarmacTilemap = tilemapChild.GetComponent<Tilemap>();
+        }
         if (gridManager == null)
             gridManager = FindAnyObjectByType<GridManager>();
         if (gridSurface == null && gridManager != null)
