@@ -87,6 +87,11 @@ public class FuelDeliveryStation : MonoBehaviour
         }
     }
 
+    public void RefreshQueueState()
+    {
+        RemoveInvalidQueuedTrucks();
+    }
+
     public void RegisterTruck(FuelTruckController truck)
     {
         if (truck == null)
