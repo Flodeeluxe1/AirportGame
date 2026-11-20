@@ -23,7 +23,8 @@ public class UtilityNeeds : MonoBehaviour
         Social,
         Entertainment,
         Comfort,
-        Boredom
+        Boredom,
+        DepartureUrgency
     }
 
     [Serializable]
@@ -74,6 +75,7 @@ public class UtilityNeeds : MonoBehaviour
                 case NeedType.Entertainment: minimum = entertainmentMin; maximum = entertainmentMax; break;
                 case NeedType.Comfort: minimum = comfortMin; maximum = comfortMax; break;
                 case NeedType.Boredom: minimum = boredomMin; maximum = boredomMax; break;
+                case NeedType.DepartureUrgency: minimum = 100f; maximum = 100f; break;
                 default: minimum = 70f; maximum = 100f; break;
             }
 
@@ -136,6 +138,7 @@ public class UtilityNeeds : MonoBehaviour
         public AnimationCurve entertainment = CreateCurve(new[] { 0.03f, 0.10f, 0.25f, 0.60f, 1f });
         public AnimationCurve comfort = CreateCurve(new[] { 0f, 0.03f, 0.12f, 0.40f, 0.90f });
         [FormerlySerializedAs("curiosity")] public AnimationCurve boredom = CreateCurve(new[] { 0.03f, 0.08f, 0.20f, 0.45f, 0.85f });
+        public AnimationCurve departureUrgency = CreateCurve(new[] { 0f, 0.05f, 0.20f, 0.55f, 1f });
 
         public AnimationCurve GetCurve(NeedType need)
         {
@@ -149,6 +152,7 @@ public class UtilityNeeds : MonoBehaviour
                 NeedType.Entertainment => entertainment,
                 NeedType.Comfort => comfort,
                 NeedType.Boredom => boredom,
+                NeedType.DepartureUrgency => departureUrgency,
                 _ => thirst
             };
         }
@@ -165,6 +169,7 @@ public class UtilityNeeds : MonoBehaviour
         [Min(0f)] public float entertainment = 0.75f;
         [Min(0f)] public float comfort = 0.85f;
         [FormerlySerializedAs("curiosity")] [Min(0f)] public float boredom = 0.7f;
+        [Min(0f)] public float departureUrgency = 1.5f;
 
         public float GetWeight(NeedType need)
         {
@@ -178,6 +183,7 @@ public class UtilityNeeds : MonoBehaviour
                 NeedType.Entertainment => entertainment,
                 NeedType.Comfort => comfort,
                 NeedType.Boredom => boredom,
+                NeedType.DepartureUrgency => departureUrgency,
                 _ => 1f
             };
         }
@@ -194,6 +200,7 @@ public class UtilityNeeds : MonoBehaviour
         public bool entertainment = true;
         public bool comfort = true;
         public bool boredom = true;
+        public bool departureUrgency = true;
 
         public bool IsEnabled(NeedType need)
         {
@@ -207,6 +214,7 @@ public class UtilityNeeds : MonoBehaviour
                 NeedType.Entertainment => entertainment,
                 NeedType.Comfort => comfort,
                 NeedType.Boredom => boredom,
+                NeedType.DepartureUrgency => departureUrgency,
                 _ => false
             };
         }
@@ -259,6 +267,7 @@ public class UtilityNeeds : MonoBehaviour
     [SerializeField, Range(0f, 100f)] private float entertainment = 100f;
     [SerializeField, Range(0f, 100f)] private float comfort = 100f;
     [FormerlySerializedAs("curiosity")] [SerializeField, Range(0f, 100f)] private float boredom = 100f;
+    [SerializeField, Range(0f, 100f)] private float departureUrgency = 100f;
 
     private GameTimeManager gameTimeManager;
     private long lastGameSecond;
@@ -281,6 +290,7 @@ public class UtilityNeeds : MonoBehaviour
             NeedType.Entertainment => entertainment,
             NeedType.Comfort => comfort,
             NeedType.Boredom => boredom,
+            NeedType.DepartureUrgency => departureUrgency,
             _ => 100f
         };
     }
@@ -317,6 +327,12 @@ public class UtilityNeeds : MonoBehaviour
     public void ModifyNeed(NeedType need, float amount)
     {
         SetValue(need, GetValue(need) + amount);
+    }
+
+    /// <summary>Sets schedule-driven departure urgency; 0 is none and 100 is critical.</summary>
+    public void SetDepartureUrgency(float urgency)
+    {
+        SetValue(NeedType.DepartureUrgency, 100f - Mathf.Clamp(urgency, 0f, 100f));
     }
 
     /// <summary>
@@ -491,6 +507,7 @@ public class UtilityNeeds : MonoBehaviour
         entertainment = clamped;
         comfort = clamped;
         boredom = clamped;
+        departureUrgency = 100f;
     }
 
     private void SetValue(NeedType need, float value, bool notify = true)
@@ -511,6 +528,7 @@ public class UtilityNeeds : MonoBehaviour
             case NeedType.Entertainment: entertainment = clamped; break;
             case NeedType.Comfort: comfort = clamped; break;
             case NeedType.Boredom: boredom = clamped; break;
+            case NeedType.DepartureUrgency: departureUrgency = clamped; break;
         }
 
         if (notify)
