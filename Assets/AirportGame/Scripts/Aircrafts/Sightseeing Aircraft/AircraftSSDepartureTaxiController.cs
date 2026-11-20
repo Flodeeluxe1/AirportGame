@@ -1274,6 +1274,45 @@ public class AircraftSSDepartureTaxiController : MonoBehaviour
             this);
     }
 
+    public void ResetForNextFlight()
+    {
+        ResolveReferences();
+        if (trafficManager != null)
+        {
+            trafficManager.ReleaseRunwayLineUpReservation(this);
+            trafficManager.ReleaseDepartureReservation(this);
+        }
+
+        currentState = DepartureState.WaitingForBoarding;
+        selectedRunway = null;
+        takeoffDirection = Vector3.zero;
+        departureThreshold = Vector3.zero;
+        holdingCell = default;
+        hasHoldingCell = false;
+        debugSelectedRunway = "None";
+        debugTakeoffHeading = "None";
+        debugStatus = "Waiting for boarding";
+        debugTaxiRouteLength = 0f;
+        debugRunwayTrafficCount = 0;
+        debugHeadwindKnots = 0f;
+        debugSidewindKnots = 0f;
+        lastPublishedTaxiRoute = null;
+        taxiRoute.Clear();
+        runwayJoinRoute.Clear();
+        movementWaypoints.Clear();
+        currentWaypointIndex = 0;
+        holdingRouteIndex = 0;
+        retryTimer = 0f;
+        hasLoggedWaitingMessage = false;
+        lastRunwayWaitReason = string.Empty;
+        runwayJoinCell = default;
+        runwayCenter = Vector3.zero;
+        runwayLength = 0f;
+        runwaySurfaceY = 0f;
+        runwayLineUpTarget = Vector3.zero;
+        runwayLineUpRotation = Quaternion.identity;
+    }
+
     private void OnDestroy()
     {
         if (trafficManager == null)
