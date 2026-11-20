@@ -106,12 +106,13 @@ public class SightseeingPassengerManager : MonoBehaviour
         for (int i = 0; i < activeGroups.Count; i++)
             if (activeGroups[i].turnaround == null) pendingFlights++;
 
-        if (!initialSchedulePrepared && aircraftSpawner != null && aircraftSpawner.isActiveAndEnabled && gameTimeManager != null)
+        if (!initialSchedulePrepared && aircraftSpawner != null &&
+            aircraftSpawner.isActiveAndEnabled && gameTimeManager != null &&
+            SightseeingAircraftSpawner.HasTicketDeskPlaced())
         {
             initialSchedulePrepared = true;
             long currentSlot = gameTimeManager.CurrentDay * 24L + gameTimeManager.Hour;
-            if (SightseeingAircraftSpawner.HasTicketDeskPlaced())
-                HandleFlightScheduled(currentSlot + 1L);
+            HandleFlightScheduled(currentSlot + 1L);
         }
 
         if (passengerPrefab == null || passengerCarPrefab == null ||
@@ -183,7 +184,7 @@ public class SightseeingPassengerManager : MonoBehaviour
         }
 
         for (int i = 0; i < activeGroups.Count; i++)
-            if (activeGroups[i].scheduledHourSlot == hourSlot)
+            if (!activeGroups[i].cancelled && activeGroups[i].scheduledHourSlot == hourSlot)
                 return;
 
         FlightGroup group = new FlightGroup { scheduledHourSlot = hourSlot };
