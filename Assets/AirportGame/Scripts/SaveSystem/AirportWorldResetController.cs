@@ -850,7 +850,7 @@ public class AirportWorldResetController : MonoBehaviour
                     ? BuildSurface.PedestrianTarmac
                     : isTarmac ? BuildSurface.Tarmac : BuildSurface.Foundation;
 
-                if (isFoundation)
+                if (isFoundation || isPedestrianTarmac)
                     DisableFoundationVisuals(placedObject);
 
                 if (saved.hasCustomFoundationFootprint)
@@ -1099,6 +1099,11 @@ public class AirportWorldResetController : MonoBehaviour
 
         if (tarmacTilemapController != null)
             tarmacTilemapController.RefreshFromGridSurface();
+
+        if (pedestrianTarmacTilemapController == null)
+            pedestrianTarmacTilemapController = FindAnyObjectByType<TarmacPedestrianTilemapController>();
+        if (pedestrianTarmacTilemapController != null)
+            pedestrianTarmacTilemapController.RefreshFromGridSurface();
 
         if (floorFinishRenderer == null)
             floorFinishRenderer = FindAnyObjectByType<FloorFinishRenderer>();
