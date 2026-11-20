@@ -26,7 +26,7 @@ public class SightseeingPassengerAgent : MonoBehaviour
     private int waitingRadius;
     private PedestrianMovementController movement;
     private UtilityNeeds needs;
-    private PilotInteractionController interactionController;
+    private InteractionController interactionController;
     private PilotWanderingController pilotWanderingController;
     private PedestrianPathfinder pathfinder;
     private InteractionProvider checkInProvider;
@@ -93,9 +93,9 @@ public class SightseeingPassengerAgent : MonoBehaviour
             accessProfile = gameObject.AddComponent<PedestrianAccessProfile>();
         accessProfile.enabled = true;
 
-        interactionController = GetComponent<PilotInteractionController>();
+        interactionController = GetComponent<InteractionController>();
         if (interactionController == null)
-            interactionController = gameObject.AddComponent<PilotInteractionController>();
+            interactionController = gameObject.AddComponent<InteractionController>();
         interactionController.enabled = false;
 
         // Passenger roaming is constrained to the assigned public terminal
