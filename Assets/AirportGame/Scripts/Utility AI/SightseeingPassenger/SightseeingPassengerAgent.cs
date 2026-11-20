@@ -189,7 +189,19 @@ public class SightseeingPassengerAgent : MonoBehaviour
         if (!movement.IsMoving ||
             Vector3.Distance(movement.Destination, queuePosition) > 0.2f)
         {
-            if (!movement.TryMoveTo(queuePosition)) HandleCheckInFailure();
+            // Queue slots can sit beside or partly within the desk footprint.
+            // Find a reachable walkable approach near the assigned slot rather
+            // than requiring the exact marker cell itself to be pathable.
+            PlacedBuilding deskBuilding =
+                checkInProvider.GetComponentInParent<PlacedBuilding>();
+
+            if (!movement.TryMoveToNearby(
+                    queuePosition,
+                    checkInProvider.InteractionPosition,
+                    deskBuilding))
+            {
+                HandleCheckInFailure();
+            }
         }
     }
 
