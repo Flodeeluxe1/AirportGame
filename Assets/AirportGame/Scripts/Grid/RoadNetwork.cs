@@ -50,13 +50,13 @@ public class RoadNetwork : MonoBehaviour
                 return new List<Vector2Int>();
 
             List<Vector2Int> path = new List<Vector2Int> { cell };
-            HashSet<Vector2Int> visited = new HashSet<Vector2Int> { cell };
             Vector2Int current = cell;
+            int remainingSteps = nextCells.Count + 1;
 
             while (!roots.Contains(current))
             {
-                if (!nextCells.TryGetValue(current, out Vector2Int next) ||
-                    !visited.Add(next))
+                if (remainingSteps-- <= 0 ||
+                    !nextCells.TryGetValue(current, out Vector2Int next))
                     return new List<Vector2Int>();
 
                 current = next;
