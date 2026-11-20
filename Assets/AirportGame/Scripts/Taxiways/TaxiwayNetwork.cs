@@ -120,6 +120,7 @@ public class TaxiwayNetwork : MonoBehaviour
             position,
             new RunwayCell(definition, owner));
 
+        topologyVersion++;
         return true;
     }
 
@@ -138,6 +139,7 @@ public class TaxiwayNetwork : MonoBehaviour
 
         runwayCells.Remove(position);
         runwayCenterlineCells.Remove(position);
+        topologyVersion++;
 
         return true;
     }
@@ -146,8 +148,9 @@ public class TaxiwayNetwork : MonoBehaviour
         Vector2Int position,
         RunwayNetworkRegistration owner)
     {
-        if (IsRunwayCellRegisteredBy(position, owner))
-            runwayCenterlineCells.Add(position);
+        if (IsRunwayCellRegisteredBy(position, owner) &&
+            runwayCenterlineCells.Add(position))
+            topologyVersion++;
     }
 
     public bool IsCenterlineCell(Vector2Int position)
