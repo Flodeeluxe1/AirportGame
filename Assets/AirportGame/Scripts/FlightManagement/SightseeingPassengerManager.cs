@@ -229,6 +229,23 @@ public class SightseeingPassengerManager : MonoBehaviour
             : 0L;
     }
 
+    private Transform GetWaitingAreaAnchor()
+    {
+        if (publicTerminalWaitingArea != null)
+            return publicTerminalWaitingArea;
+
+        IReadOnlyList<PlacedBuilding> buildings = PlacedBuilding.ActiveBuildings;
+        for (int i = 0; i < buildings.Count; i++)
+        {
+            PlacedBuilding building = buildings[i];
+            if (building != null && building.Definition != null &&
+                building.Definition.id == DeskDefinitionId)
+                return building.transform;
+        }
+
+        return transform;
+    }
+
     private void HandleAircraftSpawned(AircraftFlightIdentity identity, AircraftSSTurnaroundController turnaround)
     {
         long flightSlot = identity != null
@@ -253,7 +270,7 @@ public class SightseeingPassengerManager : MonoBehaviour
 
         if (turnaround == null)
         {
-            Debug.LogError("SightseeingPassengerManager: Sightseeing aircraft has no AircraftSSTurnaroundController.", identity != null ? identity.gameObject : this);
+            Debug.LogError("SightseeingPassengerManager: Sightseeing aircraft has no AircraftSSTurnaroundController.", this);
             return;
         }
 
@@ -296,9 +313,7 @@ public class SightseeingPassengerManager : MonoBehaviour
         if (agent == null) agent = passengerObject.AddComponent<SightseeingPassengerAgent>();
         record.agent = agent;
 
-        agent.Initialize(this, car,
-            publicTerminalWaitingArea != null ? publicTerminalWaitingArea : transform,
-            waitingAreaRadiusCells);
+        agent.Initialize(this, car, GetWaitingAreaAnchor(), waitingAreaRadiusCells);
 
         // A car may finish parking after boarding has already started.
         // Such a late arrival must leave again rather than miss the flight.
