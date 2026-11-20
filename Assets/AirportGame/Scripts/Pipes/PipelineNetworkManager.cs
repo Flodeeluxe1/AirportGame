@@ -21,13 +21,23 @@ public sealed class PipelineNetworkManager : MonoBehaviour
 
         private readonly HashSet<Vector2Int> pipeCells = new();
         private readonly List<FuelConnector> connectors = new();
+        private readonly HashSet<FuelStorageTank> storageTanks = new();
+
+        internal IEnumerable<FuelStorageTank> StorageTanks => storageTanks;
+
+        internal bool ContainsPipe(Vector2Int cell) => pipeCells.Contains(cell);
+        internal bool ContainsConnector(FuelConnector connector) => connectors.Contains(connector);
 
         internal void AddPipe(Vector2Int cell) => pipeCells.Add(cell);
 
         internal void AddConnector(FuelConnector connector)
         {
-            if (connector != null && !connectors.Contains(connector))
-                connectors.Add(connector);
+            if (connector == null || connectors.Contains(connector))
+                return;
+
+            connectors.Add(connector);
+            if (connector.StorageTank != null)
+                storageTanks.Add(connector.StorageTank);
         }
 
         public float ConsumeFuel(float amountLitres)
@@ -457,7 +467,7 @@ public sealed class PipelineNetworkManager : MonoBehaviour
             network.RestoreFuel(matched.currentFuelLitres);
             usedSavedNetworks.Add(matchedIndex);
 
-            foreach (FuelStorageTank tank in GetStorageTanks(network))
+            foreach (FuelStorageTank tank in network.StorageTanks)
                 initializedTanks.Add(tank);
         }
 
@@ -478,8 +488,7 @@ public sealed class PipelineNetworkManager : MonoBehaviour
     {
         foreach (PipelineNetwork network in networks)
         {
-            HashSet<FuelStorageTank> tanks = GetStorageTanks(network);
-            foreach (FuelStorageTank tank in tanks)
+            foreach (FuelStorageTank tank in network.StorageTanks)
                 network.CapacityLitres += tank.CapacityLitres;
         }
 
@@ -532,7 +541,7 @@ public sealed class PipelineNetworkManager : MonoBehaviour
         // any pipeline network. It never reinitializes on later rebuilds.
         foreach (PipelineNetwork network in networks)
         {
-            foreach (FuelStorageTank tank in GetStorageTanks(network))
+            foreach (FuelStorageTank tank in network.StorageTanks)
             {
                 if (initializedTanks.Add(tank))
                     network.AddFuel(tank.InitialFuelLitres);
@@ -540,28 +549,17 @@ public sealed class PipelineNetworkManager : MonoBehaviour
         }
     }
 
-    private HashSet<FuelStorageTank> GetStorageTanks(PipelineNetwork network)
-    {
-        HashSet<FuelStorageTank> tanks = new();
-        foreach (FuelConnector connector in network.Connectors)
-        {
-            if (connector != null && connector.StorageTank != null)
-                tanks.Add(connector.StorageTank);
-        }
-        return tanks;
-    }
-
     private bool NetworksOverlap(PipelineNetwork a, PipelineNetwork b)
     {
         foreach (Vector2Int cell in a.PipeCells)
         {
-            if (((HashSet<Vector2Int>)b.PipeCells).Contains(cell))
+            if (b.ContainsPipe(cell))
                 return true;
         }
 
         foreach (FuelConnector connector in a.Connectors)
         {
-            if (((List<FuelConnector>)b.Connectors).Contains(connector))
+            if (b.ContainsConnector(connector))
                 return true;
         }
 
