@@ -189,27 +189,40 @@ public class GridSurface : MonoBehaviour
     }
 
     public bool CanSetSurfaceAreaFromSurfaces(
-        Vector2Int origin, int width, int depth, params BuildSurface[] allowedCurrentSurfaces)
+        Vector2Int origin,
+        int width,
+        int depth,
+        BuildSurface firstAllowed,
+        BuildSurface secondAllowed,
+        BuildSurface thirdAllowed)
     {
-        if (gridManager == null || allowedCurrentSurfaces == null || allowedCurrentSurfaces.Length == 0)
+        if (gridManager == null)
             return false;
-        if (surfaces == null) Initialize();
-        if (surfaces == null) return false;
+
+        if (surfaces == null)
+            Initialize();
+
+        if (surfaces == null)
+            return false;
+
         for (int x = 0; x < width; x++)
         {
             for (int z = 0; z < depth; z++)
             {
                 Vector2Int cell = origin + new Vector2Int(x, z);
-                if (!gridManager.IsInsideGrid(cell)) return false;
+                if (!gridManager.IsInsideGrid(cell))
+                    return false;
+
                 BuildSurface current = GetSurface(cell);
-                bool allowed = false;
-                for (int i = 0; i < allowedCurrentSurfaces.Length; i++)
+                if (current != firstAllowed &&
+                    current != secondAllowed &&
+                    current != thirdAllowed)
                 {
-                    if (current == allowedCurrentSurfaces[i]) { allowed = true; break; }
+                    return false;
                 }
-                if (!allowed) return false;
             }
         }
+
         return true;
     }
 
