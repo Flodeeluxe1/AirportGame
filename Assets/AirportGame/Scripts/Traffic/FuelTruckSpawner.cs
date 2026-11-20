@@ -191,10 +191,17 @@ public class FuelTruckSpawner : MonoBehaviour
         if (!roadNetwork.IsRoad(startCell) || !roadNetwork.IsRoad(exitCell))
             return null;
 
-        List<StationRoute> candidates = new List<StationRoute>();
+        // Build route trees once for this dispatch. Every candidate station
+        // shares the same tanker spawn and exit, so repeated A* searches are
+        // unnecessary.
+        List<Vector2Int> roadPositions = roadNetwork.GetRoadPositions();
+        RoadNetwork.RoadPathTree outboundTree =
+            roadNetwork.BuildForwardPathTree(startCell);
+        RoadNetwork.RoadPathTree returnTree =
+            roadNetwork.BuildReversePathTree(exitCell);
 
-        FuelDeliveryStation[] stations =
-            FindObjectsByType<FuelDeliveryStation>();
+        List<StationRoute> candidates = new List<StationRoute>();
+        FuelDeliveryStation[] stations = FindObjectsByType<FuelDeliveryStation>();
 
         foreach (FuelDeliveryStation station in stations)
         {
@@ -202,7 +209,9 @@ public class FuelTruckSpawner : MonoBehaviour
                 station.FuelNetwork != targetNetwork)
                 continue;
 
-            if (!TryBuildStationRoute(station, startCell, exitCell, out StationRoute route))
+            if (!TryBuildStationRoute(
+                    station, roadPositions, outboundTree, returnTree,
+                    out StationRoute route))
                 continue;
 
             candidates.Add(route);
@@ -240,8 +249,9 @@ public class FuelTruckSpawner : MonoBehaviour
 
     private bool TryBuildStationRoute(
         FuelDeliveryStation station,
-        Vector2Int startCell,
-        Vector2Int exitCell,
+        List<Vector2Int> roadPositions,
+        RoadNetwork.RoadPathTree outboundTree,
+        RoadNetwork.RoadPathTree returnTree,
         out StationRoute result)
     {
         result = null;
@@ -250,46 +260,42 @@ public class FuelTruckSpawner : MonoBehaviour
         if (stopPoint == null)
             return false;
 
-        List<Vector2Int> roadPositions = roadNetwork.GetRoadPositions();
         Vector2Int bestRoadCell = Vector2Int.zero;
         List<Vector2Int> bestOutbound = null;
         List<Vector2Int> bestReturn = null;
         float bestDistance = float.MaxValue;
 
+        Vector3 stopForward = stopPoint.forward;
+        stopForward.y = 0f;
+        if (stopForward.sqrMagnitude < 0.0001f)
+            return false;
+        stopForward.Normalize();
+
         foreach (Vector2Int candidate in roadPositions)
         {
-            Vector3 roadPosition =
-                roadNetwork.GetRoadCenterWorldPosition(candidate, gridManager);
-
-            float distance = Vector3.Distance(roadPosition, stopPoint.position);
-            if (distance > station.MaximumRoadApproachDistance ||
-                distance >= bestDistance)
-                continue;
-
-            List<Vector2Int> outbound = roadNetwork.FindPath(startCell, candidate);
-            if (outbound == null || outbound.Count < 2)
-                continue;
-
-            // The final road segment must run perpendicular to the stop point's
-            // forward axis, with the stop point directly ahead of the truck.
-            Vector3 stopForward = stopPoint.forward;
-            stopForward.y = 0f;
+            Vector3 roadPosition = roadNetwork.GetRoadCenterWorldPosition(candidate, gridManager);
             Vector3 approachDirection = stopPoint.position - roadPosition;
             approachDirection.y = 0f;
 
-            if (stopForward.sqrMagnitude < 0.0001f ||
-                approachDirection.sqrMagnitude < 0.0001f)
+            float distanceSquared = approachDirection.sqrMagnitude;
+            float maximumDistance = station.MaximumRoadApproachDistance;
+            if (distanceSquared < 0.0001f ||
+                distanceSquared > maximumDistance * maximumDistance ||
+                distanceSquared >= bestDistance * bestDistance)
                 continue;
 
-            stopForward.Normalize();
             approachDirection.Normalize();
-
             if (Vector3.Dot(approachDirection, stopForward) < 0.95f)
                 continue;
 
-            Vector3 previousRoadPosition =
-                roadNetwork.GetRoadCenterWorldPosition(
-                    outbound[outbound.Count - 2], gridManager);
+            // The outbound route is reconstructed from the shared tree only
+            // for geometrically valid candidates.
+            List<Vector2Int> outbound = outboundTree.GetPath(candidate);
+            if (outbound == null || outbound.Count < 2)
+                continue;
+
+            Vector3 previousRoadPosition = roadNetwork.GetRoadCenterWorldPosition(
+                outbound[outbound.Count - 2], gridManager);
             Vector3 roadTravelDirection = roadPosition - previousRoadPosition;
             roadTravelDirection.y = 0f;
 
@@ -297,15 +303,16 @@ public class FuelTruckSpawner : MonoBehaviour
                 continue;
 
             roadTravelDirection.Normalize();
-
             if (Mathf.Abs(Vector3.Dot(roadTravelDirection, stopForward)) > 0.15f)
                 continue;
 
-            List<Vector2Int> returning = roadNetwork.FindPath(candidate, exitCell);
+            // Return routes use a reverse tree rooted at the exit. This
+            // preserves the road network's directed-edge rules.
+            List<Vector2Int> returning = returnTree.GetPath(candidate);
             if (returning == null || returning.Count == 0)
                 continue;
 
-            bestDistance = distance;
+            bestDistance = Mathf.Sqrt(distanceSquared);
             bestRoadCell = candidate;
             bestOutbound = outbound;
             bestReturn = returning;
