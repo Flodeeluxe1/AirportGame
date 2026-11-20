@@ -199,7 +199,7 @@ public class PedestrianPathfinder : MonoBehaviour
                 }
 
                 // Roads remain walkable, but pedestrians strongly prefer
-                // grass, foundations and tarmac when an alternative exists.
+                // pedestrian tarmac, foundations, grass and ordinary tarmac when alternatives exist.
                 int roadPenalty = IsRoadCell(next) ? RoadTraversalPenalty : 0;
                 int surfacePenalty = GetSurfaceTraversalPenalty(next);
                 int tentativeG = currentBestG + moveCost + randomPenalty + roadPenalty + surfacePenalty;
