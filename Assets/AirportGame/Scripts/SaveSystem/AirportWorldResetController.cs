@@ -27,6 +27,7 @@ public class AirportWorldResetController : MonoBehaviour
 
     [Header("Tarmac")]
     [SerializeField] private TarmacTilemapController tarmacTilemapController;
+    [SerializeField] private TarmacPedestrianTilemapController pedestrianTarmacTilemapController;
 
     [Header("Game Time")]
     [SerializeField] private GameTimeManager gameTimeManager;
@@ -133,6 +134,10 @@ public class AirportWorldResetController : MonoBehaviour
 
         if (tarmacTilemapController != null)
             tarmacTilemapController.RefreshFromGridSurface();
+        if (pedestrianTarmacTilemapController == null)
+            pedestrianTarmacTilemapController = FindAnyObjectByType<TarmacPedestrianTilemapController>();
+        if (pedestrianTarmacTilemapController != null)
+            pedestrianTarmacTilemapController.RefreshFromGridSurface();
 
         if (roomDetectionController != null)
             roomDetectionController.RefreshRooms();
@@ -628,6 +633,7 @@ public class AirportWorldResetController : MonoBehaviour
         int restoredBuildings = 0;
         int restoredFoundations = 0;
         int restoredTarmacAreas = 0;
+        int restoredPedestrianTarmacAreas = 0;
         int restoredEdges = 0;
         int restoredRoadCells = 0;
         int restoredTaxiwayCells = 0;
@@ -693,12 +699,10 @@ public class AirportWorldResetController : MonoBehaviour
             bool isAreaObject =
                 definition.placementType == PlacementType.Area;
 
-            bool isTarmac =
-                isAreaObject &&
-                definition.category == BuildCategory.Tarmac;
-
-            bool isFoundation =
-                isAreaObject && !isTarmac;
+            bool isPedestrianTarmac = isAreaObject &&
+                definition.category == BuildCategory.PedestrianTarmac;
+            bool isTarmac = isAreaObject && definition.category == BuildCategory.Tarmac;
+            bool isFoundation = isAreaObject && !isTarmac && !isPedestrianTarmac;
 
             bool isEdgeObject =
                 definition.placementType == PlacementType.Edge;
@@ -840,11 +844,11 @@ public class AirportWorldResetController : MonoBehaviour
                 // Surface objects are parented to their supporting furniture
                 // after every saved object has been instantiated.
             }
-            else if (isFoundation || isTarmac)
+            else if (isFoundation || isTarmac || isPedestrianTarmac)
             {
-                BuildSurface areaSurface = isTarmac
-                    ? BuildSurface.Tarmac
-                    : BuildSurface.Foundation;
+                BuildSurface areaSurface = isPedestrianTarmac
+                    ? BuildSurface.PedestrianTarmac
+                    : isTarmac ? BuildSurface.Tarmac : BuildSurface.Foundation;
 
                 if (isFoundation)
                     DisableFoundationVisuals(placedObject);
@@ -873,7 +877,9 @@ public class AirportWorldResetController : MonoBehaviour
                         placedObject);
                 }
 
-                if (isTarmac)
+                if (isPedestrianTarmac)
+                    restoredPedestrianTarmacAreas++;
+                else if (isTarmac)
                     restoredTarmacAreas++;
                 else
                     restoredFoundations++;
@@ -1165,6 +1171,7 @@ public class AirportWorldResetController : MonoBehaviour
             $"Objects: {restoredBuildings}, " +
             $"foundations: {restoredFoundations}, " +
             $"tarmac areas: {restoredTarmacAreas}, " +
+            $"pedestrian tarmac areas: {restoredPedestrianTarmacAreas}, " +
             $"edge owners: {restoredEdges}, " +
             $"road cells: {restoredRoadCells}, " +
             $"taxiway cells: {restoredTaxiwayCells}, " +
