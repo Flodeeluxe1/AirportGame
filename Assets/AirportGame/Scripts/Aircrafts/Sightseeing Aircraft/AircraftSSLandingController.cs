@@ -109,10 +109,10 @@ public class AircraftSSLandingController : MonoBehaviour
 
     private void Start()
     {
-        InitializeLanding();
+        InitializeLanding(approachSpeedKnots);
     }
 
-    public bool BeginReturnLanding()
+    public bool BeginReturnLanding(float incomingSpeedKnots)
     {
         if (state != LandingState.LandingComplete && state != LandingState.Failed)
             return false;
@@ -120,9 +120,11 @@ public class AircraftSSLandingController : MonoBehaviour
         if (trafficManager != null)
             trafficManager.UnregisterLandingTraffic(this);
 
+        incomingSpeedKnots = Mathf.Max(1f, incomingSpeedKnots);
+
         AircraftStatus aircraftStatus = GetComponent<AircraftStatus>();
         if (aircraftStatus != null)
-            aircraftStatus.ResetForReturnFlight();
+            aircraftStatus.ResetForReturnFlight(incomingSpeedKnots);
 
         selectedRunway = null;
         runwayDirection = Vector3.zero;
@@ -130,10 +132,10 @@ public class AircraftSSLandingController : MonoBehaviour
         alignmentPoint = Vector3.zero;
         flareDecisionMade = false;
         rolloutElapsed = 0f;
-        return InitializeLanding();
+        return InitializeLanding(incomingSpeedKnots);
     }
 
-    private bool InitializeLanding()
+    private bool InitializeLanding(float startingSpeedKnots)
     {
         if (gridManager == null)
             gridManager = FindAnyObjectByType<GridManager>();
@@ -153,7 +155,7 @@ public class AircraftSSLandingController : MonoBehaviour
             return false;
         }
 
-        currentSpeed = KnotsToWorldSpeed(approachSpeedKnots);
+        currentSpeed = KnotsToWorldSpeed(Mathf.Max(1f, startingSpeedKnots));
         rolloutElapsed = 0f;
         flareDecisionMade = false;
         state = LandingState.Aligning;
@@ -360,6 +362,11 @@ public class AircraftSSLandingController : MonoBehaviour
             debugStatus = "Aligned with runway. Starting final approach.";
             return;
         }
+
+        currentSpeed = Mathf.MoveTowards(
+            currentSpeed,
+            KnotsToWorldSpeed(approachSpeedKnots),
+            speedChangeRate * Time.deltaTime);
 
         FaceMovementDirection(movement);
         transform.position = Vector3.MoveTowards(
