@@ -75,12 +75,51 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: -6854386027549468247, guid: 47d40d9dcb49ae94da2b2993788aa6e4, type: 3}
       insertIndex: -1
       addedObject: {fileID: -4393408990283418696}
+    - targetCorrespondingSourceObject: {fileID: -6854386027549468247, guid: 47d40d9dcb49ae94da2b2993788aa6e4, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: -4393408990283418695}
+    - targetCorrespondingSourceObject: {fileID: -6854386027549468247, guid: 47d40d9dcb49ae94da2b2993788aa6e4, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: -4393408990283418694}
   m_SourcePrefab: {fileID: 3150474306388093854, guid: 47d40d9dcb49ae94da2b2993788aa6e4, type: 3}
 --- !u!1 &583526246293957199 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: -6854386027549468247, guid: 47d40d9dcb49ae94da2b2993788aa6e4, type: 3}
   m_PrefabInstance: {fileID: 2952477062569702374}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &-4393408990283418695
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 583526246293957199}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b82a5f9d3c0e4a1f9b7d2e4c6f809132, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::InteractionProvider
+  interactions:
+  - {fileID: 11400000, guid: 8a6b3d1f5c2e49a7b4d0e8f1c3a62579, type: 2}
+  interactionPoint: {fileID: 0}
+  interactionsEnabled: 1
+--- !u!114 &-4393408990283418694
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 583526246293957199}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6b7a9c2d4e1f4385a0b6c8d2e5f71934, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::InteractionQueue
+  queueEnabled: 1
+  maximumWaitingAgents: 5
+  queueSpacing: 1
+  firstQueuePosition: {fileID: 0}
+  queueDirection: {fileID: 0}
 --- !u!65 &-4393408990283418696
 BoxCollider:
   m_ObjectHideFlags: 0
