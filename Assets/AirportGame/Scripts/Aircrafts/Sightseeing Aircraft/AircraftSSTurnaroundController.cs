@@ -261,6 +261,21 @@ public class AircraftSSTurnaroundController : MonoBehaviour
                     }
     }
 
+    /// <summary>
+    /// Releases the sightseeing parking reservation after passengers have
+    /// disembarked and removes this completed flight aircraft.
+    /// </summary>
+    public void CompleteReturnAndDespawn()
+    {
+        if (!returnArrivalRaised)
+            return;
+
+        if (reservedSpot != null)
+            reservedSpot.Release(gameObject);
+
+        Destroy(gameObject);
+    }
+
     private void LogWaiting(string message)
     {
         if (logProgress)
