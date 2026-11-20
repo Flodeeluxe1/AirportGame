@@ -478,7 +478,11 @@ public class AirportUIController : MonoBehaviour
             }
             else
             {
-                if (definition.category != currentCategory)
+                bool belongsToCurrentCategory =
+                    definition.category == currentCategory ||
+                    (currentCategory == BuildCategory.Tarmac &&
+                     definition.category == BuildCategory.PedestrianTarmac);
+                if (!belongsToCurrentCategory)
                     continue;
 
                 if (currentCategory == BuildCategory.Airport &&
