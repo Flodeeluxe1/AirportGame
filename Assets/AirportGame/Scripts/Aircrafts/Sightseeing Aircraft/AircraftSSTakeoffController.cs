@@ -551,8 +551,20 @@ public class AircraftSSTakeoffController : MonoBehaviour
         long now = GetAbsoluteGameSecond();
         returnLandingGameSecond = now + Mathf.Max(1, sightseeingFlightDurationMinutes) * 60L;
         lastCruiseGameSecond = now;
-        cruiseCenter = transform.position;
-        cruiseAngleDegrees = Mathf.Atan2(takeoffDirection.z, takeoffDirection.x) * Mathf.Rad2Deg;
+        // Start the orbit at the aircraft's exact current position and
+        // with its tangent aligned to the takeoff direction. This avoids a
+        // visible teleport when the climb transitions into cruise.
+        cruiseAngleDegrees =
+            Mathf.Atan2(takeoffDirection.z, takeoffDirection.x) *
+            Mathf.Rad2Deg - 90f;
+
+        float initialAngle = cruiseAngleDegrees * Mathf.Deg2Rad;
+        Vector3 initialOrbitOffset = new Vector3(
+            Mathf.Cos(initialAngle) * cruiseOrbitRadius,
+            0f,
+            Mathf.Sin(initialAngle) * cruiseOrbitRadius);
+
+        cruiseCenter = transform.position - initialOrbitOffset;
         sightseeingCruiseActive = true;
         debugStatus = $"Sightseeing cruise. Return in {sightseeingFlightDurationMinutes} in-game minutes.";
     }
