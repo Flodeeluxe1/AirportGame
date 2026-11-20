@@ -489,6 +489,7 @@ public class SightseeingPassengerManager : MonoBehaviour
 
         debugStatus = "Sightseeing flight returned; passengers are disembarking.";
         TryRemoveFinishedGroup(group);
+        turnaround.CompleteReturnAndDespawn();
     }
 
     private void HandleCarExited(TrafficTestVehicle car)
