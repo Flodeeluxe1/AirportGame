@@ -108,6 +108,8 @@ public class SightseeingPassengerManager : MonoBehaviour
 
         if (!initialSchedulePrepared && aircraftSpawner != null &&
             aircraftSpawner.isActiveAndEnabled && gameTimeManager != null &&
+            passengerPrefab != null && passengerCarPrefab != null &&
+            trafficSpawner != null &&
             SightseeingAircraftSpawner.HasTicketDeskPlaced())
         {
             initialSchedulePrepared = true;
