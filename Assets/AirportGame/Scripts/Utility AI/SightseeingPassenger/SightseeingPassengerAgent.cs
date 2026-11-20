@@ -12,7 +12,7 @@ public class SightseeingPassengerAgent : MonoBehaviour
     public enum PassengerState
     {
         Initializing, QueuedForCheckIn, WalkingToCheckIn, CheckingIn,
-        WaitingInTerminal, WalkingToAircraft, OnBoard, WalkingToCar, Completed
+        WaitingInTerminal, GatheringForBoarding, WalkingToAircraft, OnBoard, WalkingToCar, Completed
     }
 
     [Header("Runtime")]
@@ -64,6 +64,7 @@ public class SightseeingPassengerAgent : MonoBehaviour
     public bool HasTicket => hasTicket;
     public bool IsOnBoard => state == PassengerState.OnBoard;
     public bool IsWalkingToAircraft => state == PassengerState.WalkingToAircraft;
+    public bool IsGatheringForBoarding => state == PassengerState.GatheringForBoarding;
     public bool IsWalkingToCar => state == PassengerState.WalkingToCar;
     public bool IsWalkingToCheckIn => state == PassengerState.QueuedForCheckIn ||
         state == PassengerState.WalkingToCheckIn || state == PassengerState.CheckingIn;
@@ -410,6 +411,30 @@ public class SightseeingPassengerAgent : MonoBehaviour
         foundationCache.dirty = false;
     }
 
+    public bool BeginGatheringForBoarding(
+        Vector3 gatheringPosition,
+        SightseeingAircraftParkingSpot parkingSpot)
+    {
+        if (parkingSpot == null || !hasTicket ||
+            state == PassengerState.OnBoard || state == PassengerState.Completed ||
+            movement == null)
+            return false;
+
+        CancelCheckIn();
+        if (interactionController != null) interactionController.enabled = false;
+        movement.enabled = true;
+        state = PassengerState.GatheringForBoarding;
+
+        bool started = movement.TryMoveToNearby(
+            gatheringPosition,
+            parkingSpot.transform.position,
+            parkingSpot.GetComponent<PlacedBuilding>());
+
+        if (!started)
+            state = PassengerState.WaitingInTerminal;
+        return started;
+    }
+
     public bool BeginBoarding(Transform boardingPoint, SightseeingAircraftParkingSpot parkingSpot)
     {
         if (boardingPoint == null || parkingSpot == null || !hasTicket ||
@@ -519,6 +544,10 @@ public class SightseeingPassengerAgent : MonoBehaviour
                 return;
             }
             BeginCheckInInteraction();
+        }
+        else if (state == PassengerState.GatheringForBoarding)
+        {
+            if (manager != null) manager.HandlePassengerReachedGatheringSpot(this);
         }
         else if (state == PassengerState.WalkingToAircraft)
         {
