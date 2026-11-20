@@ -11,6 +11,7 @@ public enum BuildCategory
     Commercial,
     Taxiways,
     Tarmac,
+    PedestrianTarmac,
     Pipelines
 }
 
