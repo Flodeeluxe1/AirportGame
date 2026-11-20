@@ -96,8 +96,19 @@ public class SightseeingFlightEconomy : MonoBehaviour
             return 0;
         }
 
+        // Airport score is mapped linearly from 0.25x demand at score 0
+        // to 1.5x demand at score 100. Score 60 is the neutral 1.0x point.
+        AirportRatingManager ratingManager = AirportRatingManager.Instance;
+        float airportScore = ratingManager != null
+            ? ratingManager.AirportRating
+            : 60f;
+        float scoreMultiplier = Mathf.Lerp(
+            0.25f,
+            1.5f,
+            Mathf.Clamp01(airportScore / 100f));
+
         float expectedDemand =
-            referenceDemand * (100f / TicketPrice);
+            referenceDemand * (100f / TicketPrice) * scoreMultiplier;
 
         float variation = Random.Range(
             1f - demandVariation,
