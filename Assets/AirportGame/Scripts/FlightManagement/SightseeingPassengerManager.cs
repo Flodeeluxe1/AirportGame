@@ -200,7 +200,7 @@ public class SightseeingPassengerManager : MonoBehaviour
     {
         for (int i = 0; i < count; i++)
         {
-            if (group == null || !activeGroups.Contains(group)) yield break;
+            if (group == null || group.cancelled || !activeGroups.Contains(group)) yield break;
 
             TrafficTestVehicle car = trafficSpawner.SpawnExternallyControlledVehicle(passengerCarPrefab);
             if (car == null)
@@ -318,7 +318,9 @@ public class SightseeingPassengerManager : MonoBehaviour
 
     public bool TryBeginCheckIn(SightseeingPassengerAgent agent)
     {
-        if (agent == null || !agent.isActiveAndEnabled || agent.HasTicket || agent.IsOnBoard)
+        if (agent == null || !agent.isActiveAndEnabled || agent.HasTicket ||
+            agent.IsOnBoard || agent.IsWalkingToCar ||
+            agent.State == SightseeingPassengerAgent.PassengerState.Completed)
             return false;
 
         InteractionProvider provider = FindBestDesk(agent, out InteractionDefinition definition);
@@ -562,7 +564,7 @@ public class SightseeingPassengerManager : MonoBehaviour
         for (int i = 0; i < activeGroups.Count; i++)
         {
             FlightGroup group = activeGroups[i];
-            if (group.boardingStarted) continue;
+            if (group.boardingStarted || group.cancelled) continue;
             for (int j = 0; j < group.passengers.Count; j++)
             {
                 PassengerRecord record = group.passengers[j];
