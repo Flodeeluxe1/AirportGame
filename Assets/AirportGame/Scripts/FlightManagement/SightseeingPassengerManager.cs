@@ -638,7 +638,7 @@ public class SightseeingPassengerManager : MonoBehaviour
         }
 
         if (turnaround != null)
-            turnaround.CompleteReturnAndDespawn();
+            turnaround.CompleteReturnAndPrepareForReuse();
     }
 
     private void HandleCarExited(TrafficTestVehicle car)
