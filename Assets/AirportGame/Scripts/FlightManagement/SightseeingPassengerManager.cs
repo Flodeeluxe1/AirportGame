@@ -512,7 +512,47 @@ public class SightseeingPassengerManager : MonoBehaviour
 
         debugStatus = "Sightseeing flight returned; passengers are disembarking.";
         TryRemoveFinishedGroup(group);
-        turnaround.CompleteReturnAndDespawn();
+        StartCoroutine(CompleteReturnAfterDisembarkation(group, turnaround));
+    }
+
+    private IEnumerator CompleteReturnAfterDisembarkation(
+        FlightGroup group,
+        AircraftSSTurnaroundController turnaround)
+    {
+        long startSecond = GetAbsoluteGameSecond();
+        const long maximumWaitSeconds = 20L;
+        const float clearanceDistance = 3f;
+
+        while (turnaround != null &&
+               GetAbsoluteGameSecond() - startSecond < maximumWaitSeconds)
+        {
+            bool allPassengersClear = true;
+            Vector3 aircraftPosition = group.parkingSpot != null
+                ? group.parkingSpot.transform.position
+                : turnaround.transform.position;
+
+            for (int i = 0; i < group.passengers.Count; i++)
+            {
+                PassengerRecord record = group.passengers[i];
+                if (record == null || record.completed || record.agent == null)
+                    continue;
+
+                if (!record.agent.IsWalkingToCar ||
+                    Vector3.Distance(record.agent.transform.position, aircraftPosition) < clearanceDistance)
+                {
+                    allPassengersClear = false;
+                    break;
+                }
+            }
+
+            if (allPassengersClear)
+                break;
+
+            yield return null;
+        }
+
+        if (turnaround != null)
+            turnaround.CompleteReturnAndDespawn();
     }
 
     private void HandleCarExited(TrafficTestVehicle car)
