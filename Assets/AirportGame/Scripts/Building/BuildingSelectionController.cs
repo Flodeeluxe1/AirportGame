@@ -1082,9 +1082,10 @@ public class BuildingSelectionController : MonoBehaviour
             placedBuilding.Definition != null &&
             placedBuilding.Definition.placementType == PlacementType.Area;
 
-        bool isTarmac =
-            isArea &&
-            placedBuilding.Definition.category == BuildCategory.Tarmac;
+        bool isPedestrianTarmac = isArea &&
+            placedBuilding.Definition.category == BuildCategory.PedestrianTarmac;
+        bool isTarmac = isArea &&
+            (placedBuilding.Definition.category == BuildCategory.Tarmac || isPedestrianTarmac);
 
         if (isArea && deleteSelectionMode && gridSurface != null)
         {
@@ -1097,12 +1098,11 @@ public class BuildingSelectionController : MonoBehaviour
             int removedCells = 0;
 
             TarmacTilemapController tarmacTilemapController = null;
-
+            TarmacPedestrianTilemapController pedestrianTarmacTilemapController = null;
             if (isTarmac)
-            {
-                tarmacTilemapController =
-                    FindAnyObjectByType<TarmacTilemapController>();
-            }
+                tarmacTilemapController = FindAnyObjectByType<TarmacTilemapController>();
+            if (isPedestrianTarmac)
+                pedestrianTarmacTilemapController = FindAnyObjectByType<TarmacPedestrianTilemapController>();
 
             for (int x = 0; x < selectionWidth; x++)
             {
@@ -1126,7 +1126,12 @@ public class BuildingSelectionController : MonoBehaviour
                             finishRenderer.ClearFinish(cell);
                     }
 
-                    if (isTarmac)
+                    if (isPedestrianTarmac)
+                    {
+                        if (pedestrianTarmacTilemapController != null)
+                            pedestrianTarmacTilemapController.RemovePedestrianTarmacTile(cell);
+                    }
+                    else if (isTarmac)
                     {
                         if (tarmacTilemapController != null)
                             tarmacTilemapController.RemoveTarmacTile(cell);
