@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BuildableDefinition
   id: airport.gate.sightseeing
   displayName: Parking Sightseeing
-  prefab: {fileID: 1467511360092420718, guid: a0a659f12a1f8384fbfa9b2a5dca5df5, type: 3}
+  prefab: {fileID: 1732348853398865023, guid: a0a659f12a1f8384fbfa9b2a5dca5df5, type: 3}
   placementType: 0
   requiredSurface: 0
   width: 6
@@ -27,6 +27,8 @@ MonoBehaviour:
   canRotate: 1
   buildCost: 4000
   blocksPathfinding: 1
+  environmentValue: 0
+  environmentRadius: 0
   menuCategory: Airport Operations
   category: 3
   icon: {fileID: 2800000, guid: 1e575cb43c25d4443bc47e5d2b8b0645, type: 3}
