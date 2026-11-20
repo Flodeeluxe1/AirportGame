@@ -606,7 +606,7 @@ public class AircraftSSTakeoffController : MonoBehaviour
         if (landingTaxiController != null)
             landingTaxiController.ResetForReturnLanding();
 
-        if (landingController == null || !landingController.BeginReturnLanding())
+        if (landingController == null || !landingController.BeginReturnLanding(currentSpeedKnots))
         {
             Debug.LogError(
                 $"{name}: Could not initialize the return landing. The aircraft will remain in the cruise state.",
