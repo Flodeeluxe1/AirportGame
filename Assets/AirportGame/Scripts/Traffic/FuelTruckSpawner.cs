@@ -61,6 +61,14 @@ public class FuelTruckSpawner : MonoBehaviour
         networkRetryTimes =
             new Dictionary<PipelineNetworkManager.PipelineNetwork, long>();
 
+    private RoadNetwork cachedRouteRoadNetwork;
+    private int cachedRoadTopologyVersion = -1;
+    private Vector2Int cachedRouteStartCell;
+    private Vector2Int cachedRouteExitCell;
+    private List<Vector2Int> cachedRoadPositions;
+    private RoadNetwork.RoadPathTree cachedOutboundTree;
+    private RoadNetwork.RoadPathTree cachedReturnTree;
+
     private class StationRoute
     {
         public FuelDeliveryStation Station;
@@ -208,20 +216,28 @@ public class FuelTruckSpawner : MonoBehaviour
         if (matchingStations.Count == 0)
             return null;
 
-        // Build route trees once for this dispatch. Every candidate station
-        // shares the same tanker spawn and exit, so repeated A* searches are
-        // unnecessary.
-        List<Vector2Int> roadPositions = roadNetwork.GetRoadPositions();
-        RoadNetwork.RoadPathTree outboundTree =
-            roadNetwork.BuildForwardPathTree(startCell);
-        RoadNetwork.RoadPathTree returnTree =
-            roadNetwork.BuildReversePathTree(exitCell);
+        // The spawn and exit stay fixed between deliveries. Reuse the
+        // route trees until the road layout or either endpoint changes.
+        if (cachedRouteRoadNetwork != roadNetwork ||
+            cachedRoadTopologyVersion != roadNetwork.TopologyVersion ||
+            cachedRouteStartCell != startCell ||
+            cachedRouteExitCell != exitCell ||
+            cachedRoadPositions == null)
+        {
+            cachedRoadPositions = roadNetwork.GetRoadPositions();
+            cachedOutboundTree = roadNetwork.BuildForwardPathTree(startCell);
+            cachedReturnTree = roadNetwork.BuildReversePathTree(exitCell);
+            cachedRouteRoadNetwork = roadNetwork;
+            cachedRoadTopologyVersion = roadNetwork.TopologyVersion;
+            cachedRouteStartCell = startCell;
+            cachedRouteExitCell = exitCell;
+        }
 
         List<StationRoute> candidates = new List<StationRoute>();
         foreach (FuelDeliveryStation station in matchingStations)
         {
             if (!TryBuildStationRoute(
-                    station, roadPositions, outboundTree, returnTree,
+                    station, cachedRoadPositions, cachedOutboundTree, cachedReturnTree,
                     out StationRoute route))
                 continue;
 
