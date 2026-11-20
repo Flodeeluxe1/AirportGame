@@ -37,6 +37,8 @@ public class SightseeingPassengerAgent : MonoBehaviour
     private bool reservationHeld;
     private bool needsPaused;
     private float nextQueueRefresh;
+    private Vector3 lastRequestedQueuePosition;
+    private bool hasRequestedQueuePosition;
     private float nextWander;
     private float nextCarRetry;
     private int carRetries;
@@ -172,12 +174,16 @@ public class SightseeingPassengerAgent : MonoBehaviour
 
         if (checkInQueue.IsActive(this))
         {
-            if (movement.IsMoving) return;
+            hasRequestedQueuePosition = false;
+
             if (movement.IsAtInteractionApproach(checkInProvider))
             {
                 BeginCheckInInteraction();
                 return;
             }
+
+            // A passenger may be promoted while walking to a waiting slot.
+            // Replace that route immediately with the desk approach route.
             state = PassengerState.WalkingToCheckIn;
             if (!movement.MoveTo(checkInProvider)) HandleCheckInFailure();
             return;
@@ -186,12 +192,16 @@ public class SightseeingPassengerAgent : MonoBehaviour
         if (Time.time < nextQueueRefresh) return;
         nextQueueRefresh = Time.time + 0.35f;
         Vector3 queuePosition = checkInQueue.GetQueuePosition(this);
-        if (!movement.IsMoving ||
-            Vector3.Distance(movement.Destination, queuePosition) > 0.2f)
+        bool queueSlotChanged =
+            !hasRequestedQueuePosition ||
+            Vector3.Distance(lastRequestedQueuePosition, queuePosition) > 0.2f;
+
+        // Compare against the requested slot, not movement.Destination.
+        // The pathfinder may choose a nearby walkable cell, so those two
+        // positions are not expected to be identical. Replanning every refresh
+        // would continually interrupt the passenger before reaching the slot.
+        if (queueSlotChanged)
         {
-            // Queue slots can sit beside or partly within the desk footprint.
-            // Find a reachable walkable approach near the assigned slot rather
-            // than requiring the exact marker cell itself to be pathable.
             PlacedBuilding deskBuilding =
                 checkInProvider.GetComponentInParent<PlacedBuilding>();
 
@@ -201,7 +211,11 @@ public class SightseeingPassengerAgent : MonoBehaviour
                     deskBuilding))
             {
                 HandleCheckInFailure();
+                return;
             }
+
+            lastRequestedQueuePosition = queuePosition;
+            hasRequestedQueuePosition = true;
         }
     }
 
