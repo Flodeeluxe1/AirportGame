@@ -314,6 +314,14 @@ public class SightseeingPassengerAgent : MonoBehaviour
     public void BeginReturnToCar()
     {
         if (state == PassengerState.Completed || vehicle == null) return;
+
+        if (hasTicket && state != PassengerState.OnBoard)
+        {
+            if (manager != null)
+                manager.HandlePassengerRefund(this, ticketPricePaid);
+            hasTicket = false;
+        }
+
         CancelCheckIn();
         if (interactionController != null) interactionController.enabled = false;
         movement.enabled = true;
