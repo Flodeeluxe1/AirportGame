@@ -47,6 +47,8 @@ public class AircraftSSTurnaroundController : MonoBehaviour
     private int boardedPassengers;
     private bool returnArrivalRaised;
     private AircraftSSTakeoffController takeoffController;
+    private AircraftSSDepartureTaxiController departureTaxiController;
+    private bool readyForNextFlight;
 
     public event Action<AircraftSSTurnaroundController> BoardingStarted;
     public event Action<AircraftSSTurnaroundController> ReturnedToParking;
@@ -72,6 +74,7 @@ public class AircraftSSTurnaroundController : MonoBehaviour
 
         sightseeingEconomy = SightseeingFlightEconomy.Instance;
         takeoffController = GetComponent<AircraftSSTakeoffController>();
+        departureTaxiController = GetComponent<AircraftSSDepartureTaxiController>();
         boardingTimeRemaining = boardingDurationSeconds;
 
         if (landingTaxiController == null)
@@ -263,18 +266,43 @@ public class AircraftSSTurnaroundController : MonoBehaviour
     }
 
     /// <summary>
-    /// Releases the sightseeing parking reservation after passengers have
-    /// disembarked and removes this completed flight aircraft.
+    /// Keeps this aircraft and its parking reservation so it can operate
+    /// the next scheduled sightseeing flight.
     /// </summary>
-    public void CompleteReturnAndDespawn()
+    public void CompleteReturnAndPrepareForReuse()
     {
         if (!returnArrivalRaised)
             return;
 
-        if (reservedSpot != null)
-            reservedSpot.Release(gameObject);
+        readyForNextFlight = true;
+        if (logProgress)
+            Debug.Log($"SIGHTSEEING AIRCRAFT READY FOR REUSE | {name} remains at {reservedSpot}.", this);
+    }
 
-        Destroy(gameObject);
+    public bool PrepareForNextFlight()
+    {
+        if (!readyForNextFlight || reservedSpot == null ||
+            reservedSpot.ReservedAircraft != gameObject)
+            return false;
+
+        readyForNextFlight = false;
+        boardingStarted = false;
+        boardingCompleted = false;
+        passengerManifestConfigured = false;
+        boardingReady = false;
+        expectedPassengers = 0;
+        boardedPassengers = 0;
+        passengersOnBoard = 0;
+        boardingTimeRemaining = Mathf.Max(0.1f, boardingDurationSeconds);
+        returnArrivalRaised = false;
+        state = TurnaroundState.WaitingForParking;
+
+        if (departureTaxiController != null)
+            departureTaxiController.ResetForNextFlight();
+        if (takeoffController != null)
+            takeoffController.ResetForNextFlight();
+
+        return true;
     }
 
     private void LogWaiting(string message)
