@@ -209,6 +209,10 @@ public class FuelTruckSpawner : MonoBehaviour
                 station.FuelNetwork != targetNetwork)
                 continue;
 
+            // Prune destroyed queue entries once before the candidate sort;
+            // the sort comparator then performs allocation-free count reads.
+            station.RefreshQueueState();
+
             if (!TryBuildStationRoute(
                     station, roadPositions, outboundTree, returnTree,
                     out StationRoute route))
