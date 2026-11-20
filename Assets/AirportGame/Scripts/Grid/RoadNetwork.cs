@@ -25,10 +25,166 @@ public class RoadNetwork : MonoBehaviour
     private readonly Dictionary<Vector2Int, RoadCell> roadCells =
         new Dictionary<Vector2Int, RoadCell>();
 
+    public sealed class RoadPathTree
+    {
+        private readonly Dictionary<Vector2Int, Vector2Int> nextCells;
+        private readonly HashSet<Vector2Int> roots;
+        private readonly bool reverse;
+
+        internal RoadPathTree(
+            Dictionary<Vector2Int, Vector2Int> nextCells,
+            HashSet<Vector2Int> roots,
+            bool reverse)
+        {
+            this.nextCells = nextCells;
+            this.roots = roots;
+            this.reverse = reverse;
+        }
+
+        public List<Vector2Int> GetPath(Vector2Int cell)
+        {
+            cell = cell;
+            if (roots.Contains(cell))
+                return new List<Vector2Int> { cell };
+
+            if (!nextCells.ContainsKey(cell))
+                return new List<Vector2Int>();
+
+            List<Vector2Int> path = new List<Vector2Int> { cell };
+            HashSet<Vector2Int> visited = new HashSet<Vector2Int> { cell };
+            Vector2Int current = cell;
+
+            while (!roots.Contains(current))
+            {
+                if (!nextCells.TryGetValue(current, out Vector2Int next) ||
+                    !visited.Add(next))
+                    return new List<Vector2Int>();
+
+                current = next;
+                path.Add(current);
+            }
+
+            if (!reverse)
+                path.Reverse();
+
+            return path;
+        }
+    }
+
     private static readonly Vector2Int North = new Vector2Int(0, 2);
     private static readonly Vector2Int East = new Vector2Int(2, 0);
     private static readonly Vector2Int South = new Vector2Int(0, -2);
     private static readonly Vector2Int West = new Vector2Int(-2, 0);
+
+    /// <summary>
+    /// Builds one breadth-first route tree from a road start. All road edges
+    /// have equal cost, so this finds shortest paths to every reachable cell.
+    /// </summary>
+    public RoadPathTree BuildForwardPathTree(Vector2Int start)
+    {
+        start = GetRoadAnchor(start);
+        Dictionary<Vector2Int, Vector2Int> previousCells = new Dictionary<Vector2Int, Vector2Int>();
+        HashSet<Vector2Int> visited = new HashSet<Vector2Int>();
+        Queue<Vector2Int> queue = new Queue<Vector2Int>();
+
+        if (!roadCells.ContainsKey(start))
+            return new RoadPathTree(previousCells, visited, false);
+
+        visited.Add(start);
+        queue.Enqueue(start);
+
+        while (queue.Count > 0)
+        {
+            Vector2Int current = queue.Dequeue();
+            if (!roadCells.TryGetValue(current, out RoadCell cell))
+                continue;
+
+            VisitForward(current, cell, North, RoadDirection.North, visited, previousCells, queue);
+            VisitForward(current, cell, East, RoadDirection.East, visited, previousCells, queue);
+            VisitForward(current, cell, South, RoadDirection.South, visited, previousCells, queue);
+            VisitForward(current, cell, West, RoadDirection.West, visited, previousCells, queue);
+        }
+
+        return new RoadPathTree(previousCells, new HashSet<Vector2Int> { start }, false);
+    }
+
+    /// <summary>
+    /// Builds routes from every reachable road cell towards one exit by
+    /// traversing the directed road graph backwards.
+    /// </summary>
+    public RoadPathTree BuildReversePathTree(Vector2Int exit)
+    {
+        exit = GetRoadAnchor(exit);
+        Dictionary<Vector2Int, Vector2Int> nextCells = new Dictionary<Vector2Int, Vector2Int>();
+        HashSet<Vector2Int> visited = new HashSet<Vector2Int>();
+        Queue<Vector2Int> queue = new Queue<Vector2Int>();
+
+        if (!roadCells.ContainsKey(exit))
+            return new RoadPathTree(nextCells, visited, true);
+
+        visited.Add(exit);
+        queue.Enqueue(exit);
+
+        while (queue.Count > 0)
+        {
+            Vector2Int current = queue.Dequeue();
+            if (!roadCells.TryGetValue(current, out RoadCell currentCell))
+                continue;
+
+            VisitReverse(current, currentCell, North, RoadDirection.North, visited, nextCells, queue);
+            VisitReverse(current, currentCell, East, RoadDirection.East, visited, nextCells, queue);
+            VisitReverse(current, currentCell, South, RoadDirection.South, visited, nextCells, queue);
+            VisitReverse(current, currentCell, West, RoadDirection.West, visited, nextCells, queue);
+        }
+
+        return new RoadPathTree(nextCells, new HashSet<Vector2Int> { exit }, true);
+    }
+
+    private void VisitForward(
+        Vector2Int current, RoadCell cell, Vector2Int offset, RoadDirection direction,
+        HashSet<Vector2Int> visited, Dictionary<Vector2Int, Vector2Int> previousCells,
+        Queue<Vector2Int> queue)
+    {
+        if (!IsConnected(cell, direction))
+            return;
+
+        Vector2Int next = current + offset;
+        if (!roadCells.TryGetValue(next, out RoadCell nextCell) ||
+            (cell.Direction != direction && nextCell.Direction != direction) ||
+            !visited.Add(next))
+            return;
+
+        previousCells[next] = current;
+        queue.Enqueue(next);
+    }
+
+    private void VisitReverse(
+        Vector2Int current, RoadCell currentCell, Vector2Int forwardOffset, RoadDirection forwardDirection,
+        HashSet<Vector2Int> visited, Dictionary<Vector2Int, Vector2Int> nextCells,
+        Queue<Vector2Int> queue)
+    {
+        Vector2Int previous = current - forwardOffset;
+        if (!roadCells.TryGetValue(previous, out RoadCell previousCell) ||
+            !IsConnected(previousCell, forwardDirection) ||
+            (previousCell.Direction != forwardDirection && currentCell.Direction != forwardDirection) ||
+            !visited.Add(previous))
+            return;
+
+        nextCells[previous] = current;
+        queue.Enqueue(previous);
+    }
+
+    private bool IsConnected(RoadCell cell, RoadDirection direction)
+    {
+        switch (direction)
+        {
+            case RoadDirection.North: return cell.ConnectNorth;
+            case RoadDirection.East: return cell.ConnectEast;
+            case RoadDirection.South: return cell.ConnectSouth;
+            case RoadDirection.West: return cell.ConnectWest;
+            default: return false;
+        }
+    }
 
     public Vector2Int GetRoadAnchor(Vector2Int cell)
     {
