@@ -25,6 +25,8 @@ public class RoadNetwork : MonoBehaviour
     private readonly Dictionary<Vector2Int, RoadCell> roadCells =
         new Dictionary<Vector2Int, RoadCell>();
 
+    public int TopologyVersion { get; private set; }
+
     public sealed class RoadPathTree
     {
         private readonly Dictionary<Vector2Int, Vector2Int> nextCells;
@@ -210,12 +212,18 @@ public class RoadNetwork : MonoBehaviour
 
         if (roadCells.TryGetValue(position, out RoadCell existing))
         {
-            existing.Direction = direction;
+            if (existing.Direction != direction)
+            {
+                existing.Direction = direction;
+                TopologyVersion++;
+            }
+
             UpdateConnectionsAround(position);
             return;
         }
 
         roadCells.Add(position, new RoadCell(position, direction));
+        TopologyVersion++;
         UpdateConnectionsAround(position);
     }
 
@@ -224,6 +232,8 @@ public class RoadNetwork : MonoBehaviour
         position = GetRoadAnchor(position);
         if (!roadCells.Remove(position))
             return;
+
+        TopologyVersion++;
         UpdateConnectionsAround(position);
     }
 
@@ -454,7 +464,11 @@ public class RoadNetwork : MonoBehaviour
 
     public void Clear()
     {
+        if (roadCells.Count == 0)
+            return;
+
         roadCells.Clear();
+        TopologyVersion++;
     }
 
     public List<RoadCellSaveData> GetSaveData()
