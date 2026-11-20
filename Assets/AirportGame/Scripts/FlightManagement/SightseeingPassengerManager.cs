@@ -54,6 +54,7 @@ public class SightseeingPassengerManager : MonoBehaviour
     private sealed class FlightGroup
     {
         public long scheduledHourSlot;
+        public long scheduledBoardingGameSecond;
         public AircraftFlightIdentity identity;
         public AircraftSSTurnaroundController turnaround;
         public SightseeingAircraftParkingSpot parkingSpot;
@@ -77,6 +78,8 @@ public class SightseeingPassengerManager : MonoBehaviour
     {
         ResolveReferences();
         SubscribeToSpawner();
+        SubscribeToGameTime();
+        SubscribeToGameTime();
     }
 
     private void OnDisable()
@@ -87,6 +90,8 @@ public class SightseeingPassengerManager : MonoBehaviour
             aircraftSpawner.AircraftSpawned -= HandleAircraftSpawned;
         }
         subscribedToSpawner = false;
+        if (gameTimeManager != null)
+            gameTimeManager.GameTimeAdvanced -= HandleGameTimeAdvanced;
     }
 
     private void Update()
@@ -145,6 +150,64 @@ public class SightseeingPassengerManager : MonoBehaviour
         if (roomPurposeController == null) roomPurposeController = FindAnyObjectByType<RoomPurposeController>();
     }
 
+    private void SubscribeToGameTime()
+    {
+        if (gameTimeManager != null)
+        {
+            gameTimeManager.GameTimeAdvanced -= HandleGameTimeAdvanced;
+            gameTimeManager.GameTimeAdvanced += HandleGameTimeAdvanced;
+        }
+    }
+
+    private void HandleGameTimeAdvanced(long previousSecond, long currentSecond)
+    {
+        if (currentSecond <= previousSecond)
+            return;
+        UpdateDepartureUrgencies(currentSecond);
+    }
+
+    private void UpdateDepartureUrgencies(long currentSecond)
+    {
+        for (int i = 0; i < activeGroups.Count; i++)
+        {
+            FlightGroup group = activeGroups[i];
+            if (group == null || group.cancelled || group.boardingStarted)
+                continue;
+
+            float urgency = CalculateDepartureUrgency(
+                group.scheduledBoardingGameSecond - currentSecond);
+            for (int j = 0; j < group.passengers.Count; j++)
+            {
+                PassengerRecord record = group.passengers[j];
+                if (record != null && record.agent != null && !record.completed)
+                    record.agent.SetDepartureUrgency(urgency);
+            }
+        }
+    }
+
+    private static float CalculateDepartureUrgency(long secondsRemaining)
+    {
+        if (secondsRemaining >= 3600L) return 0f;
+        if (secondsRemaining <= 0L) return 100f;
+
+        if (secondsRemaining >= 1800L)
+            return Mathf.SmoothStep(0f, 20f, (3600f - secondsRemaining) / 1800f);
+        if (secondsRemaining >= 1200L)
+            return Mathf.SmoothStep(20f, 40f, (1800f - secondsRemaining) / 600f);
+        if (secondsRemaining >= 600L)
+            return Mathf.SmoothStep(40f, 70f, (1200f - secondsRemaining) / 600f);
+        if (secondsRemaining >= 300L)
+            return Mathf.SmoothStep(70f, 90f, (600f - secondsRemaining) / 300f);
+        return Mathf.SmoothStep(90f, 100f, (300f - secondsRemaining) / 300f);
+    }
+
+    private long GetAbsoluteGameSecondForHourSlot(long hourSlot)
+    {
+        long dayIndex = hourSlot / 24L;
+        int hour = (int)(hourSlot % 24L);
+        return (dayIndex - 1L) * 86400L + hour * 3600L;
+    }
+
     private void SubscribeToSpawner()
     {
         if (aircraftSpawner == null || subscribedToSpawner) return;
@@ -192,7 +255,11 @@ public class SightseeingPassengerManager : MonoBehaviour
             if (!activeGroups[i].cancelled && activeGroups[i].scheduledHourSlot == hourSlot)
                 return;
 
-        FlightGroup group = new FlightGroup { scheduledHourSlot = hourSlot };
+        FlightGroup group = new FlightGroup
+        {
+            scheduledHourSlot = hourSlot,
+            scheduledBoardingGameSecond = GetAbsoluteGameSecondForHourSlot(hourSlot)
+        };
         activeGroups.Add(group);
 
         debugStatus = "Preparing " + demand + " sightseeing passenger(s) for the next hourly flight.";
@@ -267,7 +334,11 @@ public class SightseeingPassengerManager : MonoBehaviour
         }
         if (group == null)
         {
-            group = new FlightGroup { scheduledHourSlot = flightSlot };
+            group = new FlightGroup
+            {
+                scheduledHourSlot = flightSlot,
+                scheduledBoardingGameSecond = GetAbsoluteGameSecondForHourSlot(flightSlot)
+            };
             activeGroups.Add(group);
         }
         group.identity = identity;
@@ -330,6 +401,8 @@ public class SightseeingPassengerManager : MonoBehaviour
         record.agent = agent;
 
         agent.Initialize(this, car, GetWaitingAreaAnchor(), waitingAreaRadiusCells);
+        agent.SetDepartureUrgency(CalculateDepartureUrgency(
+            group != null ? group.scheduledBoardingGameSecond - GetAbsoluteGameSecond() : 0L));
 
         TryBeginCheckIn(agent);
     }
