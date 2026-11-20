@@ -394,7 +394,7 @@ public class SightseeingPassengerManager : MonoBehaviour
         PassengerRecord record = FindRecord(agent, out _);
         if (record == null || record.checkedIn) return;
         record.checkedIn = true;
-        if (sightseeingEconomy != null) sightseeingEconomy.RegisterTicketSale();
+        if (sightseeingEconomy != null) sightseeingEconomy.RegisterTicketSale(price);
         debugStatus = "Passenger purchased a sightseeing ticket (" + price + ") and checked in.";
     }
 
