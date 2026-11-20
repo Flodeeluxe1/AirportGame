@@ -152,7 +152,7 @@ public class TaxiwayPathfinder : MonoBehaviour
         if (!IsSuitableGroundMovementCell(start, minimumTaxiwayWidth))
             return new List<Vector2Int>();
 
-        List<Vector2Int> targets = new List<Vector2Int>();
+        int targetCount = 0;
         int minimumX = int.MaxValue;
         int maximumX = int.MinValue;
         int minimumY = int.MaxValue;
@@ -162,18 +162,16 @@ public class TaxiwayPathfinder : MonoBehaviour
         {
             if (entry.Key == start ||
                 !IsSuitableGroundMovementCell(entry.Key, minimumTaxiwayWidth))
-            {
                 continue;
-            }
 
-            targets.Add(entry.Key);
+            targetCount++;
             minimumX = Mathf.Min(minimumX, entry.Key.x);
             maximumX = Mathf.Max(maximumX, entry.Key.x);
             minimumY = Mathf.Min(minimumY, entry.Key.y);
             maximumY = Mathf.Max(maximumY, entry.Key.y);
         }
 
-        if (targets.Count == 0)
+        if (targetCount == 0)
             return new List<Vector2Int>();
 
         MinPriorityQueue openSet = new MinPriorityQueue();
