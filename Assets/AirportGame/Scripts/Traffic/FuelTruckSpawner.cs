@@ -191,6 +191,23 @@ public class FuelTruckSpawner : MonoBehaviour
         if (!roadNetwork.IsRoad(startCell) || !roadNetwork.IsRoad(exitCell))
             return null;
 
+        FuelDeliveryStation[] stations = FindObjectsByType<FuelDeliveryStation>();
+        List<FuelDeliveryStation> matchingStations = new List<FuelDeliveryStation>();
+
+        foreach (FuelDeliveryStation station in stations)
+        {
+            if (station == null || station.FuelTruckStopPoint == null ||
+                station.FuelNetwork != targetNetwork)
+                continue;
+
+            // Prune destroyed queue entries once before candidate selection.
+            station.RefreshQueueState();
+            matchingStations.Add(station);
+        }
+
+        if (matchingStations.Count == 0)
+            return null;
+
         // Build route trees once for this dispatch. Every candidate station
         // shares the same tanker spawn and exit, so repeated A* searches are
         // unnecessary.
@@ -201,18 +218,8 @@ public class FuelTruckSpawner : MonoBehaviour
             roadNetwork.BuildReversePathTree(exitCell);
 
         List<StationRoute> candidates = new List<StationRoute>();
-        FuelDeliveryStation[] stations = FindObjectsByType<FuelDeliveryStation>();
-
-        foreach (FuelDeliveryStation station in stations)
+        foreach (FuelDeliveryStation station in matchingStations)
         {
-            if (station == null || station.FuelTruckStopPoint == null ||
-                station.FuelNetwork != targetNetwork)
-                continue;
-
-            // Prune destroyed queue entries once before the candidate sort;
-            // the sort comparator then performs allocation-free count reads.
-            station.RefreshQueueState();
-
             if (!TryBuildStationRoute(
                     station, roadPositions, outboundTree, returnTree,
                     out StationRoute route))
