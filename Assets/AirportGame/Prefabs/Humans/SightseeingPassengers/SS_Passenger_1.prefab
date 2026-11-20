@@ -72,5 +72,29 @@ PrefabInstance:
     - {fileID: 7462819304756128391, guid: d810372275650df4184270e88fa81619, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 1552182806160375558, guid: d810372275650df4184270e88fa81619, type: 3}
+      insertIndex: 0
+      addedObject: {fileID: 7301948265017392846}
   m_SourcePrefab: {fileID: 100100000, guid: d810372275650df4184270e88fa81619, type: 3}
+
+--- !u!114 &7301948265017392846
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 3414469430422122693}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1552182806160375558}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a4c8d2e61f7b49a3b5e9c0d2f6a81347, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::InteractionController
+  decisionInterval: 2
+  shortlistSize: 4
+  timeCostPerSecond: 0.02
+  interactionSearchRadius: 100
+  pilotsLoungeUtilityMultiplier: 1.15
+  queuePositionRefreshInterval: 0.25
+  currentStatus: Idle
+  currentInteractionName: 
