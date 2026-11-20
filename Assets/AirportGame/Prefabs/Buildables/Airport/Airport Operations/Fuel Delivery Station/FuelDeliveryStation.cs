@@ -19,6 +19,9 @@ public class FuelDeliveryStation : MonoBehaviour
 
     private FuelTruckController occupyingTruck;
     private FuelConnector fuelConnector;
+    private PipelineNetworkManager pipelineManager;
+    private PipelineNetworkManager.PipelineNetwork cachedFuelNetwork;
+    private int cachedNetworkTopologyVersion = -1;
 
     public FuelConnector Connector
     {
@@ -34,11 +37,19 @@ public class FuelDeliveryStation : MonoBehaviour
     {
         get
         {
-            PipelineNetworkManager manager =
-                FindAnyObjectByType<PipelineNetworkManager>();
-            return manager != null && Connector != null
-                ? manager.GetNetworkFor(Connector)
-                : null;
+            if (pipelineManager == null)
+                pipelineManager = FindAnyObjectByType<PipelineNetworkManager>();
+
+            if (pipelineManager == null || Connector == null)
+                return null;
+
+            if (cachedNetworkTopologyVersion != pipelineManager.TopologyVersion)
+            {
+                cachedFuelNetwork = pipelineManager.GetNetworkFor(Connector);
+                cachedNetworkTopologyVersion = pipelineManager.TopologyVersion;
+            }
+
+            return cachedFuelNetwork;
         }
     }
 
@@ -72,14 +83,17 @@ public class FuelDeliveryStation : MonoBehaviour
     {
         get
         {
-            queuedTrucks.RemoveAll(truck => truck == null);
             return queuedTrucks.Count;
         }
     }
 
     public void RegisterTruck(FuelTruckController truck)
     {
-        if (truck == null || queuedTrucks.Contains(truck) || occupyingTruck == truck)
+        if (truck == null)
+            return;
+
+        RemoveInvalidQueuedTrucks();
+        if (queuedTrucks.Contains(truck) || occupyingTruck == truck)
             return;
 
         queuedTrucks.Add(truck);
@@ -90,7 +104,7 @@ public class FuelDeliveryStation : MonoBehaviour
         if (truck == null)
             return false;
 
-        queuedTrucks.RemoveAll(vehicle => vehicle == null);
+        RemoveInvalidQueuedTrucks();
 
         if (occupyingTruck == truck)
             return true;
@@ -102,6 +116,15 @@ public class FuelDeliveryStation : MonoBehaviour
         queuedTrucks.RemoveAt(0);
         occupyingTruck = truck;
         return true;
+    }
+
+    private void RemoveInvalidQueuedTrucks()
+    {
+        for (int i = queuedTrucks.Count - 1; i >= 0; i--)
+        {
+            if (queuedTrucks[i] == null)
+                queuedTrucks.RemoveAt(i);
+        }
     }
 
     public void ReleaseTruck(FuelTruckController truck)
