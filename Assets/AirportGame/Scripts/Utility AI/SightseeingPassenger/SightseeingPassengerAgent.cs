@@ -70,6 +70,13 @@ public class SightseeingPassengerAgent : MonoBehaviour
         state == PassengerState.WalkingToCheckIn || state == PassengerState.CheckingIn;
     public PedestrianMovementController Movement => movement;
 
+    public void SetDepartureUrgency(float urgency)
+    {
+        if (needs != null && state != PassengerState.OnBoard &&
+            state != PassengerState.Completed)
+            needs.SetDepartureUrgency(urgency);
+    }
+
     public void Initialize(
         SightseeingPassengerManager owner,
         TrafficTestVehicle assignedVehicle,
@@ -463,6 +470,7 @@ public class SightseeingPassengerAgent : MonoBehaviour
 
         if (needs != null)
         {
+            needs.SetDepartureUrgency(0f);
             foreach (UtilityNeeds.NeedType need in System.Enum.GetValues(typeof(UtilityNeeds.NeedType)))
                 needs.PauseNeedDecay(need);
             needsPaused = true;
