@@ -43,7 +43,6 @@ public class RoadNetwork : MonoBehaviour
 
         public List<Vector2Int> GetPath(Vector2Int cell)
         {
-            cell = cell;
             if (roots.Contains(cell))
                 return new List<Vector2Int> { cell };
 
@@ -172,18 +171,6 @@ public class RoadNetwork : MonoBehaviour
 
         nextCells[previous] = current;
         queue.Enqueue(previous);
-    }
-
-    private bool IsConnected(RoadCell cell, RoadDirection direction)
-    {
-        switch (direction)
-        {
-            case RoadDirection.North: return cell.ConnectNorth;
-            case RoadDirection.East: return cell.ConnectEast;
-            case RoadDirection.South: return cell.ConnectSouth;
-            case RoadDirection.West: return cell.ConnectWest;
-            default: return false;
-        }
     }
 
     public Vector2Int GetRoadAnchor(Vector2Int cell)
