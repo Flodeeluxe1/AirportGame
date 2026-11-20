@@ -278,14 +278,16 @@ public class FuelTruckSpawner : MonoBehaviour
         foreach (Vector2Int candidate in roadPositions)
         {
             Vector3 roadPosition = roadNetwork.GetRoadCenterWorldPosition(candidate, gridManager);
-            Vector3 approachDirection = stopPoint.position - roadPosition;
+            Vector3 approachOffset = stopPoint.position - roadPosition;
+            float distanceSquared = approachOffset.sqrMagnitude;
+            Vector3 approachDirection = approachOffset;
             approachDirection.y = 0f;
 
-            float distanceSquared = approachDirection.sqrMagnitude;
             float maximumDistance = station.MaximumRoadApproachDistance;
             if (distanceSquared < 0.0001f ||
                 distanceSquared > maximumDistance * maximumDistance ||
-                distanceSquared >= bestDistance * bestDistance)
+                distanceSquared >= bestDistance * bestDistance ||
+                approachDirection.sqrMagnitude < 0.0001f)
                 continue;
 
             approachDirection.Normalize();
