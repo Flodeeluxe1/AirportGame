@@ -91,6 +91,7 @@ public class AircraftSSTakeoffController : MonoBehaviour
     private float groundLevelY;
     private float rotationTriggerSpeedKnots;
     private bool sightseeingCruiseActive;
+    private bool returnLandingStarted;
     private long returnLandingGameSecond;
     private long lastCruiseGameSecond;
     private Vector3 cruiseCenter;
@@ -99,6 +100,7 @@ public class AircraftSSTakeoffController : MonoBehaviour
     private AircraftSSLandingTaxiController landingTaxiController;
 
     public TakeoffState CurrentState => currentState;
+    public bool HasStartedReturnLanding => returnLandingStarted;
 
     public bool IsTakingOff =>
         currentState == TakeoffState.TakeoffRoll ||
@@ -619,6 +621,7 @@ public class AircraftSSTakeoffController : MonoBehaviour
         }
         else
         {
+            returnLandingStarted = true;
             debugStatus = "Return flight complete. Beginning approach to the airport.";
         }
     }
