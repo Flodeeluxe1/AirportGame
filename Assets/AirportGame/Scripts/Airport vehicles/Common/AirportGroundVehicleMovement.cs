@@ -677,7 +677,8 @@ public class AirportGroundVehicleMovement : MonoBehaviour
 
     private int GetMovementCost(Vector2Int cell)
     {
-        if (gridSurface.GetSurface(cell) == BuildSurface.Tarmac)
+        BuildSurface surface = gridSurface.GetSurface(cell);
+        if (surface == BuildSurface.Tarmac || surface == BuildSurface.PedestrianTarmac)
             return tarmacMovementCost;
 
         if (taxiwayNetwork.IsTaxiway(cell) ||
