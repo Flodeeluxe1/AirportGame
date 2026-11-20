@@ -74,6 +74,7 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
 
     private sealed class StationApproachCache
     {
+        public TaxiwayNetwork network;
         public int topologyVersion;
         public Vector3 stopPosition;
         public int maximumApproachDistance;
@@ -352,8 +353,8 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
         }
 
         starts.Sort((a, b) =>
-            Vector2Int.Distance(a, aircraftCell).CompareTo(
-                Vector2Int.Distance(b, aircraftCell)));
+            (a - aircraftCell).sqrMagnitude.CompareTo(
+                (b - aircraftCell).sqrMagnitude));
 
         if (starts.Count > maximumStartCandidates)
             starts.RemoveRange(maximumStartCandidates,
@@ -411,6 +412,7 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
 
         if (sharedStationApproachCaches.TryGetValue(
                 station, out StationApproachCache cached) &&
+            cached.network == taxiwayNetwork &&
             cached.topologyVersion == topologyVersion &&
             cached.maximumApproachDistance == maximumStopApproachDistanceCells &&
             (cached.stopPosition - stopPosition).sqrMagnitude < 0.0001f)
@@ -424,7 +426,9 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
             if (!gridManager.IsInsideGrid(cell) || !taxiwayNetwork.IsTaxiway(cell))
                 continue;
 
-            if (Vector2Int.Distance(cell, stopCell) > maximumStopApproachDistanceCells)
+            Vector2Int stopOffset = cell - stopCell;
+            if (stopOffset.sqrMagnitude >
+                maximumStopApproachDistanceCells * maximumStopApproachDistanceCells)
                 continue;
 
             float approachDistance = Vector3.Distance(
@@ -434,6 +438,7 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
 
         sharedStationApproachCaches[station] = new StationApproachCache
         {
+            network = taxiwayNetwork,
             topologyVersion = topologyVersion,
             stopPosition = stopPosition,
             maximumApproachDistance = maximumStopApproachDistanceCells,
