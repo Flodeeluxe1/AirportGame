@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -40,6 +41,22 @@ public class SightseeingPassengerAgent : MonoBehaviour
     private Vector3 lastRequestedQueuePosition;
     private bool hasRequestedQueuePosition;
     private float nextWander;
+
+    private sealed class FoundationCache
+    {
+        public readonly List<Vector2Int> cells = new List<Vector2Int>();
+        public bool dirty = true;
+    }
+
+    private static readonly Dictionary<GridSurface, FoundationCache> FoundationCaches =
+        new Dictionary<GridSurface, FoundationCache>();
+
+    private GridManager gridManager;
+    private GridSurface gridSurface;
+    private FoundationCache foundationCache;
+    private GridSurface subscribedFoundationSurface;
+    private RoomPurposeController roomPurposeController;
+    private PedestrianAccessProfile accessProfile;
     private float nextCarRetry;
     private int carRetries;
 
@@ -88,11 +105,14 @@ public class SightseeingPassengerAgent : MonoBehaviour
             pilotWanderingController.enabled = false;
 
         pathfinder = FindAnyObjectByType<PedestrianPathfinder>();
+        ResolveFoundationReferences();
+        UpdateFoundationSurfaceSubscription();
         renderers = GetComponentsInChildren<Renderer>(true);
         colliders = GetComponentsInChildren<Collider>(true);
 
         movement.Arrived += HandleArrived;
         movement.PathFailed += HandlePathFailed;
+        UpdateFoundationSurfaceSubscription();
         state = PassengerState.Initializing;
         nextWander = Time.time + Random.Range(3f, 8f);
     }
@@ -278,18 +298,116 @@ public class SightseeingPassengerAgent : MonoBehaviour
             return;
 
         nextWander = Time.time + Random.Range(8f, 18f);
-        GridManager grid = FindAnyObjectByType<GridManager>();
-        if (grid == null) return;
-
-        Vector2Int centre = grid.WorldToGrid(waitingArea.position);
-        for (int i = 0; i < 12; i++)
+        if (gridManager == null || gridSurface == null)
         {
-            Vector2Int candidate = centre + new Vector2Int(
-                Random.Range(-waitingRadius, waitingRadius + 1),
-                Random.Range(-waitingRadius, waitingRadius + 1));
-            if (!pathfinder.IsWalkable(candidate)) continue;
-            if (movement.TryMoveTo(grid.GridToWorldCenter(candidate))) return;
+            ResolveFoundationReferences();
+            if (gridManager == null || gridSurface == null) return;
         }
+
+        UpdateFoundationSurfaceSubscription();
+        RefreshFoundationCacheIfNeeded();
+        if (foundationCache == null || foundationCache.cells.Count == 0) return;
+
+        Vector2Int centre = gridManager.WorldToGrid(waitingArea.position);
+        int candidateCount = foundationCache.cells.Count;
+        int attempts = Mathf.Min(12, candidateCount);
+        int startIndex = Random.Range(0, candidateCount);
+
+        // Reuse a shared, change-invalidated Foundation cache and inspect only
+        // a bounded number of candidates for each passenger wander.
+        for (int i = 0; i < attempts; i++)
+        {
+            Vector2Int candidate = foundationCache.cells[(startIndex + i) % candidateCount];
+            if (Mathf.Abs(candidate.x - centre.x) > waitingRadius ||
+                Mathf.Abs(candidate.y - centre.y) > waitingRadius)
+                continue;
+
+            if (!pathfinder.IsWalkable(candidate) ||
+                (roomPurposeController != null &&
+                 !roomPurposeController.IsCellAccessibleToPedestrian(candidate, accessProfile)))
+                continue;
+
+            Vector3 destination = gridManager.GridToWorldCenter(candidate);
+            destination.y = transform.position.y;
+            if (movement.TryMoveTo(destination)) return;
+        }
+    }
+
+    private void ResolveFoundationReferences()
+    {
+        if (gridManager == null)
+            gridManager = FindAnyObjectByType<GridManager>();
+
+        if (gridSurface == null)
+            gridSurface = gridManager != null
+                ? gridManager.GetComponent<GridSurface>()
+                : FindAnyObjectByType<GridSurface>();
+
+        if (roomPurposeController == null)
+            roomPurposeController = FindAnyObjectByType<RoomPurposeController>();
+
+        if (accessProfile == null)
+            accessProfile = GetComponent<PedestrianAccessProfile>();
+    }
+
+    private void UpdateFoundationSurfaceSubscription()
+    {
+        if (subscribedFoundationSurface == gridSurface)
+            return;
+
+        if (subscribedFoundationSurface != null)
+            subscribedFoundationSurface.FoundationSurfaceChanged -= HandleFoundationSurfaceChanged;
+
+        subscribedFoundationSurface = gridSurface;
+        foundationCache = null;
+
+        if (subscribedFoundationSurface == null)
+            return;
+
+        subscribedFoundationSurface.FoundationSurfaceChanged += HandleFoundationSurfaceChanged;
+
+        if (!FoundationCaches.TryGetValue(subscribedFoundationSurface, out foundationCache))
+        {
+            foundationCache = new FoundationCache();
+            FoundationCaches.Add(subscribedFoundationSurface, foundationCache);
+        }
+    }
+
+    private void HandleFoundationSurfaceChanged()
+    {
+        if (foundationCache != null)
+            foundationCache.dirty = true;
+    }
+
+    private void RefreshFoundationCacheIfNeeded()
+    {
+        if (gridManager == null || gridSurface == null)
+            return;
+
+        if (foundationCache == null)
+        {
+            if (!FoundationCaches.TryGetValue(gridSurface, out foundationCache))
+            {
+                foundationCache = new FoundationCache();
+                FoundationCaches.Add(gridSurface, foundationCache);
+            }
+        }
+
+        if (!foundationCache.dirty)
+            return;
+
+        foundationCache.cells.Clear();
+        for (int x = 0; x < gridManager.Width; x++)
+        {
+            for (int z = 0; z < gridManager.Height; z++)
+            {
+                Vector2Int cell = new Vector2Int(x, z);
+                if (gridSurface.GetSurface(cell) == BuildSurface.Foundation)
+                    foundationCache.cells.Add(cell);
+            }
+        }
+
+        foundationCache.dirty = false;
     }
 
     public bool BeginBoarding(Transform boardingPoint, SightseeingAircraftParkingSpot parkingSpot)
@@ -476,6 +594,9 @@ public class SightseeingPassengerAgent : MonoBehaviour
     private void OnDestroy()
     {
         CancelCheckIn();
+        if (subscribedFoundationSurface != null)
+            subscribedFoundationSurface.FoundationSurfaceChanged -= HandleFoundationSurfaceChanged;
+        subscribedFoundationSurface = null;
         if (movement != null)
         {
             movement.Arrived -= HandleArrived;
