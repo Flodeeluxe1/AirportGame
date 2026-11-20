@@ -54,8 +54,8 @@ public class PedestrianPathfinder : MonoBehaviour
 
     private const int StraightMoveCost = 10;
     private const int DiagonalMoveCost = 14;
-    private const int RoadTraversalPenalty = 80;
-    private const int GrassTraversalPenalty = 4;
+    private const int RoadTraversalPenalty = 32;
+    private const int GrassTraversalPenalty = 16;
     private const int FoundationTraversalPenalty = 2;
     private const int TarmacTraversalPenalty = 8;
     private const int PedestrianTarmacTraversalPenalty = 0;
