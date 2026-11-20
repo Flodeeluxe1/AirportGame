@@ -64,6 +64,16 @@ public class SightseeingFlightEconomy : MonoBehaviour
         totalTicketSalesValue += TicketPrice;
     }
 
+    public void RegisterTicketRefund(int refundedTicketPrice)
+    {
+        if (ticketsSold > 0)
+            ticketsSold--;
+
+        totalTicketSalesValue = System.Math.Max(
+            0L,
+            totalTicketSalesValue - Mathf.Max(0, refundedTicketPrice));
+    }
+
     /// <summary>
     /// Generates passenger demand when boarding completes.
     /// The final count cannot exceed the aircraft's capacity.
