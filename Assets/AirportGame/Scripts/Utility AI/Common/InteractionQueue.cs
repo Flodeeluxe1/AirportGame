@@ -22,10 +22,8 @@ public class InteractionQueue : MonoBehaviour
     [SerializeField] private int maximumWaitingAgents = 5;
     [Min(0.25f)]
     [SerializeField] private float queueSpacing = 1f;
-    [Tooltip("Optional first waiting position. Further positions extend along Queue Direction.")]
+    [Tooltip("Optional first waiting position. Its forward direction determines how the queue extends.")]
     [SerializeField] private Transform firstQueuePosition;
-    [Tooltip("Direction in which the queue extends. Defaults to this object's forward direction.")]
-    [SerializeField] private Transform queueDirection;
 
     private readonly List<QueueEntry> entries = new List<QueueEntry>();
     private InteractionProvider provider;
@@ -159,22 +157,20 @@ public class InteractionQueue : MonoBehaviour
         bool hasActiveUser = activeEntry != null;
         int positionBehindFront = hasActiveUser ? index - 1 : index;
 
-        // When no explicit direction is assigned, use the first queue
-        // marker's facing direction. This lets the marker define both the
-        // starting position and the direction the line extends.
-        Vector3 direction = queueDirection != null
-            ? queueDirection.forward
-            : firstQueuePosition != null
-                ? firstQueuePosition.forward
-                : transform.forward;
+        // Resolve the optional marker before selecting the direction.
+        // Its rotation defines the queue direction; without a marker,
+        // the desk prefab's own forward direction is used.
+        ResolveQueuePosition();
+
+        Vector3 direction = firstQueuePosition != null
+            ? firstQueuePosition.forward
+            : transform.forward;
         direction.y = 0f;
 
         if (direction.sqrMagnitude < 0.001f)
             direction = Vector3.forward;
 
         direction.Normalize();
-
-        ResolveQueuePosition();
 
         if (firstQueuePosition != null)
         {
