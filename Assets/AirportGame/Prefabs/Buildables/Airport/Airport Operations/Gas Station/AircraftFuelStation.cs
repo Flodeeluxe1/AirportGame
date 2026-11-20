@@ -47,6 +47,8 @@ public class AircraftFuelStation : MonoBehaviour
     private readonly System.Collections.Generic.List<AircraftHobbyFuelDepartureController> reservationQueue = new();
     private float fuelTransferredThisSession;
     private float fuelSessionPricePerLitre;
+    private PipelineNetworkManager.PipelineNetwork cachedFuelNetwork;
+    private int cachedNetworkTopologyVersion = -1;
 
     public float SellingPricePerLitre => sellingPricePerLitre;
 
@@ -162,9 +164,16 @@ public class AircraftFuelStation : MonoBehaviour
         get
         {
             ResolvePipelineReferences();
-            return pipelineNetworkManager != null && fuelConnector != null
-                ? pipelineNetworkManager.GetNetworkFor(fuelConnector)
-                : null;
+            if (pipelineNetworkManager == null || fuelConnector == null)
+                return null;
+
+            if (cachedNetworkTopologyVersion != pipelineNetworkManager.TopologyVersion)
+            {
+                cachedFuelNetwork = pipelineNetworkManager.GetNetworkFor(fuelConnector);
+                cachedNetworkTopologyVersion = pipelineNetworkManager.TopologyVersion;
+            }
+
+            return cachedFuelNetwork;
         }
     }
 
