@@ -12,6 +12,7 @@ public class BuildController : MonoBehaviour
     [SerializeField] private EdgeOccupancy edgeOccupancy;
     [SerializeField] private FoundationTilemapController foundationTilemapController;
     [SerializeField] private TarmacTilemapController tarmacTilemapController;
+    [SerializeField] private TarmacPedestrianTilemapController pedestrianTarmacTilemapController;
     [SerializeField] private UIDocument uiDocument;
 
     [Header("Placement")]
@@ -87,9 +88,10 @@ public class BuildController : MonoBehaviour
             foundationTilemapController
         );
 
-        areaHandler.SetTarmacTilemapController(
-            tarmacTilemapController
-        );
+        if (pedestrianTarmacTilemapController == null)
+            pedestrianTarmacTilemapController = FindAnyObjectByType<TarmacPedestrianTilemapController>();
+        areaHandler.SetTarmacTilemapController(tarmacTilemapController);
+        areaHandler.SetPedestrianTarmacTilemapController(pedestrianTarmacTilemapController);
 
         areaHandler.SetAutomaticWallDefinition(
             automaticFoundationWall
