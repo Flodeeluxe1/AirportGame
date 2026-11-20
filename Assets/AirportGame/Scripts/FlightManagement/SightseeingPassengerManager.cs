@@ -69,6 +69,7 @@ public class SightseeingPassengerManager : MonoBehaviour
 
     private readonly List<FlightGroup> activeGroups = new List<FlightGroup>();
     private bool subscribedToSpawner;
+    private bool subscribedToGameTime;
     private bool initialSchedulePrepared;
     private float nextCheckInRetryTime;
 
@@ -78,7 +79,6 @@ public class SightseeingPassengerManager : MonoBehaviour
     {
         ResolveReferences();
         SubscribeToSpawner();
-        SubscribeToGameTime();
         SubscribeToGameTime();
     }
 
@@ -90,14 +90,16 @@ public class SightseeingPassengerManager : MonoBehaviour
             aircraftSpawner.AircraftSpawned -= HandleAircraftSpawned;
         }
         subscribedToSpawner = false;
-        if (gameTimeManager != null)
+        if (gameTimeManager != null && subscribedToGameTime)
             gameTimeManager.GameTimeAdvanced -= HandleGameTimeAdvanced;
+        subscribedToGameTime = false;
     }
 
     private void Update()
     {
         ResolveReferences();
         SubscribeToSpawner();
+        SubscribeToGameTime();
 
         if (!SightseeingAircraftSpawner.HasTicketDeskPlaced())
             CancelUnspawnedGroupsWithoutDesk();
@@ -152,11 +154,11 @@ public class SightseeingPassengerManager : MonoBehaviour
 
     private void SubscribeToGameTime()
     {
-        if (gameTimeManager != null)
-        {
-            gameTimeManager.GameTimeAdvanced -= HandleGameTimeAdvanced;
-            gameTimeManager.GameTimeAdvanced += HandleGameTimeAdvanced;
-        }
+        if (gameTimeManager == null || subscribedToGameTime)
+            return;
+
+        gameTimeManager.GameTimeAdvanced += HandleGameTimeAdvanced;
+        subscribedToGameTime = true;
     }
 
     private void HandleGameTimeAdvanced(long previousSecond, long currentSecond)
