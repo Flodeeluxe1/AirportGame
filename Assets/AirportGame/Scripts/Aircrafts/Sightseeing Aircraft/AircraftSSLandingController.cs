@@ -141,12 +141,6 @@ public class AircraftSSLandingController : MonoBehaviour
         if (weather == null)
             weather = FindAnyObjectByType<Weather>();
 
-        if (gridManager == null)
-            gridManager = FindAnyObjectByType<GridManager>();
-
-        if (weather == null)
-            weather = FindAnyObjectByType<Weather>();
-
         if (gridManager == null || weather == null)
         {
             Fail("GridManager or Weather is missing.");
