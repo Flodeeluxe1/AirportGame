@@ -38,7 +38,10 @@ public class FuelDeliveryStation : MonoBehaviour
         get
         {
             if (pipelineManager == null)
+            {
                 pipelineManager = FindAnyObjectByType<PipelineNetworkManager>();
+                cachedNetworkTopologyVersion = -1;
+            }
 
             if (pipelineManager == null || Connector == null)
                 return null;
