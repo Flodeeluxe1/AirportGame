@@ -313,12 +313,7 @@ public class SightseeingPassengerManager : MonoBehaviour
 
         agent.Initialize(this, car, GetWaitingAreaAnchor(), waitingAreaRadiusCells);
 
-        // A car may finish parking after boarding has already started.
-        // Such a late arrival must leave again rather than miss the flight.
-        if (group != null && group.boardingStarted)
-            agent.BeginReturnToCar();
-        else
-            TryBeginCheckIn(agent);
+        TryBeginCheckIn(agent);
     }
 
     public bool TryBeginCheckIn(SightseeingPassengerAgent agent)
@@ -533,7 +528,7 @@ public class SightseeingPassengerManager : MonoBehaviour
 
     private void CancelUnspawnedGroupsWithoutDesk()
     {
-        for (int i = 0; i < activeGroups.Count; i++)
+        for (int i = activeGroups.Count - 1; i >= 0; i--)
         {
             FlightGroup group = activeGroups[i];
             if (group.turnaround == null && !group.cancelled)
