@@ -393,8 +393,14 @@ public class InteractionController : MonoBehaviour
                 float totalTime =
                     travelTime + waitingTime + definition.DurationSeconds;
 
+                float departureUrgency = needs.GetUrgency(UtilityNeeds.NeedType.DepartureUrgency) / 100f;
+                float departureInfluence = Mathf.Clamp01(
+                    departureUrgency * needs.GetUtilityWeight(UtilityNeeds.NeedType.DepartureUrgency));
+                float urgencyAdjustedTimeCost = timeCostPerSecond *
+                    (1f + departureInfluence * 4f);
+
                 float timeAdjustedScore =
-                    utility / (1f + totalTime * timeCostPerSecond);
+                    utility / (1f + totalTime * urgencyAdjustedTimeCost);
 
                 if (timeAdjustedScore <= 0f)
                     continue;
