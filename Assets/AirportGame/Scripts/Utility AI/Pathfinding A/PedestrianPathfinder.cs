@@ -4,7 +4,7 @@ using UnityEngine;
 
 /// <summary>
 /// Grid-based A* pathfinding for pedestrians.
-/// Walkable surfaces: Grass, Foundation and Tarmac.
+/// Walkable surfaces: Grass, Foundation, Tarmac and Pedestrian Tarmac.
 /// Runways, taxiways, registered building obstacles and occupied wall edges block movement.
 /// Door edges remain traversable.
 /// </summary>
@@ -55,6 +55,10 @@ public class PedestrianPathfinder : MonoBehaviour
     private const int StraightMoveCost = 10;
     private const int DiagonalMoveCost = 14;
     private const int RoadTraversalPenalty = 80;
+    private const int GrassTraversalPenalty = 4;
+    private const int FoundationTraversalPenalty = 2;
+    private const int TarmacTraversalPenalty = 8;
+    private const int PedestrianTarmacTraversalPenalty = 0;
 
     private void Awake()
     {
@@ -196,12 +200,9 @@ public class PedestrianPathfinder : MonoBehaviour
 
                 // Roads remain walkable, but pedestrians strongly prefer
                 // grass, foundations and tarmac when an alternative exists.
-                int roadPenalty = IsRoadCell(next)
-                    ? RoadTraversalPenalty
-                    : 0;
-
-                int tentativeG =
-                    currentBestG + moveCost + randomPenalty + roadPenalty;
+                int roadPenalty = IsRoadCell(next) ? RoadTraversalPenalty : 0;
+                int surfacePenalty = GetSurfaceTraversalPenalty(next);
+                int tentativeG = currentBestG + moveCost + randomPenalty + roadPenalty + surfacePenalty;
 
                 if (gScore.TryGetValue(next, out int previousG) &&
                     tentativeG >= previousG)
@@ -580,6 +581,7 @@ public class PedestrianPathfinder : MonoBehaviour
 
             if (IsRoadCell(path[i]))
                 cost += RoadTraversalPenalty;
+            cost += GetSurfaceTraversalPenalty(path[i]);
         }
 
         return cost;
@@ -588,6 +590,18 @@ public class PedestrianPathfinder : MonoBehaviour
     private bool IsRoadCell(Vector2Int cell)
     {
         return roadNetwork != null && roadNetwork.IsRoad(cell);
+    }
+
+    private int GetSurfaceTraversalPenalty(Vector2Int cell)
+    {
+        switch (gridSurface.GetSurface(cell))
+        {
+            case BuildSurface.PedestrianTarmac: return PedestrianTarmacTraversalPenalty;
+            case BuildSurface.Tarmac: return TarmacTraversalPenalty;
+            case BuildSurface.Foundation: return FoundationTraversalPenalty;
+            case BuildSurface.Grass:
+            default: return GrassTraversalPenalty;
+        }
     }
 
     private List<Vector3> ConvertGridPathToWorld(List<Vector2Int> gridPath)
@@ -728,7 +742,8 @@ public class PedestrianPathfinder : MonoBehaviour
 
         if (surface != BuildSurface.Grass &&
             surface != BuildSurface.Foundation &&
-            surface != BuildSurface.Tarmac)
+            surface != BuildSurface.Tarmac &&
+            surface != BuildSurface.PedestrianTarmac)
         {
             return false;
         }
