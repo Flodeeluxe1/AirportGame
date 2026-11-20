@@ -93,7 +93,6 @@ public class AircraftSSTakeoffController : MonoBehaviour
     private bool sightseeingCruiseActive;
     private bool returnLandingStarted;
     private long returnLandingGameSecond;
-    private long lastCruiseGameSecond;
     private Vector3 cruiseCenter;
     private float cruiseAngleDegrees;
     private AircraftSSLandingController landingController;
@@ -552,7 +551,6 @@ public class AircraftSSTakeoffController : MonoBehaviour
 
         long now = GetAbsoluteGameSecond();
         returnLandingGameSecond = now + Mathf.Max(1, sightseeingFlightDurationMinutes) * 60L;
-        lastCruiseGameSecond = now;
         // Start the orbit at the aircraft's exact current position and
         // with its tangent aligned to the takeoff direction. This avoids a
         // visible teleport when the climb transitions into cruise.
@@ -576,13 +574,10 @@ public class AircraftSSTakeoffController : MonoBehaviour
         if (!sightseeingCruiseActive || gameTimeManager == null)
             return;
 
-        long now = GetAbsoluteGameSecond();
-        long elapsed = System.Math.Max(0L, now - lastCruiseGameSecond);
-        if (elapsed > 0)
-        {
-            cruiseAngleDegrees += elapsed / 60f * cruiseOrbitDegreesPerGameMinute;
-            lastCruiseGameSecond = now;
-        }
+        // Time.deltaTime follows GameTimeManager's time scale, so the
+        // orbit stays smooth while still advancing in in-game time.
+        cruiseAngleDegrees +=
+            Time.deltaTime / 60f * cruiseOrbitDegreesPerGameMinute;
 
         float angle = cruiseAngleDegrees * Mathf.Deg2Rad;
         Vector3 orbitPosition = cruiseCenter + new Vector3(
