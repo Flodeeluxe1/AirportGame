@@ -106,7 +106,7 @@ public class SightseeingPassengerManager : MonoBehaviour
         for (int i = 0; i < activeGroups.Count; i++)
             if (activeGroups[i].turnaround == null) pendingFlights++;
 
-        if (!initialSchedulePrepared && aircraftSpawner != null && gameTimeManager != null)
+        if (!initialSchedulePrepared && aircraftSpawner != null && aircraftSpawner.isActiveAndEnabled && gameTimeManager != null)
         {
             initialSchedulePrepared = true;
             long currentSlot = gameTimeManager.CurrentDay * 24L + gameTimeManager.Hour;
