@@ -65,6 +65,7 @@ public class SightseeingAircraftSpawner : MonoBehaviour
 
     private bool waitingMessageLogged;
     private bool subscribedToGameTime;
+    private AircraftSSTurnaroundController reusableAircraft;
 
     public GameObject SightseeingAircraftPrefab => sightseeingAircraftPrefab;
     public bool FlightPending => flightPending;
@@ -405,8 +406,13 @@ public class SightseeingAircraftSpawner : MonoBehaviour
             return SpawnAttemptResult.FatalFailure;
         }
 
-        SightseeingAircraftParkingSpot spot =
-            FindAvailableParkingSpot();
+        bool reusingAircraft = reusableAircraft != null;
+        SightseeingAircraftParkingSpot spot = reusingAircraft
+            ? reusableAircraft.ReservedSpot
+            : FindAvailableParkingSpot();
+
+        if (reusingAircraft && !reusableAircraft.PrepareForNextFlight())
+            return SpawnAttemptResult.RetryableFailure;
 
         if (spot == null)
         {
@@ -425,10 +431,12 @@ public class SightseeingAircraftSpawner : MonoBehaviour
             return SpawnAttemptResult.WaitingForParking;
         }
 
-        GameObject aircraft = Instantiate(
-            sightseeingAircraftPrefab,
-            spawnPoint.position,
-            spawnPoint.rotation);
+        GameObject aircraft = reusingAircraft
+            ? reusableAircraft.gameObject
+            : Instantiate(
+                sightseeingAircraftPrefab,
+                spawnPoint.position,
+                spawnPoint.rotation);
 
         if (aircraft == null)
         {
@@ -444,8 +452,9 @@ public class SightseeingAircraftSpawner : MonoBehaviour
         if (airportFees != null)
             airportFees.SetFeeCategory(AirportFeeCategory.Sightseeing);
 
-        // Reserve parking before allowing the aircraft to operate.
-        if (!spot.TryReserve(aircraft))
+        // A reused aircraft keeps its original parking reservation.
+        // New aircraft reserve a free sightseeing stand before operating.
+        if (!reusingAircraft && !spot.TryReserve(aircraft))
         {
             Debug.LogWarning(
                 "SightseeingAircraftSpawner: The selected parking spot " +
@@ -457,6 +466,20 @@ public class SightseeingAircraftSpawner : MonoBehaviour
 
             return SpawnAttemptResult.RetryableFailure;
         }
+
+        AircraftSSTurnaroundController turnaround =
+            aircraft.GetComponent<AircraftSSTurnaroundController>();
+
+        if (turnaround == null)
+        {
+            Debug.LogError("Sightseeing aircraft prefab is missing AircraftSSTurnaroundController.", aircraft);
+            if (!reusingAircraft) spot.Release(aircraft);
+            Destroy(aircraft);
+            return SpawnAttemptResult.FatalFailure;
+        }
+
+        if (!reusingAircraft)
+            reusableAircraft = turnaround;
 
         AircraftFlightIdentity identity =
             aircraft.GetComponent<AircraftFlightIdentity>();
@@ -487,14 +510,12 @@ public class SightseeingAircraftSpawner : MonoBehaviour
             startMinute,
             scheduledDay);
 
-        AircraftSpawned?.Invoke(
-            identity,
-            aircraft.GetComponent<AircraftSSTurnaroundController>());
+        AircraftSpawned?.Invoke(identity, turnaround);
 
         if (logSpawnDetails)
         {
             Debug.Log(
-                $"SIGHTSEEING AIRCRAFT SPAWNED | " +
+                $"SIGHTSEEING AIRCRAFT {(reusingAircraft ? "REUSED" : "SPAWNED")} | " +
                 $"Flight: {flightNumber} | " +
                 $"Reserved Spot: {spot.name} | " +
                 $"Day: {gameTimeManager.CurrentDay} | " +
