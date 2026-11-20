@@ -69,6 +69,19 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
     private float decisionRetryTimer;
     private bool decisionMade;
     private bool reservationHeld;
+    private int plannedRouteTopologyVersion = -1;
+    private Vector3 plannedRouteStopPosition;
+
+    private sealed class StationApproachCache
+    {
+        public int topologyVersion;
+        public Vector3 stopPosition;
+        public int maximumApproachDistance;
+        public Dictionary<Vector2Int, float> costs;
+    }
+
+    private static readonly Dictionary<AircraftFuelStation, StationApproachCache>
+        sharedStationApproachCaches = new Dictionary<AircraftFuelStation, StationApproachCache>();
 
     public bool IsAtFuelStation => state == FuelDepartureState.AtFuelStation;
     public AircraftFuelStation SelectedStation => selectedStation;
@@ -225,6 +238,10 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
         selectedStation = bestStation;
         plannedRoute.Clear();
         plannedRoute.AddRange(bestRoute);
+        plannedRouteTopologyVersion = taxiwayNetwork != null
+            ? taxiwayNetwork.TopologyVersion
+            : -1;
+        plannedRouteStopPosition = bestStation.AircraftFuelStopPoint.position;
 
         // Reserve before moving away from the parking stand. If another
         // aircraft owns the station, this aircraft joins the FIFO queue and
@@ -315,16 +332,15 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
         ResolveReferences();
 
         if (gridManager == null || taxiwayNetwork == null ||
-            taxiwayPathfinder == null || gridManager.CellSize <= 0f)
-        {
+            taxiwayPathfinder == null || gridManager.CellSize <= 0f ||
+            station == null || station.AircraftFuelStopPoint == null)
             return false;
-        }
 
         Vector2Int aircraftCell = gridManager.WorldToGrid(transform.position);
-        Vector2Int stopCell = gridManager.WorldToGrid(
-            station.AircraftFuelStopPoint.position);
+        Transform stopPoint = station.AircraftFuelStopPoint;
+        Vector2Int stopCell = gridManager.WorldToGrid(stopPoint.position);
 
-        List<Vector2Int> starts = new();
+        List<Vector2Int> starts = new List<Vector2Int>();
         for (int x = -startSearchRadiusCells; x <= startSearchRadiusCells; x++)
         {
             for (int z = -startSearchRadiusCells; z <= startSearchRadiusCells; z++)
@@ -343,10 +359,66 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
             starts.RemoveRange(maximumStartCandidates,
                 starts.Count - maximumStartCandidates);
 
-        // Gather all valid final approach cells once. The multi-target A*
-        // search evaluates this complete set in one traversal per start cell.
-        Dictionary<Vector2Int, float> targetApproachCosts = new();
+        if (starts.Count == 0)
+            return false;
 
+        Dictionary<Vector2Int, float> targetApproachCosts =
+            GetCachedApproachCosts(station, stopPoint, stopCell);
+
+        if (targetApproachCosts.Count == 0)
+            return false;
+
+        // One multi-source search replaces up to maximumStartCandidates
+        // independent A* searches for this station.
+        List<Vector2Int> route =
+            taxiwayPathfinder.FindPathFromBestStartToBestTarget(
+                starts,
+                targetApproachCosts,
+                out _,
+                out _,
+                out _);
+
+        if (route == null || route.Count < 2)
+            return false;
+
+        float distance = Vector3.Distance(
+            transform.position,
+            gridManager.GridToWorldCenter(route[0]));
+
+        for (int i = 1; i < route.Count; i++)
+        {
+            distance += Vector3.Distance(
+                gridManager.GridToWorldCenter(route[i - 1]),
+                gridManager.GridToWorldCenter(route[i]));
+        }
+
+        distance += Vector3.Distance(
+            gridManager.GridToWorldCenter(route[route.Count - 1]),
+            stopPoint.position);
+
+        bestDistance = distance;
+        bestRoute = route;
+        return true;
+    }
+
+    private Dictionary<Vector2Int, float> GetCachedApproachCosts(
+        AircraftFuelStation station,
+        Transform stopPoint,
+        Vector2Int stopCell)
+    {
+        int topologyVersion = taxiwayNetwork.TopologyVersion;
+        Vector3 stopPosition = stopPoint.position;
+
+        if (sharedStationApproachCaches.TryGetValue(
+                station, out StationApproachCache cached) &&
+            cached.topologyVersion == topologyVersion &&
+            cached.maximumApproachDistance == maximumStopApproachDistanceCells &&
+            (cached.stopPosition - stopPosition).sqrMagnitude < 0.0001f)
+        {
+            return cached.costs;
+        }
+
+        Dictionary<Vector2Int, float> costs = new Dictionary<Vector2Int, float>();
         foreach (Vector2Int cell in taxiwayNetwork.TaxiwayCenterlineCells)
         {
             if (!gridManager.IsInsideGrid(cell) || !taxiwayNetwork.IsTaxiway(cell))
@@ -356,52 +428,34 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
                 continue;
 
             float approachDistance = Vector3.Distance(
-                gridManager.GridToWorldCenter(cell),
-                station.AircraftFuelStopPoint.position);
-
-            // Pathfinding costs are measured in grid steps. Convert the final
-            // world-space approach distance to the same approximate scale.
-            targetApproachCosts[cell] = approachDistance / gridManager.CellSize;
+                gridManager.GridToWorldCenter(cell), stopPosition);
+            costs[cell] = approachDistance / gridManager.CellSize;
         }
 
-        if (targetApproachCosts.Count == 0)
-            return false;
-
-        foreach (Vector2Int start in starts)
+        sharedStationApproachCaches[station] = new StationApproachCache
         {
-            List<Vector2Int> route =
-                taxiwayPathfinder.FindPathToBestTarget(
-                    start,
-                    targetApproachCosts,
-                    out _,
-                    out _);
+            topologyVersion = topologyVersion,
+            stopPosition = stopPosition,
+            maximumApproachDistance = maximumStopApproachDistanceCells,
+            costs = costs
+        };
 
-            if (route == null || route.Count < 2)
-                continue;
-
-            float distance = Vector3.Distance(
-                transform.position,
-                gridManager.GridToWorldCenter(route[0]));
-
-            for (int i = 1; i < route.Count; i++)
+        // Discard destroyed station keys so the shared cache stays bounded
+        // as airport buildings are removed and replaced.
+        if (sharedStationApproachCaches.Count > 32)
+        {
+            List<AircraftFuelStation> invalidStations = new List<AircraftFuelStation>();
+            foreach (AircraftFuelStation cachedStation in sharedStationApproachCaches.Keys)
             {
-                distance += Vector3.Distance(
-                    gridManager.GridToWorldCenter(route[i - 1]),
-                    gridManager.GridToWorldCenter(route[i]));
+                if (cachedStation == null)
+                    invalidStations.Add(cachedStation);
             }
 
-            distance += Vector3.Distance(
-                gridManager.GridToWorldCenter(route[route.Count - 1]),
-                station.AircraftFuelStopPoint.position);
-
-            if (distance >= bestDistance)
-                continue;
-
-            bestDistance = distance;
-            bestRoute = route;
+            foreach (AircraftFuelStation invalidStation in invalidStations)
+                sharedStationApproachCaches.Remove(invalidStation);
         }
 
-        return bestRoute != null;
+        return costs;
     }
 
     private void BuildFuelStationMovementPoints(
@@ -452,16 +506,34 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
 
         reservationHeld = true;
 
-        if (!TryFindRouteToStation(selectedStation, out List<Vector2Int> route, out _))
+        List<Vector2Int> route;
+        Vector3 currentStopPosition = selectedStation.AircraftFuelStopPoint.position;
+        bool cachedRouteValid =
+            plannedRoute.Count >= 2 &&
+            taxiwayNetwork != null &&
+            plannedRouteTopologyVersion == taxiwayNetwork.TopologyVersion &&
+            (plannedRouteStopPosition - currentStopPosition).sqrMagnitude < 0.0001f;
+
+        if (cachedRouteValid)
         {
-            selectedStation.ReleaseAircraftReservation(this);
-            reservationHeld = false;
-            AbortFuelTaxi("No taxi route to fuel station after reservation became available.");
-            return;
+            route = plannedRoute;
+        }
+        else
+        {
+            if (!TryFindRouteToStation(selectedStation, out route, out _))
+            {
+                selectedStation.ReleaseAircraftReservation(this);
+                reservationHeld = false;
+                AbortFuelTaxi("No taxi route to fuel station after reservation became available.");
+                return;
+            }
+
+            plannedRoute.Clear();
+            plannedRoute.AddRange(route);
+            plannedRouteTopologyVersion = taxiwayNetwork.TopologyVersion;
+            plannedRouteStopPosition = currentStopPosition;
         }
 
-        plannedRoute.Clear();
-        plannedRoute.AddRange(route);
         BuildFuelStationMovementPoints(route, selectedStation.AircraftFuelStopPoint);
 
         if (movementPoints.Count == 0)
