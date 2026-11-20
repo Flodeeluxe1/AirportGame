@@ -75,6 +75,8 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
     private sealed class StationApproachCache
     {
         public TaxiwayNetwork network;
+        public GridManager gridManager;
+        public float cellSize;
         public int topologyVersion;
         public Vector3 stopPosition;
         public int maximumApproachDistance;
@@ -413,6 +415,8 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
         if (sharedStationApproachCaches.TryGetValue(
                 station, out StationApproachCache cached) &&
             cached.network == taxiwayNetwork &&
+            cached.gridManager == gridManager &&
+            Mathf.Approximately(cached.cellSize, gridManager.CellSize) &&
             cached.topologyVersion == topologyVersion &&
             cached.maximumApproachDistance == maximumStopApproachDistanceCells &&
             (cached.stopPosition - stopPosition).sqrMagnitude < 0.0001f)
@@ -439,6 +443,8 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
         sharedStationApproachCaches[station] = new StationApproachCache
         {
             network = taxiwayNetwork,
+            gridManager = gridManager,
+            cellSize = gridManager.CellSize,
             topologyVersion = topologyVersion,
             stopPosition = stopPosition,
             maximumApproachDistance = maximumStopApproachDistanceCells,
