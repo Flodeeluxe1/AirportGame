@@ -159,9 +159,14 @@ public class InteractionQueue : MonoBehaviour
         bool hasActiveUser = activeEntry != null;
         int positionBehindFront = hasActiveUser ? index - 1 : index;
 
+        // When no explicit direction is assigned, use the first queue
+        // marker's facing direction. This lets the marker define both the
+        // starting position and the direction the line extends.
         Vector3 direction = queueDirection != null
             ? queueDirection.forward
-            : transform.forward;
+            : firstQueuePosition != null
+                ? firstQueuePosition.forward
+                : transform.forward;
         direction.y = 0f;
 
         if (direction.sqrMagnitude < 0.001f)
