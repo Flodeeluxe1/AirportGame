@@ -90,6 +90,7 @@ public class AircraftSSTurnaroundController : MonoBehaviour
             if (!returnArrivalRaised &&
                 takeoffController != null &&
                 takeoffController.IsCompleted &&
+                takeoffController.HasStartedReturnLanding &&
                 landingTaxiController != null &&
                 landingTaxiController.HasArrivedAtParking)
             {
