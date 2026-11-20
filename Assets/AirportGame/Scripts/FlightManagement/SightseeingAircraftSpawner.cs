@@ -26,6 +26,8 @@ public class SightseeingAircraftSpawner : MonoBehaviour
     private const string TicketDeskDefinitionId =
         "airport.sightseeing.ticketdesk";
 
+    public GameObject SightseeingAircraftPrefab => sightseeingAircraftPrefab;
+
     public event Action<long> FlightScheduled;
     public event Action<AircraftFlightIdentity, AircraftSSTurnaroundController> AircraftSpawned;
 
