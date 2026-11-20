@@ -1132,7 +1132,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6e9a7c2f4d1b48a5a3e7c9d2f1b60485, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SightseeingPassengerManager
-  passengerPrefab: {fileID: 100100000, guid: 5f6c3da8c2867f44aab7979bbc9a2435, type: 3}
+  passengerPrefab: {fileID: 4244879949683871683, guid: 5f6c3da8c2867f44aab7979bbc9a2435, type: 3}
   passengerCarPrefab: {fileID: 2154428240389558112, guid: 9150906fb3da9b049807bba55795f99b, type: 3}
   checkInInteraction: {fileID: 11400000, guid: 8a6b3d1f5c2e49a7b4d0e8f1c3a62579, type: 2}
   checkInRetrySeconds: 5
@@ -1142,7 +1142,7 @@ MonoBehaviour:
   carExitOffset: 1.5
   trafficSpawner: {fileID: 2134991059}
   aircraftSpawner: {fileID: 549940480}
-  sightseeingEconomy: {fileID: 0}
+  sightseeingEconomy: {fileID: 133712790}
   gameTimeManager: {fileID: 449210932}
   pedestrianPathfinder: {fileID: 0}
   roomPurposeController: {fileID: 1399790236}
