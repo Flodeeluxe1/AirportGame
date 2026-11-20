@@ -112,54 +112,14 @@ public class TaxiwayPathfinder : MonoBehaviour
 
             closedSet.Add(current);
 
-            List<Vector2Int> neighbors =
-                taxiwayNetwork.GetConnectedGroundMovementCells(
-                    current
-                );
-
-            foreach (Vector2Int next in neighbors)
-            {
-                if (closedSet.Contains(next))
-                    continue;
-
-                if (!IsSuitableGroundMovementCell(
-                        next,
-                        minimumTaxiwayWidth))
-                {
-                    continue;
-                }
-
-                // Movements Costs here
-                float movementCost;
-
-                if (taxiwayNetwork.IsRunway(next))
-                    movementCost = 100f;
-                else
-                    movementCost = taxiwayNetwork.IsCenterlineCell(next)
-                        ? 1f
-                        : offCenterlineCost;
-
-                float tentativeGScore =
-                    gScore[current] + movementCost;
-
-                if (!gScore.TryGetValue(
-                        next,
-                        out float currentGScore) ||
-                    tentativeGScore < currentGScore)
-                {
-                    cameFrom[next] = current;
-                    gScore[next] = tentativeGScore;
-
-                    float fScore =
-                        tentativeGScore +
-                        GetHeuristic(next, target);
-
-                    openSet.Enqueue(
-                        next,
-                        fScore
-                    );
-                }
-            }
+            TryVisitSingleTargetNeighbor(current, current + Vector2Int.up, target,
+                minimumTaxiwayWidth, gScore[current], openSet, cameFrom, gScore, closedSet);
+            TryVisitSingleTargetNeighbor(current, current + Vector2Int.right, target,
+                minimumTaxiwayWidth, gScore[current], openSet, cameFrom, gScore, closedSet);
+            TryVisitSingleTargetNeighbor(current, current + Vector2Int.down, target,
+                minimumTaxiwayWidth, gScore[current], openSet, cameFrom, gScore, closedSet);
+            TryVisitSingleTargetNeighbor(current, current + Vector2Int.left, target,
+                minimumTaxiwayWidth, gScore[current], openSet, cameFrom, gScore, closedSet);
         }
 
         return emptyPath;
@@ -284,6 +244,168 @@ public class TaxiwayPathfinder : MonoBehaviour
             return new List<Vector2Int>();
 
         return ReconstructPath(cameFrom, start, bestTarget);
+    }
+
+    private void TryVisitSingleTargetNeighbor(
+        Vector2Int current,
+        Vector2Int next,
+        Vector2Int target,
+        int minimumTaxiwayWidth,
+        float currentGScore,
+        MinPriorityQueue openSet,
+        Dictionary<Vector2Int, Vector2Int> cameFrom,
+        Dictionary<Vector2Int, float> gScore,
+        HashSet<Vector2Int> closedSet)
+    {
+        if (closedSet.Contains(next) ||
+            !IsSuitableGroundMovementCell(next, minimumTaxiwayWidth))
+            return;
+
+        float movementCost = taxiwayNetwork.IsRunway(next)
+            ? 100f
+            : taxiwayNetwork.IsCenterlineCell(next) ? 1f : offCenterlineCost;
+
+        float tentative = currentGScore + movementCost;
+        if (gScore.TryGetValue(next, out float oldScore) && tentative >= oldScore)
+            return;
+
+        cameFrom[next] = current;
+        gScore[next] = tentative;
+        openSet.Enqueue(next, tentative + GetHeuristic(next, target));
+    }
+
+    /// <summary>
+    /// Finds the best route from any supplied start cell to any supplied
+    /// approach cell in one shared search. This replaces one full A* search
+    /// per candidate aircraft start position.
+    /// </summary>
+    public List<Vector2Int> FindPathFromBestStartToBestTarget(
+        IReadOnlyCollection<Vector2Int> starts,
+        IReadOnlyDictionary<Vector2Int, float> targetApproachCosts,
+        out Vector2Int bestStart,
+        out Vector2Int bestTarget,
+        out float bestTotalCost,
+        int minimumTaxiwayWidth = 1)
+    {
+        bestStart = default;
+        bestTarget = default;
+        bestTotalCost = float.MaxValue;
+
+        if (taxiwayNetwork == null || starts == null || starts.Count == 0 ||
+            targetApproachCosts == null || targetApproachCosts.Count == 0)
+            return new List<Vector2Int>();
+
+        minimumTaxiwayWidth = Mathf.Max(1, minimumTaxiwayWidth);
+
+        int minimumX = int.MaxValue;
+        int maximumX = int.MinValue;
+        int minimumY = int.MaxValue;
+        int maximumY = int.MinValue;
+        int targetCount = 0;
+
+        foreach (KeyValuePair<Vector2Int, float> entry in targetApproachCosts)
+        {
+            if (!IsSuitableGroundMovementCell(entry.Key, minimumTaxiwayWidth))
+                continue;
+
+            targetCount++;
+            minimumX = Mathf.Min(minimumX, entry.Key.x);
+            maximumX = Mathf.Max(maximumX, entry.Key.x);
+            minimumY = Mathf.Min(minimumY, entry.Key.y);
+            maximumY = Mathf.Max(maximumY, entry.Key.y);
+        }
+
+        if (targetCount == 0)
+            return new List<Vector2Int>();
+
+        HashSet<Vector2Int> startSet = new HashSet<Vector2Int>();
+        MinPriorityQueue openSet = new MinPriorityQueue();
+        Dictionary<Vector2Int, Vector2Int> cameFrom = new Dictionary<Vector2Int, Vector2Int>();
+        Dictionary<Vector2Int, float> gScore = new Dictionary<Vector2Int, float>();
+        HashSet<Vector2Int> closedSet = new HashSet<Vector2Int>();
+
+        foreach (Vector2Int start in starts)
+        {
+            if (!IsSuitableGroundMovementCell(start, minimumTaxiwayWidth) ||
+                !startSet.Add(start))
+                continue;
+
+            gScore[start] = 0f;
+            openSet.Enqueue(start,
+                GetTargetBoundsHeuristic(start, minimumX, maximumX, minimumY, maximumY));
+        }
+
+        if (startSet.Count == 0)
+            return new List<Vector2Int>();
+
+        bool foundTarget = false;
+
+        while (openSet.Count > 0)
+        {
+            if (foundTarget && openSet.PeekPriority >= bestTotalCost)
+                break;
+
+            Vector2Int current = openSet.Dequeue();
+            if (!closedSet.Add(current))
+                continue;
+
+            float currentScore = gScore[current];
+            if (!startSet.Contains(current) &&
+                targetApproachCosts.TryGetValue(current, out float approachCost))
+            {
+                float totalCost = currentScore + approachCost;
+                if (totalCost < bestTotalCost)
+                {
+                    bestTotalCost = totalCost;
+                    bestTarget = current;
+                    foundTarget = true;
+                }
+            }
+
+            TryVisitGroundNeighbor(current, current + Vector2Int.up, currentScore,
+                minimumTaxiwayWidth, minimumX, maximumX, minimumY, maximumY,
+                openSet, cameFrom, gScore, closedSet);
+            TryVisitGroundNeighbor(current, current + Vector2Int.right, currentScore,
+                minimumTaxiwayWidth, minimumX, maximumX, minimumY, maximumY,
+                openSet, cameFrom, gScore, closedSet);
+            TryVisitGroundNeighbor(current, current + Vector2Int.down, currentScore,
+                minimumTaxiwayWidth, minimumX, maximumX, minimumY, maximumY,
+                openSet, cameFrom, gScore, closedSet);
+            TryVisitGroundNeighbor(current, current + Vector2Int.left, currentScore,
+                minimumTaxiwayWidth, minimumX, maximumX, minimumY, maximumY,
+                openSet, cameFrom, gScore, closedSet);
+        }
+
+        if (!foundTarget)
+            return new List<Vector2Int>();
+
+        List<Vector2Int> path = ReconstructPathToAnyStart(cameFrom, startSet, bestTarget);
+        if (path.Count > 0)
+            bestStart = path[0];
+
+        return path;
+    }
+
+    private List<Vector2Int> ReconstructPathToAnyStart(
+        Dictionary<Vector2Int, Vector2Int> cameFrom,
+        HashSet<Vector2Int> starts,
+        Vector2Int target)
+    {
+        List<Vector2Int> path = new List<Vector2Int>();
+        Vector2Int current = target;
+        path.Add(current);
+
+        while (!starts.Contains(current))
+        {
+            if (!cameFrom.TryGetValue(current, out Vector2Int previous))
+                return new List<Vector2Int>();
+
+            current = previous;
+            path.Add(current);
+        }
+
+        path.Reverse();
+        return path;
     }
 
     private void TryVisitGroundNeighbor(
