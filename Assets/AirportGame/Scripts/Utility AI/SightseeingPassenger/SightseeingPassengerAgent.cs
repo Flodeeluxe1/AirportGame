@@ -63,12 +63,16 @@ public class SightseeingPassengerAgent : MonoBehaviour
 
         needs = GetComponent<UtilityNeeds>();
         if (needs == null) needs = gameObject.AddComponent<UtilityNeeds>();
+        needs.enabled = true;
 
         movement = GetComponent<PedestrianMovementController>();
         if (movement == null) movement = gameObject.AddComponent<PedestrianMovementController>();
+        movement.enabled = true;
 
-        if (GetComponent<PedestrianAccessProfile>() == null)
-            gameObject.AddComponent<PedestrianAccessProfile>();
+        PedestrianAccessProfile accessProfile = GetComponent<PedestrianAccessProfile>();
+        if (accessProfile == null)
+            accessProfile = gameObject.AddComponent<PedestrianAccessProfile>();
+        accessProfile.enabled = true;
 
         interactionController = GetComponent<PilotInteractionController>();
         if (interactionController == null)
