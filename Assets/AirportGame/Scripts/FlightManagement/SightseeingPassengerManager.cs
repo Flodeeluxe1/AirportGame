@@ -305,10 +305,6 @@ public class SightseeingPassengerManager : MonoBehaviour
         if (needs == null) needs = passengerObject.AddComponent<UtilityNeeds>();
         needs.ResetForNewVisit();
 
-        Collider body = passengerObject.GetComponent<Collider>();
-        if (body == null) body = passengerObject.GetComponentInChildren<Collider>();
-        if (body != null) passengerObject.transform.position += Vector3.up * body.bounds.extents.y;
-
         SightseeingPassengerAgent agent = passengerObject.GetComponent<SightseeingPassengerAgent>();
         if (agent == null) agent = passengerObject.AddComponent<SightseeingPassengerAgent>();
         record.agent = agent;
