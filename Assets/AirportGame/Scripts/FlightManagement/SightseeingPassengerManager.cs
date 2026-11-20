@@ -303,6 +303,21 @@ public class SightseeingPassengerManager : MonoBehaviour
         }
 
         GameObject passengerObject = Instantiate(passengerPrefab, spawnPosition, car.transform.rotation);
+
+        // The prefab pivot is not guaranteed to sit at its feet. Align the
+        // combined renderer bounds with the walkable ground surface so the
+        // passenger is not spawned half below the floor.
+        Renderer[] passengerRenderers = passengerObject.GetComponentsInChildren<Renderer>(true);
+        if (passengerRenderers.Length > 0)
+        {
+            Bounds passengerBounds = passengerRenderers[0].bounds;
+            for (int i = 1; i < passengerRenderers.Length; i++)
+                passengerBounds.Encapsulate(passengerRenderers[i].bounds);
+
+            float groundOffset = spawnPosition.y - passengerBounds.min.y;
+            passengerObject.transform.position += Vector3.up * groundOffset;
+        }
+
         UtilityNeeds needs = passengerObject.GetComponent<UtilityNeeds>();
         if (needs == null) needs = passengerObject.AddComponent<UtilityNeeds>();
         needs.ResetForNewVisit();
