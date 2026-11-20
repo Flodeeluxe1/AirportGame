@@ -1007,7 +1007,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 549940479}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 220f5eec9e8e20449a4671e8232f6015, type: 3}
   m_Name: 
@@ -1037,7 +1037,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6e9a7c2f4d1b48a5a3e7c9d2f1b60485, type: 3}
   m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::SightseeingPassengerManager
-  passengerPrefab: {fileID: 0}
+  passengerPrefab: {fileID: 100100000, guid: 5f6c3da8c2867f44aab7979bbc9a2435, type: 3}
   passengerCarPrefab: {fileID: 2154428240389558112, guid: 9150906fb3da9b049807bba55795f99b, type: 3}
   checkInInteraction: {fileID: 11400000, guid: 8a6b3d1f5c2e49a7b4d0e8f1c3a62579, type: 2}
   checkInRetrySeconds: 5
