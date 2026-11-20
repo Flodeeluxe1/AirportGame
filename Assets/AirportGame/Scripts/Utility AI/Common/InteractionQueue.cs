@@ -59,7 +59,7 @@ public class InteractionQueue : MonoBehaviour
         for (int i = 0; i < childTransforms.Length; i++)
         {
             if (childTransforms[i] != transform &&
-                childTransforms[i].name == "First Queue Position")
+                childTransforms[i].name == "FirstQueuePosition")
             {
                 firstQueuePosition = childTransforms[i];
                 return;
