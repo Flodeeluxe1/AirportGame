@@ -161,6 +161,15 @@ public class FuelTruckSpawner : MonoBehaviour
             return false;
         }
 
+        if (!truck.AlignColliderBottomToGround(
+                spawnPosition.y - spawnHeightOffset))
+        {
+            LogWarning(
+                "FuelTruckSpawner: Fuel truck has no enabled BoxCollider; " +
+                "leaving its spawn height unchanged.",
+                truckObject);
+        }
+
         selectedRoute.Station.RegisterTruck(truck);
         activeNetworks.Add(network);
         activeTankers.Add(truck);
