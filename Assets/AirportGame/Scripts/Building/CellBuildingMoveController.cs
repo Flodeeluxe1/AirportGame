@@ -359,11 +359,8 @@ public class CellBuildingMoveController : MonoBehaviour
         if (definition == null)
             return false;
 
-        if (definition.requiredSurface ==
-            BuildSurface.Any)
-        {
+        if (definition.AllowsAnySurface)
             return true;
-        }
 
         if (gridSurface == null)
             return false;
@@ -379,12 +376,8 @@ public class CellBuildingMoveController : MonoBehaviour
                         z
                     );
 
-                if (!gridSurface.IsSurface(
-                        cell,
-                        definition.requiredSurface))
-                {
+                if (!definition.AllowsSurface(gridSurface.GetSurface(cell)))
                     return false;
-                }
             }
         }
 
