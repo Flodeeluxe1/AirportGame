@@ -43,7 +43,7 @@ public class CargoTugLotSpawner : MonoBehaviour
     [SerializeField, Min(0.05f)] private float homeArrivalTolerance = 0.25f;
 
     [Header("Debug")]
-    [SerializeField] private bool logToConsole = false;
+
     [SerializeField] private bool showDebugMessages = true;
 
     private GameObject spawnedCargoTug;
