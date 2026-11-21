@@ -9,6 +9,9 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class SightseeingAircraftParkingSpot : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+
     [Header("Parking Position")]
     [Tooltip("The aircraft parks at this prefab's root position and rotation.")]
     [SerializeField] private bool usePrefabRoot = true;
@@ -57,7 +60,7 @@ public class SightseeingAircraftParkingSpot : MonoBehaviour
 
         if (placedBuilding == null)
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"Sightseeing parking spot '{name}' cannot be reserved " +
                 "because it has no PlacedBuilding component.",
                 this
@@ -74,7 +77,7 @@ public class SightseeingAircraftParkingSpot : MonoBehaviour
 
         reservedAircraft = aircraft;
 
-        Debug.Log(
+        Log(
             $"SIGHTSEEING PARKING RESERVED | " +
             $"Spot: {name} | Aircraft: {aircraft.name}",
             this
@@ -93,7 +96,7 @@ public class SightseeingAircraftParkingSpot : MonoBehaviour
 
         reservedAircraft = null;
 
-        Debug.Log(
+        Log(
             $"SIGHTSEEING PARKING RELEASED | " +
             $"Spot: {name} | Aircraft: {aircraft.name}",
             this
@@ -106,11 +109,30 @@ public class SightseeingAircraftParkingSpot : MonoBehaviour
     {
         if (reservedAircraft != null)
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"Sightseeing parking spot '{name}' was destroyed " +
                 $"while reserved by '{reservedAircraft.name}'.",
                 this
             );
         }
     }
+
+    private void Log(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.Log(message, context); else Debug.Log(message);
+    }
+
+    private void LogWarning(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message);
+    }
+
+    private void LogError(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.LogError(message, context); else Debug.LogError(message);
+    }
+
 }
