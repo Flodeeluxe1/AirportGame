@@ -3,6 +3,9 @@ using UnityEngine;
 
 public class TrafficStuckFailsafe : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+
     [Header("Stuck Detection")]
     [Min(0.1f)]
     public float stuckTime = 10f;
@@ -252,10 +255,27 @@ public class TrafficStuckFailsafe : MonoBehaviour
 
         if (logFailsafe)
         {
-            Debug.Log(
+            Log(
                 $"{name}: {message}",
                 this
             );
         }
     }
+
+    private void Log(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.Log(message, context); else Debug.Log(message);
+    }
+    private void LogWarning(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message);
+    }
+    private void LogError(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.LogError(message, context); else Debug.LogError(message);
+    }
+
 }
