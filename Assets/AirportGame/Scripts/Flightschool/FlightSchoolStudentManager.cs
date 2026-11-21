@@ -9,6 +9,9 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class FlightSchoolStudentManager : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+
     private const long StudentReturnWaitSeconds = 30L * 60L;
     private const int SecondsPerDay = 86400;
 
@@ -237,7 +240,7 @@ public class FlightSchoolStudentManager : MonoBehaviour
 
             if (seats.Count < dailyDemand)
             {
-                Debug.LogWarning(
+                LogWarning(
                     $"FlightSchoolStudentManager: Room at {anchor} has demand for " +
                     $"{dailyDemand} students but only {seats.Count} usable chair " +
                     "InteractionProviders were found. Spawning only the available seats.",
@@ -295,7 +298,7 @@ public class FlightSchoolStudentManager : MonoBehaviour
             }
             else
             {
-                Debug.LogWarning(
+                LogWarning(
                     $"FlightSchoolStudentManager: Could not spawn student car " +
                     $"{i + 1}/{studentCount} for room {roomAnchor}.",
                     this);
@@ -392,7 +395,7 @@ public class FlightSchoolStudentManager : MonoBehaviour
 
                     if (!provider.HasExplicitInteractionPoint)
                     {
-                        Debug.LogWarning(
+                        LogWarning(
                             $"FlightSchoolStudentManager: Seat provider '{provider.name}' " +
                             $"on '{placed.name}' is missing its InteractionPoint child. " +
                             "This seat will be ignored.",
@@ -402,7 +405,7 @@ public class FlightSchoolStudentManager : MonoBehaviour
 
                     if (!provider.HasExplicitAnimationPoint)
                     {
-                        Debug.LogWarning(
+                        LogWarning(
                             $"FlightSchoolStudentManager: Seat provider '{provider.name}' " +
                             $"on '{placed.name}' is missing its AnimationPoint child. " +
                             "This seat will be ignored.",
@@ -484,7 +487,7 @@ public class FlightSchoolStudentManager : MonoBehaviour
 
         if (record == null)
         {
-            Debug.LogError(
+            LogError(
                 $"FlightSchoolStudentManager: Parked event received from {vehicle.name} " +
                 $"(instance {vehicle.GetEntityId()}), but no student record matches it.",
                 vehicle);
@@ -493,14 +496,14 @@ public class FlightSchoolStudentManager : MonoBehaviour
 
         if (record.student != null)
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"FlightSchoolStudentManager: {vehicle.name} parked more than once; " +
                 "a student is already assigned to this car.",
                 vehicle);
             return;
         }
 
-        Debug.Log(
+        Log(
             $"FlightSchoolStudentManager: Handling parked student car {vehicle.name} " +
             $"for room {record.roomAnchor}. Departing={record.departing}, " +
             $"studentPrefabAssigned={studentPrefab != null}.",
@@ -508,7 +511,7 @@ public class FlightSchoolStudentManager : MonoBehaviour
 
         if (record.departing)
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"FlightSchoolStudentManager: {vehicle.name} was already marked for " +
                 "departure before its parked event. Requesting car departure.",
                 vehicle);
@@ -518,7 +521,7 @@ public class FlightSchoolStudentManager : MonoBehaviour
 
         if (studentPrefab == null)
         {
-            Debug.LogError(
+            LogError(
                 $"FlightSchoolStudentManager: Student prefab is not assigned; " +
                 $"{vehicle.name} cannot spawn a student.",
                 this);
@@ -536,7 +539,7 @@ public class FlightSchoolStudentManager : MonoBehaviour
                 8,
                 out Vector3 spawnPosition))
         {
-            Debug.LogError(
+            LogError(
                 $"FlightSchoolStudentManager: Could not find a walkable pedestrian " +
                 $"spawn cell near {desiredSpawnPosition} for {vehicle.name}. " +
                 "The student was not spawned and the car will leave.",
@@ -567,7 +570,7 @@ public class FlightSchoolStudentManager : MonoBehaviour
         }
         else
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"FlightSchoolStudentManager: {studentObject.name} has no Collider; " +
                 "its spawn height cannot be adjusted.",
                 studentObject);
@@ -585,14 +588,14 @@ public class FlightSchoolStudentManager : MonoBehaviour
         student.PathFailed += HandleStudentPathFailed;
         record.student = student;
 
-        Debug.Log(
+        Log(
             $"FlightSchoolStudentManager: Spawned {studentObject.name} for {vehicle.name}; " +
             $"trying to reserve one of {GetSeatCount(record.roomAnchor)} classroom seats.",
             studentObject);
 
         if (!TryAssignRoomSeat(record, student))
         {
-            Debug.LogError(
+            LogError(
                 $"FlightSchoolStudentManager: {studentObject.name} could not reserve " +
                 $"or path to a classroom chair in room {record.roomAnchor}. " +
                 "See the FlightSchoolStudentAgent seat diagnostics immediately above.",
@@ -894,7 +897,7 @@ public class FlightSchoolStudentManager : MonoBehaviour
 
         if (record.departing)
         {
-            Debug.LogError(
+            LogError(
                 $"FlightSchoolStudentManager: {student.name} failed its departure walk " +
                 $"to car {record.vehicle?.name}; requesting the car to leave anyway.",
                 student);
@@ -906,7 +909,7 @@ public class FlightSchoolStudentManager : MonoBehaviour
             return;
         }
 
-        Debug.LogError(
+        LogError(
             $"FlightSchoolStudentManager: {student.name} path failed. " +
             $"ActiveLesson={record.activeLesson}, HasStartedLesson={record.hasStartedLesson}, " +
             $"ReturningFromLesson={record.returningFromLesson}, WaitingAfterLesson={record.waitingAfterLesson}. " +
@@ -981,7 +984,7 @@ public class FlightSchoolStudentManager : MonoBehaviour
 
             if (!record.student.BeginDeparture())
             {
-                Debug.LogWarning(
+                LogWarning(
                     $"FlightSchoolStudentManager: {record.student.name} cannot walk " +
                     "to its car. Requesting vehicle departure without the student.",
                     record.student);
@@ -1337,4 +1340,21 @@ public class FlightSchoolStudentManager : MonoBehaviour
 
         instructors.Clear();
     }
+
+    private void Log(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.Log(message, context); else Debug.Log(message);
+    }
+    private void LogWarning(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message);
+    }
+    private void LogError(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.LogError(message, context); else Debug.LogError(message);
+    }
+
 }
