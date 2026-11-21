@@ -499,6 +499,15 @@ public class GridSurface : MonoBehaviour
         int width,
         int depth)
     {
+        if (gridManager == null)
+            return;
+
+        if (surfaces == null)
+            Initialize();
+
+        if (surfaces == null)
+            return;
+
         for (int x = 0; x < width; x++)
         {
             for (int z = 0; z < depth; z++)
