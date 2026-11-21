@@ -117,6 +117,12 @@ public class InteractionProvider : MonoBehaviour
         }
     }
 
+    /// <summary>Whether this provider has an explicitly configured approach point.</summary>
+    public bool HasExplicitInteractionPoint => InteractionPointTransform != null;
+
+    /// <summary>Whether this provider has an explicitly configured sitting/animation point.</summary>
+    public bool HasExplicitAnimationPoint => AnimationPointTransform != null;
+
     /// <summary>Rotation used when the agent reaches the animation position.</summary>
     public Quaternion AnimationRotation
     {
