@@ -220,9 +220,6 @@ public class CellPlacementHandler : IPlacementHandler
         if (gridSurface == null)
             return definition.AllowsAnySurface;
 
-        if (definition.AllowsAnySurface)
-            return true;
-
         for (int x = 0; x < width; x++)
         {
             for (int z = 0; z < depth; z++)
