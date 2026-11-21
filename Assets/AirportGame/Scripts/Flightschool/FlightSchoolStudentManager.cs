@@ -346,63 +346,93 @@ public class FlightSchoolStudentManager : MonoBehaviour
                 continue;
             }
 
-            InteractionProvider provider =
-                placed.GetComponent<InteractionProvider>();
+            // Every child provider represents one independent physical seat.
+            // Existing single-seat prefabs continue to work with a provider on
+            // the furniture root, or receive one there when configured at runtime.
+            InteractionProvider[] providers =
+                placed.GetComponentsInChildren<InteractionProvider>(true);
 
-            if (provider == null)
-                provider = placed.GetComponentInChildren<InteractionProvider>(true);
-
-            // The chair's named child points are enough to configure a
-            // provider at runtime when the prefab does not already have one.
-            if (provider == null && seatInteractionDefinition != null)
-                provider = placed.gameObject.AddComponent<InteractionProvider>();
-
-            if (provider == null)
-                continue;
-
-            if (seatInteractionDefinition != null)
-                provider.AddInteractionDefinition(seatInteractionDefinition);
-
-            if (!provider.InteractionsEnabled)
-                continue;
-
-            InteractionDefinition seatInteraction = null;
-
-            for (int i = 0; i < provider.Interactions.Count; i++)
+            if (providers.Length == 0 && seatInteractionDefinition != null)
             {
-                InteractionDefinition definition = provider.Interactions[i];
-
-                if (definition == null ||
-                    string.IsNullOrEmpty(definition.InteractionId))
+                providers = new[]
                 {
-                    continue;
-                }
-
-                string interactionId = definition.InteractionId;
-
-                bool isSeatInteraction =
-                    interactionId.IndexOf(
-                        "sit",
-                        System.StringComparison.OrdinalIgnoreCase) >= 0 ||
-                    interactionId.IndexOf(
-                        "seat",
-                        System.StringComparison.OrdinalIgnoreCase) >= 0;
-
-                if (!isSeatInteraction || !provider.CanOffer(definition))
-                    continue;
-
-                seatInteraction = definition;
-                break;
+                    placed.gameObject.AddComponent<InteractionProvider>()
+                };
             }
 
-            if (seatInteraction == null)
-                continue;
-
-            result.Add(new SeatSlot
+            for (int providerIndex = 0;
+                 providerIndex < providers.Length;
+                 providerIndex++)
             {
-                provider = provider,
-                interaction = seatInteraction
-            });
+                InteractionProvider provider = providers[providerIndex];
+                if (provider == null)
+                    continue;
+
+                if (seatInteractionDefinition != null)
+                    provider.AddInteractionDefinition(seatInteractionDefinition);
+
+                if (!provider.InteractionsEnabled)
+                    continue;
+
+                // Child providers are the recommended multi-seat setup.
+                // Their two named points must be configured on that seat object.
+                if (provider.transform != placed.transform)
+                {
+                    if (!provider.HasExplicitInteractionPoint)
+                    {
+                        Debug.LogWarning(
+                            $"FlightSchoolStudentManager: Seat provider '{provider.name}' " +
+                            $"on '{placed.name}' is missing its InteractionPoint child.",
+                            provider);
+                    }
+
+                    if (!provider.HasExplicitAnimationPoint)
+                    {
+                        Debug.LogWarning(
+                            $"FlightSchoolStudentManager: Seat provider '{provider.name}' " +
+                            $"on '{placed.name}' is missing its AnimationPoint child.",
+                            provider);
+                    }
+                }
+
+                InteractionDefinition seatInteraction = null;
+
+                for (int i = 0; i < provider.Interactions.Count; i++)
+                {
+                    InteractionDefinition definition = provider.Interactions[i];
+
+                    if (definition == null ||
+                        string.IsNullOrEmpty(definition.InteractionId))
+                    {
+                        continue;
+                    }
+
+                    string interactionId = definition.InteractionId;
+
+                    bool isSeatInteraction =
+                        interactionId.IndexOf(
+                            "sit",
+                            System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        interactionId.IndexOf(
+                            "seat",
+                            System.StringComparison.OrdinalIgnoreCase) >= 0;
+
+                    if (!isSeatInteraction || !provider.CanOffer(definition))
+                        continue;
+
+                    seatInteraction = definition;
+                    break;
+                }
+
+                if (seatInteraction == null)
+                    continue;
+
+                result.Add(new SeatSlot
+                {
+                    provider = provider,
+                    interaction = seatInteraction
+                });
+            }
         }
 
         return result;
