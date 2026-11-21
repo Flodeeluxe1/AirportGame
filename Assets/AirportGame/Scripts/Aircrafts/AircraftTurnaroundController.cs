@@ -362,6 +362,9 @@ public class AircraftTurnaroundController : MonoBehaviour
     [SerializeField, HideInInspector]
     private float cleaningVehicleRequestRetryTimer;
 
+    [SerializeField, HideInInspector]
+    private float baggageVehicleRequestRetryTimer;
+
     public bool TurnaroundStarted => turnaroundStarted;
     public bool ReadyToDepart => readyToDepart;
     public bool IsTurnaroundComplete => AllTasksCompleted();
@@ -431,6 +434,17 @@ public class AircraftTurnaroundController : MonoBehaviour
             cleaningVehicleRequestRetryTimer -= Time.unscaledDeltaTime;
             if (cleaningVehicleRequestRetryTimer <= 0f)
                 RequestExternalCleaningServiceIfAvailable();
+        }
+
+        if (NeedsExternalBaggageService())
+        {
+            baggageVehicleRequestRetryTimer -= Time.unscaledDeltaTime;
+            if (baggageVehicleRequestRetryTimer <= 0f)
+                RequestExternalBaggageServiceIfAvailable();
+        }
+        else
+        {
+            baggageVehicleRequestRetryTimer = 0f;
         }
 
         float speedMultiplier =
@@ -578,33 +592,64 @@ public class AircraftTurnaroundController : MonoBehaviour
         if (setReadyToDepartAutomatically)
             readyToDepart = AllTasksCompleted();
 
-        if (loadingManifest == null ||
-            !loadingManifest.HasIncomingBaggageRemaining)
+        RequestExternalBaggageServiceIfAvailable();
+    }
+
+    private bool NeedsExternalBaggageService()
+    {
+        if (!turnaroundStarted ||
+            loadingManifest == null ||
+            !loadingManifest.IsInitialized)
         {
+            return false;
+        }
+
+        bool incomingNeeded =
+            baggageUnloading.Status ==
+                AircraftTurnaroundTaskStatus.InProgress &&
+            loadingManifest.HasIncomingBaggageRemaining;
+
+        bool outgoingNeeded =
+            baggageLoading.Status ==
+                AircraftTurnaroundTaskStatus.InProgress &&
+            loadingManifest.HasOutgoingBaggageRemaining;
+
+        return incomingNeeded || outgoingNeeded;
+    }
+
+    private void RequestExternalBaggageServiceIfAvailable()
+    {
+        if (!NeedsExternalBaggageService())
+        {
+            baggageVehicleRequestRetryTimer = 0f;
             return;
         }
 
-        if (AirportBaggageDispatcher.Instance == null)
+        baggageVehicleRequestRetryTimer = 5f;
+
+        AirportBaggageDispatcher dispatcher =
+            AirportBaggageDispatcher.Instance;
+
+        if (dispatcher == null)
         {
             Debug.LogWarning(
-                $"{name}: Turnaround started, but no baggage dispatcher " +
-                "is available to receive the request.",
+                $"\${name}: Cannot request baggage service because the baggage dispatcher is unavailable. Retrying.",
                 this
             );
-
             return;
         }
+
+        AircraftFlightIdentity identity =
+            GetComponent<AircraftFlightIdentity>();
 
         if (identity == null ||
             !identity.IsInitialized ||
             !identity.HasActualGate)
         {
             Debug.LogWarning(
-                $"{name}: Cannot request baggage service because the " +
-                "aircraft's actual gate has not been assigned.",
+                $"\${name}: Cannot request baggage service because the aircraft has no valid actual gate. Retrying.",
                 this
             );
-
             return;
         }
 
@@ -617,18 +662,28 @@ public class AircraftTurnaroundController : MonoBehaviour
                 out AircraftGate actualGate))
         {
             Debug.LogWarning(
-                $"{name}: Could not find the aircraft's actual gate '" +
-                $"{identity.ActualGateStableId}'.",
+                $"\${name}: Cannot request baggage service because actual gate '\${identity.ActualGateStableId}' could not be found. Retrying.",
                 this
             );
-
             return;
         }
 
-        AirportBaggageDispatcher.Instance.RequestBaggageService(
-            this,
-            actualGate
-        );
+        bool incomingNeeded =
+            baggageUnloading.Status ==
+                AircraftTurnaroundTaskStatus.InProgress &&
+            loadingManifest.HasIncomingBaggageRemaining;
+
+        bool requestAccepted = incomingNeeded
+            ? dispatcher.RequestBaggageService(this, actualGate)
+            : dispatcher.RequestOutgoingBaggageService(this, actualGate);
+
+        if (!requestAccepted)
+        {
+            Debug.LogWarning(
+                $"\${name}: Baggage service request was not accepted. It will be retried.",
+                this
+            );
+        }
     }
 
     public List<string> ReserveIncomingBaggage(int maximumCount)
@@ -1006,6 +1061,7 @@ public class AircraftTurnaroundController : MonoBehaviour
 
             case TaskType.BaggageUnloading:
                 StartTask(TaskType.BaggageLoading);
+                RequestExternalBaggageServiceIfAvailable();
                 break;
 
             case TaskType.Cleaning:
@@ -1095,6 +1151,7 @@ public class AircraftTurnaroundController : MonoBehaviour
         fuelTruckRequestRetryTimer = 0f;
         externalCleaningControlled = false;
         cleaningVehicleRequestRetryTimer = 0f;
+        baggageVehicleRequestRetryTimer = 0f;
 
         deboarding.ResetTask();
         baggageUnloading.ResetTask();
