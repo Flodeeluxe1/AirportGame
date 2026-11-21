@@ -149,6 +149,51 @@ public class AirportBaggageDispatcher : MonoBehaviour
         );
     }
 
+    public bool RequestOutgoingBaggageService(
+        AircraftTurnaroundController aircraft,
+        AircraftGate actualGate)
+    {
+        if (aircraft == null || actualGate == null ||
+            !aircraft.TurnaroundStarted)
+        {
+            return false;
+        }
+
+        AircraftFlightIdentity identity =
+            aircraft.GetComponent<AircraftFlightIdentity>();
+
+        if (identity == null ||
+            !identity.IsInitialized ||
+            !identity.HasActualGate ||
+            identity.ActualGateStableId != actualGate.StableId)
+        {
+            Debug.LogWarning(
+                $"{name}: The aircraft's actual gate assignment is invalid for outgoing baggage.",
+                aircraft
+            );
+
+            return false;
+        }
+
+        AircraftLoadingManifest manifest = aircraft.LoadingManifest;
+
+        if (manifest == null ||
+            !manifest.IsInitialized ||
+            !manifest.HasOutgoingBaggageRemaining)
+        {
+            return false;
+        }
+
+        return QueueRequest(
+            aircraft,
+            identity,
+            actualGate,
+            identity.OperationId,
+            RequestType.Outgoing,
+            manifest.RemainingOutgoingBaggage
+        );
+    }
+
     private bool QueueRequest(
         AircraftTurnaroundController aircraft,
         AircraftFlightIdentity identity,
@@ -428,6 +473,33 @@ public class AirportBaggageDispatcher : MonoBehaviour
             $"{operationId} at cargo zone '{completedCargoZone.name}'.",
             vehicle
         );
+
+        if (manifest != null &&
+            manifest.IsInitialized &&
+            manifest.HasIncomingBaggageRemaining)
+        {
+            // The vehicle completed one capacity-limited trip. Queue another
+            // incoming trip until every package has reached a cargo zone.
+            requestsByOperationId.Remove(incomingKey);
+            availableVehicles.Add(vehicle);
+
+            Debug.Log(
+                $"{name}: {manifest.RemainingIncomingBaggage} incoming package(s) remain for {operationId}. Queuing another collection trip.",
+                vehicle
+            );
+
+            QueueRequest(
+                incomingRequest.Aircraft,
+                incomingRequest.FlightIdentity,
+                incomingRequest.ActualGate,
+                operationId,
+                RequestType.Incoming,
+                manifest.RemainingIncomingBaggage
+            );
+
+            RefreshRuntimeStatus();
+            return;
+        }
 
         if (manifest == null ||
             !manifest.IsInitialized ||
