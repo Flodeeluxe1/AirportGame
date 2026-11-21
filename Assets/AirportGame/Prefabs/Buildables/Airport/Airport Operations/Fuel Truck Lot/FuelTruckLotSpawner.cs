@@ -21,7 +21,7 @@ public class FuelTruckLotSpawner : MonoBehaviour
     [SerializeField] private float spawnHeight = 0.23f;
 
     [Header("Debug")]
-    [SerializeField] private bool logToConsole = false;
+
     [SerializeField] private bool showDebugMessages = true;
 
     private GameObject spawnedFuelTruck;
