@@ -76,6 +76,9 @@ public class AircraftTrainingLandingController : MonoBehaviour
     [Tooltip("Use this if the aircraft model's nose is not its local +Z axis.")]
     [SerializeField] private Vector3 modelRotationOffset;
 
+    [Header("Debug Logging")]
+    [SerializeField] private bool logToConsole = false;
+
     [Header("Debug")]
     public string debugLandingState = "Initializing";
     public string debugSelectedRunway = "None";
@@ -280,7 +283,7 @@ public class AircraftTrainingLandingController : MonoBehaviour
             !identity.IsInitialized ||
             !identity.IsTrainingFlight)
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"{name}: BeginTrainingLanding can only be used " +
                 "by an initialized training aircraft.",
                 this
@@ -326,7 +329,7 @@ public class AircraftTrainingLandingController : MonoBehaviour
 
         UpdateDebugInformation();
 
-        Debug.Log(
+        Log(
             $"TRAINING LANDING STARTED | Aircraft: {name} | " +
             $"Runway: {selectedRunway.name}",
             this
@@ -348,7 +351,7 @@ public class AircraftTrainingLandingController : MonoBehaviour
 
         if (trafficManager == null)
         {
-            Debug.LogWarning(
+            LogWarning(
                 "AircraftTrainingLandingController: " +
                 "AircraftRunwayTrafficManager was not found. " +
                 "Runway traffic balancing is disabled.",
@@ -495,7 +498,7 @@ public class AircraftTrainingLandingController : MonoBehaviour
             $"Headwind: {debugHeadwindComponentKnots:F1} knots. " +
             $"Sidewind: {debugSidewindComponentKnots:F1} knots.";
 
-        Debug.Log(
+        Log(
             $"TRAINING RUNWAY SELECTED | " +
             $"Runway: {debugSelectedRunway} | " +
             $"Heading: {debugLandingHeading} | " +
@@ -584,7 +587,7 @@ public class AircraftTrainingLandingController : MonoBehaviour
         debugSidewindComponentKnots =
             CalculateSidewindComponentKnots();
 
-        Debug.Log(
+        Log(
             $"TRAINING FLARE DECISION | " +
             $"Runway: {debugSelectedRunway} | " +
             $"Sidewind: {debugSidewindComponentKnots:F1} knots | " +
@@ -609,7 +612,7 @@ public class AircraftTrainingLandingController : MonoBehaviour
                 $"{debugSidewindComponentKnots:F1} knots exceeds limit " +
                 $"{maximumSidewindComponentKnots:F1} knots.";
 
-            Debug.LogWarning(
+            LogWarning(
                 $"TRAINING GO-AROUND | " +
                 $"Sidewind: {debugSidewindComponentKnots:F1} knots | " +
                 $"Limit: {maximumSidewindComponentKnots:F1} knots",
@@ -722,7 +725,7 @@ public class AircraftTrainingLandingController : MonoBehaviour
         state = LandingState.Rollout;
         debugStatus = "Touchdown. Rolling out and decelerating.";
 
-        Debug.Log(
+        Log(
             $"TRAINING TOUCHDOWN | Runway: {debugSelectedRunway} | " +
             $"Speed: {touchdownSpeedKnots:F1} knots",
             this
@@ -773,7 +776,7 @@ public class AircraftTrainingLandingController : MonoBehaviour
         debugStatus =
             "Training landing complete. Waiting for training circuit controller.";
 
-        Debug.Log(
+        Log(
             $"TRAINING LANDING COMPLETE | " +
             $"Flight: {(identity != null ? identity.FlightNumber : "Unknown")} | " +
             $"Runway: {debugSelectedRunway} | " +
@@ -840,7 +843,7 @@ public class AircraftTrainingLandingController : MonoBehaviour
         debugStatus =
             "Go-around altitude reached. Rejoining the approach for another landing attempt.";
 
-        Debug.Log(
+        Log(
             $"TRAINING GO-AROUND COMPLETE | Aircraft: {name} | " +
             "Rejoining the approach.",
             this
@@ -947,12 +950,31 @@ public class AircraftTrainingLandingController : MonoBehaviour
         state = LandingState.Failed;
         debugStatus = reason;
 
-        Debug.LogError(
+        LogError(
             $"TRAINING LANDING FAILED | {reason}",
             this
         );
 
         UpdateDebugInformation();
+    }
+
+
+    private void Log(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.Log(message, context); else Debug.Log(message);
+    }
+
+    private void LogWarning(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message);
+    }
+
+    private void LogError(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.LogError(message, context); else Debug.LogError(message);
     }
 
     private void UpdateDebugInformation()
