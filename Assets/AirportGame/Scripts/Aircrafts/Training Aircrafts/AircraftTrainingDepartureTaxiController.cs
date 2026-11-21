@@ -4,6 +4,9 @@ using UnityEngine;
 
 public class AircraftTrainingDepartureTaxiController : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+
     public enum DepartureState
     {
         WaitingForDepartureRequest,
@@ -309,7 +312,7 @@ public class AircraftTrainingDepartureTaxiController : MonoBehaviour
 
         currentState = DepartureState.LinedUpReadyForTakeoff;
 
-        Debug.Log(
+        Log(
             $"TRAINING TOUCH-AND-GO CLEARED | Aircraft: {name} | " +
             $"Runway: {runway.name}",
             this
@@ -325,7 +328,7 @@ public class AircraftTrainingDepartureTaxiController : MonoBehaviour
 
         if (identity == null || !identity.IsTrainingFlight)
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"{name}: Departure reset is only for training flights.",
                 this);
             return false;
@@ -877,7 +880,7 @@ public class AircraftTrainingDepartureTaxiController : MonoBehaviour
 
             if (reason != lastRunwayWaitReason)
             {
-                Debug.Log($"{name}: {debugStatus}", this);
+                Log($"{name}: {debugStatus}", this);
                 lastRunwayWaitReason = reason;
             }
 
@@ -1056,7 +1059,7 @@ public class AircraftTrainingDepartureTaxiController : MonoBehaviour
         currentState = DepartureState.LinedUpReadyForTakeoff;
         debugStatus = $"Lined up on {debugSelectedRunway}; waiting for takeoff.";
 
-        Debug.Log(
+        Log(
             $"TRAINING AIRCRAFT LINED UP | Aircraft: {name} | " +
             $"Runway: {debugSelectedRunway} | Position: {transform.position}",
             this);
@@ -1069,7 +1072,7 @@ public class AircraftTrainingDepartureTaxiController : MonoBehaviour
 
         currentState = DepartureState.AtHoldingPoint;
         debugStatus = $"Line-up aborted; holding. {reason}";
-        Debug.LogWarning($"{name}: {debugStatus}", this);
+        LogWarning($"{name}: {debugStatus}", this);
         retryTimer = runwaySelectionRetryInterval;
     }
 
@@ -1337,7 +1340,7 @@ public class AircraftTrainingDepartureTaxiController : MonoBehaviour
             return;
 
         hasLoggedWaitingMessage = true;
-        Debug.LogWarning($"{name}: Training departure waiting. {message}", this);
+        LogWarning($"{name}: Training departure waiting. {message}", this);
     }
 
     private void OnDestroy()
@@ -1354,4 +1357,21 @@ public class AircraftTrainingDepartureTaxiController : MonoBehaviour
     {
         TrySelectDepartureRunway();
     }
+
+    private void Log(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.Log(message, context); else Debug.Log(message);
+    }
+    private void LogWarning(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message);
+    }
+    private void LogError(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.LogError(message, context); else Debug.LogError(message);
+    }
+
 }
