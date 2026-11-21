@@ -182,6 +182,15 @@ public class TrafficTestSpawner : MonoBehaviour
                 return;
             }
 
+            if (!cargoTruck.AlignColliderBottomToGround(
+                    spawnPosition.y - spawnHeightOffset))
+            {
+                LogWarning(
+                    "TrafficTestSpawner: Cargo truck has no enabled " +
+                    "BoxCollider; leaving its spawn height unchanged.",
+                    vehicle);
+            }
+
             // Pass the spawner's route before the truck's Start() runs.
             cargoTruck.InitializeRoute(startCell, exitCell);
 
@@ -206,6 +215,15 @@ public class TrafficTestSpawner : MonoBehaviour
 
                 Destroy(vehicle);
                 return;
+            }
+
+            if (!trafficVehicle.AlignColliderBottomToGround(
+                    spawnPosition.y - spawnHeightOffset))
+            {
+                LogWarning(
+                    "TrafficTestSpawner: Traffic vehicle has no enabled " +
+                    "BoxCollider; leaving its spawn height unchanged.",
+                    vehicle);
             }
 
             trafficVehicle.InitializeRoute(startCell, exitCell);
@@ -270,6 +288,16 @@ public class TrafficTestSpawner : MonoBehaviour
         }
 
         spawnID.InitializeID();
+
+        if (!trafficVehicle.AlignColliderBottomToGround(
+                spawnPosition.y - spawnHeightOffset))
+        {
+            LogWarning(
+                "TrafficTestSpawner: Externally controlled vehicle has no " +
+                "enabled BoxCollider; leaving its spawn height unchanged.",
+                vehicleObject);
+        }
+
         trafficVehicle.InitializeRoute(startCell, exitCell, true);
 
         Log(
