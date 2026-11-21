@@ -12,6 +12,9 @@ public enum AircraftTurnaroundTaskStatus
 
 public class AircraftTurnaroundController : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+{
     private interface ITaskProgress
     {
         float DurationMinutes { get; }
@@ -521,7 +524,7 @@ public class AircraftTurnaroundController : MonoBehaviour
         }
         else
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"{name}: No AircraftLoadingManifest is attached. " +
                 "Baggage collection will not be available.",
                 this
@@ -571,7 +574,7 @@ public class AircraftTurnaroundController : MonoBehaviour
 
         turnaroundStarted = true;
 
-        Debug.Log(
+        Log(
             $"{name}: Turnaround started.",
             this
         );
@@ -632,7 +635,7 @@ public class AircraftTurnaroundController : MonoBehaviour
 
         if (dispatcher == null)
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"${name}: Cannot request baggage service because the baggage dispatcher is unavailable. Retrying.",
                 this
             );
@@ -646,7 +649,7 @@ public class AircraftTurnaroundController : MonoBehaviour
             !identity.IsInitialized ||
             !identity.HasActualGate)
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"${name}: Cannot request baggage service because the aircraft has no valid actual gate. Retrying.",
                 this
             );
@@ -661,7 +664,7 @@ public class AircraftTurnaroundController : MonoBehaviour
                 identity.ActualGateStableId,
                 out AircraftGate actualGate))
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"${name}: Cannot request baggage service because actual gate '${identity.ActualGateStableId}' could not be found. Retrying.",
                 this
             );
@@ -679,7 +682,7 @@ public class AircraftTurnaroundController : MonoBehaviour
 
         if (!requestAccepted)
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"${name}: Baggage service request was not accepted. It will be retried.",
                 this
             );
@@ -739,7 +742,7 @@ public class AircraftTurnaroundController : MonoBehaviour
         if (loadingManifest == null ||
             loadingManifest.HasIncomingBaggageRemaining)
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"{name}: Cannot complete baggage unloading because " +
                 "incoming baggage remains on the aircraft.",
                 this
@@ -772,7 +775,7 @@ public class AircraftTurnaroundController : MonoBehaviour
         if (baggageLoading.Status !=
             AircraftTurnaroundTaskStatus.InProgress)
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"{name}: Cannot begin outgoing baggage transfer because " +
                 "the baggage-loading task is not in progress.",
                 this
@@ -842,7 +845,7 @@ public class AircraftTurnaroundController : MonoBehaviour
 
         if (loadingManifest.HasOutgoingBaggageRemaining)
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"{name}: Cannot complete baggage loading because " +
                 "outgoing baggage remains to be loaded.",
                 this
@@ -926,7 +929,7 @@ public class AircraftTurnaroundController : MonoBehaviour
 
         if (passengerRevenue == null)
         {
-            Debug.LogWarning(
+            LogWarning(
                 name + ": Cannot determine the cleaning fee because PassengerFlightRevenue is missing.",
                 this);
             return;
@@ -937,7 +940,7 @@ public class AircraftTurnaroundController : MonoBehaviour
 
         if (airportFees == null)
         {
-            Debug.LogError(
+            LogError(
                 name + ": AircraftAirportFees is missing; cleaning revenue could not be recorded.",
                 this);
             return;
@@ -1010,7 +1013,7 @@ public class AircraftTurnaroundController : MonoBehaviour
 
         task.StartTask();
 
-        Debug.Log(
+        Log(
             $"{name}: {GetTaskName(taskType)} started " +
             $"({task.DurationMinutes:0.#} in-game minutes).",
             this
@@ -1043,7 +1046,7 @@ public class AircraftTurnaroundController : MonoBehaviour
 
         task.MarkCompleted();
 
-        Debug.Log(
+        Log(
             $"{name}: {GetTaskName(taskType)} completed.",
             this
         );
@@ -1182,6 +1185,11 @@ public class AircraftTurnaroundController : MonoBehaviour
 
         readyToDepart = false;
 
-        Debug.Log($"{name}: Turnaround reset.", this);
+        Log($"{name}: Turnaround reset.", this);
     }
+
+    private void Log(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.Log(message, context); else Debug.Log(message); }
+    private void LogWarning(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message); }
+    private void LogError(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogError(message, context); else Debug.LogError(message); }
+    private void LogException(System.Exception exception, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception); }
 }

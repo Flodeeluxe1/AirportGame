@@ -9,6 +9,9 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public sealed class PipelinePrefabRuleManager : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+{
     private const int North = 1;
     private const int East = 2;
     private const int South = 4;
@@ -161,7 +164,7 @@ public sealed class PipelinePrefabRuleManager : MonoBehaviour
         PipeTopologyChanged?.Invoke();
 
         if (logPlacement)
-            Debug.Log($"PIPELINE CELL PLACED | {cell}", this);
+            Log($"PIPELINE CELL PLACED | {cell}", this);
 
         return true;
     }
@@ -191,7 +194,7 @@ public sealed class PipelinePrefabRuleManager : MonoBehaviour
         }
 
         if (logPlacement && changed)
-            Debug.Log($"PIPELINE BUILT | Added {requested.Count} grid cells", this);
+            Log($"PIPELINE BUILT | Added {requested.Count} grid cells", this);
 
         return true;
     }
@@ -314,7 +317,7 @@ public sealed class PipelinePrefabRuleManager : MonoBehaviour
                 if (gridManager != null && gridManager.IsInsideGrid(cell))
                     pipeCells.Add(cell);
                 else
-                    Debug.LogWarning(
+                    LogWarning(
                         $"PipelinePrefabRuleManager: Skipped saved pipe cell " +
                         $"{cell} because it is outside the current grid.",
                         this);
@@ -479,4 +482,9 @@ public sealed class PipelinePrefabRuleManager : MonoBehaviour
 
         visuals.Clear();
     }
+
+    private void Log(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.Log(message, context); else Debug.Log(message); }
+    private void LogWarning(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message); }
+    private void LogError(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogError(message, context); else Debug.LogError(message); }
+    private void LogException(System.Exception exception, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception); }
 }

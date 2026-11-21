@@ -7,6 +7,9 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class AircraftSSTakeoffController : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+{
     public enum TakeoffState
     {
         WaitingForLineUp,
@@ -233,7 +236,7 @@ public class AircraftSSTakeoffController : MonoBehaviour
             debugStatus =
                 "Cannot take off: required references or boarding are missing.";
 
-            Debug.LogError($"{name}: {debugStatus}", this);
+            LogError($"{name}: {debugStatus}", this);
             return false;
         }
 
@@ -248,7 +251,7 @@ public class AircraftSSTakeoffController : MonoBehaviour
                 out runwaySurfaceY))
         {
             debugStatus = "Cannot take off: runway geometry is unavailable.";
-            Debug.LogError($"{name}: {debugStatus}", this);
+            LogError($"{name}: {debugStatus}", this);
             return false;
         }
 
@@ -258,7 +261,7 @@ public class AircraftSSTakeoffController : MonoBehaviour
         if (takeoffDirection.sqrMagnitude < 0.0001f)
         {
             debugStatus = "Cannot take off: invalid takeoff direction.";
-            Debug.LogError($"{name}: {debugStatus}", this);
+            LogError($"{name}: {debugStatus}", this);
             return false;
         }
 
@@ -542,7 +545,7 @@ public class AircraftSSTakeoffController : MonoBehaviour
         if (gameTimeManager == null || landingController == null ||
             landingTaxiController == null)
         {
-            Debug.LogError(
+            LogError(
                 $"{name}: Cannot start the return flight because GameTimeManager " +
                 "or a sightseeing landing controller is missing. Aircraft remains parked in flight state.",
                 this);
@@ -608,7 +611,7 @@ public class AircraftSSTakeoffController : MonoBehaviour
 
         if (landingController == null || !landingController.BeginReturnLanding(currentSpeedKnots))
         {
-            Debug.LogError(
+            LogError(
                 $"{name}: Could not initialize the return landing. The aircraft will remain in the cruise state.",
                 this);
             sightseeingCruiseActive = true;
@@ -645,7 +648,7 @@ public class AircraftSSTakeoffController : MonoBehaviour
 
         if (sightseeingEconomy == null)
         {
-            Debug.LogError(
+            LogError(
                 $"{name}: SightseeingFlightEconomy is missing. " +
                 "Commission was not paid.",
                 this);
@@ -657,7 +660,7 @@ public class AircraftSSTakeoffController : MonoBehaviour
 
         if (airportFees == null)
         {
-            Debug.LogError(
+            LogError(
                 $"{name}: AircraftAirportFees is missing. Commission was not paid.",
                 this);
             return;
@@ -678,7 +681,7 @@ public class AircraftSSTakeoffController : MonoBehaviour
         {
             commissionPaid = 0;
 
-            Debug.LogWarning(
+            LogWarning(
                 $"{name}: Sightseeing commission payment failed.",
                 this);
         }
@@ -714,4 +717,9 @@ public class AircraftSSTakeoffController : MonoBehaviour
     {
         ReleaseRunwayReservations();
     }
+
+    private void Log(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.Log(message, context); else Debug.Log(message); }
+    private void LogWarning(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message); }
+    private void LogError(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogError(message, context); else Debug.LogError(message); }
+    private void LogException(System.Exception exception, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception); }
 }

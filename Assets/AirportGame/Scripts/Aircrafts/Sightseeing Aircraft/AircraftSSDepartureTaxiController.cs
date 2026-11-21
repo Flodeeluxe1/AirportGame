@@ -13,6 +13,9 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class AircraftSSDepartureTaxiController : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+{
     public enum DepartureState
     {
         WaitingForBoarding,
@@ -804,7 +807,7 @@ public class AircraftSSDepartureTaxiController : MonoBehaviour
             trafficManager.ReleaseRunwayLineUpReservation(this);
             currentState = DepartureState.AtHoldingPoint;
             debugStatus = "Cannot continue: runway join route is invalid.";
-            Debug.LogWarning($"{name}: {debugStatus}", this);
+            LogWarning($"{name}: {debugStatus}", this);
             return;
         }
 
@@ -972,7 +975,7 @@ public class AircraftSSDepartureTaxiController : MonoBehaviour
         debugStatus = $"Line-up aborted; holding. {reason}";
         retryTimer = runwaySelectionRetryInterval;
 
-        Debug.LogWarning($"{name}: {debugStatus}", this);
+        LogWarning($"{name}: {debugStatus}", this);
     }
 
     private void PublishPlannedTaxiRoute(IReadOnlyList<Vector2Int> plannedRoute)
@@ -1269,7 +1272,7 @@ public class AircraftSSDepartureTaxiController : MonoBehaviour
 
         hasLoggedWaitingMessage = true;
 
-        Debug.LogWarning(
+        LogWarning(
             $"{name}: Sightseeing departure taxi waiting. {message}",
             this);
     }
@@ -1327,4 +1330,9 @@ public class AircraftSSDepartureTaxiController : MonoBehaviour
     {
         TrySelectDepartureRunway();
     }
+
+    private void Log(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.Log(message, context); else Debug.Log(message); }
+    private void LogWarning(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message); }
+    private void LogError(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogError(message, context); else Debug.LogError(message); }
+    private void LogException(System.Exception exception, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception); }
 }

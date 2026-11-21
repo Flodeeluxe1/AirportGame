@@ -5,6 +5,9 @@ using UnityEngine;
 
 public class ScheduledCargoDeliverySpawner : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+{
     [Header("References")]
     [SerializeField] private GameObject cargoTruckPrefab;
     [SerializeField] private Transform spawnPoint;
@@ -98,7 +101,7 @@ public class ScheduledCargoDeliverySpawner : MonoBehaviour
     {
         if (cargoTruckPrefab == null)
         {
-            Debug.LogError(
+            LogError(
                 "ScheduledCargoDeliverySpawner: Cargo Truck Prefab is missing.",
                 this
             );
@@ -109,7 +112,7 @@ public class ScheduledCargoDeliverySpawner : MonoBehaviour
 
         if (spawnPoint == null || exitPoint == null)
         {
-            Debug.LogError(
+            LogError(
                 "ScheduledCargoDeliverySpawner: Assign both Spawn Point " +
                 "and Exit Point.",
                 this
@@ -138,7 +141,7 @@ public class ScheduledCargoDeliverySpawner : MonoBehaviour
             gameTimeManager == null ||
             roadNetwork == null)
         {
-            Debug.LogError(
+            LogError(
                 "ScheduledCargoDeliverySpawner: GridManager, " +
                 "FlightManagementUIController, GameTimeManager, and " +
                 "RoadNetwork are required.",
@@ -159,7 +162,7 @@ public class ScheduledCargoDeliverySpawner : MonoBehaviour
 
         SetupIncomingCollectionSpawner();
 
-        Debug.Log(
+        Log(
             "ScheduledCargoDeliverySpawner ready. " +
             $"Game time: {gameTimeManager.FormattedTime}. " +
             $"Scheduled deliveries: {scheduledDeliveries.Count}. " +
@@ -263,7 +266,7 @@ public class ScheduledCargoDeliverySpawner : MonoBehaviour
                 if (saved.startMinute < 0 ||
                     saved.startMinute >= MinutesPerDay)
                 {
-                    Debug.LogWarning(
+                    LogWarning(
                         "ScheduledCargoDeliverySpawner: Skipping " +
                         $"{saved.flightNumber}; invalid departure minute " +
                         $"{saved.startMinute}.",
@@ -289,7 +292,7 @@ public class ScheduledCargoDeliverySpawner : MonoBehaviour
 
         if (logScheduleChanges)
         {
-            Debug.Log(
+            Log(
                 "ScheduledCargoDeliverySpawner: Active airport schedule " +
                 $"refreshed. Flights: {scheduledDeliveries.Count}.",
                 this
@@ -406,7 +409,7 @@ public class ScheduledCargoDeliverySpawner : MonoBehaviour
 
         if (logQueueChanges)
         {
-            Debug.Log(
+            Log(
                 "Cargo delivery added to queue | " +
                 $"Flight: {scheduled.FlightNumber} | " +
                 $"Departure: {FormatTime(scheduled.StartMinute)} | " +
@@ -446,7 +449,7 @@ public class ScheduledCargoDeliverySpawner : MonoBehaviour
 
         if (logQueueChanges)
         {
-            Debug.Log(
+            Log(
                 "Cargo truck spawn interval started. Next truck can " +
                 $"spawn after {spawnIntervalGameSeconds} game seconds. " +
                 $"Trucks remaining in queue: {deliveryQueue.Count}.",
@@ -472,7 +475,7 @@ public class ScheduledCargoDeliverySpawner : MonoBehaviour
         {
             if (lastZoneBlockedOperationId != queuedDelivery.OperationId)
             {
-                Debug.LogWarning(
+                LogWarning(
                     "Cargo delivery remains queued because no cargo zone " +
                     "is eligible for this flight. " +
                     $"Flight: {queuedDelivery.Scheduled.FlightNumber} | " +
@@ -538,7 +541,7 @@ public class ScheduledCargoDeliverySpawner : MonoBehaviour
 
         if (truck == null)
         {
-            Debug.LogError(
+            LogError(
                 "ScheduledCargoDeliverySpawner: The Cargo Truck Prefab " +
                 "does not have CargoDeliveryTruck attached. Destroying truck. " +
                 $"Flight: {queuedDelivery.Scheduled.FlightNumber} | " +
@@ -567,7 +570,7 @@ public class ScheduledCargoDeliverySpawner : MonoBehaviour
 
         if (logTruckSpawns)
         {
-            Debug.Log(
+            Log(
                 "SCHEDULED CARGO TRUCK SPAWNED | " +
                 $"Flight: {queuedDelivery.Scheduled.FlightNumber} | " +
                 $"Operation: {queuedDelivery.OperationId} | " +
@@ -623,7 +626,7 @@ public class ScheduledCargoDeliverySpawner : MonoBehaviour
         if (!logQueueChanges)
             return;
 
-        Debug.LogWarning(
+        LogWarning(
             "ScheduledCargoDeliverySpawner: Delivery remains queued. " +
             $"Flight: {queuedDelivery.Scheduled.FlightNumber}. " +
             $"Reason: {reason}",
@@ -646,4 +649,9 @@ public class ScheduledCargoDeliverySpawner : MonoBehaviour
 
         return $"{minutes / 60:00}:{minutes % 60:00}";
     }
+
+    private void Log(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.Log(message, context); else Debug.Log(message); }
+    private void LogWarning(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message); }
+    private void LogError(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogError(message, context); else Debug.LogError(message); }
+    private void LogException(System.Exception exception, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception); }
 }

@@ -20,6 +20,9 @@ public enum AirportFeeCategory
 [DisallowMultipleComponent]
 public class AirportManagementController : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+{
     public static AirportManagementController Instance { get; private set; }
 
     [Serializable]
@@ -194,7 +197,7 @@ public class AirportManagementController : MonoBehaviour
 
         if (previousCEOStatus != hasValidCEOOffice)
         {
-            Debug.Log(
+            Log(
                 hasValidCEOOffice
                     ? "AirportManagementController: Valid CEO Office found. New aircraft arrivals are enabled."
                     : "AirportManagementController: Valid CEO Office missing. New aircraft arrivals are disabled.",
@@ -203,7 +206,7 @@ public class AirportManagementController : MonoBehaviour
 
         if (previousCFOStatus != hasValidCFOOffice)
         {
-            Debug.Log(
+            Log(
                 hasValidCFOOffice
                     ? "AirportManagementController: Valid CFO Office found. Custom airport fees are available."
                     : "AirportManagementController: Valid CFO Office missing. Default airport fees must be used.",
@@ -514,4 +517,9 @@ public class AirportManagementController : MonoBehaviour
         profile.parkingIntervalMinutes =
             Mathf.Max(1, profile.parkingIntervalMinutes);
     }
+
+    private void Log(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.Log(message, context); else Debug.Log(message); }
+    private void LogWarning(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message); }
+    private void LogError(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogError(message, context); else Debug.LogError(message); }
+    private void LogException(System.Exception exception, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception); }
 }

@@ -5,6 +5,9 @@ using UnityEngine.UIElements;
 
 public class BuildController : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+{
     [Header("References")]
     [SerializeField] private Camera mainCamera;
     [SerializeField] private GridManager gridManager;
@@ -263,7 +266,7 @@ public class BuildController : MonoBehaviour
     {
         if (definition == null)
         {
-            Debug.LogWarning(
+            LogWarning(
                 "BuildController: No BuildableDefinition was provided."
             );
 
@@ -272,7 +275,7 @@ public class BuildController : MonoBehaviour
 
         if (definition.prefab == null)
         {
-            Debug.LogError(
+            LogError(
                 $"BuildController: Buildable '{definition.displayName}' " +
                 "does not have a prefab assigned."
             );
@@ -491,4 +494,9 @@ public class BuildController : MonoBehaviour
 
         isBuilding = false;
     }
+
+    private void Log(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.Log(message, context); else Debug.Log(message); }
+    private void LogWarning(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message); }
+    private void LogError(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogError(message, context); else Debug.LogError(message); }
+    private void LogException(System.Exception exception, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception); }
 }

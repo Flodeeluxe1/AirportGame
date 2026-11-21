@@ -4,6 +4,9 @@ using UnityEngine;
 
 public class GameTimeManager : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+{
     private const double SecondsPerDay = 86400.0;
 
     [Header("Initial Game Time")]
@@ -117,7 +120,7 @@ public class GameTimeManager : MonoBehaviour
             multiplier != 100 &&
             multiplier != 1000)
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"GameTimeManager: Unsupported speed {multiplier}."
             );
 
@@ -138,7 +141,7 @@ public class GameTimeManager : MonoBehaviour
         if (previousMultiplier != multiplier)
             GameSpeedChanged?.Invoke(multiplier);
 
-        Debug.Log(
+        Log(
             $"GAME SPEED | " +
             $"{(multiplier == 0 ? "PAUSED" : multiplier + "x")} | " +
             $"Day {currentDay} | Game Time: {FormattedTime}"
@@ -215,4 +218,9 @@ public class GameTimeManager : MonoBehaviour
                 baseFixedDeltaTime;
         }
     }
+
+    private void Log(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.Log(message, context); else Debug.Log(message); }
+    private void LogWarning(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message); }
+    private void LogError(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogError(message, context); else Debug.LogError(message); }
+    private void LogException(System.Exception exception, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception); }
 }

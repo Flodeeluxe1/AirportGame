@@ -3,6 +3,9 @@ using UnityEngine;
 
 public class AirportWorldResetController : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+{
     [Header("Building and Grid")]
     [SerializeField] private BuildController buildController;
     [SerializeField] private BuildCatalog buildCatalog;
@@ -142,7 +145,7 @@ public class AirportWorldResetController : MonoBehaviour
         if (roomDetectionController != null)
             roomDetectionController.RefreshRooms();
 
-        Debug.Log(
+        Log(
             "AirportWorldResetController: Airport layout reset.");
 
         return true;
@@ -171,7 +174,7 @@ public class AirportWorldResetController : MonoBehaviour
         gameTimeManager.ResetToStartTime();
         economyManager.InitializeNewGame();
 
-        Debug.Log(
+        Log(
             "AirportWorldResetController: New game initialized. " +
             "Airport layout, room assignments, and active flight schedule " +
             "cleared; game clock reset; starting balance granted. " +
@@ -207,7 +210,7 @@ public class AirportWorldResetController : MonoBehaviour
             foundationTilemapController == null ||
             gameTimeManager == null)
         {
-            Debug.LogError(
+            LogError(
                 "AirportWorldResetController: One or more required " +
                 "references are missing. Assign all references in the Inspector.");
 
@@ -253,7 +256,7 @@ public class AirportWorldResetController : MonoBehaviour
 
         if (flightManagementUIController == null)
         {
-            Debug.LogError(
+            LogError(
                 "AirportWorldResetController: FlightManagementUIController " +
                 "was not found. Assign it in the Inspector before saving, " +
                 "loading, or starting a new game.");
@@ -274,7 +277,7 @@ public class AirportWorldResetController : MonoBehaviour
 
         if (economyManager == null)
         {
-            Debug.LogError(
+            LogError(
                 "AirportWorldResetController: AirportEconomyManager " +
                 "was not found. Assign it in the Inspector before " +
                 "starting a new game, saving, or loading an airport.");
@@ -308,7 +311,7 @@ public class AirportWorldResetController : MonoBehaviour
 
         if (floorFinishRenderer == null)
         {
-            Debug.LogWarning(
+            LogWarning(
                 "AirportWorldResetController: FloorFinishRenderer was not found. " +
                 "The save will contain no floor finish data.");
         }
@@ -365,7 +368,7 @@ public class AirportWorldResetController : MonoBehaviour
 
             if (string.IsNullOrWhiteSpace(definitionId))
             {
-                Debug.LogError(
+                LogError(
                     $"Cannot save '{building.name}': its " +
                     "BuildableDefinition has no ID.");
 
@@ -512,14 +515,14 @@ public class AirportWorldResetController : MonoBehaviour
                 data,
                 out string error))
         {
-            Debug.LogError(
+            LogError(
                 $"AirportWorldResetController: Save failed for slot " +
                 $"{slot}. {error}");
 
             return false;
         }
 
-        Debug.Log(
+        Log(
             $"AirportWorldResetController: Saved slot {slot}. " +
             $"Buildings: {data.placedBuildings.Count}, " +
             $"Road cells: {data.roadCells.Count}, " +
@@ -548,7 +551,7 @@ public class AirportWorldResetController : MonoBehaviour
                 out AirportSaveData data,
                 out string error))
         {
-            Debug.LogError(
+            LogError(
                 $"Could not read save slot {slot}: {error}");
 
             return false;
@@ -559,7 +562,7 @@ public class AirportWorldResetController : MonoBehaviour
         if (!ValidateSavedDefinitions(data, false))
             return false;
 
-        Debug.Log(
+        Log(
             $"Save slot {slot} passed validation. " +
             $"Buildings: {data.placedBuildings.Count}, " +
             $"Road cells: {data.roadCells.Count}, " +
@@ -597,7 +600,7 @@ public class AirportWorldResetController : MonoBehaviour
                 out AirportSaveData data,
                 out string error))
         {
-            Debug.LogError(
+            LogError(
                 $"Could not load slot {slot}: {error}. " +
                 "The current airport has not been changed.");
 
@@ -618,7 +621,7 @@ public class AirportWorldResetController : MonoBehaviour
         if (data.taxiwayCells.Count > 0 &&
             data.taxiwayAreas.Count == 0)
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"AirportWorldResetController: Save slot {slot} contains " +
                 "taxiway cells but no saved taxiway placement areas. " +
                 "The logical taxiway network can be restored, but the " +
@@ -659,7 +662,7 @@ public class AirportWorldResetController : MonoBehaviour
 
             if (definition == null || definition.prefab == null)
             {
-                Debug.LogError(
+                LogError(
                     $"Cannot restore definition '{saved.definitionId}'.");
 
                 return false;
@@ -941,7 +944,7 @@ public class AirportWorldResetController : MonoBehaviour
         }
         else if (pendingWallFinishes.Count > 0)
         {
-            Debug.LogWarning(
+            LogWarning(
                 "AirportWorldResetController: Save contains wall finishes, " +
                 "but WallFinishRenderer is missing. Those finishes were not restored.");
         }
@@ -962,7 +965,7 @@ public class AirportWorldResetController : MonoBehaviour
             }
             else
             {
-                Debug.LogWarning(
+                LogWarning(
                     $"Could not restore supporting surface " +
                     $"'{relationship.Value}' for " +
                     $"'{relationship.Key.name}'.");
@@ -980,7 +983,7 @@ public class AirportWorldResetController : MonoBehaviour
             pipelinePrefabRuleManager.RestorePipes(data.pipelineCells);
         else if (data.pipelineCells.Count > 0)
         {
-            Debug.LogError(
+            LogError(
                 "AirportWorldResetController: The save contains pipeline " +
                 "cells, but PipelinePrefabRuleManager is missing.");
             return false;
@@ -990,7 +993,7 @@ public class AirportWorldResetController : MonoBehaviour
             pipelineNetworkManager.RestoreSavedFuelInventories(data.pipelineNetworks);
         else if (data.pipelineNetworks.Count > 0)
         {
-            Debug.LogError(
+            LogError(
                 "AirportWorldResetController: The save contains shared fuel " +
                 "inventories, but PipelineNetworkManager is missing.");
             return false;
@@ -1027,7 +1030,7 @@ public class AirportWorldResetController : MonoBehaviour
             }
             else
             {
-                Debug.LogError(
+                LogError(
                     $"Invalid saved road direction at cell {cell}: " +
                     $"({savedRoad.directionX}, {savedRoad.directionZ}).");
 
@@ -1056,7 +1059,7 @@ public class AirportWorldResetController : MonoBehaviour
 
             if (definition == null)
             {
-                Debug.LogError(
+                LogError(
                     $"Cannot restore taxiway definition " +
                     $"'{savedTaxiway.definitionId}'.");
 
@@ -1112,7 +1115,7 @@ public class AirportWorldResetController : MonoBehaviour
             floorFinishRenderer.RestoreSaveData(data.floorFinishCells);
         else if (data.floorFinishCells.Count > 0)
         {
-            Debug.LogWarning(
+            LogWarning(
                 "AirportWorldResetController: Save contains floor finishes, " +
                 "but FloorFinishRenderer is missing. Those finishes were not restored.");
         }
@@ -1131,7 +1134,7 @@ public class AirportWorldResetController : MonoBehaviour
         }
         else
         {
-            Debug.LogWarning(
+            LogWarning(
                 "AirportWorldResetController: RoomPurposeController was " +
                 "not found. The airport loaded, but room-purpose assignments " +
                 "could not be restored.");
@@ -1165,13 +1168,13 @@ public class AirportWorldResetController : MonoBehaviour
 
         if (!scheduleRestored)
         {
-            Debug.LogError(
+            LogError(
                 $"AirportWorldResetController: Airport slot {slot} was " +
                 "restored, but its flight schedule could not be loaded. " +
                 "The active schedule may be empty.");
         }
 
-        Debug.Log(
+        Log(
             $"AirportWorldResetController: Restore from slot {slot} finished. " +
             $"Objects: {restoredBuildings}, " +
             $"foundations: {restoredFoundations}, " +
@@ -1229,7 +1232,7 @@ public class AirportWorldResetController : MonoBehaviour
                 if (groupsById.ContainsKey(groupId))
                     continue;
 
-                Debug.LogError(
+                LogError(
                     $"AirportWorldResetController: Door access group " +
                     $"'{groupId}' referenced by '{saved.definitionId}' " +
                     "could not be found. The current airport has not been changed.");
@@ -1245,7 +1248,7 @@ public class AirportWorldResetController : MonoBehaviour
     {
         if (buildCatalog == null || buildCatalog.buildables == null)
         {
-            Debug.LogError(
+            LogError(
                 "AirportWorldResetController: BuildCatalog is missing " +
                 "or has no buildables assigned.");
 
@@ -1269,7 +1272,7 @@ public class AirportWorldResetController : MonoBehaviour
 
             if (definition == null)
             {
-                Debug.LogError(
+                LogError(
                     $"Save references missing building definition ID " +
                     $"'{saved.definitionId}'. The airport has not been changed.");
 
@@ -1278,7 +1281,7 @@ public class AirportWorldResetController : MonoBehaviour
 
             if (definition.prefab == null)
             {
-                Debug.LogError(
+                LogError(
                     $"BuildableDefinition '{saved.definitionId}' has no prefab.");
 
                 return false;
@@ -1286,7 +1289,7 @@ public class AirportWorldResetController : MonoBehaviour
 
             if (requireWorldTransforms && !saved.hasWorldTransform)
             {
-                Debug.LogError(
+                LogError(
                     $"Saved object '{saved.definitionId}' has no saved " +
                     "world transform. The airport has not been changed.");
 
@@ -1297,7 +1300,7 @@ public class AirportWorldResetController : MonoBehaviour
             {
                 if (savedByInstanceId.ContainsKey(saved.instanceId))
                 {
-                    Debug.LogError(
+                    LogError(
                         $"Save contains duplicate placed-object instance ID " +
                         $"'{saved.instanceId}'.");
 
@@ -1312,7 +1315,7 @@ public class AirportWorldResetController : MonoBehaviour
                  string.IsNullOrWhiteSpace(saved.supportingSurfaceInstanceId) ||
                  saved.instanceId == saved.supportingSurfaceInstanceId))
             {
-                Debug.LogError(
+                LogError(
                     $"Surface-placed object '{saved.definitionId}' has an " +
                     "invalid supporting-surface relationship.");
 
@@ -1329,7 +1332,7 @@ public class AirportWorldResetController : MonoBehaviour
                     saved.supportingSurfaceInstanceId,
                     out PlacedBuildingSaveData supportSave))
             {
-                Debug.LogError(
+                LogError(
                     $"Surface-placed object '{saved.definitionId}' references " +
                     $"missing support ID '{saved.supportingSurfaceInstanceId}'.");
 
@@ -1342,7 +1345,7 @@ public class AirportWorldResetController : MonoBehaviour
             if (supportDefinition == null ||
                 !supportDefinition.canSupportSurfaceObjects)
             {
-                Debug.LogError(
+                LogError(
                     $"Object '{supportSave.definitionId}' is saved as a " +
                     "supporting surface but its BuildableDefinition does not " +
                     "allow surface objects.");
@@ -1355,7 +1358,7 @@ public class AirportWorldResetController : MonoBehaviour
         {
             if (FindDefinition(savedTaxiway.definitionId) == null)
             {
-                Debug.LogError(
+                LogError(
                     $"Save references missing taxiway definition ID " +
                     $"'{savedTaxiway.definitionId}'. The airport has not " +
                     "been changed.");
@@ -1398,4 +1401,9 @@ public class AirportWorldResetController : MonoBehaviour
         foreach (Renderer renderer in renderers)
             renderer.enabled = false;
     }
+
+    private void Log(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.Log(message, context); else Debug.Log(message); }
+    private void LogWarning(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message); }
+    private void LogError(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogError(message, context); else Debug.LogError(message); }
+    private void LogException(System.Exception exception, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception); }
 }

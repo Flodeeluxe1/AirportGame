@@ -4,6 +4,9 @@ using UnityEngine;
 
 public class GateAssignmentController : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+{
     public static GateAssignmentController Instance { get; private set; }
 
     [Header("References")]
@@ -62,7 +65,7 @@ public class GateAssignmentController : MonoBehaviour
     {
         if (Instance != null && Instance != this)
         {
-            Debug.LogError(
+            LogError(
                 "Multiple GateAssignmentController instances exist. " +
                 "Only one should be present in the scene.",
                 this
@@ -91,7 +94,7 @@ public class GateAssignmentController : MonoBehaviour
             taxiwayNetwork == null ||
             taxiwayPathfinder == null)
         {
-            Debug.LogError(
+            LogError(
                 "GateAssignmentController: Missing required references. " +
                 "Assign AircraftGateRegistry, GridManager, TaxiwayNetwork, " +
                 "and TaxiwayPathfinder in the Inspector.",
@@ -158,7 +161,7 @@ public class GateAssignmentController : MonoBehaviour
                 $"No suitable taxiway centerline was found near " +
                 $"{aircraft.FlightNumber}. No gate was reserved.";
 
-            Debug.LogWarning(reason, aircraft);
+            LogWarning(reason, aircraft);
             return false;
         }
 
@@ -223,7 +226,7 @@ public class GateAssignmentController : MonoBehaviour
                     $"{plannedGate.DisplayName}. " +
                     $"A* route length: {plannedRouteLength} cells.";
 
-                Debug.Log(
+                Log(
                     $"GATE ASSIGNED | Flight: {aircraft.FlightNumber} | " +
                     $"Planned: {aircraft.PlannedGateStableId} | " +
                     $"Actual: {plannedGate.StableId} | " +
@@ -308,7 +311,7 @@ public class GateAssignmentController : MonoBehaviour
                 "unreachable, and no compatible, unreserved alternative " +
                 "with a valid A* route was found.";
 
-            Debug.LogWarning(reason, aircraft);
+            LogWarning(reason, aircraft);
             return false;
         }
 
@@ -319,7 +322,7 @@ public class GateAssignmentController : MonoBehaviour
             $"{aircraft.PlannedGateStableId} could not be used. " +
             $"Reachable alternative {assignedGate.DisplayName} assigned.";
 
-        Debug.LogWarning(
+        LogWarning(
             $"GATE REASSIGNED | Flight: {aircraft.FlightNumber} | " +
             $"Planned: {aircraft.PlannedGateStableId} | " +
             $"Actual: {assignedGate.StableId} | " +
@@ -383,7 +386,7 @@ public class GateAssignmentController : MonoBehaviour
                 ReserveGate(aircraft, plannedGate);
                 assignedGate = plannedGate;
                 reason = $"{aircraft.FlightNumber} reserved planned gate {plannedGate.DisplayName} at spawn.";
-                Debug.Log(
+                Log(
                     $"GATE RESERVED AT SPAWN | Flight: {aircraft.FlightNumber} | " +
                     $"Planned: {aircraft.PlannedGateStableId} | Actual: {plannedGate.StableId}",
                     aircraft
@@ -436,7 +439,7 @@ public class GateAssignmentController : MonoBehaviour
             $"{aircraft.PlannedGateStableId} was unavailable. " +
             $"Alternative gate {assignedGate.DisplayName} reserved at spawn.";
 
-        Debug.LogWarning(
+        LogWarning(
             $"GATE RESERVED AT SPAWN | Flight: {aircraft.FlightNumber} | " +
             $"Planned: {aircraft.PlannedGateStableId} | " +
             $"Alternative: {assignedGate.StableId}",
@@ -457,7 +460,7 @@ public class GateAssignmentController : MonoBehaviour
 
         if (gate == null || startCandidates.Count == 0)
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"GATE ROUTE CHECK FAILED | " +
                 $"Gate: {(gate != null ? gate.DisplayName : "null")} | " +
                 $"Start candidates: " +
@@ -478,7 +481,7 @@ public class GateAssignmentController : MonoBehaviour
             Vector2Int gateCell =
                 gridManager.WorldToGrid(gate.transform.position);
 
-            Debug.LogWarning(
+            LogWarning(
                 $"GATE ROUTE CHECK FAILED | Gate: {gate.DisplayName} | " +
                 $"Grid cell: {gateCell} | " +
                 $"Gate size: {gate.Size} | " +
@@ -513,7 +516,7 @@ public class GateAssignmentController : MonoBehaviour
 
             if (path == null || path.Count == 0)
             {
-                Debug.Log(
+                Log(
                     $"A* ROUTE FAILED | Gate: {gate.DisplayName} | " +
                     $"Start: {pair.Start.Cell} | " +
                     $"Target: {pair.Target.Cell} | " +
@@ -532,7 +535,7 @@ public class GateAssignmentController : MonoBehaviour
 
         bool foundRoute = bestRouteLength != int.MaxValue;
 
-        Debug.Log(
+        Log(
             $"GATE ROUTE RESULT | Gate: {gate.DisplayName} | " +
             $"Size: {gate.Size} | " +
             $"Required width: {minimumTaxiwayWidth} | " +
@@ -778,7 +781,7 @@ public class GateAssignmentController : MonoBehaviour
 
         if (gateRegistry == null)
         {
-            Debug.LogError(
+            LogError(
                 "GateAssignmentController: AircraftGateRegistry is missing.",
                 this
             );
@@ -791,7 +794,7 @@ public class GateAssignmentController : MonoBehaviour
         int availableCount = 0;
         int reservedCount = 0;
 
-        Debug.Log(
+        Log(
             $"========== GATE AVAILABILITY ({gateRegistry.Gates.Count} gates) ==========",
             this
         );
@@ -810,7 +813,7 @@ public class GateAssignmentController : MonoBehaviour
             {
                 reservedCount++;
 
-                Debug.Log(
+                Log(
                     $"RESERVED | {gate.DisplayName} | " +
                     $"Size: {gate.Size} | " +
                     $"ID: {gate.StableId} | " +
@@ -822,7 +825,7 @@ public class GateAssignmentController : MonoBehaviour
             {
                 availableCount++;
 
-                Debug.Log(
+                Log(
                     $"AVAILABLE | {gate.DisplayName} | " +
                     $"Size: {gate.Size} | " +
                     $"ID: {gate.StableId}",
@@ -831,7 +834,7 @@ public class GateAssignmentController : MonoBehaviour
             }
         }
 
-        Debug.Log(
+        Log(
             $"GATE AVAILABILITY SUMMARY | " +
             $"Available: {availableCount} | " +
             $"Reserved: {reservedCount} | " +
@@ -845,5 +848,30 @@ public class GateAssignmentController : MonoBehaviour
     {
         if (Instance == this)
             Instance = null;
+    }
+
+ 
+    private void Log(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.Log(message, context); else Debug.Log(message);
+    }
+
+    private void LogWarning(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message);
+    }
+
+    private void LogError(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.LogError(message, context); else Debug.LogError(message);
+    }
+
+    private void LogException(System.Exception exception, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception);
     }
 }

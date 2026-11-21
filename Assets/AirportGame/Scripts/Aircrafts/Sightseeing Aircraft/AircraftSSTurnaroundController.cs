@@ -8,6 +8,9 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class AircraftSSTurnaroundController : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+{
     public enum TurnaroundState
     {
         WaitingForParking,
@@ -79,7 +82,7 @@ public class AircraftSSTurnaroundController : MonoBehaviour
 
         if (landingTaxiController == null)
         {
-            Debug.LogError(
+            LogError(
                 $"{nameof(AircraftSSTurnaroundController)} on {name}: " +
                 "AircraftSSLandingTaxiController is missing.",
                 this);
@@ -170,7 +173,7 @@ public class AircraftSSTurnaroundController : MonoBehaviour
 
         if (logProgress)
         {
-            Debug.Log(
+            Log(
                 $"SIGHTSEEING BOARDING STARTED | {name} | " +
                 $"Expected passengers: {(passengerManifestConfigured ? expectedPassengers.ToString() : "demand-based")}.",
                 this);
@@ -237,7 +240,7 @@ public class AircraftSSTurnaroundController : MonoBehaviour
         {
             passengersOnBoard = 0;
 
-            Debug.LogError(
+            LogError(
                 $"{name}: SightseeingFlightEconomy is missing. " +
                 "No passengers were assigned.",
                 this);
@@ -276,7 +279,7 @@ public class AircraftSSTurnaroundController : MonoBehaviour
 
         readyForNextFlight = true;
         if (logProgress)
-            Debug.Log($"SIGHTSEEING AIRCRAFT READY FOR REUSE | {name} remains at {reservedSpot}.", this);
+            Log($"SIGHTSEEING AIRCRAFT READY FOR REUSE | {name} remains at {reservedSpot}.", this);
     }
 
     public bool PrepareForNextFlight()
@@ -309,7 +312,7 @@ public class AircraftSSTurnaroundController : MonoBehaviour
     {
         if (logProgress)
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"SIGHTSEEING TURNAROUND WAITING | {name} | {message}",
                 this);
         }
@@ -320,4 +323,9 @@ public class AircraftSSTurnaroundController : MonoBehaviour
         if (reservedSpot != null)
             reservedSpot.Release(gameObject);
     }
+
+    private void Log(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.Log(message, context); else Debug.Log(message); }
+    private void LogWarning(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message); }
+    private void LogError(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogError(message, context); else Debug.LogError(message); }
+    private void LogException(System.Exception exception, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception); }
 }

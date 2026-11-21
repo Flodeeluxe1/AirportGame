@@ -3,6 +3,9 @@ using UnityEngine;
 
 public class AircraftCargoPaxTakeoffController : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+{
     public enum TakeoffState
     {
         WaitingForLineUp,
@@ -203,7 +206,7 @@ public class AircraftCargoPaxTakeoffController : MonoBehaviour
             debugStatus =
                 "Cannot take off: a required controller is missing.";
 
-            Debug.LogError($"{name}: {debugStatus}", this);
+            LogError($"{name}: {debugStatus}", this);
             return false;
         }
 
@@ -220,7 +223,7 @@ public class AircraftCargoPaxTakeoffController : MonoBehaviour
             debugStatus =
                 "Cannot take off: selected runway geometry is unavailable.";
 
-            Debug.LogError($"{name}: {debugStatus}", this);
+            LogError($"{name}: {debugStatus}", this);
             return false;
         }
 
@@ -229,7 +232,7 @@ public class AircraftCargoPaxTakeoffController : MonoBehaviour
             debugStatus =
                 "Cannot take off: aircraft-sized BoxCollider is missing.";
 
-            Debug.LogError($"{name}: {debugStatus}", this);
+            LogError($"{name}: {debugStatus}", this);
             return false;
         }
 
@@ -240,7 +243,7 @@ public class AircraftCargoPaxTakeoffController : MonoBehaviour
         {
             debugStatus = "Cannot take off: takeoff direction is invalid.";
 
-            Debug.LogError($"{name}: {debugStatus}", this);
+            LogError($"{name}: {debugStatus}", this);
             return false;
         }
 
@@ -601,4 +604,9 @@ public class AircraftCargoPaxTakeoffController : MonoBehaviour
 
         ReleaseRunwayReservations();
     }
+
+    private void Log(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.Log(message, context); else Debug.Log(message); }
+    private void LogWarning(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message); }
+    private void LogError(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogError(message, context); else Debug.LogError(message); }
+    private void LogException(System.Exception exception, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception); }
 }

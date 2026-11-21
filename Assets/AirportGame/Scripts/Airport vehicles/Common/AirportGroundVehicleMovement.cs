@@ -4,6 +4,9 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class AirportGroundVehicleMovement : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+{
     [Header("Grid References")]
     [SerializeField] private GridManager gridManager;
     [SerializeField] private GridOccupancy gridOccupancy;
@@ -306,7 +309,7 @@ public class AirportGroundVehicleMovement : MonoBehaviour
             ? "Following smoothed grid route"
             : "Arrived";
 
-        Debug.Log(
+        Log(
             $"{name}: Weighted route calculated. " +
             $"Grid cells: {routeCellCount}, " +
             $"waypoints: {movementPath.Count}, " +
@@ -334,7 +337,7 @@ public class AirportGroundVehicleMovement : MonoBehaviour
     {
         if (!hasLastRequestedDestination)
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"{name}: There is no previous destination to recalculate.",
                 this);
             return false;
@@ -342,7 +345,7 @@ public class AirportGroundVehicleMovement : MonoBehaviour
 
         if (isMoving)
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"{name}: Cannot recalculate while the vehicle is moving. " +
                 "Stop the vehicle first.",
                 this);
@@ -355,7 +358,7 @@ public class AirportGroundVehicleMovement : MonoBehaviour
             lastRequestedDestinationGate,
             lastRequestedSourceGate);
 
-        Debug.Log(
+        Log(
             $"{name}: Manual route recalculation " +
             (routeStarted ? "started." : "failed.") +
             $" Destination: {lastRequestedDestination}.",
@@ -434,7 +437,7 @@ public class AirportGroundVehicleMovement : MonoBehaviour
         currentDestinationGate != null &&
         gridSurface.IsSurfaceOwner(target, currentDestinationGate);
 
-    Debug.Log(
+    Log(
         $"{name}: PATHFINDING TARGET DIAGNOSTICS\n" +
         $"Start: {start}, Target: {target}\n" +
         $"Destination object: {(currentDestinationGate != null ? currentDestinationGate.name : "None")}\n" +
@@ -453,7 +456,7 @@ public class AirportGroundVehicleMovement : MonoBehaviour
         !targetHomeCell &&
         !targetDestinationCell)
     {
-        Debug.LogWarning(
+        LogWarning(
             $"{name}: TARGET REJECTED because it is an obstacle " +
             "and is not owned by the permitted destination object.",
             this);
@@ -506,7 +509,7 @@ public class AirportGroundVehicleMovement : MonoBehaviour
                 List<Vector2Int> foundPath =
                     ReconstructPath(cameFrom, start, target);
 
-                Debug.Log(
+                Log(
                     $"{name}: PATHFINDING SUCCEEDED. " +
                     $"Path cells: {foundPath.Count}, " +
                     $"Expanded cells: {closedSet.Count}.",
@@ -591,7 +594,7 @@ public class AirportGroundVehicleMovement : MonoBehaviour
         }
     }
 
-    Debug.LogWarning(
+    LogWarning(
         $"{name}: PATHFINDING FAILED\n" +
         $"Start: {start}, Target: {target}\n" +
         $"Expanded cells: {closedSet.Count}\n" +
@@ -615,13 +618,13 @@ public class AirportGroundVehicleMovement : MonoBehaviour
     {
         if (!gridManager.IsInsideGrid(neighbor))
         {
-            Debug.Log(
+            Log(
                 $"{name}: Target neighbor {neighbor}: OUTSIDE GRID.",
                 this);
             continue;
         }
 
-        Debug.Log(
+        Log(
             $"{name}: Target neighbor {neighbor}: " +
             $"Surface={gridSurface.GetSurface(neighbor)}, " +
             $"Occupied={gridOccupancy.IsOccupied(neighbor)}, " +
@@ -875,7 +878,7 @@ public class AirportGroundVehicleMovement : MonoBehaviour
         else
             movementPath[movementPath.Count - 1] = destination;
 
-        Debug.Log(
+        Log(
             $"{name}: Built final parking curve. " +
             $"Approach distance: {turnDistance:F2} world units, " +
             $"direction: {parkingDirection}.",
@@ -1226,7 +1229,7 @@ public class AirportGroundVehicleMovement : MonoBehaviour
         currentWaypointIndex = movementPath.Count;
         movementStatus = "Arrived";
 
-        Debug.Log(
+        Log(
             $"{name}: Reached destination and completed the parking approach.",
             this);
     }
@@ -1241,7 +1244,7 @@ public class AirportGroundVehicleMovement : MonoBehaviour
         isMoving = false;
         movementStatus = "Failed: " + reason;
 
-        Debug.LogWarning(
+        LogWarning(
             $"{nameof(AirportGroundVehicleMovement)} on {name}: " +
             reason,
             this);
@@ -1262,4 +1265,9 @@ public class AirportGroundVehicleMovement : MonoBehaviour
                 Gizmos.DrawLine(movementPath[i - 1], movementPath[i]);
         }
     }
+
+    private void Log(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.Log(message, context); else Debug.Log(message); }
+    private void LogWarning(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message); }
+    private void LogError(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogError(message, context); else Debug.LogError(message); }
+    private void LogException(System.Exception exception, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception); }
 }

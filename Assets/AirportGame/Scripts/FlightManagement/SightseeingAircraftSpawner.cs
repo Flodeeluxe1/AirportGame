@@ -14,6 +14,9 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class SightseeingAircraftSpawner : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+{
     private enum SpawnAttemptResult
     {
         Spawned,
@@ -144,7 +147,7 @@ public class SightseeingAircraftSpawner : MonoBehaviour
         // Keep one airport-wide scheduler.
         if (activeSpawner != null && activeSpawner != this)
         {
-            Debug.LogError(
+            LogError(
                 "Only one SightseeingAircraftSpawner should exist in the scene. " +
                 "The duplicate scheduler has been disabled.",
                 this);
@@ -165,7 +168,7 @@ public class SightseeingAircraftSpawner : MonoBehaviour
             spawnPoint == null ||
             gameTimeManager == null)
         {
-            Debug.LogError(
+            LogError(
                 "SightseeingAircraftSpawner: Assign the aircraft prefab, " +
                 "spawn point, and GameTimeManager.",
                 this);
@@ -187,7 +190,7 @@ public class SightseeingAircraftSpawner : MonoBehaviour
 
         if (logSpawnDetails)
         {
-            Debug.Log(
+            Log(
                 $"SIGHTSEEING SCHEDULE READY | Day: " +
                 $"{gameTimeManager.CurrentDay} | " +
                 $"Time: {gameTimeManager.FormattedTime} | " +
@@ -275,7 +278,7 @@ public class SightseeingAircraftSpawner : MonoBehaviour
 
             if (logSpawnDetails)
             {
-                Debug.Log(
+                Log(
                     "SIGHTSEEING SCHEDULE | A new hour has started, " +
                     "but one flight is already pending. No additional " +
                     "flight was queued.",
@@ -287,7 +290,7 @@ public class SightseeingAircraftSpawner : MonoBehaviour
 
         if (logSpawnDetails)
         {
-            Debug.Log(
+            Log(
                 $"SIGHTSEEING FLIGHT DUE | Day: " +
                 $"{gameTimeManager.CurrentDay} | " +
                 $"Time: {gameTimeManager.FormattedTime}",
@@ -348,7 +351,7 @@ public class SightseeingAircraftSpawner : MonoBehaviour
     {
         if (!HasTicketDeskPlaced())
         {
-            Debug.LogWarning(
+            LogWarning(
                 "Manual sightseeing spawn skipped: no sightseeing ticket desk is placed.",
                 this);
             return;
@@ -358,7 +361,7 @@ public class SightseeingAircraftSpawner : MonoBehaviour
             sightseeingAircraftPrefab == null ||
             spawnPoint == null)
         {
-            Debug.LogError(
+            LogError(
                 "SightseeingAircraftSpawner: Check the Inspector references.",
                 this);
             return;
@@ -368,20 +371,20 @@ public class SightseeingAircraftSpawner : MonoBehaviour
 
         if (result == SpawnAttemptResult.TicketDeskUnavailable)
         {
-            Debug.LogWarning(
+            LogWarning(
                 "Manual sightseeing spawn skipped: no sightseeing ticket desk is placed.",
                 this);
         }
         else if (result == SpawnAttemptResult.WaitingForParking)
         {
-            Debug.LogWarning(
+            LogWarning(
                 "Manual sightseeing spawn skipped because no parking " +
                 "spot is available. The hourly schedule was not changed.",
                 this);
         }
         else if (result == SpawnAttemptResult.FatalFailure)
         {
-            Debug.LogError(
+            LogError(
                 "Manual sightseeing spawn failed because the aircraft " +
                 "prefab or its configuration is invalid.",
                 this);
@@ -399,7 +402,7 @@ public class SightseeingAircraftSpawner : MonoBehaviour
             spawnPoint == null ||
             gameTimeManager == null)
         {
-            Debug.LogError(
+            LogError(
                 "SightseeingAircraftSpawner: Required references are missing.",
                 this);
 
@@ -418,7 +421,7 @@ public class SightseeingAircraftSpawner : MonoBehaviour
         {
             if (!waitingMessageLogged)
             {
-                Debug.LogWarning(
+                LogWarning(
                     "SIGHTSEEING FLIGHT WAITING | No available sightseeing " +
                     "parking spot. The flight remains pending.",
                     this);
@@ -440,7 +443,7 @@ public class SightseeingAircraftSpawner : MonoBehaviour
 
         if (aircraft == null)
         {
-            Debug.LogError(
+            LogError(
                 "SightseeingAircraftSpawner: Aircraft instantiation failed.",
                 this);
 
@@ -456,7 +459,7 @@ public class SightseeingAircraftSpawner : MonoBehaviour
         // New aircraft reserve a free sightseeing stand before operating.
         if (!reusingAircraft && !spot.TryReserve(aircraft))
         {
-            Debug.LogWarning(
+            LogWarning(
                 "SightseeingAircraftSpawner: The selected parking spot " +
                 "could not be reserved. The aircraft will be removed " +
                 "and the flight will be retried.",
@@ -472,7 +475,7 @@ public class SightseeingAircraftSpawner : MonoBehaviour
 
         if (turnaround == null)
         {
-            Debug.LogError("Sightseeing aircraft prefab is missing AircraftSSTurnaroundController.", aircraft);
+            LogError("Sightseeing aircraft prefab is missing AircraftSSTurnaroundController.", aircraft);
             if (!reusingAircraft) spot.Release(aircraft);
             Destroy(aircraft);
             return SpawnAttemptResult.FatalFailure;
@@ -486,7 +489,7 @@ public class SightseeingAircraftSpawner : MonoBehaviour
 
         if (identity == null)
         {
-            Debug.LogError(
+            LogError(
                 "Sightseeing aircraft prefab is missing " +
                 "AircraftFlightIdentity. Check the prefab.",
                 aircraft);
@@ -514,7 +517,7 @@ public class SightseeingAircraftSpawner : MonoBehaviour
 
         if (logSpawnDetails)
         {
-            Debug.Log(
+            Log(
                 $"SIGHTSEEING AIRCRAFT {(reusingAircraft ? "REUSED" : "SPAWNED")} | " +
                 $"Flight: {flightNumber} | " +
                 $"Reserved Spot: {spot.name} | " +
@@ -585,4 +588,9 @@ public class SightseeingAircraftSpawner : MonoBehaviour
         if (activeSpawner == this)
             activeSpawner = null;
     }
+
+    private void Log(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.Log(message, context); else Debug.Log(message); }
+    private void LogWarning(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message); }
+    private void LogError(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogError(message, context); else Debug.LogError(message); }
+    private void LogException(System.Exception exception, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception); }
 }

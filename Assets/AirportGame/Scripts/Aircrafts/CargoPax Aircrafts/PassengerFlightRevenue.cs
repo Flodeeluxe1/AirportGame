@@ -2,6 +2,9 @@ using UnityEngine;
 
 public class PassengerFlightRevenue : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+{
     [Header("Passenger Capacity")]
     [Tooltip("Maximum number of seats available on this aircraft.")]
     [SerializeField, Min(1)]
@@ -56,7 +59,7 @@ public class PassengerFlightRevenue : MonoBehaviour
             !identity.IsInitialized ||
             identity.Definition == null)
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"{name}: Cannot record passenger revenue because " +
                 "the flight identity is not initialized.",
                 this
@@ -78,7 +81,7 @@ public class PassengerFlightRevenue : MonoBehaviour
 
         if (revenueManager == null)
         {
-            Debug.LogError(
+            LogError(
                 $"{name}: No AirportPassengerRevenueManager exists. " +
                 "Passenger revenue was not recorded.",
                 this
@@ -94,4 +97,9 @@ public class PassengerFlightRevenue : MonoBehaviour
             departureRevenueRecorded = true;
         }
     }
+
+    private void Log(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.Log(message, context); else Debug.Log(message); }
+    private void LogWarning(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message); }
+    private void LogError(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogError(message, context); else Debug.LogError(message); }
+    private void LogException(System.Exception exception, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception); }
 }

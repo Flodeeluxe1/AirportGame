@@ -11,6 +11,9 @@ using UnityEngine;
 /// </summary>
 public sealed class TaxiwayPrefabRuleManager : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+{
     private const int North = 1;
     private const int East = 2;
     private const int South = 4;
@@ -130,14 +133,14 @@ public sealed class TaxiwayPrefabRuleManager : MonoBehaviour
     {
         if (gridManager == null)
         {
-            Debug.LogError(
+            LogError(
                 "TaxiwayPrefabRuleManager: GridManager is missing.", this);
             return;
         }
 
         if (areaWidth <= 0 || areaDepth <= 0)
         {
-            Debug.LogWarning(
+            LogWarning(
                 "TaxiwayPrefabRuleManager: Dimensions must be positive.",
                 this);
             return;
@@ -145,7 +148,7 @@ public sealed class TaxiwayPrefabRuleManager : MonoBehaviour
 
         if (areaWidth != ModuleSize && areaDepth != ModuleSize)
         {
-            Debug.LogWarning(
+            LogWarning(
                 "TaxiwayPrefabRuleManager: Expected a 5-cell-wide " +
                 "or 5-cell-deep area. Received " +
                 areaWidth + "x" + areaDepth + ".", this);
@@ -374,7 +377,7 @@ public sealed class TaxiwayPrefabRuleManager : MonoBehaviour
             {
                 if (logJunctionDiagnostics)
                 {
-                    Debug.Log(
+                    Log(
                         "[Taxiway Junction Diagnostics] Candidate " +
                         $"at {origin} was not added again. " +
                         "A candidate at this origin already exists.\n" +
@@ -392,7 +395,7 @@ public sealed class TaxiwayPrefabRuleManager : MonoBehaviour
         {
             if (logJunctionDiagnostics)
             {
-                Debug.Log(
+                Log(
                     "[Taxiway Junction Diagnostics] Candidate REJECTED\n" +
                     $"Origin: {origin}, footprint: 5x5\n" +
                     $"Detection rule: {reason}\n" +
@@ -412,7 +415,7 @@ public sealed class TaxiwayPrefabRuleManager : MonoBehaviour
 
         if (logJunctionDiagnostics)
         {
-            Debug.Log(
+            Log(
                 "[Taxiway Junction Diagnostics] Candidate ACCEPTED\n" +
                 $"Origin: {origin}, footprint: 5x5\n" +
                 $"Detection rule: {reason}\n" +
@@ -813,7 +816,7 @@ public sealed class TaxiwayPrefabRuleManager : MonoBehaviour
 
             if (logJunctionDiagnostics)
             {
-                Debug.Log(
+                Log(
                     "[Taxiway Junction Diagnostics] FINAL PREFAB\n" +
                     $"Origin: {module.Origin}, size: " +
                     $"{module.Width}x{module.Depth}\n" +
@@ -848,7 +851,7 @@ public sealed class TaxiwayPrefabRuleManager : MonoBehaviour
 
         if (prefab == null)
         {
-            Debug.LogError(
+            LogError(
                 "TaxiwayPrefabRuleManager: Required prefab is missing. " +
                 "Module origin: " + module.Origin, this);
             return;
@@ -903,7 +906,7 @@ public sealed class TaxiwayPrefabRuleManager : MonoBehaviour
             return curvedPrefab;
         }
 
-        Debug.LogWarning(
+        LogWarning(
             "TaxiwayPrefabRuleManager: Junction footprint at " +
             "mask " + mask + " does not describe a T, corner, or " +
             "intersection. Check the placement areas.", this);
@@ -1074,7 +1077,7 @@ public sealed class TaxiwayPrefabRuleManager : MonoBehaviour
             if (!module.IsJunctionFootprint)
                 continue;
 
-            Debug.Log(
+            Log(
                 "[Taxiway Junction Diagnostics] FINAL JUNCTION MODULE\n" +
                 $"Origin: {module.Origin}, size: " +
                 $"{module.Width}x{module.Depth}\n" +
@@ -1172,7 +1175,7 @@ public sealed class TaxiwayPrefabRuleManager : MonoBehaviour
                 if (!TrySubtractModuleFromArea(
                     area, module, out List<PlacementArea> remainingAreas))
                 {
-                    Debug.LogWarning(
+                    LogWarning(
                         "TaxiwayPrefabRuleManager: Cannot safely remove " +
                         "module at " + module.Origin +
                         ". No taxiway visuals were removed.", this);
@@ -1190,7 +1193,7 @@ public sealed class TaxiwayPrefabRuleManager : MonoBehaviour
 
         RebuildVisuals();
 
-        Debug.Log(
+        Log(
             "TaxiwayPrefabRuleManager: Removed " +
             modulesToRemove.Count + " visual taxiway module(s).", this);
 
@@ -1305,7 +1308,7 @@ public sealed class TaxiwayPrefabRuleManager : MonoBehaviour
 
         if (savedAreas == null)
         {
-            Debug.LogWarning(
+            LogWarning(
                 "TaxiwayPrefabRuleManager: No saved taxiway areas were provided.",
                 this);
             return;
@@ -1318,7 +1321,7 @@ public sealed class TaxiwayPrefabRuleManager : MonoBehaviour
                 saved.depth <= 0 ||
                 (saved.width != 5 && saved.depth != 5))
             {
-                Debug.LogWarning(
+                LogWarning(
                     "TaxiwayPrefabRuleManager: Skipping invalid saved taxiway area.",
                     this);
                 continue;
@@ -1333,4 +1336,9 @@ public sealed class TaxiwayPrefabRuleManager : MonoBehaviour
 
         RebuildVisuals();
     }
+
+    private void Log(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.Log(message, context); else Debug.Log(message); }
+    private void LogWarning(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message); }
+    private void LogError(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogError(message, context); else Debug.LogError(message); }
+    private void LogException(System.Exception exception, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception); }
 }

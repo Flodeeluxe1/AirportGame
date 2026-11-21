@@ -4,6 +4,9 @@ using UnityEngine;
 
 public class AirportPassengerRevenueManager : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+{
     public static AirportPassengerRevenueManager Instance { get; private set; }
 
     [Header("Passenger Pricing")]
@@ -39,7 +42,7 @@ public class AirportPassengerRevenueManager : MonoBehaviour
     {
         if (Instance != null && Instance != this)
         {
-            Debug.LogError(
+            LogError(
                 "More than one AirportPassengerRevenueManager exists.",
                 this
             );
@@ -62,20 +65,20 @@ public class AirportPassengerRevenueManager : MonoBehaviour
     {
         if (identity == null || !identity.IsInitialized || identity.Definition == null)
         {
-            Debug.LogError("Cannot record passenger revenue: flight identity is missing.", this);
+            LogError("Cannot record passenger revenue: flight identity is missing.", this);
             return false;
         }
 
         if (identity.Definition.OperationType != FlightOperationType.PassengerOnly &&
             identity.Definition.OperationType != FlightOperationType.CargoAndPassengers)
         {
-            Debug.LogWarning($"{identity.FlightNumber} is not a passenger flight.", this);
+            LogWarning($"{identity.FlightNumber} is not a passenger flight.", this);
             return false;
         }
 
         if (passengerCount < 0)
         {
-            Debug.LogError($"Cannot record negative passenger count for {identity.FlightNumber}.", this);
+            LogError($"Cannot record negative passenger count for {identity.FlightNumber}.", this);
             return false;
         }
 
@@ -83,7 +86,7 @@ public class AirportPassengerRevenueManager : MonoBehaviour
 
         if (recordedOperations.Contains(operationId))
         {
-            Debug.LogWarning($"Revenue for {operationId} has already been recorded.", this);
+            LogWarning($"Revenue for {operationId} has already been recorded.", this);
             return true;
         }
 
@@ -96,7 +99,7 @@ public class AirportPassengerRevenueManager : MonoBehaviour
 
         if (economy == null)
         {
-            Debug.LogError(
+            LogError(
                 "AirportPassengerRevenueManager needs an AirportEconomyManager " +
                 "on the same GameObject to add passenger revenue to the balance.",
                 this);
@@ -112,7 +115,7 @@ public class AirportPassengerRevenueManager : MonoBehaviour
                 $"Passenger flight {identity.FlightNumber} ticket sales and airport fee",
                 AirportFinancialCategory.PassengerRevenue))
         {
-            Debug.LogError(
+            LogError(
                 $"Could not add ${revenueAmount} to the airport balance. " +
                 "Passenger revenue statistics were not updated.",
                 this);
@@ -127,7 +130,7 @@ public class AirportPassengerRevenueManager : MonoBehaviour
         totalAirportFeeRevenue += airportFee;
         totalTicketSales += ticketSales;
 
-        Debug.Log(
+        Log(
             $"PASSENGER FLIGHT REVENUE | Flight: {identity.FlightNumber} | " +
             $"Passengers: {passengerCount} | Base fare: ${baseFare:F2} | " +
             $"Airport fee: ${airportFee:F2} | " +
@@ -139,4 +142,9 @@ public class AirportPassengerRevenueManager : MonoBehaviour
         return true;
     }
 
+
+    private void Log(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.Log(message, context); else Debug.Log(message); }
+    private void LogWarning(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message); }
+    private void LogError(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogError(message, context); else Debug.LogError(message); }
+    private void LogException(System.Exception exception, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception); }
 }

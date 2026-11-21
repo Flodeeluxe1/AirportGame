@@ -9,6 +9,9 @@ using UnityEngine;
 [RequireComponent(typeof(EnvironmentScoreMonitor))]
 public class AirportVisitorExperience : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+{
     private static readonly UtilityNeeds.NeedType[] NeedTypes =
         (UtilityNeeds.NeedType[])System.Enum.GetValues(typeof(UtilityNeeds.NeedType));
 
@@ -46,7 +49,7 @@ public class AirportVisitorExperience : MonoBehaviour
 
         if (needs == null || environmentMonitor == null || gameTimeManager == null)
         {
-            Debug.LogWarning(
+            LogWarning(
                 name + ": Airport visitor experience requires UtilityNeeds, " +
                 "EnvironmentScoreMonitor and GameTimeManager.",
                 this);
@@ -67,7 +70,7 @@ public class AirportVisitorExperience : MonoBehaviour
         {
             needs.NeedsChanged -= HandleNeedsChanged;
             environmentMonitor.ScoreUpdated -= HandleEnvironmentScoreUpdated;
-            Debug.LogWarning(
+            LogWarning(
                 name + ": No active AirportRatingManager found. Add the component to your scene's AirportRatingManager GameObject.",
                 this);
         }
@@ -138,4 +141,9 @@ public class AirportVisitorExperience : MonoBehaviour
         return (gameTimeManager.CurrentDay - 1) * 86400L +
                gameTimeManager.GetGameTimeSeconds();
     }
+
+    private void Log(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.Log(message, context); else Debug.Log(message); }
+    private void LogWarning(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message); }
+    private void LogError(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogError(message, context); else Debug.LogError(message); }
+    private void LogException(System.Exception exception, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception); }
 }

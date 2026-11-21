@@ -8,6 +8,9 @@ using UnityEngine.UIElements;
 /// </summary>
 public class AirportRatingUI : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+{
     [Header("References")]
     [SerializeField] private UIDocument uiDocument;
     [SerializeField] private AirportRatingManager ratingManager;
@@ -49,7 +52,7 @@ public class AirportRatingUI : MonoBehaviour
 
         if (uiDocument == null)
         {
-            Debug.LogError(
+            LogError(
                 "AirportRatingUI: UIDocument is missing. Assign the main AirportUI UIDocument.",
                 this);
             enabled = false;
@@ -60,7 +63,7 @@ public class AirportRatingUI : MonoBehaviour
 
         if (root == null)
         {
-            Debug.LogError(
+            LogError(
                 "AirportRatingUI: The UIDocument has no root element.",
                 this);
             enabled = false;
@@ -446,4 +449,9 @@ public class AirportRatingUI : MonoBehaviour
         visitorHoursLabel.text =
             $"{ratingManager.RecordedVisitorHours:N1} h";
     }
+
+    private void Log(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.Log(message, context); else Debug.Log(message); }
+    private void LogWarning(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message); }
+    private void LogError(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogError(message, context); else Debug.LogError(message); }
+    private void LogException(System.Exception exception, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception); }
 }

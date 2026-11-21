@@ -6,6 +6,9 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class FuelTruckLotSpawner : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+{
     [Header("Prefab")]
     [SerializeField] private GameObject fuelTruckPrefab;
 
@@ -26,7 +29,7 @@ public class FuelTruckLotSpawner : MonoBehaviour
     {
         if (fuelTruckPrefab == null)
         {
-            Debug.LogError(
+            LogError(
                 "FuelTruckLotSpawner: Airport fuel truck prefab is not assigned.",
                 this);
             return;
@@ -63,7 +66,7 @@ public class FuelTruckLotSpawner : MonoBehaviour
 
         if (truckController == null)
         {
-            Debug.LogError(
+            LogError(
                 "FuelTruckLotSpawner: Airport fuel truck prefab must have " +
                 "an AirportFuelTruckController component on its root.",
                 spawnedFuelTruck);
@@ -89,7 +92,7 @@ public class FuelTruckLotSpawner : MonoBehaviour
 
         if (showDebugMessages)
         {
-            Debug.Log(
+            Log(
                 "FuelTruckLotSpawner: Spawned airport fuel truck at " +
                 gameObject.name + ".",
                 this);
@@ -100,5 +103,30 @@ public class FuelTruckLotSpawner : MonoBehaviour
     {
         if (spawnedFuelTruck != null)
             Destroy(spawnedFuelTruck);
+    }
+
+ 
+    private void Log(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.Log(message, context); else Debug.Log(message);
+    }
+
+    private void LogWarning(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message);
+    }
+
+    private void LogError(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.LogError(message, context); else Debug.LogError(message);
+    }
+
+    private void LogException(System.Exception exception, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception);
     }
 }

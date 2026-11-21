@@ -5,6 +5,9 @@ using UnityEngine.UIElements;
 
 public class WallFinishPainter : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+{
     [Header("References")]
     [SerializeField] private Camera mainCamera;
     [SerializeField] private GridManager gridManager;
@@ -156,7 +159,7 @@ public class WallFinishPainter : MonoBehaviour
             wallFinishRenderer.Catalogue == null ||
             wallFinishRenderer.Catalogue.SharedRenderMaterial == null)
         {
-            Debug.LogError(
+            LogError(
                 "WallFinishPainter: Add a WallFinishRenderer to the scene and assign its generated WallFinishCatalogue.",
                 this);
             return;
@@ -164,7 +167,7 @@ public class WallFinishPainter : MonoBehaviour
 
         if (finish == null || finish.material == null)
         {
-            Debug.LogWarning(
+            LogWarning(
                 "WallFinishPainter: Selected finish or its material is missing.",
                 this);
             return;
@@ -185,7 +188,7 @@ public class WallFinishPainter : MonoBehaviour
             wallFinishRenderer.Catalogue == null ||
             wallFinishRenderer.Catalogue.SharedRenderMaterial == null)
         {
-            Debug.LogError(
+            LogError(
                 "WallFinishPainter: Add a WallFinishRenderer to the scene and assign its generated WallFinishCatalogue.",
                 this);
             return;
@@ -456,4 +459,9 @@ public class WallFinishPainter : MonoBehaviour
                buildWindow.worldBound.Contains(
                    Mouse.current.position.ReadValue());
     }
+
+    private void Log(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.Log(message, context); else Debug.Log(message); }
+    private void LogWarning(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message); }
+    private void LogError(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogError(message, context); else Debug.LogError(message); }
+    private void LogException(System.Exception exception, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception); }
 }

@@ -6,6 +6,9 @@ using UnityEngine;
 [RequireComponent(typeof(AirportCargoVehicleController))]
 public class AirportCargoOutgoingBaggageJob : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+{
     private enum JobState
     {
         Idle,
@@ -62,7 +65,7 @@ public class AirportCargoOutgoingBaggageJob : MonoBehaviour
     {
         if (IsBusy)
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"{name}: Cannot start outgoing baggage. " +
                 "Another outgoing job is already active.",
                 this
@@ -76,7 +79,7 @@ public class AirportCargoOutgoingBaggageJob : MonoBehaviour
             assignedActualGate == null ||
             string.IsNullOrWhiteSpace(operationId))
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"{name}: Outgoing baggage job has missing references.",
                 this
             );
@@ -86,7 +89,7 @@ public class AirportCargoOutgoingBaggageJob : MonoBehaviour
 
         if (vehicle.IsMoving || vehicle.CarriedPackageCount > 0)
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"{name}: Vehicle must be stationary and empty " +
                 "before starting outgoing baggage loading.",
                 this
@@ -104,7 +107,7 @@ public class AirportCargoOutgoingBaggageJob : MonoBehaviour
             !identity.HasActualGate ||
             identity.ActualGateStableId != assignedActualGate.StableId)
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"{name}: Outgoing job rejected because the aircraft " +
                 "identity or actual gate does not match.",
                 this
@@ -119,7 +122,7 @@ public class AirportCargoOutgoingBaggageJob : MonoBehaviour
         if (requestedManifest == null ||
             !requestedManifest.IsInitialized)
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"{name}: Aircraft loading manifest is unavailable.",
                 this
             );
@@ -129,7 +132,7 @@ public class AirportCargoOutgoingBaggageJob : MonoBehaviour
 
         if (!requestedManifest.HasOutgoingBaggageRemaining)
         {
-            Debug.Log(
+            Log(
                 $"{name}: No outgoing baggage remains for {operationId}.",
                 this
             );
@@ -154,7 +157,7 @@ public class AirportCargoOutgoingBaggageJob : MonoBehaviour
             if (startingZone.AirportVehicleStopPoint == null ||
                 startingZone.CargoAreaPoint == null)
             {
-                Debug.LogWarning(
+                LogWarning(
                     $"{name}: The supplied starting cargo zone " +
                     "is missing a required stop or cargo-area point.",
                     this
@@ -168,7 +171,7 @@ public class AirportCargoOutgoingBaggageJob : MonoBehaviour
             state = JobState.DrivingToCargoZone;
             jobStatus = "Collecting outgoing baggage at cargo zone";
 
-            Debug.Log(
+            Log(
                 $"{name}: Starting outgoing baggage for {operationId} " +
                 $"directly at cargo zone '{cargoZone.name}'. " +
                 $"Destination gate: {actualGate.StableId}.",
@@ -187,7 +190,7 @@ public class AirportCargoOutgoingBaggageJob : MonoBehaviour
         {
             ResetJob();
 
-            Debug.LogWarning(
+            LogWarning(
                 $"{name}: No reachable cargo zone was found for " +
                 $"{operationId}.",
                 this
@@ -199,7 +202,7 @@ public class AirportCargoOutgoingBaggageJob : MonoBehaviour
         state = JobState.DrivingToCargoZone;
         jobStatus = "Driving to cargo zone";
 
-        Debug.Log(
+        Log(
             $"{name}: Outgoing baggage job started for {operationId}. " +
             $"Destination gate: {actualGate.StableId}.",
             this
@@ -299,7 +302,7 @@ private void CollectAndReservePackages()
                 state = JobState.DrivingToCargoZone;
                 jobStatus = "Driving to cargo zone with available baggage";
 
-                Debug.Log(
+                Log(
                     $"{name}: No matching packages at the current zone. " +
                     $"Searching another cargo zone for flight " +
                     $"{currentOperationId}.",
@@ -340,7 +343,7 @@ private void CollectAndReservePackages()
 
             ReturnPackageToZone(package);
 
-            Debug.LogWarning(
+            LogWarning(
                 $"{name}: Package '{package.PackageId}' could not be " +
                 "reserved in the aircraft manifest and was returned.",
                 this
@@ -373,7 +376,7 @@ private void CollectAndReservePackages()
 
         jobStatus = "Driving to aircraft gate";
 
-        Debug.Log(
+        Log(
             $"{name}: Reserved {reservedPackageCount} outgoing package(s). " +
             $"Driving to actual gate '{actualGate.StableId}'.",
             this
@@ -426,7 +429,7 @@ private void CollectAndReservePackages()
 
             cargoZone = zone;
 
-            Debug.Log(
+            Log(
                 $"{name}: Found {availablePackageCount} available " +
                 $"outgoing package(s) for {currentOperationId} at " +
                 $"cargo zone '{zone.name}'.",
@@ -481,7 +484,7 @@ private void CollectAndReservePackages()
         state = JobState.OpeningCargoDoors;
         jobStatus = "Opening aircraft cargo doors";
 
-        Debug.Log(
+        Log(
             $"{name}: Arrived at aircraft gate '{actualGate.StableId}'. " +
             "Opening cargo doors; loading begins after 2 in-game minutes.",
             this
@@ -515,7 +518,7 @@ private void CollectAndReservePackages()
                     state = JobState.LoadingBaggage;
                     jobStatus = "Loading outgoing baggage";
 
-                    Debug.Log(
+                    Log(
                         $"{name}: Cargo doors are open. " +
                         "Loading one bag every 30 in-game seconds.",
                         this
@@ -530,7 +533,7 @@ private void CollectAndReservePackages()
                         state = JobState.ClosingCargoDoors;
                         jobStatus = "Closing aircraft cargo doors";
 
-                        Debug.Log(
+                        Log(
                             $"{name}: All reserved bags have been loaded. " +
                             "Closing cargo doors.",
                             this
@@ -553,7 +556,7 @@ private void CollectAndReservePackages()
                         state = JobState.ClosingCargoDoors;
                         jobStatus = "Closing aircraft cargo doors";
 
-                        Debug.Log(
+                        Log(
                             $"{name}: All reserved bags have been loaded. " +
                             "Closing cargo doors.",
                             this
@@ -637,7 +640,7 @@ private void CollectAndReservePackages()
         loadedPackageCount++;
         reservedPackageCount = reservedPackageIds.Count;
 
-        Debug.Log(
+        Log(
             $"{name}: Loaded outgoing bag {loadedPackageCount}/" +
             $"{manifest.ExpectedOutgoingBaggageCount} for " +
             $"{currentOperationId}.",
@@ -665,7 +668,7 @@ private void CollectAndReservePackages()
             return;
         }
 
-        Debug.Log(
+        Log(
             $"{name}: Outgoing baggage job completed for " +
             $"{currentOperationId}. Loaded: {loadedPackageCount}. " +
             $"Remaining manifest load: {manifest.RemainingOutgoingBaggage}.",
@@ -743,7 +746,7 @@ private void CollectAndReservePackages()
 
     private void AbortJob(string reason)
     {
-        Debug.LogWarning(
+        LogWarning(
             $"{name}: Outgoing baggage job failed. {reason}",
             this
         );
@@ -810,4 +813,9 @@ private void CollectAndReservePackages()
         float dz = a.z - b.z;
         return dx * dx + dz * dz;
     }
+
+    private void Log(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.Log(message, context); else Debug.Log(message); }
+    private void LogWarning(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message); }
+    private void LogError(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogError(message, context); else Debug.LogError(message); }
+    private void LogException(System.Exception exception, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception); }
 }

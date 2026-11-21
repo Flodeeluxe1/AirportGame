@@ -3,6 +3,9 @@ using UnityEngine;
 
 public class RoadNetwork : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+{
     public const int RoadModuleSize = 2;
 
     private class RoadCell
@@ -454,11 +457,11 @@ public class RoadNetwork : MonoBehaviour
     [ContextMenu("Debug All Road Cells")]
     private void DebugAllRoadCells()
     {
-        Debug.Log($"========== ROAD NETWORK: {roadCells.Count} MODULES ==========");
+        Log($"========== ROAD NETWORK: {roadCells.Count} MODULES ==========");
         foreach (var entry in roadCells)
         {
             RoadCell cell = entry.Value;
-            Debug.Log($"ROAD MODULE {cell.Position} | Direction: {cell.Direction} | Connections: {GetConnectionMask(cell.Position)}");
+            Log($"ROAD MODULE {cell.Position} | Direction: {cell.Direction} | Connections: {GetConnectionMask(cell.Position)}");
         }
     }
 
@@ -580,4 +583,9 @@ public class RoadNetwork : MonoBehaviour
                    (a.Priority == b.Priority && a.Order < b.Order);
         }
     }
+
+    private void Log(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.Log(message, context); else Debug.Log(message); }
+    private void LogWarning(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message); }
+    private void LogError(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogError(message, context); else Debug.LogError(message); }
+    private void LogException(System.Exception exception, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception); }
 }

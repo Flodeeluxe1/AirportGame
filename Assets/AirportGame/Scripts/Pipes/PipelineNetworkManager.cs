@@ -10,6 +10,9 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public sealed class PipelineNetworkManager : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+{
     public sealed class PipelineNetwork
     {
         public IReadOnlyCollection<Vector2Int> PipeCells => pipeCells;
@@ -290,7 +293,7 @@ public sealed class PipelineNetworkManager : MonoBehaviour
 
         if (pipelineRuleManager == null)
         {
-            Debug.LogWarning(
+            LogWarning(
                 "PipelineNetworkManager: PipelinePrefabRuleManager was not found.",
                 this);
             return;
@@ -401,7 +404,7 @@ public sealed class PipelineNetworkManager : MonoBehaviour
 
         if (logNetworkRebuilds)
         {
-            Debug.Log(
+            Log(
                 $"PIPELINE NETWORKS REBUILT | Networks: {networks.Count} | " +
                 $"Connected connectors: {connectorNetworks.Count} | " +
                 $"Total stored fuel: {GetTotalStoredFuel():F1} L",
@@ -474,7 +477,7 @@ public sealed class PipelineNetworkManager : MonoBehaviour
         int unmatched = pendingSavedInventories.Count - usedSavedNetworks.Count;
         if (unmatched > 0)
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"PipelineNetworkManager: {unmatched} saved fuel network(s) " +
                 "could not be matched to the restored pipeline layout.",
                 this);
@@ -529,7 +532,7 @@ public sealed class PipelineNetworkManager : MonoBehaviour
 
                 if (accepted < share)
                 {
-                    Debug.LogWarning(
+                    LogWarning(
                         "PipelineNetworkManager: Fuel exceeded the capacity of a " +
                         "resulting network during a topology change. Excess fuel was discarded.",
                         this);
@@ -580,4 +583,9 @@ public sealed class PipelineNetworkManager : MonoBehaviour
         foreach (FuelConnector connector in network.Connectors)
             connectorNetworks[connector] = network;
     }
+
+    private void Log(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.Log(message, context); else Debug.Log(message); }
+    private void LogWarning(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message); }
+    private void LogError(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogError(message, context); else Debug.LogError(message); }
+    private void LogException(System.Exception exception, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception); }
 }

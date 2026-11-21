@@ -4,6 +4,9 @@ using UnityEngine;
 
 public class TaxiwayNetwork : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+{
     private class TaxiwayCell
     {
         public Vector2Int Position;
@@ -101,7 +104,7 @@ public class TaxiwayNetwork : MonoBehaviour
     {
         if (definition == null || owner == null)
         {
-            Debug.LogWarning(
+            LogWarning(
                 "TaxiwayNetwork: Cannot register a runway cell " +
                 "without a definition and registration owner.");
             return false;
@@ -207,7 +210,7 @@ public class TaxiwayNetwork : MonoBehaviour
     {
         if (definition == null)
         {
-            Debug.LogWarning(
+            LogWarning(
                 "TaxiwayNetwork: Cannot add a cell " +
                 "without a BuildableDefinition."
             );
@@ -221,7 +224,7 @@ public class TaxiwayNetwork : MonoBehaviour
         {
             if (existingCell.Definition != definition)
             {
-                Debug.LogWarning(
+                LogWarning(
                     $"TaxiwayNetwork: Cell {position} " +
                     "already belongs to another taxiway definition."
                 );
@@ -360,15 +363,15 @@ public class TaxiwayNetwork : MonoBehaviour
     [ContextMenu("Debug All Taxiway Cells")]
     private void DebugAllTaxiwayCells()
     {
-        Debug.Log(
+        Log(
             "========== TAXIWAY NETWORK DEBUG =========="
         );
 
-        Debug.Log(
+        Log(
             $"Total Taxiway Footprint Cells: {taxiwayCells.Count}"
         );
 
-        Debug.Log(
+        Log(
             $"Total Centerline Cells: {centerlineCells.Count}"
         );
 
@@ -378,12 +381,12 @@ public class TaxiwayNetwork : MonoBehaviour
         {
             TaxiwayCell cell = entry.Value;
 
-            Debug.Log(
+            Log(
                 BuildDebugText(cell)
             );
         }
 
-        Debug.Log(
+        Log(
             "========== END TAXIWAY NETWORK DEBUG =========="
         );
     }
@@ -437,7 +440,7 @@ public class TaxiwayNetwork : MonoBehaviour
 
             if (cell.Definition == null)
             {
-                Debug.LogWarning(
+                LogWarning(
                     $"TaxiwayNetwork: Skipping cell {position}; " +
                     "its BuildableDefinition is missing."
                 );
@@ -447,7 +450,7 @@ public class TaxiwayNetwork : MonoBehaviour
 
             if (string.IsNullOrWhiteSpace(cell.Definition.id))
             {
-                Debug.LogWarning(
+                LogWarning(
                     $"TaxiwayNetwork: Skipping cell {position}; " +
                     "its definition has no stable ID."
                 );
@@ -466,4 +469,9 @@ public class TaxiwayNetwork : MonoBehaviour
 
         return result;
     }
+
+    private void Log(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.Log(message, context); else Debug.Log(message); }
+    private void LogWarning(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message); }
+    private void LogError(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogError(message, context); else Debug.LogError(message); }
+    private void LogException(System.Exception exception, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception); }
 }

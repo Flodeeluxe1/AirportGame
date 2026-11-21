@@ -5,6 +5,9 @@ using UnityEngine;
 [RequireComponent(typeof(AirportGroundVehicleMovement))]
 public class AirportCargoVehicleController : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+{
     [Header("Movement Component")]
     [SerializeField]
     private AirportGroundVehicleMovement groundVehicleMovement;
@@ -75,7 +78,7 @@ public class AirportCargoVehicleController : MonoBehaviour
 
         if (groundVehicleMovement == null)
         {
-            Debug.LogError(
+            LogError(
                 $"{name}: AirportGroundVehicleMovement is missing. " +
                 "Add it to the cargo tug prefab.",
                 this);
@@ -98,7 +101,7 @@ public class AirportCargoVehicleController : MonoBehaviour
 
         if (cargoZoneTestTarget == null)
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"{name}: Assign a Cargo Zone Test Target in the Inspector.",
                 this);
             return;
@@ -122,7 +125,7 @@ public class AirportCargoVehicleController : MonoBehaviour
                 cargoZoneTestTarget,
                 testFlightOperationId);
 
-            Debug.Log(
+            Log(
                 $"{name}: Collection test finished. " +
                 $"Collected: {collected}, " +
                 $"carried: {CarriedPackageCount}/{MaximumCargoCapacity}, " +
@@ -156,7 +159,7 @@ public class AirportCargoVehicleController : MonoBehaviour
         if (groundVehicleMovement != null)
             groundVehicleMovement.SetHomeArea(spawnPoint);
 
-        Debug.Log(
+        Log(
             $"{name}: Home spawn point set to " +
             $"{(spawnPoint != null ? spawnPoint.name : "None")}.",
             this);
@@ -170,7 +173,7 @@ public class AirportCargoVehicleController : MonoBehaviour
     {
         if (homeSpawnPoint == null)
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"{name}: Cannot return home because no home spawn point " +
                 "has been assigned.",
                 this);
@@ -214,7 +217,7 @@ public class AirportCargoVehicleController : MonoBehaviour
             return false;
         }
 
-        Debug.Log(
+        Log(
             $"{name}: Returning to cargo tug lot '{homeSpawnPoint.name}' " +
             $"at {target}.",
             this);
@@ -230,7 +233,7 @@ public class AirportCargoVehicleController : MonoBehaviour
 
         if (IsMoving)
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"{name}: Cannot recalculate while the vehicle is moving. " +
                 "Stop the vehicle first.",
                 this);
@@ -251,7 +254,7 @@ public class AirportCargoVehicleController : MonoBehaviour
 
         isReturningHome = false;
 
-        Debug.Log(
+        Log(
             $"{name}: Return-home journey cancelled for a new assignment.",
             this);
     }
@@ -292,7 +295,7 @@ public class AirportCargoVehicleController : MonoBehaviour
             {
                 isReturningHome = false;
 
-                Debug.Log(
+                Log(
                     $"{name}: Returned to the cargo tug lot.",
                     this);
             }
@@ -319,7 +322,7 @@ public class AirportCargoVehicleController : MonoBehaviour
             {
                 isReturningHome = false;
 
-                Debug.LogWarning(
+                LogWarning(
                     $"{name}: Could not recalculate the return route " +
                     "after the cargo tug lot moved.",
                     this);
@@ -396,7 +399,7 @@ public class AirportCargoVehicleController : MonoBehaviour
 
     private bool ReportMissingMovementComponent()
     {
-        Debug.LogError(
+        LogError(
             $"{name}: Cannot move because AirportGroundVehicleMovement " +
             "is missing.",
             this);
@@ -412,7 +415,7 @@ public class AirportCargoVehicleController : MonoBehaviour
     {
         if (zone == null)
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"{name}: Cannot move to cargo zone: the zone reference is missing.",
                 this);
             return false;
@@ -420,7 +423,7 @@ public class AirportCargoVehicleController : MonoBehaviour
 
         if (zone.AirportVehicleStopPoint == null)
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"Cargo zone '{zone.name}' has no AirportVehicleStopPoint.",
                 this);
             return false;
@@ -434,7 +437,7 @@ public class AirportCargoVehicleController : MonoBehaviour
             ? grid.WorldToGrid(stopPoint.position).ToString()
             : "GridManager not found";
 
-        Debug.Log(
+        Log(
             $"{name}: CARGO ZONE ROUTE DIAGNOSTICS\n" +
             $"Zone: {zone.name} (ID: {zone.gameObject.GetEntityId()})\n" +
             $"Zone parent: {(zone.transform.parent != null ? zone.transform.parent.name : "None")}\n" +
@@ -447,7 +450,7 @@ public class AirportCargoVehicleController : MonoBehaviour
             $"Tug position: {transform.position}",
             this);
 
-        Debug.Log(
+        Log(
             $"{name}: Navigating to cargo zone '{zone.name}'.",
             this);
 
@@ -466,7 +469,7 @@ public class AirportCargoVehicleController : MonoBehaviour
     {
         if (zone == null)
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"{name}: Cannot collect cargo because the zone is missing.",
                 this);
             return 0;
@@ -474,7 +477,7 @@ public class AirportCargoVehicleController : MonoBehaviour
 
         if (string.IsNullOrWhiteSpace(flightOperationId))
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"{name}: Cannot collect cargo without a flight operation ID.",
                 this);
             return 0;
@@ -484,7 +487,7 @@ public class AirportCargoVehicleController : MonoBehaviour
 
         if (freeCapacity <= 0)
         {
-            Debug.Log(
+            Log(
                 $"{name}: Cargo capacity is full " +
                 $"({CarriedPackageCount}/{MaximumCargoCapacity}).",
                 this);
@@ -515,7 +518,7 @@ public class AirportCargoVehicleController : MonoBehaviour
 
         RefreshCarriedPackageCount();
 
-        Debug.Log(
+        Log(
             $"{name}: Collected {collected} package(s) for flight " +
             $"{flightOperationId} from zone '{zone.name}'. " +
             $"Vehicle load: {CarriedPackageCount}/{MaximumCargoCapacity}.",
@@ -591,4 +594,9 @@ public class AirportCargoVehicleController : MonoBehaviour
         RefreshCarriedPackageCount();
         return true;
     }
+
+    private void Log(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.Log(message, context); else Debug.Log(message); }
+    private void LogWarning(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message); }
+    private void LogError(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogError(message, context); else Debug.LogError(message); }
+    private void LogException(System.Exception exception, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception); }
 }

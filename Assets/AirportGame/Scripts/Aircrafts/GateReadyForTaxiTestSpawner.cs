@@ -4,6 +4,9 @@ using UnityEngine;
 
 public class GateReadyForTaxiTestSpawner : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+{
     [Header("Aircraft")]
     [SerializeField]
     private GameObject aircraftPrefab;
@@ -66,7 +69,7 @@ public class GateReadyForTaxiTestSpawner : MonoBehaviour
 
         if (aircraftPrefab == null)
         {
-            Debug.LogError(
+            LogError(
                 $"{name}: Aircraft Prefab is not assigned.",
                 this
             );
@@ -111,7 +114,7 @@ public class GateReadyForTaxiTestSpawner : MonoBehaviour
 
         if (gateExitController == null || departureController == null)
         {
-            Debug.LogError(
+            LogError(
                 $"{aircraft.name}: Required gate-exit or departure controller is missing.",
                 aircraft
             );
@@ -125,7 +128,7 @@ public class GateReadyForTaxiTestSpawner : MonoBehaviour
 
         spawnedCount++;
 
-        Debug.Log(
+        Log(
             $"DEPARTURE TEST AIRCRAFT SPAWNED | " +
             $"Aircraft: {aircraft.name} | " +
             $"Spawned: {spawnedCount}/{maximumAircraftToSpawn} | " +
@@ -148,10 +151,15 @@ public class GateReadyForTaxiTestSpawner : MonoBehaviour
     {
         spawnedCount = 0;
 
-        Debug.Log(
+        Log(
             $"{name}: Test spawner counter reset. " +
             "Existing aircraft have not been destroyed.",
             this
         );
     }
+
+    private void Log(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.Log(message, context); else Debug.Log(message); }
+    private void LogWarning(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message); }
+    private void LogError(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogError(message, context); else Debug.LogError(message); }
+    private void LogException(System.Exception exception, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception); }
 }

@@ -6,6 +6,9 @@ using UnityEngine;
 
 public class ScheduledAircraftSpawner : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+{
     [Header("References")]
     [SerializeField] private GameObject aircraftPrefab;
     [SerializeField] private GameObject passengerAircraftPrefab;
@@ -121,7 +124,7 @@ public class ScheduledAircraftSpawner : MonoBehaviour
 
         if (aircraftPrefab == null)
         {
-            Debug.LogError(
+            LogError(
                 "ScheduledAircraftSpawner: Assign an aircraft prefab.",
                 this
             );
@@ -131,7 +134,7 @@ public class ScheduledAircraftSpawner : MonoBehaviour
 
         if (spawnPoint == null)
         {
-            Debug.LogError(
+            LogError(
                 "ScheduledAircraftSpawner: Assign a spawn point Transform.",
                 this
             );
@@ -141,7 +144,7 @@ public class ScheduledAircraftSpawner : MonoBehaviour
 
         if (flightCatalog == null)
         {
-            Debug.LogError(
+            LogError(
                 "ScheduledAircraftSpawner: TestFlightCatalog is missing.",
                 this
             );
@@ -151,7 +154,7 @@ public class ScheduledAircraftSpawner : MonoBehaviour
 
         if (gameTimeManager == null)
         {
-            Debug.LogError(
+            LogError(
                 "ScheduledAircraftSpawner: GameTimeManager is missing.",
                 this
             );
@@ -167,7 +170,7 @@ public class ScheduledAircraftSpawner : MonoBehaviour
         gameDayIndex = gameTimeManager.CurrentDay - 1;
         initialized = true;
 
-        Debug.Log(
+        Log(
             $"ScheduledAircraftSpawner ready. Game time: " +
             $"{gameTimeManager.FormattedTime}. " +
             $"Saved flights loaded: {scheduledFlights.Count}. " +
@@ -316,7 +319,7 @@ public class ScheduledAircraftSpawner : MonoBehaviour
 
             if (logQueueChanges)
             {
-                Debug.Log(
+                Log(
                     $"Scheduled arrival skipped | Flight: " +
                     $"{scheduled.Definition.FlightNumber} | " +
                     "No valid CEO Office.",
@@ -339,7 +342,7 @@ public class ScheduledAircraftSpawner : MonoBehaviour
 
         if (logQueueChanges)
         {
-            Debug.Log(
+            Log(
                 $"Aircraft added to spawn queue | " +
                 $"Flight: {scheduled.Definition.FlightNumber} | " +
                 $"Planned time: {FormatTime(scheduled.StartMinute)} | " +
@@ -402,7 +405,7 @@ public class ScheduledAircraftSpawner : MonoBehaviour
 
         if (logQueueChanges)
         {
-            Debug.Log(
+            Log(
                 $"Aircraft spawn interval started. Next aircraft " +
                 $"can spawn after {spawnIntervalSeconds} game seconds. " +
                 $"Aircraft remaining in queue: {spawnQueue.Count}.",
@@ -437,7 +440,7 @@ public class ScheduledAircraftSpawner : MonoBehaviour
 
                 if (prefabToSpawn == null)
                 {
-                    Debug.LogError(
+                    LogError(
                         $"Cannot spawn passenger flight " +
                         $"{scheduled.Definition.FlightNumber}: assign " +
                         "Passenger Aircraft Prefab on ScheduledAircraftSpawner.",
@@ -448,7 +451,7 @@ public class ScheduledAircraftSpawner : MonoBehaviour
                 break;
 
             case FlightOperationType.CargoAndPassengers:
-                Debug.LogError(
+                LogError(
                     $"Cannot spawn flight {scheduled.Definition.FlightNumber}: " +
                     "Cargo + passengers is not supported by the spawner yet.",
                     this
@@ -456,7 +459,7 @@ public class ScheduledAircraftSpawner : MonoBehaviour
                 return false;
 
             default:
-                Debug.LogError(
+                LogError(
                     $"Cannot spawn flight {scheduled.Definition.FlightNumber}: " +
                     $"unknown operation type {scheduled.Definition.OperationType}.",
                     this
@@ -466,7 +469,7 @@ public class ScheduledAircraftSpawner : MonoBehaviour
 
         if (prefabToSpawn == null)
         {
-            Debug.LogError(
+            LogError(
                 $"Cannot spawn flight {scheduled.Definition.FlightNumber}: " +
                 "the selected aircraft prefab is not assigned.",
                 this
@@ -497,7 +500,7 @@ public class ScheduledAircraftSpawner : MonoBehaviour
         {
             identity = aircraft.AddComponent<AircraftFlightIdentity>();
 
-            Debug.LogWarning(
+            LogWarning(
                 "The aircraft prefab had no AircraftFlightIdentity. " +
                 "One was added at runtime; add it to the prefab as well.",
                 aircraft
@@ -527,7 +530,7 @@ public class ScheduledAircraftSpawner : MonoBehaviour
                 ? "GateAssignmentController was not found."
                 : reservationMessage;
 
-            Debug.LogWarning(
+            LogWarning(
                 $"Aircraft spawn postponed | Flight: " +
                 $"{scheduled.Definition.FlightNumber} | {reason}",
                 this
@@ -541,7 +544,7 @@ public class ScheduledAircraftSpawner : MonoBehaviour
 
         if (logAircraftSpawns)
         {
-            Debug.Log(
+            Log(
                 $"Scheduled flight spawned | " +
                 $"Flight: {scheduled.Definition.FlightNumber} | " +
                 $"Operation: {scheduled.Definition.OperationLabel} | " +
@@ -567,7 +570,7 @@ public class ScheduledAircraftSpawner : MonoBehaviour
 
                 if (logScheduleReloads)
                 {
-                    Debug.Log(
+                    Log(
                         "Saved flight schedule file was removed. " +
                         "Scheduled spawning is paused until a schedule exists.",
                         this
@@ -591,7 +594,7 @@ public class ScheduledAircraftSpawner : MonoBehaviour
         }
         catch (Exception exception)
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"Could not inspect the flight schedule file: " +
                 $"{exception.Message}",
                 this
@@ -643,7 +646,7 @@ public class ScheduledAircraftSpawner : MonoBehaviour
                         string.IsNullOrWhiteSpace(saved.flightNumber) ||
                         string.IsNullOrWhiteSpace(saved.gateStableId))
                     {
-                        Debug.LogWarning(
+                        LogWarning(
                             "Skipping an incomplete saved schedule entry.",
                             this
                         );
@@ -654,7 +657,7 @@ public class ScheduledAircraftSpawner : MonoBehaviour
                         saved.startMinute >= MinutesPerDay ||
                         saved.startMinute % 15 != 0)
                     {
-                        Debug.LogWarning(
+                        LogWarning(
                             $"Skipping {saved.flightNumber}: invalid " +
                             $"start minute {saved.startMinute}.",
                             this
@@ -664,7 +667,7 @@ public class ScheduledAircraftSpawner : MonoBehaviour
 
                     if (!seenFlightNumbers.Add(saved.flightNumber))
                     {
-                        Debug.LogWarning(
+                        LogWarning(
                             $"Skipping duplicate scheduled flight " +
                             $"{saved.flightNumber}.",
                             this
@@ -677,7 +680,7 @@ public class ScheduledAircraftSpawner : MonoBehaviour
 
                     if (definition == null)
                     {
-                        Debug.LogWarning(
+                        LogWarning(
                             $"Skipping {saved.flightNumber}: no matching " +
                             "definition exists in TestFlightCatalog.",
                             this
@@ -688,7 +691,7 @@ public class ScheduledAircraftSpawner : MonoBehaviour
                     if (definition.OperationType ==
                         FlightOperationType.CargoAndPassengers)
                     {
-                        Debug.LogWarning(
+                        LogWarning(
                             $"Skipping scheduled flight {saved.flightNumber}: " +
                             "cargo + passengers is not supported by " +
                             "ScheduledAircraftSpawner yet.",
@@ -719,7 +722,7 @@ public class ScheduledAircraftSpawner : MonoBehaviour
 
             if (logScheduleReloads)
             {
-                Debug.Log(
+                Log(
                     $"Scheduled aircraft spawner loaded " +
                     $"{scheduledFlights.Count} flight(s) from " +
                     $"{ScheduleFilePath}.",
@@ -729,7 +732,7 @@ public class ScheduledAircraftSpawner : MonoBehaviour
         }
         catch (Exception exception)
         {
-            Debug.LogError(
+            LogError(
                 $"Could not load flight schedule from " +
                 $"{ScheduleFilePath}. The last successfully loaded " +
                 $"schedule will be retained.\n{exception}",
@@ -764,4 +767,9 @@ public class ScheduledAircraftSpawner : MonoBehaviour
 
         return $"{minutes / 60:00}:{minutes % 60:00}";
     }
+
+    private void Log(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.Log(message, context); else Debug.Log(message); }
+    private void LogWarning(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message); }
+    private void LogError(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogError(message, context); else Debug.LogError(message); }
+    private void LogException(System.Exception exception, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception); }
 }

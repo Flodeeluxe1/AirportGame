@@ -3,6 +3,9 @@ using UnityEngine.UIElements;
 
 public class FloorFinishMenuController : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+{
     [Header("References")]
     [SerializeField] private UIDocument uiDocument;
     [SerializeField] private FloorFinishCatalogue catalogue;
@@ -29,7 +32,7 @@ public class FloorFinishMenuController : MonoBehaviour
 
         if (uiDocument == null)
         {
-            Debug.LogError("FloorFinishMenuController: UIDocument is missing.", this);
+            LogError("FloorFinishMenuController: UIDocument is missing.", this);
             enabled = false;
             return;
         }
@@ -45,7 +48,7 @@ public class FloorFinishMenuController : MonoBehaviour
         if (buildWindow == null || categoryPanel == null ||
             categoryList == null || buildableList == null || floorFinishesButton == null)
         {
-            Debug.LogError("FloorFinishMenuController: Build menu elements are missing.", this);
+            LogError("FloorFinishMenuController: Build menu elements are missing.", this);
             enabled = false;
             return;
         }
@@ -175,4 +178,9 @@ public class FloorFinishMenuController : MonoBehaviour
         if (painter != null)
             painter.CancelPainting();
     }
+
+    private void Log(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.Log(message, context); else Debug.Log(message); }
+    private void LogWarning(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message); }
+    private void LogError(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogError(message, context); else Debug.LogError(message); }
+    private void LogException(System.Exception exception, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception); }
 }

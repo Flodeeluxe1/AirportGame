@@ -5,6 +5,9 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class CargoTugLotSpawner : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+{
     [Header("Prefabs")]
     [Tooltip("The cargo tug prefab, including GuidedCargoTrailerFollower.")]
     [SerializeField] private GameObject cargoTugPrefab;
@@ -82,7 +85,7 @@ public class CargoTugLotSpawner : MonoBehaviour
 
         if (cargoTugPrefab == null)
         {
-            Debug.LogError(
+            LogError(
                 "CargoTugLotSpawner: Cargo tug prefab is not assigned.",
                 this
             );
@@ -91,7 +94,7 @@ public class CargoTugLotSpawner : MonoBehaviour
 
         if (cargoTrailerPrefab == null)
         {
-            Debug.LogError(
+            LogError(
                 "CargoTugLotSpawner: Cargo trailer prefab is not assigned.",
                 this
             );
@@ -133,7 +136,7 @@ public class CargoTugLotSpawner : MonoBehaviour
 
         if (tugController == null)
         {
-            Debug.LogError(
+            LogError(
                 "CargoTugLotSpawner: The cargo tug prefab must have an " +
                 "AirportCargoVehicleController component on its root.",
                 spawnedCargoTug
@@ -173,7 +176,7 @@ public class CargoTugLotSpawner : MonoBehaviour
 
         if (showDebugMessages)
         {
-            Debug.Log(
+            Log(
                 "CargoTugLotSpawner: Spawned cargo tug without a trailer at " +
                 gameObject.name + ".",
                 this
@@ -241,7 +244,7 @@ public class CargoTugLotSpawner : MonoBehaviour
     {
         if (slotIndex < 0 || slotIndex >= purchasedTrailers.Length)
         {
-            Debug.LogWarning(
+            LogWarning(
                 "CargoTugLotSpawner: Invalid trailer parking slot.",
                 this
             );
@@ -253,7 +256,7 @@ public class CargoTugLotSpawner : MonoBehaviour
 
         if (cargoTrailerPrefab == null)
         {
-            Debug.LogError(
+            LogError(
                 "CargoTugLotSpawner: Cargo trailer prefab is missing.",
                 this
             );
@@ -263,7 +266,7 @@ public class CargoTugLotSpawner : MonoBehaviour
         if (trailerParkingPositions == null ||
             trailerParkingPositions[slotIndex] == null)
         {
-            Debug.LogError(
+            LogError(
                 "CargoTugLotSpawner: Parking position P" +
                 (slotIndex + 1) + " was not found.",
                 this
@@ -279,7 +282,7 @@ public class CargoTugLotSpawner : MonoBehaviour
 
         if (economyManager == null)
         {
-            Debug.LogError(
+            LogError(
                 "CargoTugLotSpawner: AirportEconomyManager was not found.",
                 this
             );
@@ -299,7 +302,7 @@ public class CargoTugLotSpawner : MonoBehaviour
 
         if (showDebugMessages)
         {
-            Debug.Log(
+            Log(
                 "CargoTugLotSpawner: Purchased trailer for P" +
                 (slotIndex + 1) + ".",
                 this
@@ -402,7 +405,7 @@ public class CargoTugLotSpawner : MonoBehaviour
 
         if (trailerFollower == null)
         {
-            Debug.LogError(
+            LogError(
                 "CargoTugLotSpawner: The cargo tug prefab needs a " +
                 "GuidedCargoTrailerFollower component to tow purchased trailers.",
                 spawnedCargoTug
@@ -430,7 +433,7 @@ public class CargoTugLotSpawner : MonoBehaviour
 
         if (showDebugMessages)
         {
-            Debug.Log(
+            Log(
                 "CargoTugLotSpawner: Attached " +
                 trailerCount + " purchased trailer(s) to the tug.",
                 this
@@ -472,7 +475,7 @@ public class CargoTugLotSpawner : MonoBehaviour
 
         if (showDebugMessages)
         {
-            Debug.Log(
+            Log(
                 "CargoTugLotSpawner: Tug parked. Purchased trailers " +
                 "detached and returned to their parking positions.",
                 this
@@ -500,5 +503,30 @@ public class CargoTugLotSpawner : MonoBehaviour
             spawnedCargoTug.transform.position,
             homePosition
         ) <= homeArrivalTolerance;
+    }
+
+ 
+    private void Log(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.Log(message, context); else Debug.Log(message);
+    }
+
+    private void LogWarning(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message);
+    }
+
+    private void LogError(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.LogError(message, context); else Debug.LogError(message);
+    }
+
+    private void LogException(System.Exception exception, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception);
     }
 }

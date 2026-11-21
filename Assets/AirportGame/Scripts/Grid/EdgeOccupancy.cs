@@ -3,6 +3,9 @@ using UnityEngine;
 
 public class EdgeOccupancy : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+{
     public event System.Action OccupancyChanged;
 
     private readonly Dictionary<GridEdge, GameObject> occupiedEdges =
@@ -71,7 +74,7 @@ public class EdgeOccupancy : MonoBehaviour
     {
         if (building == null)
         {
-            Debug.LogWarning(
+            LogWarning(
                 "EdgeOccupancy: Cannot occupy an edge " +
                 "with a null GameObject."
             );
@@ -149,4 +152,9 @@ public class EdgeOccupancy : MonoBehaviour
         occupiedEdges.Clear();
         OccupancyChanged?.Invoke();
     }
+
+    private void Log(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.Log(message, context); else Debug.Log(message); }
+    private void LogWarning(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message); }
+    private void LogError(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogError(message, context); else Debug.LogError(message); }
+    private void LogException(System.Exception exception, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception); }
 }

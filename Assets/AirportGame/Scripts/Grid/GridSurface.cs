@@ -3,6 +3,9 @@ using UnityEngine;
 
 public class GridSurface : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+{
     public event System.Action FoundationSurfaceChanged;
 
     [SerializeField]
@@ -40,7 +43,7 @@ public class GridSurface : MonoBehaviour
     {
         if (gridManager == null)
         {
-            Debug.LogError(
+            LogError(
                 "GridSurface: GridManager is missing."
             );
             return;
@@ -78,7 +81,7 @@ public class GridSurface : MonoBehaviour
     {
         if (gridManager == null)
         {
-            Debug.LogError(
+            LogError(
                 "GridSurface: Cannot set a surface because GridManager is missing."
             );
             return;
@@ -355,7 +358,7 @@ public class GridSurface : MonoBehaviour
     {
         if (gridManager == null || surfaces == null)
         {
-            Debug.LogWarning(
+            LogWarning(
                 "GridSurface: Cannot reset because the grid is not initialized."
             );
             return;
@@ -554,4 +557,9 @@ public class GridSurface : MonoBehaviour
     }
 
 
+
+    private void Log(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.Log(message, context); else Debug.Log(message); }
+    private void LogWarning(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message); }
+    private void LogError(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogError(message, context); else Debug.LogError(message); }
+    private void LogException(System.Exception exception, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception); }
 }

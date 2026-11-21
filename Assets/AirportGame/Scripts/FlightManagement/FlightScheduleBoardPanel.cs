@@ -7,6 +7,9 @@ using UnityEngine.UIElements;
 
 public class FlightScheduleBoardPanel : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+{
     private const string ScheduleFileName = "flight_schedule.json";
 
     [Header("References")]
@@ -88,7 +91,7 @@ public class FlightScheduleBoardPanel : MonoBehaviour
 
         if (uiDocument == null || gameTimeManager == null)
         {
-            Debug.LogError(
+            LogError(
                 "FlightScheduleBoardPanel requires a UIDocument and GameTimeManager.",
                 this);
 
@@ -417,7 +420,7 @@ public class FlightScheduleBoardPanel : MonoBehaviour
         }
         catch (Exception exception)
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"Flight status board could not read the schedule: " +
                 exception.Message,
                 this);
@@ -844,4 +847,9 @@ public class FlightScheduleBoardPanel : MonoBehaviour
                 return new Color32(203, 213, 225, 255);
         }
     }
+
+    private void Log(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.Log(message, context); else Debug.Log(message); }
+    private void LogWarning(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message); }
+    private void LogError(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogError(message, context); else Debug.LogError(message); }
+    private void LogException(System.Exception exception, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception); }
 }

@@ -3,6 +3,9 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class PedestrianMovementTest : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+{
     [SerializeField] private PedestrianMovementController movementController;
     [SerializeField] private Transform destination;
     [SerializeField] private bool logResults = true;
@@ -18,7 +21,7 @@ public class PedestrianMovementTest : MonoBehaviour
     {
         if (!Application.isPlaying)
         {
-            Debug.LogWarning("Enter Play Mode before starting the pedestrian movement test.", this);
+            LogWarning("Enter Play Mode before starting the pedestrian movement test.", this);
             return;
         }
 
@@ -27,13 +30,13 @@ public class PedestrianMovementTest : MonoBehaviour
 
         if (movementController == null)
         {
-            Debug.LogError("PedestrianMovementController is missing from this GameObject.", this);
+            LogError("PedestrianMovementController is missing from this GameObject.", this);
             return;
         }
 
         if (destination == null)
         {
-            Debug.LogError("Assign a destination Transform before starting the test.", this);
+            LogError("Assign a destination Transform before starting the test.", this);
             return;
         }
 
@@ -41,7 +44,7 @@ public class PedestrianMovementTest : MonoBehaviour
 
         if (logResults)
         {
-            Debug.Log(
+            Log(
                 started
                     ? $"Pedestrian movement test started. Destination: {destination.position}"
                     : $"Pedestrian movement test failed. Status: {movementController.MovementStatus}",
@@ -67,4 +70,9 @@ public class PedestrianMovementTest : MonoBehaviour
         Gizmos.DrawLine(transform.position, destination.position);
         Gizmos.DrawWireSphere(destination.position, 0.2f);
     }
+
+    private void Log(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.Log(message, context); else Debug.Log(message); }
+    private void LogWarning(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message); }
+    private void LogError(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogError(message, context); else Debug.LogError(message); }
+    private void LogException(System.Exception exception, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception); }
 }

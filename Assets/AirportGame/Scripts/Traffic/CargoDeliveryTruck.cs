@@ -4,6 +4,9 @@ using UnityEngine;
 
 public class CargoDeliveryTruck : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+{
     public enum TruckState
     {
         Idle,
@@ -521,7 +524,7 @@ public class CargoDeliveryTruck : MonoBehaviour
 
         if (!waitingLogShown)
         {
-            Debug.Log(
+            Log(
                 "CARGO TRUCK WAITING | " +
                 $"Flight: {GetFlightLabel()} | " +
                 $"Operation: {GetOperationLabel()} | " +
@@ -589,7 +592,7 @@ public class CargoDeliveryTruck : MonoBehaviour
             ? "Route initialized using road module anchors from spawner."
             : "Route initialized using Inspector route cells.";
 
-        Debug.Log(
+        Log(
             "CARGO TRUCK READY | " +
             $"Flight: {GetFlightLabel()} | " +
             $"Operation: {GetOperationLabel()} | " +
@@ -781,7 +784,7 @@ public class CargoDeliveryTruck : MonoBehaviour
 
         if (directionToRoad.sqrMagnitude < 0.001f)
         {
-            Debug.LogError(
+            LogError(
                 "CargoDeliveryTruck: Cannot determine the cargo-zone " +
                 "approach direction. Check VanStopPoint and road placement.",
                 this);
@@ -1117,7 +1120,7 @@ public class CargoDeliveryTruck : MonoBehaviour
             debugMessage =
                 "Cannot unload cargo: Cargo Box Prefab is not assigned.";
 
-            Debug.LogError(
+            LogError(
                 "CargoDeliveryTruck: Assign the Cargo Box Prefab " +
                 "in the Inspector.",
                 this);
@@ -1131,7 +1134,7 @@ public class CargoDeliveryTruck : MonoBehaviour
             debugMessage =
                 "Cannot unload cargo: cargo zone or cargo area is missing.";
 
-            Debug.LogError(
+            LogError(
                 "CargoDeliveryTruck: CargoZone or CargoAreaPoint is missing.",
                 this);
 
@@ -1144,7 +1147,7 @@ public class CargoDeliveryTruck : MonoBehaviour
 
         if (!hasFlightAssignment)
         {
-            Debug.LogWarning(
+            LogWarning(
                 "CargoDeliveryTruck: This truck has no scheduled flight " +
                 "assignment. Boxes will be spawned visually but will not " +
                 "be registered as outgoing flight cargo.",
@@ -1196,7 +1199,7 @@ public class CargoDeliveryTruck : MonoBehaviour
 
                 if (package == null)
                 {
-                    Debug.LogError(
+                    LogError(
                         "CargoDeliveryTruck: CargoBox prefab is missing " +
                         $"CargoPackage. Box {i + 1} is not registered.",
                         cargoBox);
@@ -1217,7 +1220,7 @@ public class CargoDeliveryTruck : MonoBehaviour
 
                     if (!registered)
                     {
-                        Debug.LogError(
+                        LogError(
                             $"CargoDeliveryTruck: Could not register " +
                             $"package {packageId} with cargo zone " +
                             $"{reservedCargoZoneComponent.name}.",
@@ -2054,7 +2057,7 @@ public class CargoDeliveryTruck : MonoBehaviour
         if (incomingCollectionMode || outgoingRecoveryMode)
             ResolveCollectedIncomingPackages(false);
 
-        Debug.LogWarning(
+        LogWarning(
             $"CargoDeliveryTruck: {message} " +
             $"Flight: {GetFlightLabel()} | " +
             $"Operation: {GetOperationLabel()}",
@@ -2139,7 +2142,7 @@ public class CargoDeliveryTruck : MonoBehaviour
                 ? "Unknown; inspect other scripts"
                 : debugDestructionReason;
 
-        Debug.LogWarning(
+        LogWarning(
             "CARGO TRUCK DESTROYED | " +
             $"Flight: {flight} | " +
             $"Operation: {operation} | " +
@@ -2149,4 +2152,9 @@ public class CargoDeliveryTruck : MonoBehaviour
             this);
     }
 
+
+    private void Log(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.Log(message, context); else Debug.Log(message); }
+    private void LogWarning(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message); }
+    private void LogError(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogError(message, context); else Debug.LogError(message); }
+    private void LogException(System.Exception exception, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception); }
 }

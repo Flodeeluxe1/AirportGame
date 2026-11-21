@@ -5,6 +5,9 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class ATCGroundTrafficManager : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+{
     private struct ControlPointKey : IEquatable<ControlPointKey>
     {
         public bool IsManual;
@@ -538,7 +541,7 @@ public class ATCGroundTrafficManager : MonoBehaviour
         IReadOnlyList<AircraftTaxiTrafficFollowing> registered =
             AircraftTaxiTrafficFollowing.ActiveAircraft;
 
-        Debug.Log(
+        Log(
             "[ATC REGISTRY] Active registered aircraft: " + registered.Count);
 
         HashSet<string> currentAircraftIds = new HashSet<string>();
@@ -573,7 +576,7 @@ public class ATCGroundTrafficManager : MonoBehaviour
             {
                 lastRegisteredAircraftStates[id] = signature;
 
-                Debug.Log(
+                Log(
                     "[ATC REGISTERED AIRCRAFT] " + aircraft.name +
                     " | ID: " + id +
                     " | " + signature +
@@ -599,7 +602,7 @@ public class ATCGroundTrafficManager : MonoBehaviour
         {
             foreach (string id in removedAircraftIds)
             {
-                Debug.Log("[ATC REGISTERED AIRCRAFT] UNREGISTERED | ID: " + id);
+                Log("[ATC REGISTERED AIRCRAFT] UNREGISTERED | ID: " + id);
                 lastRegisteredAircraftStates.Remove(id);
             }
         }
@@ -639,7 +642,7 @@ public class ATCGroundTrafficManager : MonoBehaviour
         {
             foreach (string pairId in clearedPairIds)
             {
-                Debug.Log("[ATC ROUTE PAIR] NO LONGER REGISTERED | Pair: " + pairId);
+                Log("[ATC ROUTE PAIR] NO LONGER REGISTERED | Pair: " + pairId);
                 lastLoggedRoutePairStates.Remove(pairId);
             }
         }
@@ -776,7 +779,7 @@ public class ATCGroundTrafficManager : MonoBehaviour
             ", conflicting=" + conflictingCellCount +
             ", same-direction=" + sameDirectionCellCount;
 
-        Debug.Log(report, a);
+        Log(report, a);
     }
 
     private void LogTaxiClearanceDecision(
@@ -820,7 +823,7 @@ public class ATCGroundTrafficManager : MonoBehaviour
                 " | Route: " + FormatTaxiRoute(other.PlannedTaxiRoute);
         }
 
-        Debug.Log(message, aircraft);
+        Log(message, aircraft);
     }
 
     private static string FormatTaxiRoute(IReadOnlyList<Vector2Int> route)
@@ -881,7 +884,7 @@ public class ATCGroundTrafficManager : MonoBehaviour
 
         List<Transform> markerTransforms = new List<Transform>();
 
-        Debug.Log(
+        Log(
             "[ATC MANUAL HOLD REGISTRY] Rebuilding manual points. " +
             "Registered prefab roots: " +
             ATCManualHoldingPoint.RegisteredPoints.Count);
@@ -929,7 +932,7 @@ public class ATCGroundTrafficManager : MonoBehaviour
 
                 AddOrUpdateControlPoint(point, validKeys);
 
-                Debug.Log(
+                Log(
                     "[ATC MANUAL HOLD REGISTERED] " + point.Label +
                     " | Active: " + marker.gameObject.activeInHierarchy +
                     " | World position: " + marker.position +
@@ -939,7 +942,7 @@ public class ATCGroundTrafficManager : MonoBehaviour
             }
         }
 
-        Debug.Log(
+        Log(
             "[ATC MANUAL HOLD REGISTRY] Rebuild complete. " +
             "Manual child markers registered: " + controlPoints.Count);
 
@@ -2068,7 +2071,7 @@ public class ATCGroundTrafficManager : MonoBehaviour
                 {
                     lastManualHoldingDiagnostics[pairKey] = pairSignature;
 
-                    Debug.Log(
+                    Log(
                         "[ATC ROUTE CONFLICT SCAN] aircraft=" + aircraft.name +
                         " startIndex=" + ownStartIndex +
                         " | other=" + other.name +
@@ -2100,7 +2103,7 @@ public class ATCGroundTrafficManager : MonoBehaviour
                 lastManualHoldingDiagnostics[selectionKey] =
                     selectionSignature;
 
-                Debug.Log(
+                Log(
                     "[ATC ROUTE CONFLICT SELECTED] aircraft=" + aircraft.name +
                     " | " + selectionSignature,
                     this);
@@ -2464,7 +2467,7 @@ public class ATCGroundTrafficManager : MonoBehaviour
                 Vector2Int markerGridCell =
                     gridManager.WorldToGrid(bestPoint.Position);
 
-                Debug.Log(
+                Log(
                     "[ATC MANUAL HOLD SELECT] " + aircraftName +
                     " | selectedIntersection=" + selectedOwnerLabel +
                     " | intersectionRootPosition=" +
@@ -2498,7 +2501,7 @@ public class ATCGroundTrafficManager : MonoBehaviour
             previousWarning != warningKey)
         {
             lastMissingManualHoldWarnings[aircraft] = warningKey;
-            Debug.LogWarning(
+            LogWarning(
                 "[ATC WARNING] No manual holding point belonging to the " +
                 "approach intersection prefab was found before route conflict. " +
                 "Aircraft: " + aircraftName +
@@ -3183,5 +3186,30 @@ public class ATCGroundTrafficManager : MonoBehaviour
                 point.Position,
                 Mathf.Max(0.25f, point.EntryRadius));
         }
+    }
+
+ 
+    private void Log(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.Log(message, context); else Debug.Log(message);
+    }
+
+    private void LogWarning(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message);
+    }
+
+    private void LogError(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.LogError(message, context); else Debug.LogError(message);
+    }
+
+    private void LogException(System.Exception exception, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception);
     }
 }

@@ -4,6 +4,9 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class IncomingCargoCollectionSpawner : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+{
     private const long RetryIntervalGameSeconds = 1L;
 
     private GameObject cargoTruckPrefab;
@@ -72,7 +75,7 @@ public class IncomingCargoCollectionSpawner : MonoBehaviour
             gridManager == null ||
             roadNetwork == null)
         {
-            Debug.LogError(
+            LogError(
                 "IncomingCargoCollectionSpawner: Required references are missing.",
                 this
             );
@@ -97,7 +100,7 @@ public class IncomingCargoCollectionSpawner : MonoBehaviour
         gameTimeManager = FindAnyObjectByType<GameTimeManager>();
         if (gameTimeManager == null)
         {
-            Debug.LogError(
+            LogError(
                 "IncomingCargoCollectionSpawner: GameTimeManager is required for retry timing.",
                 this);
             enabled = false;
@@ -120,7 +123,7 @@ public class IncomingCargoCollectionSpawner : MonoBehaviour
         if (spawner != null)
             spawner.pendingOutgoingRecoveryOperations.Add(operationId);
         else
-            Debug.LogWarning(
+            LogWarning(
                 "Cannot recover undelivered cargo: IncomingCargoCollectionSpawner " +
                 "was not found.");
     }
@@ -185,7 +188,7 @@ public class IncomingCargoCollectionSpawner : MonoBehaviour
 
                 if (truck == null)
                 {
-                    Debug.LogError(
+                    LogError(
                         "IncomingCargoCollectionSpawner: Cargo Truck Prefab " +
                         "does not have CargoDeliveryTruck attached.", truckObject);
                     Destroy(truckObject);
@@ -199,7 +202,7 @@ public class IncomingCargoCollectionSpawner : MonoBehaviour
                     continue;
                 }
 
-                Debug.Log(
+                Log(
                     "UNDELIVERED OUTGOING CARGO RECOVERY VAN SPAWNED | " +
                     $"Zone: {zone.name} | Operation: {operationId} | " +
                     $"Packages: {zone.CountAvailablePackages(CargoDirection.Outgoing, operationId)}",
@@ -249,7 +252,7 @@ public class IncomingCargoCollectionSpawner : MonoBehaviour
             {
                 if (!roadSetupWarningShown)
                 {
-                    Debug.LogWarning(
+                    LogWarning(
                         "IncomingCargoCollectionSpawner: Spawn or exit marker " +
                         "is not on a valid road module. Incoming cargo remains queued.",
                         this
@@ -272,7 +275,7 @@ public class IncomingCargoCollectionSpawner : MonoBehaviour
 
             if (truck == null)
             {
-                Debug.LogError(
+                LogError(
                     "IncomingCargoCollectionSpawner: Cargo Truck Prefab " +
                     "does not have CargoDeliveryTruck attached. " +
                     "Disabling incoming collection spawning.",
@@ -307,7 +310,7 @@ public class IncomingCargoCollectionSpawner : MonoBehaviour
                 int packageCount =
                     zone.CountAvailablePackages(CargoDirection.Incoming);
 
-                Debug.Log(
+                Log(
                     "INCOMING CARGO COLLECTION VAN SPAWNED | " +
                     "Cargo zone: " + zone.name + " | " +
                     "Packages waiting: " + packageCount + " | " +
@@ -344,4 +347,9 @@ public class IncomingCargoCollectionSpawner : MonoBehaviour
 
         return moduleOrigin;
     }
+
+    private void Log(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.Log(message, context); else Debug.Log(message); }
+    private void LogWarning(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message); }
+    private void LogError(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogError(message, context); else Debug.LogError(message); }
+    private void LogException(System.Exception exception, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception); }
 }

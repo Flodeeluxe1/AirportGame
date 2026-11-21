@@ -8,6 +8,9 @@ using UnityEngine.UIElements;
 
 public class FlightManagementUIController : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+{
     public static event Action AirportScheduleChanged;
     [Header("References")]
     [SerializeField] private UIDocument uiDocument;
@@ -121,7 +124,7 @@ public class FlightManagementUIController : MonoBehaviour
 
         if (uiDocument == null)
         {
-            Debug.LogError(
+            LogError(
                 "FlightManagementUIController: UIDocument is missing.");
             enabled = false;
             return;
@@ -129,7 +132,7 @@ public class FlightManagementUIController : MonoBehaviour
 
         if (flightCatalog == null)
         {
-            Debug.LogError(
+            LogError(
                 "FlightManagementUIController: TestFlightCatalog is missing.");
             enabled = false;
             return;
@@ -137,7 +140,7 @@ public class FlightManagementUIController : MonoBehaviour
 
         if (gateRegistry == null)
         {
-            Debug.LogError(
+            LogError(
                 "FlightManagementUIController: AircraftGateRegistry is missing.");
             enabled = false;
             return;
@@ -216,7 +219,7 @@ public class FlightManagementUIController : MonoBehaviour
     {
         if (flightCatalog == null || gateRegistry == null)
         {
-            Debug.LogError(
+            LogError(
                 "FlightManagementUIController: Cannot load an airport " +
                 "schedule because the flight catalog or gate registry " +
                 "reference is missing."
@@ -251,7 +254,7 @@ public class FlightManagementUIController : MonoBehaviour
                     saved.startMinute >= 1440 ||
                     saved.startMinute % 15 != 0)
                 {
-                    Debug.LogWarning(
+                    LogWarning(
                         $"Skipping saved flight '{saved.flightNumber}': " +
                         $"invalid start minute {saved.startMinute}."
                     );
@@ -265,7 +268,7 @@ public class FlightManagementUIController : MonoBehaviour
 
                 if (flight == null)
                 {
-                    Debug.LogWarning(
+                    LogWarning(
                         $"Skipping saved flight '{saved.flightNumber}': " +
                         "no matching flight definition exists."
                     );
@@ -278,7 +281,7 @@ public class FlightManagementUIController : MonoBehaviour
                         saved.gateStableId,
                         out AircraftGate gate))
                 {
-                    Debug.LogWarning(
+                    LogWarning(
                         $"Skipping {saved.flightNumber}: gate " +
                         $"'{saved.gateStableId}' was not found in the " +
                         "loaded airport."
@@ -290,7 +293,7 @@ public class FlightManagementUIController : MonoBehaviour
 
                 if (IsFlightScheduled(flight))
                 {
-                    Debug.LogWarning(
+                    LogWarning(
                         $"Skipping saved flight '{saved.flightNumber}': " +
                         "that flight is already scheduled."
                     );
@@ -306,7 +309,7 @@ public class FlightManagementUIController : MonoBehaviour
                         null,
                         out string reason))
                 {
-                    Debug.LogWarning(
+                    LogWarning(
                         $"Skipping saved flight '{saved.flightNumber}' " +
                         $"at {FormatTime(saved.startMinute)}: {reason}"
                     );
@@ -368,7 +371,7 @@ public class FlightManagementUIController : MonoBehaviour
         }
         catch (Exception exception)
         {
-            Debug.LogError(
+            LogError(
                 "FlightManagementUIController: The schedule was restored " +
                 "in memory, but flight_schedule.json could not be written. " +
                 $"Path: {scheduleFilePath}\n{exception}"
@@ -380,7 +383,7 @@ public class FlightManagementUIController : MonoBehaviour
             return false;
         }
 
-        Debug.Log(
+        Log(
             $"FlightManagementUIController: Replaced active schedule. " +
             $"Restored: {restoredCount}, skipped: {skippedCount}. " +
             $"Wrote {scheduledFlights.Count} flight(s) to: " +
@@ -405,7 +408,7 @@ public class FlightManagementUIController : MonoBehaviour
         RefreshScheduleUI();
         SaveSchedule();
 
-        Debug.Log(
+        Log(
             "FlightManagementUIController: Active flight schedule cleared. " +
             "Saved airport slots were not changed."
         );
@@ -1891,7 +1894,7 @@ public class FlightManagementUIController : MonoBehaviour
             File.WriteAllText(scheduleFilePath, json);
             AirportScheduleChanged?.Invoke();
 
-            Debug.Log(
+            Log(
                 $"FlightManagementUIController: Saved " +
                 $"{fileData.flights.Count} scheduled flight(s) to " +
                 $"{scheduleFilePath}"
@@ -1899,7 +1902,7 @@ public class FlightManagementUIController : MonoBehaviour
         }
         catch (Exception exception)
         {
-            Debug.LogError(
+            LogError(
                 "FlightManagementUIController: Could not save the " +
                 $"flight schedule to {scheduleFilePath}.\n{exception}"
             );
@@ -1915,7 +1918,7 @@ public class FlightManagementUIController : MonoBehaviour
 
         if (!scheduleLoaded)
         {
-            Debug.LogError(
+            LogError(
                 "Cannot cancel flights for deleted gate: " +
                 "the flight schedule could not be loaded."
             );
@@ -1957,7 +1960,7 @@ public class FlightManagementUIController : MonoBehaviour
             true
         );
 
-        Debug.Log(
+        Log(
             $"Cancelled {cancelledFlights.Count} scheduled flight(s) " +
             $"for deleted gate {gateStableId}: {cancelledNumbers}"
         );
@@ -2038,4 +2041,9 @@ public class FlightManagementUIController : MonoBehaviour
                 OnGateVerticalChanged;
         }
     }
+
+    private void Log(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.Log(message, context); else Debug.Log(message); }
+    private void LogWarning(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message); }
+    private void LogError(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogError(message, context); else Debug.LogError(message); }
+    private void LogException(System.Exception exception, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception); }
 }

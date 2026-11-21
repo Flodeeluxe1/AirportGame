@@ -2,6 +2,9 @@ using UnityEngine;
 
 public class WallFinishRenderer : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+{
     [Header("References")]
     [SerializeField] private WallFinishCatalogue catalogue;
     [SerializeField] private GridSurface gridSurface;
@@ -175,7 +178,7 @@ public class WallFinishRenderer : MonoBehaviour
 
         if (catalogue == null || catalogue.SharedRenderMaterial == null)
         {
-            Debug.LogError(
+            LogError(
                 "WallFinishRenderer: WallFinishCatalogue or its shared render " +
                 "material is missing. Run Airport/Wall Finishes/Build Catalogue " +
                 "From Project Materials in the Unity Editor.",
@@ -196,4 +199,9 @@ public class WallFinishRenderer : MonoBehaviour
 
         return surface;
     }
+
+    private void Log(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.Log(message, context); else Debug.Log(message); }
+    private void LogWarning(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message); }
+    private void LogError(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogError(message, context); else Debug.LogError(message); }
+    private void LogException(System.Exception exception, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception); }
 }

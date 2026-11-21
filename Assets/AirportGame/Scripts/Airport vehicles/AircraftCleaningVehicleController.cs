@@ -5,6 +5,9 @@ using UnityEngine;
 [RequireComponent(typeof(AirportGroundVehicleMovement))]
 public class AircraftCleaningVehicleController : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+{
     private enum CleaningState
     {
         Idle,
@@ -129,7 +132,7 @@ public class AircraftCleaningVehicleController : MonoBehaviour
         if (identity == null || !identity.IsInitialized ||
             !identity.HasActualGate)
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"{name}: Cannot dispatch because the aircraft's actual gate is unavailable.",
                 this);
             return false;
@@ -142,7 +145,7 @@ public class AircraftCleaningVehicleController : MonoBehaviour
             !registry.TryGetGate(identity.ActualGateStableId, out AircraftGate gate) ||
             gate == null)
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"{name}: Could not resolve gate '{identity.ActualGateStableId}' for cleaning.",
                 this);
             return false;
@@ -153,7 +156,7 @@ public class AircraftCleaningVehicleController : MonoBehaviour
 
         if (stopPoint == null)
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"{name}: Gate '{gate.name}' has no child named CleaningVehicleStopPoint.",
                 gate);
             return false;
@@ -181,7 +184,7 @@ public class AircraftCleaningVehicleController : MonoBehaviour
         {
             ClearAssignment();
             parkedAtHome = true;
-            Debug.LogWarning(
+            LogWarning(
                 $"{name}: Could not start route to aircraft {aircraft.name}. " +
                 groundVehicleMovement.MovementStatus,
                 this);
@@ -191,7 +194,7 @@ public class AircraftCleaningVehicleController : MonoBehaviour
         state = CleaningState.DrivingToAircraft;
         currentStatus = "Driving to aircraft";
 
-        Debug.Log(
+        Log(
             $"{name}: Dispatched to {aircraft.name} for {passengersToClean} passenger(s).",
             this);
 
@@ -247,7 +250,7 @@ public class AircraftCleaningVehicleController : MonoBehaviour
 
         if (groundVehicleMovement.MovementStatus.StartsWith("Failed:"))
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"{name}: Cleaning route failed. {groundVehicleMovement.MovementStatus}",
                 this);
             AircraftTurnaroundController failedAircraft = assignedAircraft;
@@ -333,7 +336,7 @@ public class AircraftCleaningVehicleController : MonoBehaviour
             parkedAtHome = false;
             currentStatus = "Idle - return route failed";
             ClearAssignment();
-            Debug.LogWarning(
+            LogWarning(
                 $"{name}: Could not start return route to cleaning lot. " +
                 groundVehicleMovement.MovementStatus,
                 this);
@@ -400,7 +403,7 @@ public class AircraftCleaningVehicleController : MonoBehaviour
             pendingWasteUnits = 0f;
             parkedAtHome = true;
             currentStatus = "Idle";
-            Debug.Log(
+            Log(
                 $"{name}: Deposited cleaning waste. Total added: " +
                 $"{accepted:F1} units.",
                 this);
@@ -409,7 +412,7 @@ public class AircraftCleaningVehicleController : MonoBehaviour
         {
             parkedAtHome = false;
             currentStatus = $"At lot - waiting for waste capacity ({pendingWasteUnits:F1} remaining)";
-            Debug.LogWarning(
+            LogWarning(
                 $"{name}: Only {accepted:F1} waste units could be stored. " +
                 $"{pendingWasteUnits:F1} units remain on the vehicle until disposal capacity is available.",
                 this);
@@ -424,4 +427,9 @@ public class AircraftCleaningVehicleController : MonoBehaviour
         passengersToClean = 0;
         phaseElapsedGameSeconds = 0f;
     }
+
+    private void Log(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.Log(message, context); else Debug.Log(message); }
+    private void LogWarning(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message); }
+    private void LogError(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogError(message, context); else Debug.LogError(message); }
+    private void LogException(System.Exception exception, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception); }
 }

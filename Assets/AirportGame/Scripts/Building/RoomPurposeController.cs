@@ -19,6 +19,9 @@ public enum RoomEnvironmentEffectMode
 
 public class RoomPurposeController : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+{
     public event System.Action AssignmentsChanged;
 
     [Header("References")]
@@ -350,14 +353,14 @@ public class RoomPurposeController : MonoBehaviour
 
         if (!roomDetection.TryGetRoomAt(cell, out var room))
         {
-            Debug.Log(
+            Log(
                 "Room information: double-click a floor cell inside an enclosed room.");
             return;
         }
 
         if (infoPanel == null)
         {
-            Debug.LogWarning(
+            LogWarning(
                 "RoomInfoPanelController is not assigned or found.");
             return;
         }
@@ -487,7 +490,7 @@ public class RoomPurposeController : MonoBehaviour
             room.cells == null ||
             room.cells.Count == 0)
         {
-            Debug.LogWarning("Cannot assign a purpose to an empty room.");
+            LogWarning("Cannot assign a purpose to an empty room.");
             return;
         }
 
@@ -503,7 +506,7 @@ public class RoomPurposeController : MonoBehaviour
                 AssignmentsChanged?.Invoke();
             }
 
-            Debug.Log($"Room at {anchor} has no assigned purpose.");
+            Log($"Room at {anchor} has no assigned purpose.");
             return;
         }
 
@@ -526,7 +529,7 @@ public class RoomPurposeController : MonoBehaviour
         {
             bool valid = ValidateFlightSchool(room, out string reason);
 
-            Debug.Log(
+            Log(
                 valid
                     ? $"Flight School assigned at {anchor}: VALID."
                     : $"Flight School assigned at {anchor}: INVALID — {reason}");
@@ -536,14 +539,14 @@ public class RoomPurposeController : MonoBehaviour
         {
             bool valid = ValidateOffice(room, out string reason);
 
-            Debug.Log(
+            Log(
                 valid
                     ? $"{purpose} assigned at {anchor}: VALID."
                     : $"{purpose} assigned at {anchor}: INVALID — {reason}");
         }
         else
         {
-            Debug.Log($"Room at {anchor} assigned to {purpose}.");
+            Log($"Room at {anchor} assigned to {purpose}.");
         }
     }
 
@@ -590,7 +593,7 @@ public class RoomPurposeController : MonoBehaviour
         previousClickCell = Vector2Int.zero;
         previousClickTime = -10f;
 
-        Debug.Log("RoomPurposeController: Room-purpose assignments cleared.");
+        Log("RoomPurposeController: Room-purpose assignments cleared.");
     }
 
     /// <summary>
@@ -612,7 +615,7 @@ public class RoomPurposeController : MonoBehaviour
                 EnvironmentScoreCalculator.NotifyRoomEnvironmentChanged();
                 AssignmentsChanged?.Invoke();
 
-            Debug.LogWarning(
+            LogWarning(
                 "RoomPurposeController: Cannot restore room assignments " +
                 "because RoomDetectionController was not found.");
             return;
@@ -627,7 +630,7 @@ public class RoomPurposeController : MonoBehaviour
                 EnvironmentScoreCalculator.NotifyRoomEnvironmentChanged();
                 AssignmentsChanged?.Invoke();
 
-            Debug.Log(
+            Log(
                 "RoomPurposeController: No saved room-purpose assignments to restore.");
             return;
         }
@@ -644,7 +647,7 @@ public class RoomPurposeController : MonoBehaviour
             if (purpose == RoomPurpose.None ||
                 !System.Enum.IsDefined(typeof(RoomPurpose), purpose))
             {
-                Debug.LogWarning(
+                LogWarning(
                     $"RoomPurposeController: Skipped invalid saved room purpose " +
                     $"'{saved.purpose}' at ({saved.anchorX}, {saved.anchorZ}).");
                 continue;
@@ -674,7 +677,7 @@ public class RoomPurposeController : MonoBehaviour
 
             if (matchedRoom == null)
             {
-                Debug.LogWarning(
+                LogWarning(
                     $"RoomPurposeController: Could not restore assignment " +
                     $"'{purpose}' at anchor {anchor}. No detected enclosed room " +
                     "contains that cell. The assignment was skipped.");
@@ -691,7 +694,7 @@ public class RoomPurposeController : MonoBehaviour
                     matchedRoom,
                     out string reason);
 
-                Debug.Log(
+                Log(
                     valid
                         ? $"RoomPurposeController: Restored Flight School at " +
                           $"{currentAnchor}: VALID."
@@ -700,7 +703,7 @@ public class RoomPurposeController : MonoBehaviour
             }
             else
             {
-                Debug.Log(
+                Log(
                     $"RoomPurposeController: Restored '{purpose}' at {currentAnchor}.");
             }
         }
@@ -712,7 +715,7 @@ public class RoomPurposeController : MonoBehaviour
             AssignmentsChanged?.Invoke();
         }
 
-        Debug.Log(
+        Log(
             $"RoomPurposeController: Restored {restoredCount} of " +
             $"{savedAssignments.Count} saved room-purpose assignment(s).");
     }
@@ -1127,4 +1130,9 @@ public class RoomPurposeController : MonoBehaviour
         return IsFlightSchoolAssigned(room) &&
                ValidateFlightSchool(room, out _);
     }
+
+    private void Log(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.Log(message, context); else Debug.Log(message); }
+    private void LogWarning(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message); }
+    private void LogError(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogError(message, context); else Debug.LogError(message); }
+    private void LogException(System.Exception exception, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception); }
 }

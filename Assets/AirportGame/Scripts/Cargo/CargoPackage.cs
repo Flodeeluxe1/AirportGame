@@ -17,6 +17,9 @@ public enum CargoPackageState
 [DisallowMultipleComponent]
 public class CargoPackage : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+{
     [Header("Package Identity")]
     [SerializeField] private string packageId;
 
@@ -58,7 +61,7 @@ public class CargoPackage : MonoBehaviour
     {
         if (string.IsNullOrWhiteSpace(id))
         {
-            Debug.LogError(
+            LogError(
                 $"{nameof(CargoPackage)} on {name}: " +
                 "Package ID cannot be empty.",
                 this
@@ -69,7 +72,7 @@ public class CargoPackage : MonoBehaviour
         if (cargoDirection == CargoDirection.Outgoing &&
             string.IsNullOrWhiteSpace(assignedFlightOperationId))
         {
-            Debug.LogError(
+            LogError(
                 $"{nameof(CargoPackage)} on {name}: " +
                 "Outgoing cargo requires a flight operation ID.",
                 this
@@ -108,7 +111,7 @@ public class CargoPackage : MonoBehaviour
     {
         if (state != CargoPackageState.Reserved)
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"{name}: Cannot move cargo into transit " +
                 "unless it has been reserved.",
                 this
@@ -130,7 +133,7 @@ public class CargoPackage : MonoBehaviour
     {
         if (zone == null)
         {
-            Debug.LogError(
+            LogError(
                 $"{name}: Cannot return cargo to a missing zone.",
                 this
             );
@@ -140,4 +143,9 @@ public class CargoPackage : MonoBehaviour
         currentZone = zone;
         state = CargoPackageState.Staged;
     }
+
+    private void Log(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.Log(message, context); else Debug.Log(message); }
+    private void LogWarning(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message); }
+    private void LogError(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogError(message, context); else Debug.LogError(message); }
+    private void LogException(System.Exception exception, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception); }
 }

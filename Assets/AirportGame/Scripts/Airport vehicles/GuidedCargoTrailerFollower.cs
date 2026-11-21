@@ -5,6 +5,9 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class GuidedCargoTrailerFollower : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+{
     [Header("References")]
     [Tooltip("Legacy single trailer reference. Normally assigned by the lot spawner.")]
     [SerializeField] private Transform trailer;
@@ -82,7 +85,7 @@ public class GuidedCargoTrailerFollower : MonoBehaviour
             if (trailerTransform == transform ||
                 trailerTransform.IsChildOf(transform))
             {
-                Debug.LogError(
+                LogError(
                     "GuidedCargoTrailerFollower: A trailer must be a " +
                     "separate scene object, not a child of the tug.",
                     this
@@ -96,7 +99,7 @@ public class GuidedCargoTrailerFollower : MonoBehaviour
 
         if (tugHitchPoint == null)
         {
-            Debug.LogError(
+            LogError(
                 "GuidedCargoTrailerFollower: Tug Hitch Point is not assigned.",
                 this
             );
@@ -107,7 +110,7 @@ public class GuidedCargoTrailerFollower : MonoBehaviour
 
         if (showDebugMessages && trailers.Count > 0)
         {
-            Debug.Log(
+            Log(
                 $"Guided trailer chain initialized with {trailers.Count} trailer(s).",
                 this
             );
@@ -123,7 +126,7 @@ public class GuidedCargoTrailerFollower : MonoBehaviour
 
         if (showDebugMessages)
         {
-            Debug.Log(
+            Log(
                 "GuidedCargoTrailerFollower: Trailer chain detached.",
                 this
             );
@@ -134,7 +137,7 @@ public class GuidedCargoTrailerFollower : MonoBehaviour
     {
         if (tugHitchPoint == null)
         {
-            Debug.LogError(
+            LogError(
                 "GuidedCargoTrailerFollower: Tug Hitch Point is not assigned.",
                 this
             );
@@ -242,4 +245,9 @@ public class GuidedCargoTrailerFollower : MonoBehaviour
         position.y = trailerHeights[0];
         firstTrailer.position = position;
     }
+
+    private void Log(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.Log(message, context); else Debug.Log(message); }
+    private void LogWarning(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message); }
+    private void LogError(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogError(message, context); else Debug.LogError(message); }
+    private void LogException(System.Exception exception, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception); }
 }

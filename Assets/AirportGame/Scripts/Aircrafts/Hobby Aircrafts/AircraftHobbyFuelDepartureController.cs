@@ -10,6 +10,9 @@ using UnityEngine;
 [DefaultExecutionOrder(-100)]
 public class AircraftHobbyFuelDepartureController : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+{
     private enum FuelDepartureState
     {
         WaitingForVisit,
@@ -225,7 +228,7 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
 
         if (logFuelDecision)
         {
-            Debug.Log(
+            Log(
                 $"{name}: fuel decision | Fuel: {fuelPercentage:P0} | " +
                 $"Price: ${bestStation.SellingPricePerLitre:F2}/L | " +
                 $"Mandatory: {mandatory} | Refuel: {choosesRefuelling}",
@@ -262,7 +265,7 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
             state = FuelDepartureState.WaitingForStationAccess;
             debugStatus = $"Queued at parking; waiting for {selectedStation.name}";
             if (logFuelDecision)
-                Debug.Log($"{name}: queued for fuel station {selectedStation.name}; remaining at parking.", this);
+                Log($"{name}: queued for fuel station {selectedStation.name}; remaining at parking.", this);
             return;
         }
 
@@ -301,7 +304,7 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
                     routeLog.Append(" | ");
             }
 
-            Debug.Log($"{name}: FUEL TAXI ROUTE\\n{routeLog}", this);
+            Log($"{name}: FUEL TAXI ROUTE\\n{routeLog}", this);
         }
 
         if (movementPoints.Count == 0)
@@ -777,7 +780,7 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
         debugStatus = reason;
 
         if (logFuelDecision)
-            Debug.Log($"{name}: {reason}", this);
+            Log($"{name}: {reason}", this);
     }
 
     private void FinishWithoutRefuelling(string reason)
@@ -797,7 +800,7 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
         }
 
         if (logFuelDecision)
-            Debug.Log($"{name}: {reason}", this);
+            Log($"{name}: {reason}", this);
     }
 
     private void AbortFuelTaxi(string reason)
@@ -812,4 +815,9 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
 
         FinishFueling();
     }
+
+    private void Log(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.Log(message, context); else Debug.Log(message); }
+    private void LogWarning(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message); }
+    private void LogError(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogError(message, context); else Debug.LogError(message); }
+    private void LogException(System.Exception exception, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception); }
 }

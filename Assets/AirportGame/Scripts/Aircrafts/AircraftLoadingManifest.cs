@@ -5,6 +5,9 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class AircraftLoadingManifest : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+{
     [Header("Initial Baggage")]
     [Min(0)]
     [SerializeField] private int initialIncomingBaggageCount = 10;
@@ -82,7 +85,7 @@ public class AircraftLoadingManifest : MonoBehaviour
         if (flightIdentity == null ||
             !flightIdentity.IsInitialized)
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"{name}: Cannot initialize the loading manifest " +
                 "until AircraftFlightIdentity is initialized.",
                 this
@@ -115,7 +118,7 @@ public class AircraftLoadingManifest : MonoBehaviour
 
         IsInitialized = true;
 
-        Debug.Log(
+        Log(
             $"{name}: Loading manifest initialized for " +
             $"{flightIdentity.FlightNumber} | " +
             $"Operation: {operationId} | " +
@@ -183,7 +186,7 @@ public class AircraftLoadingManifest : MonoBehaviour
         reservedIncomingBaggage =
             reservedIncomingPackageIds.Count;
 
-        Debug.Log(
+        Log(
             $"{name}: Baggage transferred: {packageId} | " +
             $"Remaining on aircraft: {remainingIncomingBaggage}.",
             this
@@ -226,7 +229,7 @@ public class AircraftLoadingManifest : MonoBehaviour
         if (flightIdentity == null ||
             operationId != flightIdentity.OperationId)
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"{name}: Rejected outgoing package '{packageId}'. " +
                 "It belongs to a different flight operation.",
                 this
@@ -272,7 +275,7 @@ public class AircraftLoadingManifest : MonoBehaviour
             !flightIdentity.IsInitialized ||
             operationId != flightIdentity.OperationId)
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"{name}: Rejected outgoing baggage '{packageId}'. " +
                 "The flight operation does not match this aircraft.",
                 this
@@ -283,7 +286,7 @@ public class AircraftLoadingManifest : MonoBehaviour
 
         if (!reservedOutgoingPackageIds.Contains(packageId))
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"{name}: Cannot confirm outgoing baggage " +
                 $"'{packageId}' because it has not been reserved.",
                 this
@@ -310,7 +313,7 @@ public class AircraftLoadingManifest : MonoBehaviour
         reservedOutgoingBaggage =
             reservedOutgoingPackageIds.Count;
 
-        Debug.Log(
+        Log(
             $"{name}: Outgoing baggage loaded: {packageId} | " +
             $"Flight: {operationId} | " +
             $"Loaded: {totalOutgoingBaggageLoaded}/" +
@@ -342,5 +345,30 @@ public class AircraftLoadingManifest : MonoBehaviour
             return false;
 
         return loadedOutgoingPackageIds.Contains(packageId);
+    }
+
+ 
+    private void Log(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.Log(message, context); else Debug.Log(message);
+    }
+
+    private void LogWarning(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message);
+    }
+
+    private void LogError(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.LogError(message, context); else Debug.LogError(message);
+    }
+
+    private void LogException(System.Exception exception, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception);
     }
 }

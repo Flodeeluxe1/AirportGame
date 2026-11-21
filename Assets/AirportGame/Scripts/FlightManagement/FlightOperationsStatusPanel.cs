@@ -5,6 +5,9 @@ using UnityEngine.UIElements;
 
 public class FlightOperationsStatusPanel : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+{
     [Header("References")]
     [SerializeField] private UIDocument uiDocument;
     [SerializeField] private AircraftGateRegistry gateRegistry;
@@ -32,7 +35,7 @@ public class FlightOperationsStatusPanel : MonoBehaviour
 
         if (uiDocument == null)
         {
-            Debug.LogError(
+            LogError(
                 "FlightOperationsStatusPanel: UIDocument is missing.",
                 this
             );
@@ -487,4 +490,9 @@ public class FlightOperationsStatusPanel : MonoBehaviour
         // Keep the identifier visible if the gate is no longer in the scene.
         return gateStableId;
     }
+
+    private void Log(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.Log(message, context); else Debug.Log(message); }
+    private void LogWarning(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message); }
+    private void LogError(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogError(message, context); else Debug.LogError(message); }
+    private void LogException(System.Exception exception, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception); }
 }

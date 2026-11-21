@@ -10,6 +10,9 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class SightseeingPassengerManager : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+{
     private const string DeskDefinitionId = "airport.sightseeing.ticketdesk";
 
     [Header("Prefabs")]
@@ -225,7 +228,7 @@ public class SightseeingPassengerManager : MonoBehaviour
 
         if (passengerPrefab == null || passengerCarPrefab == null || trafficSpawner == null)
         {
-            Debug.LogWarning("SightseeingPassengerManager: Assign passenger and passenger-car prefabs before the next scheduled flight.", this);
+            LogWarning("SightseeingPassengerManager: Assign passenger and passenger-car prefabs before the next scheduled flight.", this);
             return;
         }
 
@@ -277,7 +280,7 @@ public class SightseeingPassengerManager : MonoBehaviour
             TrafficTestVehicle car = trafficSpawner.SpawnExternallyControlledVehicle(passengerCarPrefab);
             if (car == null)
             {
-                Debug.LogWarning("SightseeingPassengerManager: Could not spawn passenger car " + (i + 1) + "/" + count + ".", this);
+                LogWarning("SightseeingPassengerManager: Could not spawn passenger car " + (i + 1) + "/" + count + ".", this);
             }
             else
             {
@@ -348,7 +351,7 @@ public class SightseeingPassengerManager : MonoBehaviour
 
         if (turnaround == null)
         {
-            Debug.LogError("SightseeingPassengerManager: Sightseeing aircraft has no AircraftSSTurnaroundController.", this);
+            LogError("SightseeingPassengerManager: Sightseeing aircraft has no AircraftSSTurnaroundController.", this);
             return;
         }
 
@@ -372,7 +375,7 @@ public class SightseeingPassengerManager : MonoBehaviour
         if (passengerPrefab == null || pedestrianPathfinder == null ||
             !pedestrianPathfinder.TryFindNearestWalkablePosition(desired, 8, out Vector3 spawnPosition))
         {
-            Debug.LogWarning("SightseeingPassengerManager: Could not find a pedestrian spawn cell beside " + car.name + ".", car);
+            LogWarning("SightseeingPassengerManager: Could not find a pedestrian spawn cell beside " + car.name + ".", car);
             car.RequestDeparture();
             record.completed = true;
             return;
@@ -529,7 +532,7 @@ public class SightseeingPassengerManager : MonoBehaviour
 
         if (marker == null)
         {
-            Debug.LogError("SightseeingPassengerManager: Add a child named BoardingPoint to the reserved sightseeing parking spot.", this);
+            LogError("SightseeingPassengerManager: Add a child named BoardingPoint to the reserved sightseeing parking spot.", this);
             turnaround.ConfigurePassengerManifest(0);
             for (int i = 0; i < group.passengers.Count; i++)
                 if (group.passengers[i]?.agent != null) group.passengers[i].agent.BeginReturnToCar();
@@ -845,4 +848,9 @@ public class SightseeingPassengerManager : MonoBehaviour
             }
         }
     }
+
+    private void Log(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.Log(message, context); else Debug.Log(message); }
+    private void LogWarning(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message); }
+    private void LogError(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogError(message, context); else Debug.LogError(message); }
+    private void LogException(System.Exception exception, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception); }
 }

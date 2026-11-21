@@ -8,6 +8,9 @@ using UnityEngine;
 
 public class FlightOperationsBoardUI : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+{
     public static FlightOperationsBoardUI Instance { get; private set; }
 
     [Header("UI")]
@@ -79,7 +82,7 @@ public class FlightOperationsBoardUI : MonoBehaviour
     {
         if (Instance != null && Instance != this)
         {
-            Debug.LogError(
+            LogError(
                 "Multiple FlightOperationsBoardUI instances exist. " +
                 "Only one should be present in the scene.",
                 this);
@@ -135,7 +138,7 @@ public class FlightOperationsBoardUI : MonoBehaviour
     {
         if (boardText == null)
         {
-            Debug.LogError(
+            LogError(
                 "FlightOperationsBoardUI: Assign a TMP_Text component.",
                 this);
             enabled = false;
@@ -144,7 +147,7 @@ public class FlightOperationsBoardUI : MonoBehaviour
 
         if (flightCatalog == null || gameTimeManager == null)
         {
-            Debug.LogError(
+            LogError(
                 "FlightOperationsBoardUI: TestFlightCatalog or " +
                 "GameTimeManager is missing.",
                 this);
@@ -220,7 +223,7 @@ public class FlightOperationsBoardUI : MonoBehaviour
         }
         catch (Exception exception)
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"Flight board could not inspect the schedule: {exception.Message}",
                 this);
             return;
@@ -240,7 +243,7 @@ public class FlightOperationsBoardUI : MonoBehaviour
 
             if (data == null || data.version != ScheduleFileVersion)
             {
-                Debug.LogWarning(
+                LogWarning(
                     "Flight board found an invalid or unsupported flight schedule.",
                     this);
                 return;
@@ -271,13 +274,13 @@ public class FlightOperationsBoardUI : MonoBehaviour
 
             RebuildEntriesForCurrentDay();
 
-            Debug.Log(
+            Log(
                 $"Flight board loaded {savedFlights.Count} scheduled flight(s).",
                 this);
         }
         catch (Exception exception)
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"Flight board could not read the flight schedule: {exception.Message}",
                 this);
         }
@@ -639,4 +642,9 @@ public class FlightOperationsBoardUI : MonoBehaviour
         if (Instance == this)
             Instance = null;
     }
+
+    private void Log(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.Log(message, context); else Debug.Log(message); }
+    private void LogWarning(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message); }
+    private void LogError(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogError(message, context); else Debug.LogError(message); }
+    private void LogException(System.Exception exception, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception); }
 }

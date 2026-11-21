@@ -4,6 +4,9 @@ using UnityEngine.UIElements;
 
 public class SaveLoadMenuController : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+{
     [Header("References")]
     [SerializeField] private UIDocument uiDocument;
     [SerializeField] private AirportWorldResetController airportWorldResetController;
@@ -38,7 +41,7 @@ public class SaveLoadMenuController : MonoBehaviour
     {
         if (uiDocument == null)
         {
-            Debug.LogError(
+            LogError(
                 "SaveLoadMenuController: UIDocument is missing.",
                 this
             );
@@ -49,7 +52,7 @@ public class SaveLoadMenuController : MonoBehaviour
 
         if (airportWorldResetController == null)
         {
-            Debug.LogError(
+            LogError(
                 "SaveLoadMenuController: AirportWorldResetController " +
                 "could not be found. Assign it in the Inspector.",
                 this
@@ -89,7 +92,7 @@ public class SaveLoadMenuController : MonoBehaviour
 
             if (root == null)
             {
-                Debug.LogError(
+                LogError(
                     "SaveLoadMenuController: UI root is unavailable.",
                     this
                 );
@@ -100,7 +103,7 @@ public class SaveLoadMenuController : MonoBehaviour
 
         if (airportWorldResetController == null)
         {
-            Debug.LogError(
+            LogError(
                 "SaveLoadMenuController: AirportWorldResetController " +
                 "reference is missing.",
                 this
@@ -345,7 +348,7 @@ public class SaveLoadMenuController : MonoBehaviour
 
             if (saved)
             {
-                Debug.Log(
+                Log(
                     $"Save/load menu: saved airport to slot {slot}.",
                     this
                 );
@@ -368,7 +371,7 @@ public class SaveLoadMenuController : MonoBehaviour
 
             if (loaded)
             {
-                Debug.Log(
+                Log(
                     $"Save/load menu: loaded airport from slot {slot}.",
                     this
                 );
@@ -391,7 +394,7 @@ public class SaveLoadMenuController : MonoBehaviour
         if (statusLabel != null)
             statusLabel.text = message;
 
-        Debug.LogWarning(
+        LogWarning(
             $"Save/load menu: {message}",
             this
         );
@@ -435,4 +438,9 @@ public class SaveLoadMenuController : MonoBehaviour
         element.style.borderBottomLeftRadius = radius;
         element.style.borderBottomRightRadius = radius;
     }
+
+    private void Log(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.Log(message, context); else Debug.Log(message); }
+    private void LogWarning(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message); }
+    private void LogError(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogError(message, context); else Debug.LogError(message); }
+    private void LogException(System.Exception exception, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception); }
 }

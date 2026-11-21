@@ -12,6 +12,9 @@ using UnityEngine.InputSystem;
 [DisallowMultipleComponent]
 public class PerformanceMonitoringManager : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+{
     [Header("Sampling")]
     [SerializeField, Min(0.1f)] private float sampleInterval = 1f;
     [SerializeField, Min(1f)] private float frameSpikeThresholdMs = 33.3f;
@@ -168,14 +171,14 @@ public class PerformanceMonitoringManager : MonoBehaviour
                 frameMilliseconds >= pauseThresholdMs)
             {
                 spikePauseTriggered = true;
-                Debug.LogError(
+                LogError(
                     $"Performance spike reached {frameMilliseconds:0.0} ms. " +
                     "Pausing the Unity Editor so this frame can be inspected in the Profiler.");
 
 #if UNITY_EDITOR
                 Debug.Break();
 #else
-                Debug.LogWarning("Automatic spike pausing is available only while running in the Unity Editor.");
+                LogWarning("Automatic spike pausing is available only while running in the Unity Editor.");
                 spikePauseTriggered = false;
 #endif
             }
@@ -189,7 +192,7 @@ public class PerformanceMonitoringManager : MonoBehaviour
     {
         if (TrackedTimings.Count == 0)
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"Performance spike: {frameMilliseconds:0.0} ms. " +
                 "No instrumented methods ran during this frame.");
             return;
@@ -210,7 +213,7 @@ public class PerformanceMonitoringManager : MonoBehaviour
                 $"({timing.Calls} call(s), {timing.TotalMilliseconds / timing.Calls:0.00} ms avg)");
         }
 
-        Debug.LogWarning(report.ToString());
+        LogWarning(report.ToString());
     }
 
     private void UpdateMemoryStats()
@@ -273,4 +276,9 @@ public class PerformanceMonitoringManager : MonoBehaviour
         pauseThresholdMs = Mathf.Max(1f, pauseThresholdMs);
         overlayWidth = Mathf.Max(240f, overlayWidth);
     }
+
+    private void Log(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.Log(message, context); else Debug.Log(message); }
+    private void LogWarning(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message); }
+    private void LogError(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogError(message, context); else Debug.LogError(message); }
+    private void LogException(System.Exception exception, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception); }
 }

@@ -3,6 +3,9 @@ using UnityEngine.UIElements;
 
 public class WallFinishMenuController : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+{
     [Header("References")]
     [SerializeField] private UIDocument uiDocument;
     [SerializeField] private WallFinishCatalogue catalogue;
@@ -33,7 +36,7 @@ public class WallFinishMenuController : MonoBehaviour
 
         if (uiDocument == null)
         {
-            Debug.LogError(
+            LogError(
                 "WallFinishMenuController: UIDocument is missing.",
                 this);
             enabled = false;
@@ -53,7 +56,7 @@ public class WallFinishMenuController : MonoBehaviour
             buildableList == null ||
             wallFinishesButton == null)
         {
-            Debug.LogError(
+            LogError(
                 "WallFinishMenuController: Required build menu elements are missing.",
                 this);
             enabled = false;
@@ -220,4 +223,9 @@ public class WallFinishMenuController : MonoBehaviour
         if (floorPainter != null)
             floorPainter.CancelPainting();
     }
+
+    private void Log(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.Log(message, context); else Debug.Log(message); }
+    private void LogWarning(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message); }
+    private void LogError(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogError(message, context); else Debug.LogError(message); }
+    private void LogException(System.Exception exception, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception); }
 }

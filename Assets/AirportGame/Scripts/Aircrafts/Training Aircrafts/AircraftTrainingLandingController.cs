@@ -76,7 +76,7 @@ public class AircraftTrainingLandingController : MonoBehaviour
     [Tooltip("Use this if the aircraft model's nose is not its local +Z axis.")]
     [SerializeField] private Vector3 modelRotationOffset;
 
-    [Header("Debug Logging")]
+    [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
 
     [Header("Debug")]

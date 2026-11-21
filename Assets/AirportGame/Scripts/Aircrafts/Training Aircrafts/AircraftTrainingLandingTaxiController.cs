@@ -5,6 +5,9 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class AircraftTrainingLandingTaxiController : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+{
     [Header("References")]
     [SerializeField] private AircraftTrainingLandingController landingController;
     [SerializeField] private GridManager gridManager;
@@ -487,7 +490,7 @@ public class AircraftTrainingLandingTaxiController : MonoBehaviour
 
         if (logTaxiProgress)
         {
-            Debug.Log(
+            Log(
                 $"TRAINING TAXI ROUTE FOUND | Aircraft: {name} | " +
                 $"School parking: {reservedSpot.name} | " +
                 $"Exit: {chosenExit.Cell} | " +
@@ -927,7 +930,7 @@ public class AircraftTrainingLandingTaxiController : MonoBehaviour
 
             if (logTaxiProgress)
             {
-                Debug.Log(
+                Log(
                     $"TRAINING AIRCRAFT PARKED | Aircraft: {name} | " +
                     $"School parking: {reservedSpot.name}",
                     this
@@ -1026,9 +1029,14 @@ public class AircraftTrainingLandingTaxiController : MonoBehaviour
         phase = TaxiPhase.Failed;
         debugStatus = message;
 
-        Debug.LogWarning(
+        LogWarning(
             $"TRAINING TAXI ROUTE FAILED | Aircraft: {name}: {message}",
             this
         );
     }
+
+    private void Log(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.Log(message, context); else Debug.Log(message); }
+    private void LogWarning(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message); }
+    private void LogError(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogError(message, context); else Debug.LogError(message); }
+    private void LogException(System.Exception exception, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception); }
 }

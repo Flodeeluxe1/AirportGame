@@ -4,6 +4,9 @@ using UnityEngine;
 
 public class TaxiwayPathfinder : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+{
     [Header("References")]
     [SerializeField] private TaxiwayNetwork taxiwayNetwork;
 
@@ -46,7 +49,7 @@ public class TaxiwayPathfinder : MonoBehaviour
 
         if (taxiwayNetwork == null)
         {
-            Debug.LogError(
+            LogError(
                 "TaxiwayPathfinder: TaxiwayNetwork is missing."
             );
 
@@ -545,7 +548,7 @@ public class TaxiwayPathfinder : MonoBehaviour
             debugLastResult =
                 $"NO PATH | {debugStart} -> {debugTarget}";
 
-            Debug.Log(debugLastResult, this);
+            Log(debugLastResult, this);
             return;
         }
 
@@ -560,7 +563,7 @@ public class TaxiwayPathfinder : MonoBehaviour
             $"PATH FOUND | Cells: {path.Count}\n" +
             pathText;
 
-        Debug.Log(debugLastResult, this);
+        Log(debugLastResult, this);
     }
 
     private class MinPriorityQueue
@@ -687,4 +690,9 @@ public class TaxiwayPathfinder : MonoBehaviour
             nodes[secondIndex] = temporary;
         }
     }
+
+    private void Log(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.Log(message, context); else Debug.Log(message); }
+    private void LogWarning(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message); }
+    private void LogError(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogError(message, context); else Debug.LogError(message); }
+    private void LogException(System.Exception exception, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception); }
 }

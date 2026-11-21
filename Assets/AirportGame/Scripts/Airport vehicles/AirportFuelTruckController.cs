@@ -9,6 +9,9 @@ using UnityEngine;
 [RequireComponent(typeof(AirportGroundVehicleMovement))]
 public class AirportFuelTruckController : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+{
     private enum TruckState
     {
         Idle,
@@ -250,7 +253,7 @@ public class AirportFuelTruckController : MonoBehaviour
             !identity.IsInitialized ||
             !identity.HasActualGate)
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"{aircraft.name}: Cannot request airport refuelling because " +
                 "its fuel tank or actual gate assignment is missing.",
                 aircraft);
@@ -265,7 +268,7 @@ public class AirportFuelTruckController : MonoBehaviour
                 identity.ActualGateStableId,
                 out AircraftGate actualGate))
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"{aircraft.name}: Could not resolve actual gate '" +
                 $"{identity.ActualGateStableId}' for fuel service.",
                 aircraft);
@@ -276,7 +279,7 @@ public class AirportFuelTruckController : MonoBehaviour
 
         if (stopPoint == null)
         {
-            Debug.LogError(
+            LogError(
                 $"{aircraft.name}: Gate '{actualGate.name}' has no child named " +
                 "'FuelTruckVehicleStopPoint'.",
                 actualGate);
@@ -305,7 +308,7 @@ public class AirportFuelTruckController : MonoBehaviour
 
         if (showDebugMessages)
         {
-            Debug.Log(
+            Log(
                 $"{name}: Queued refuelling for aircraft '{aircraft.name}' " +
                 $"at gate '{actualGate.StableId}'. Queue: {queuedJobCount}.",
                 this);
@@ -515,7 +518,7 @@ public class AirportFuelTruckController : MonoBehaviour
 
         if (fuelStation == null)
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"{name}: Could not charge {job.Aircraft?.name ?? "aircraft"} " +
                 "for fuel because no AircraftFuelStation was found to read its price.",
                 this);
@@ -546,7 +549,7 @@ public class AirportFuelTruckController : MonoBehaviour
 
         if (paymentRecorded)
         {
-            Debug.Log(
+            Log(
                 $"AIRPORT INCOME | Aircraft fuel: " +
                 $"{job.FuelLitresDelivered:N1} L x ${pricePerLitre:N2}/L " +
                 $"(${fuelCost:N0}) + service fee ${serviceFee:N0} " +
@@ -582,7 +585,7 @@ public class AirportFuelTruckController : MonoBehaviour
         {
             if (!warnedMissingRefillStopPoint)
             {
-                Debug.LogWarning(
+                LogWarning(
                     $"{name}: Waiting for a scene transform named " +
                     $"'{refillStopPointName}' for the airport fuel station.",
                     this);
@@ -603,7 +606,7 @@ public class AirportFuelTruckController : MonoBehaviour
         {
             currentJobStatus =
                 "Waiting: could not start route to airport fuel station";
-            Debug.LogWarning(
+            LogWarning(
                 $"{name}: Could not start the route to '{refillStopPointName}'.",
                 this);
             return;
@@ -624,7 +627,7 @@ public class AirportFuelTruckController : MonoBehaviour
             state = TruckState.WaitingForRefillPoint;
             currentJobStatus =
                 "Waiting: route to airport fuel station failed";
-            Debug.LogWarning(
+            LogWarning(
                 $"{name}: Route to airport fuel station failed: " +
                 groundVehicleMovement.MovementStatus,
                 this);
@@ -668,7 +671,7 @@ public class AirportFuelTruckController : MonoBehaviour
         {
             if (!warnedMissingRefillNetwork)
             {
-                Debug.LogWarning(
+                LogWarning(
                     $"{name}: Cannot refill because the airport fuel station's " +
                     "pipeline manager or FuelConnector is missing.",
                     this);
@@ -686,7 +689,7 @@ public class AirportFuelTruckController : MonoBehaviour
         {
             if (!warnedMissingRefillNetwork)
             {
-                Debug.LogWarning(
+                LogWarning(
                     $"{name}: The airport fuel station connector is not assigned " +
                     "to a pipeline network yet.",
                     this);
@@ -713,7 +716,7 @@ public class AirportFuelTruckController : MonoBehaviour
         {
             if (!warnedEmptyRefillNetwork)
             {
-                Debug.LogWarning(
+                LogWarning(
                     $"{name}: Airport fuel network is empty. The truck is waiting " +
                     "until fuel becomes available.",
                     this);
@@ -785,7 +788,7 @@ public class AirportFuelTruckController : MonoBehaviour
             state = TruckState.Idle;
             currentJobStatus =
                 "Idle: home parking position has not been assigned";
-            Debug.LogWarning(
+            LogWarning(
                 $"{name}: Cannot return to the fuel truck lot because " +
                 "the home spawn point has not been assigned.",
                 this);
@@ -802,7 +805,7 @@ public class AirportFuelTruckController : MonoBehaviour
         {
             state = TruckState.Idle;
             currentJobStatus = "Idle: return-home route failed";
-            Debug.LogWarning(
+            LogWarning(
                 $"{name}: Could not start the route back to the fuel truck lot.",
                 this);
             return;
@@ -830,7 +833,7 @@ public class AirportFuelTruckController : MonoBehaviour
             state = TruckState.Idle;
             currentJobStatus =
                 "Idle: return-home route failed";
-            Debug.LogWarning(
+            LogWarning(
                 $"{name}: Return-home route failed: " +
                 groundVehicleMovement.MovementStatus,
                 this);
@@ -845,7 +848,7 @@ public class AirportFuelTruckController : MonoBehaviour
             globallyRequestedAircraft.Remove(activeJob.Aircraft);
         }
 
-        Debug.LogWarning(
+        LogWarning(
             $"{name}: Fuel truck job failed. {reason}",
             this);
 
@@ -883,7 +886,7 @@ public class AirportFuelTruckController : MonoBehaviour
     private void LogStatus(string message)
     {
         if (showDebugMessages)
-            Debug.Log($"{name}: {message}.", this);
+            Log($"{name}: {message}.", this);
     }
 
     /// <summary>
@@ -925,4 +928,9 @@ public class AirportFuelTruckController : MonoBehaviour
             activeJob.Aircraft.CancelExternalFueling();
         }
     }
+
+    private void Log(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.Log(message, context); else Debug.Log(message); }
+    private void LogWarning(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message); }
+    private void LogError(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogError(message, context); else Debug.LogError(message); }
+    private void LogException(System.Exception exception, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception); }
 }

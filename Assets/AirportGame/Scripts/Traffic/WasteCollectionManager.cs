@@ -10,6 +10,9 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class WasteCollectionManager : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+{
     [Header("References")]
     [SerializeField] private GarbageCollectorSpawner garbageCollectorSpawner;
 
@@ -53,7 +56,7 @@ public class WasteCollectionManager : MonoBehaviour
 
         if (garbageCollectorSpawner == null)
         {
-            Debug.LogError(
+            LogError(
                 "WasteCollectionManager: Assign the GarbageCollectorSpawner from the RoadTrafficSpawner GameObject.",
                 this);
             enabled = false;
@@ -154,7 +157,7 @@ public class WasteCollectionManager : MonoBehaviour
                 ? totalCurrentWaste / totalWasteCapacity * 100f
                 : 0f;
 
-            Debug.Log(
+            Log(
                 $"WASTE COLLECTION EVENT | Airport total: {totalCurrentWaste:F1}/{totalWasteCapacity:F1} " +
                 $"({totalPercent:F1}%) | Per-disposal dispatch threshold: {dispatchThresholdPercent:F1}% | " +
                 $"Disposals: {trackedDisposalCount} | Active collectors: " +
@@ -216,7 +219,7 @@ public class WasteCollectionManager : MonoBehaviour
 
         if (economyManager == null)
         {
-            Debug.LogError(
+            LogError(
                 "WasteCollectionManager: Cannot charge waste collection because AirportEconomyManager was not found.",
                 this);
             return false;
@@ -233,13 +236,13 @@ public class WasteCollectionManager : MonoBehaviour
 
         if (!economyManager.TrySpend(charge, reason, AirportFinancialCategory.WasteCollection))
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"WASTE COLLECTION CHARGE FAILED | {reason} | Cost: ${charge:N0}.",
                 this);
             return false;
         }
 
-        Debug.Log(
+        Log(
             $"WASTE COLLECTION CHARGED | {reason} | Fixed fee: ${fixedCollectionFeePerTrip:F2} | " +
             $"Variable fee: ${(collectedUnits * disposalFeePerUnit):F2} | Total charged: ${charge:N0}.",
             this);
@@ -283,4 +286,9 @@ public class WasteCollectionManager : MonoBehaviour
             trackedDisposalCount = trackedDisposals.Count;
         }
     }
+
+    private void Log(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.Log(message, context); else Debug.Log(message); }
+    private void LogWarning(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message); }
+    private void LogError(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogError(message, context); else Debug.LogError(message); }
+    private void LogException(System.Exception exception, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception); }
 }

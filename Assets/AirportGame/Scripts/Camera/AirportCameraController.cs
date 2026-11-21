@@ -4,6 +4,9 @@ using UnityEngine.InputSystem;
 
 public class AirportCameraController : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+{
     [Header("References")]
     [SerializeField] private Camera controlledCamera;
 
@@ -64,7 +67,7 @@ public class AirportCameraController : MonoBehaviour
 
         if (controlledCamera == null)
         {
-            Debug.LogError(
+            LogError(
                 "AirportCameraController: No child Camera found.",
                 this
             );
@@ -86,7 +89,7 @@ public class AirportCameraController : MonoBehaviour
 
         if (currentZoom < 0.01f)
         {
-            Debug.LogError(
+            LogError(
                 "AirportCameraController: The camera needs a " +
                 "non-zero horizontal offset from the CameraRig.",
                 this
@@ -439,4 +442,9 @@ public class AirportCameraController : MonoBehaviour
             Vector3.up
         );
     }
+
+    private void Log(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.Log(message, context); else Debug.Log(message); }
+    private void LogWarning(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message); }
+    private void LogError(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogError(message, context); else Debug.LogError(message); }
+    private void LogException(System.Exception exception, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception); }
 }

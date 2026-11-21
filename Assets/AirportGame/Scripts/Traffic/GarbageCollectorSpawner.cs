@@ -8,6 +8,9 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class GarbageCollectorSpawner : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+{
     [Header("References")]
     [SerializeField] private GameObject garbageCollectorPrefab;
     [SerializeField] private Transform spawnPoint;
@@ -57,7 +60,7 @@ public class GarbageCollectorSpawner : MonoBehaviour
         if (garbageCollectorPrefab == null || spawnPoint == null ||
             exitPoint == null || gridManager == null || roadNetwork == null)
         {
-            Debug.LogError(
+            LogError(
                 "GarbageCollectorSpawner: Assign the collector prefab, shared road spawn point, exit point, GridManager and RoadNetwork.",
                 this);
             enabled = false;
@@ -123,7 +126,7 @@ public class GarbageCollectorSpawner : MonoBehaviour
 
         if (collector == null)
         {
-            Debug.LogError(
+            LogError(
                 "GarbageCollectorSpawner: GarbageCollectorController must be on the collector prefab root.",
                 collectorObject);
             ReleaseDisposal(disposal);
@@ -149,7 +152,7 @@ public class GarbageCollectorSpawner : MonoBehaviour
 
         if (logDispatches)
         {
-            Debug.Log(
+            Log(
                 $"GARBAGE COLLECTOR DISPATCHED | Target: {disposal.name} | " +
                 $"Waste: {disposal.CurrentWaste:F1}/{disposal.MaximumWasteCapacity:F1} | " +
                 $"Active collectors: {ActiveCollectorCount}",
@@ -162,7 +165,7 @@ public class GarbageCollectorSpawner : MonoBehaviour
     private void LogDispatchFailure(string reason)
     {
         if (logDispatchDiagnostics)
-            Debug.LogWarning($"GARBAGE COLLECTOR NOT DISPATCHED | {reason}", this);
+            LogWarning($"GARBAGE COLLECTOR NOT DISPATCHED | {reason}", this);
     }
 
     public bool TryReserveNextDisposal(
@@ -259,7 +262,7 @@ public class GarbageCollectorSpawner : MonoBehaviour
 
         if (selectedDisposal == null && logDispatchDiagnostics)
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"GARBAGE DISPATCH SEARCH SUMMARY | Found disposals: {WasteDisposal.ActiveDisposals.Count} | " +
                 $"Inactive: {inactiveCount} | Reserved: {reservedCount} | Empty: {emptyCount} | " +
                 $"Missing stop point: {missingStopCount} | Below threshold: {belowThresholdCount} | " +
@@ -274,7 +277,7 @@ public class GarbageCollectorSpawner : MonoBehaviour
         reservedDisposals.Add(selectedDisposal);
         if (logDispatchDiagnostics)
         {
-            Debug.Log(
+            Log(
                 $"GARBAGE DISPOSAL SELECTED | {selectedDisposal.name} | " +
                 $"Waste: {selectedDisposal.CurrentWaste:F1}/{selectedDisposal.MaximumWasteCapacity:F1} | " +
                 $"Road approach cell: {selectedRoadCell} | Route cells: {selectedRoute.Count}",
@@ -287,7 +290,7 @@ public class GarbageCollectorSpawner : MonoBehaviour
     private void LogDisposalSkip(WasteDisposal disposal, string reason)
     {
         if (logDispatchDiagnostics)
-            Debug.Log($"GARBAGE DISPOSAL SKIPPED | {disposal.name} | {reason}", disposal);
+            Log($"GARBAGE DISPOSAL SKIPPED | {disposal.name} | {reason}", disposal);
     }
 
     private bool TryBuildDisposalRoute(
@@ -418,4 +421,9 @@ public class GarbageCollectorSpawner : MonoBehaviour
         ReleaseDisposal(collector.CurrentDisposal);
         CollectorAvailabilityChanged?.Invoke();
     }
+
+    private void Log(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.Log(message, context); else Debug.Log(message); }
+    private void LogWarning(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message); }
+    private void LogError(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogError(message, context); else Debug.LogError(message); }
+    private void LogException(System.Exception exception, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception); }
 }

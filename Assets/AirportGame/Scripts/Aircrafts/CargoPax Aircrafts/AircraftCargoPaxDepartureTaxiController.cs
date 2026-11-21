@@ -4,6 +4,9 @@ using UnityEngine;
 
 public class AircraftCargoPaxDepartureTaxiController : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+{
     public enum DepartureState
     {
         WaitingForGateExit,
@@ -459,7 +462,7 @@ public class AircraftCargoPaxDepartureTaxiController : MonoBehaviour
         hasLoggedWaitingMessage = false;
         lastRunwayWaitReason = string.Empty;
 
-        Debug.Log(
+        Log(
             $"AIRCRAFT DEPARTURE ROUTE SELECTED | Aircraft: {name} | " +
             $"Runway: {debugSelectedRunway} | Heading: {debugTakeoffHeading} | " +
             $"Traffic: {debugRunwayTrafficCount} | " +
@@ -496,7 +499,7 @@ public class AircraftCargoPaxDepartureTaxiController : MonoBehaviour
 
             if (reason != lastRunwayWaitReason)
             {
-                Debug.Log($"{name}: {debugStatus}", this);
+                Log($"{name}: {debugStatus}", this);
                 lastRunwayWaitReason = reason;
             }
 
@@ -505,7 +508,7 @@ public class AircraftCargoPaxDepartureTaxiController : MonoBehaviour
 
         lastRunwayWaitReason = string.Empty;
 
-        Debug.Log(
+        Log(
             $"{name}: Runway clear. Line-up reservation acquired for {selectedRunway.name}.",
             this
         );
@@ -520,7 +523,7 @@ public class AircraftCargoPaxDepartureTaxiController : MonoBehaviour
             holdingRouteIndex >= runwayJoinRoute.Count)
         {
             debugStatus = "Cannot continue to runway entry: join route is invalid.";
-            Debug.LogWarning($"{name}: {debugStatus}", this);
+            LogWarning($"{name}: {debugStatus}", this);
 
             trafficManager.ReleaseRunwayLineUpReservation(this);
             SetOperationalState(DepartureState.AtHoldingPoint);
@@ -715,7 +718,7 @@ public class AircraftCargoPaxDepartureTaxiController : MonoBehaviour
         SetOperationalState(DepartureState.AtHoldingPoint);
         debugStatus = $"Line-up aborted; holding for a safe solution. {reason}";
 
-        Debug.LogWarning($"{name}: {debugStatus}", this);
+        LogWarning($"{name}: {debugStatus}", this);
         retryTimer = runwaySelectionRetryInterval;
     }
 
@@ -1315,7 +1318,7 @@ public class AircraftCargoPaxDepartureTaxiController : MonoBehaviour
         debugStatus =
             $"At safe holding point for {debugSelectedRunway}. Waiting for runway clearance.";
 
-        Debug.Log(
+        Log(
             $"AIRCRAFT AT SAFE DEPARTURE HOLDING POINT | Aircraft: {name} | " +
             $"Runway: {debugSelectedRunway} | Holding cell: {holdingCell}",
             this
@@ -1372,7 +1375,7 @@ public class AircraftCargoPaxDepartureTaxiController : MonoBehaviour
             return;
 
         hasLoggedWaitingMessage = true;
-        Debug.LogWarning($"{name}: Departure taxi waiting. {message}", this);
+        LogWarning($"{name}: Departure taxi waiting. {message}", this);
     }
 
     private void OnDestroy()
@@ -1389,4 +1392,9 @@ public class AircraftCargoPaxDepartureTaxiController : MonoBehaviour
     {
         TrySelectDepartureRunway();
     }
+
+    private void Log(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.Log(message, context); else Debug.Log(message); }
+    private void LogWarning(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message); }
+    private void LogError(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogError(message, context); else Debug.LogError(message); }
+    private void LogException(System.Exception exception, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception); }
 }

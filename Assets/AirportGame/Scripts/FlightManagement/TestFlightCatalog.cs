@@ -5,6 +5,9 @@ using UnityEngine;
 
 public class TestFlightCatalog : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+{
     [Header("Test Flight Generation")]
     [SerializeField] private string testAirlineName = "Test Airline";
 
@@ -186,7 +189,7 @@ public class TestFlightCatalog : MonoBehaviour
         if (flights.Count == 0)
             GenerateTestFlights();
 
-        Debug.Log(
+        Log(
             $"========== TEST FLIGHT CATALOG ({flights.Count}) ==========",
             this
         );
@@ -199,7 +202,7 @@ public class TestFlightCatalog : MonoBehaviour
                 out int endMinutes
             );
 
-            Debug.Log(
+            Log(
                 $"Flight: {flight.FlightNumber} | " +
                 $"Type: {flight.OperationLabel} | " +
                 $"Airline: {flight.AirlineName} | " +
@@ -211,7 +214,7 @@ public class TestFlightCatalog : MonoBehaviour
             );
         }
 
-        Debug.Log(
+        Log(
             "========== END TEST FLIGHT CATALOG ==========",
             this
         );
@@ -224,4 +227,9 @@ public class TestFlightCatalog : MonoBehaviour
 
         return $"{hours:00}:{remainingMinutes:00}";
     }
+
+    private void Log(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.Log(message, context); else Debug.Log(message); }
+    private void LogWarning(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message); }
+    private void LogError(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogError(message, context); else Debug.LogError(message); }
+    private void LogException(System.Exception exception, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception); }
 }

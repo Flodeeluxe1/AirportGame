@@ -5,6 +5,9 @@ using UnityEngine.UIElements;
 
 public class GameMenuUIController : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+{
     [Header("References")]
     [SerializeField]
     private UIDocument uiDocument;
@@ -45,7 +48,7 @@ public class GameMenuUIController : MonoBehaviour
 
         if (uiDocument == null)
         {
-            Debug.LogError(
+            LogError(
                 "GameMenuUIController: UIDocument is missing. " +
                 "Attach this script to the GameObject containing UIDocument " +
                 "or assign the reference in the Inspector.",
@@ -393,7 +396,7 @@ public class GameMenuUIController : MonoBehaviour
     {
         if (action == null || action.GetPersistentEventCount() == 0)
         {
-            Debug.Log(
+            Log(
                 $"Game menu: {actionName} clicked. " +
                 "No action has been connected yet.",
                 this
@@ -408,7 +411,7 @@ public class GameMenuUIController : MonoBehaviour
     {
         CloseMenu();
 
-        Debug.Log("Game menu: Exit requested.", this);
+        Log("Game menu: Exit requested.", this);
 
 #if UNITY_EDITOR
         UnityEditor.EditorApplication.isPlaying = false;
@@ -451,4 +454,9 @@ public class GameMenuUIController : MonoBehaviour
         element.style.borderBottomLeftRadius = radius;
         element.style.borderBottomRightRadius = radius;
     }
+
+    private void Log(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.Log(message, context); else Debug.Log(message); }
+    private void LogWarning(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message); }
+    private void LogError(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogError(message, context); else Debug.LogError(message); }
+    private void LogException(System.Exception exception, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception); }
 }

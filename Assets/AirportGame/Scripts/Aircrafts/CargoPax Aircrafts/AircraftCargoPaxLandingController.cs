@@ -2,6 +2,9 @@ using UnityEngine;
 
 public class AircraftCargoPaxLandingController : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+{
     private enum LandingState
     {
         Initializing,
@@ -270,7 +273,7 @@ public class AircraftCargoPaxLandingController : MonoBehaviour
 
         if (trafficManager == null)
         {
-            Debug.LogWarning(
+            LogWarning(
                 "AircraftCargoPaxLandingController: " +
                 "AircraftRunwayTrafficManager was not found. " +
                 "Runway traffic balancing is disabled.",
@@ -438,7 +441,7 @@ public class AircraftCargoPaxLandingController : MonoBehaviour
             $"Headwind: {debugHeadwindComponentKnots:F1} knots. " +
             $"Sidewind: {debugSidewindComponentKnots:F1} knots.";
 
-        Debug.Log(
+        Log(
             $"CARGOPAX RUNWAY SELECTED | " +
             $"Runway: {debugSelectedRunway} | " +
             $"Heading: {debugLandingHeading} | " +
@@ -534,7 +537,7 @@ public class AircraftCargoPaxLandingController : MonoBehaviour
         debugSidewindComponentKnots =
             CalculateSidewindComponentKnots();
 
-        Debug.Log(
+        Log(
             $"CARGOPAX FLARE DECISION | " +
             $"Runway: {debugSelectedRunway} | " +
             $"Sidewind: {debugSidewindComponentKnots:F1} knots | " +
@@ -558,7 +561,7 @@ public class AircraftCargoPaxLandingController : MonoBehaviour
                 $"{debugSidewindComponentKnots:F1} knots exceeds limit " +
                 $"{maximumSidewindComponentKnots:F1} knots.";
 
-            Debug.LogWarning(
+            LogWarning(
                 $"CARGOPAX GO-AROUND | " +
                 $"Sidewind: {debugSidewindComponentKnots:F1} knots | " +
                 $"Limit: {maximumSidewindComponentKnots:F1} knots | " +
@@ -685,7 +688,7 @@ public class AircraftCargoPaxLandingController : MonoBehaviour
         debugStatus =
             "Touchdown. Rolling out and decelerating.";
 
-        Debug.Log(
+        Log(
             $"CARGOPAX TOUCHDOWN | " +
             $"Runway: {debugSelectedRunway} | " +
             $"Speed: {touchdownSpeedKnots:F1} knots",
@@ -762,7 +765,7 @@ public class AircraftCargoPaxLandingController : MonoBehaviour
                 "flight identity is missing.";
         }
 
-        Debug.Log(
+        Log(
             $"CARGOPAX LANDING COMPLETE | " +
             $"Flight: {(flightIdentity != null ? flightIdentity.FlightNumber : "Unknown")} | " +
             $"Runway: {debugSelectedRunway} | " +
@@ -831,7 +834,7 @@ public class AircraftCargoPaxLandingController : MonoBehaviour
         debugStatus =
             "Go-around altitude reached. Aircraft despawning.";
 
-        Debug.Log(
+        Log(
             $"CARGOPAX GO-AROUND COMPLETE | " +
             $"Target altitude above runway: " +
             $"{Mathf.Max(goAroundAltitudeAboveRunway, flareHeight + 1f):F1}",
@@ -958,7 +961,7 @@ public class AircraftCargoPaxLandingController : MonoBehaviour
         SetOperationalState(LandingState.Failed);
         debugStatus = reason;
 
-        Debug.LogError(
+        LogError(
             $"CARGOPAX LANDING FAILED | {reason}",
             this
         );
@@ -987,4 +990,9 @@ public class AircraftCargoPaxLandingController : MonoBehaviour
                   )
                 : 0f;
     }
+
+    private void Log(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.Log(message, context); else Debug.Log(message); }
+    private void LogWarning(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message); }
+    private void LogError(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogError(message, context); else Debug.LogError(message); }
+    private void LogException(System.Exception exception, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception); }
 }

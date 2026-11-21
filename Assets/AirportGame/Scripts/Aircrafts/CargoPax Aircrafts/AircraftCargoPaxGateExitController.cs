@@ -3,6 +3,9 @@ using UnityEngine;
 
 public class AircraftCargoPaxGateExitController : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+{
     public enum GateExitState
     {
         WaitingForTurnaround,
@@ -242,7 +245,7 @@ public class AircraftCargoPaxGateExitController : MonoBehaviour
 
             currentState = GateExitState.MovingForwardToTaxiway;
 
-            Debug.Log(
+            Log(
                 $"{name}: Forward gate exit selected at grid cell " +
                 $"{forwardExitCell}. Moving forward without turning.",
                 this
@@ -263,7 +266,7 @@ public class AircraftCargoPaxGateExitController : MonoBehaviour
 
         currentState = GateExitState.TurningAtGate;
 
-        Debug.Log(
+        Log(
             $"{name}: No usable forward taxiway connection. " +
             "Turning 180 degrees at the gate.",
             this
@@ -334,7 +337,7 @@ public class AircraftCargoPaxGateExitController : MonoBehaviour
 
             currentState = GateExitState.MovingForwardToTaxiway;
 
-            Debug.Log(
+            Log(
                 $"{name}: TEST MODE — forward gate exit selected at " +
                 $"grid cell {forwardExitCell}.",
                 this
@@ -353,7 +356,7 @@ public class AircraftCargoPaxGateExitController : MonoBehaviour
 
         currentState = GateExitState.TurningAtGate;
 
-        Debug.Log(
+        Log(
             $"{name}: TEST MODE — no forward taxiway connection. " +
             "Turning 180 degrees at the gate.",
             this
@@ -628,7 +631,7 @@ public class AircraftCargoPaxGateExitController : MonoBehaviour
 
         currentState = GateExitState.ReadyForTaxi;
 
-        Debug.Log(
+        Log(
             $"{name}: Test aircraft initialized in ReadyForTaxi state.",
             this
         );
@@ -640,7 +643,7 @@ public class AircraftCargoPaxGateExitController : MonoBehaviour
     {
         currentState = GateExitState.ReadyForTaxi;
 
-        Debug.Log(
+        Log(
             $"{name}: Gate exit complete. Ready for taxi. " +
             $"Forward exit used: {usedForwardExit}.",
             this
@@ -656,7 +659,7 @@ public class AircraftCargoPaxGateExitController : MonoBehaviour
 
         configurationWarningLogged = true;
 
-        Debug.LogWarning(
+        LogWarning(
             $"{name}: AircraftCargoPaxGateExitController: {message}",
             this
         );
@@ -667,4 +670,9 @@ public class AircraftCargoPaxGateExitController : MonoBehaviour
     {
         BeginGateExit();
     }
+
+    private void Log(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.Log(message, context); else Debug.Log(message); }
+    private void LogWarning(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message); }
+    private void LogError(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogError(message, context); else Debug.LogError(message); }
+    private void LogException(System.Exception exception, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception); }
 }

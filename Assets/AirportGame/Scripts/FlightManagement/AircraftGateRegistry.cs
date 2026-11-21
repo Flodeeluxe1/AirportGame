@@ -4,6 +4,9 @@ using UnityEngine;
 
 public class AircraftGateRegistry : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+{
     private readonly List<AircraftGate> gates =
         new List<AircraftGate>();
 
@@ -85,14 +88,14 @@ public class AircraftGateRegistry : MonoBehaviour
     {
         RefreshGates();
 
-        Debug.Log(
+        Log(
             $"========== AIRCRAFT GATES ({gates.Count}) ==========",
             this
         );
 
         foreach (AircraftGate gate in gates)
         {
-            Debug.Log(
+            Log(
                 $"{gate.DisplayName} | " +
                 $"Size: {gate.Size} | " +
                 $"ID: {gate.StableId}",
@@ -100,9 +103,14 @@ public class AircraftGateRegistry : MonoBehaviour
             );
         }
 
-        Debug.Log(
+        Log(
             "========== END AIRCRAFT GATES ==========",
             this
         );
     }
+
+    private void Log(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.Log(message, context); else Debug.Log(message); }
+    private void LogWarning(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message); }
+    private void LogError(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogError(message, context); else Debug.LogError(message); }
+    private void LogException(System.Exception exception, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception); }
 }

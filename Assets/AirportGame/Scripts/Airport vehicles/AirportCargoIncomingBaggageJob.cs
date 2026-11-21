@@ -6,6 +6,9 @@ using UnityEngine;
 [RequireComponent(typeof(AirportCargoVehicleController))]
 public class AirportCargoIncomingBaggageJob : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+{
     private enum JobState
     {
         Idle,
@@ -59,7 +62,7 @@ public class AirportCargoIncomingBaggageJob : MonoBehaviour
     {
         if (state != JobState.Idle)
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"{name}: Cannot begin another baggage job; " +
                 "this vehicle already has an active job.",
                 this
@@ -76,7 +79,7 @@ public class AirportCargoIncomingBaggageJob : MonoBehaviour
 
         if (cargoBoxPrefab == null)
         {
-            Debug.LogError(
+            LogError(
                 $"{name}: Assign the CargoBox prefab to " +
                 "AirportCargoIncomingBaggageJob.",
                 this
@@ -87,7 +90,7 @@ public class AirportCargoIncomingBaggageJob : MonoBehaviour
 
         if (cargoBoxPrefab.GetComponent<CargoPackage>() == null)
         {
-            Debug.LogError(
+            LogError(
                 $"{name}: The assigned CargoBox prefab must have a " +
                 "CargoPackage component on its root GameObject.",
                 cargoBoxPrefab
@@ -102,7 +105,7 @@ public class AirportCargoIncomingBaggageJob : MonoBehaviour
 
         if (manifest == null || !manifest.IsInitialized)
         {
-            Debug.LogError(
+            LogError(
                 $"{name}: The aircraft's loading manifest is unavailable.",
                 aircraft
             );
@@ -118,7 +121,7 @@ public class AirportCargoIncomingBaggageJob : MonoBehaviour
 
         if (capacity <= 0)
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"{name}: No available cargo capacity for " +
                 $"{operationId}.",
                 this
@@ -131,7 +134,7 @@ public class AirportCargoIncomingBaggageJob : MonoBehaviour
         // Find a destination before taking baggage off the aircraft.
         if (!TrySelectCargoZone())
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"{name}: No suitable cargo zone was found for " +
                 $"{operationId}.",
                 this
@@ -150,7 +153,7 @@ public class AirportCargoIncomingBaggageJob : MonoBehaviour
 
         if (reservedPackageIds.Count == 0)
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"{name}: No incoming baggage could be reserved for " +
                 $"{operationId}.",
                 this
@@ -167,7 +170,7 @@ public class AirportCargoIncomingBaggageJob : MonoBehaviour
         state = JobState.OpeningCargoDoors;
         jobStatus = "Opening aircraft cargo doors";
 
-        Debug.Log(
+        Log(
             $"{name}: Arrived at aircraft for {operationId}. " +
             $"Preparing to unload {reservedPackageIds.Count} baggage item(s).",
             this
@@ -183,7 +186,7 @@ public class AirportCargoIncomingBaggageJob : MonoBehaviour
 
         if (zones.Count == 0)
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"{name}: No CargoZone objects exist in the scene.",
                 this
             );
@@ -271,7 +274,7 @@ public class AirportCargoIncomingBaggageJob : MonoBehaviour
         state = JobState.TransferringBaggage;
         jobStatus = "Transferring baggage";
 
-        Debug.Log(
+        Log(
             $"{name}: Aircraft cargo doors are open. " +
             "Beginning baggage transfer.",
             this
@@ -296,7 +299,7 @@ public class AirportCargoIncomingBaggageJob : MonoBehaviour
             nextPackageIndex++;
             transferredPackageCount++;
 
-            Debug.Log(
+            Log(
                 $"{name}: Moved baggage " +
                 $"{transferredPackageCount}/{reservedPackageIds.Count} " +
                 $"into the vehicle for {currentOperationId}.",
@@ -311,7 +314,7 @@ public class AirportCargoIncomingBaggageJob : MonoBehaviour
         state = JobState.ClosingCargoDoors;
         jobStatus = "Closing aircraft cargo doors";
 
-        Debug.Log(
+        Log(
             $"{name}: All reserved baggage has been transferred. " +
             "Closing aircraft cargo doors.",
             this
@@ -340,7 +343,7 @@ public class AirportCargoIncomingBaggageJob : MonoBehaviour
         state = JobState.DrivingToCargoZone;
         jobStatus = "Driving to cargo zone";
 
-        Debug.Log(
+        Log(
             $"{name}: Cargo doors closed. Driving to cargo zone " +
             $"'{targetZone.name}'.",
             this
@@ -443,7 +446,7 @@ public class AirportCargoIncomingBaggageJob : MonoBehaviour
             return;
         }
 
-        Debug.Log(
+        Log(
             $"{name}: Delivered {deliveredCount} incoming baggage " +
             $"package(s) to cargo zone '{targetZone.name}' for " +
             $"{currentOperationId}. Remaining on aircraft: " +
@@ -481,7 +484,7 @@ public class AirportCargoIncomingBaggageJob : MonoBehaviour
     {
         ReleaseUntransferredReservations();
 
-        Debug.LogWarning(
+        LogWarning(
             $"{name}: Incoming baggage job failed. {reason}",
             this
         );
@@ -536,4 +539,9 @@ public class AirportCargoIncomingBaggageJob : MonoBehaviour
         float dz = a.z - b.z;
         return dx * dx + dz * dz;
     }
+
+    private void Log(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.Log(message, context); else Debug.Log(message); }
+    private void LogWarning(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message); }
+    private void LogError(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogError(message, context); else Debug.LogError(message); }
+    private void LogException(System.Exception exception, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception); }
 }

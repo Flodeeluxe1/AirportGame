@@ -7,6 +7,9 @@ using UnityEngine.Rendering;
 
 public class RoomInfoPanelUIController : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+{
     [Header("References")]
     [SerializeField] private UIDocument uiDocument;
     [SerializeField] private RoomPurposeController roomPurposeController;
@@ -79,7 +82,7 @@ public class RoomInfoPanelUIController : MonoBehaviour
 
         if (uiDocument == null)
         {
-            Debug.LogError(
+            LogError(
                 "RoomInfoPanelUIController: UIDocument is not assigned.",
                 this
             );
@@ -723,7 +726,7 @@ public class RoomInfoPanelUIController : MonoBehaviour
     {
         if (selectedRoom == null || roomPurposeController == null)
         {
-            Debug.LogWarning(
+            LogWarning(
                 "Cannot assign room purpose: room or controller is missing.",
                 this
             );
@@ -771,7 +774,7 @@ public class RoomInfoPanelUIController : MonoBehaviour
 
         if (cellWidth <= 0.0001f || cellDepth <= 0.0001f)
         {
-            Debug.LogWarning(
+            LogWarning(
                 "Could not determine grid cell dimensions for room highlight.",
                 this
             );
@@ -854,7 +857,7 @@ public class RoomInfoPanelUIController : MonoBehaviour
 
         if (shader == null)
         {
-            Debug.LogError(
+            LogError(
                 "Could not find URP Unlit shader for room highlight.",
                 this
             );
@@ -916,4 +919,9 @@ public class RoomInfoPanelUIController : MonoBehaviour
             highlightMaterial = null;
         }
     }
+
+    private void Log(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.Log(message, context); else Debug.Log(message); }
+    private void LogWarning(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message); }
+    private void LogError(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogError(message, context); else Debug.LogError(message); }
+    private void LogException(System.Exception exception, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception); }
 }

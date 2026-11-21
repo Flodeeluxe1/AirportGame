@@ -4,6 +4,9 @@ using UnityEngine;
 
 public class AircraftCargoPaxLandingTaxiController : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+{
     [Header("References")]
     [SerializeField] private AircraftCargoPaxLandingController landingController;
     [SerializeField] private AircraftFlightIdentity flightIdentity;
@@ -505,7 +508,7 @@ public class AircraftCargoPaxLandingTaxiController : MonoBehaviour
 
         if (logRouteDetails)
         {
-            Debug.Log(
+            Log(
                 $"CARGOPAX TAXI ROUTE FOUND | " +
                 $"Flight: {flightIdentity.FlightNumber} | " +
                 $"Gate: {assignedGate.DisplayName} | " +
@@ -520,7 +523,7 @@ public class AircraftCargoPaxLandingTaxiController : MonoBehaviour
 
         if (logTaxiProgress)
         {
-            Debug.Log(
+            Log(
                 $"CARGOPAX TAXI STARTED | " +
                 $"Flight: {flightIdentity.FlightNumber} | " +
                 $"Gate: {assignedGate.DisplayName} | " +
@@ -661,7 +664,7 @@ public class AircraftCargoPaxLandingTaxiController : MonoBehaviour
 
         if (runwayBuilding == null)
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"Runway {selectedRunway.name} has no PlacedBuilding component.",
                 selectedRunway);
             return candidates;
@@ -936,7 +939,7 @@ public class AircraftCargoPaxLandingTaxiController : MonoBehaviour
 
             if (logTaxiProgress)
             {
-                Debug.Log(
+                Log(
                     $"CARGOPAX REACHED RUNWAY EXIT | " +
                     $"Flight: {flightIdentity.FlightNumber} | " +
                     $"Exit: {debugRunwayExitCell}",
@@ -1090,7 +1093,7 @@ public class AircraftCargoPaxLandingTaxiController : MonoBehaviour
 
         if (logTaxiProgress)
         {
-            Debug.Log(
+            Log(
                 $"CARGOPAX ARRIVED AT GATE | " +
                 $"Flight: {flightIdentity.FlightNumber} | " +
                 $"Gate: {assignedGate.DisplayName}",
@@ -1108,7 +1111,7 @@ public class AircraftCargoPaxLandingTaxiController : MonoBehaviour
         debugTaxiPhase = phase.ToString();
         debugStatus = reason;
 
-        Debug.LogWarning(
+        LogWarning(
             $"CARGOPAX TAXI STOPPED | " +
             $"{(flightIdentity != null ? flightIdentity.FlightNumber : "Unknown flight")} | " +
             reason,
@@ -1165,7 +1168,7 @@ public class AircraftCargoPaxLandingTaxiController : MonoBehaviour
         SetOperationalState(TaxiPhase.Failed);
         debugTaxiPhase = phase.ToString();
 
-        Debug.LogWarning(
+        LogWarning(
             $"CARGOPAX TAXI ROUTE FAILED | " +
             $"{(flightIdentity != null ? flightIdentity.FlightNumber : "Unknown flight")} | " +
             message,
@@ -1222,4 +1225,9 @@ public class AircraftCargoPaxLandingTaxiController : MonoBehaviour
             Gizmos.DrawWireSphere(gatePosition, 0.35f);
         }
     }
+
+    private void Log(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.Log(message, context); else Debug.Log(message); }
+    private void LogWarning(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message); }
+    private void LogError(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogError(message, context); else Debug.LogError(message); }
+    private void LogException(System.Exception exception, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception); }
 }

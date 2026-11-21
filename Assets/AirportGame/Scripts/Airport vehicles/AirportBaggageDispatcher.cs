@@ -5,6 +5,9 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class AirportBaggageDispatcher : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+{
     public static AirportBaggageDispatcher Instance { get; private set; }
 
     public enum RequestStatus
@@ -57,7 +60,7 @@ public class AirportBaggageDispatcher : MonoBehaviour
     {
         if (Instance != null && Instance != this)
         {
-            Debug.LogError(
+            LogError(
                 $"{name}: Another AirportBaggageDispatcher already exists. " +
                 "Only one dispatcher is allowed.",
                 this
@@ -70,7 +73,7 @@ public class AirportBaggageDispatcher : MonoBehaviour
         Instance = this;
         dispatcherStatus = "Ready";
 
-        Debug.Log($"{name}: Baggage dispatcher initialized.", this);
+        Log($"{name}: Baggage dispatcher initialized.", this);
     }
 
     private void OnDestroy()
@@ -86,7 +89,7 @@ public class AirportBaggageDispatcher : MonoBehaviour
 
         availableVehicles.Add(vehicle);
 
-        Debug.Log(
+        Log(
             $"{name}: Registered cargo vehicle '{vehicle.name}'.",
             this
         );
@@ -117,7 +120,7 @@ public class AirportBaggageDispatcher : MonoBehaviour
             !identity.HasActualGate ||
             identity.ActualGateStableId != actualGate.StableId)
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"{name}: The aircraft's actual gate assignment is invalid.",
                 aircraft
             );
@@ -167,7 +170,7 @@ public class AirportBaggageDispatcher : MonoBehaviour
             !identity.HasActualGate ||
             identity.ActualGateStableId != actualGate.StableId)
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"{name}: The aircraft's actual gate assignment is invalid for outgoing baggage.",
                 aircraft
             );
@@ -210,7 +213,7 @@ public class AirportBaggageDispatcher : MonoBehaviour
         {
             if (existingRequest.Status != RequestStatus.Cancelled)
             {
-                Debug.Log(
+                Log(
                     $"{name}: Duplicate {type} baggage request ignored " +
                     $"for {operationId}. Status: {existingRequest.Status}.",
                     aircraft
@@ -237,7 +240,7 @@ public class AirportBaggageDispatcher : MonoBehaviour
         requestsByOperationId.Add(requestKey, request);
         requestQueue.Enqueue(request);
 
-        Debug.Log(
+        Log(
             $"{name}: {type} baggage request queued for " +
             $"{identity.FlightNumber} ({operationId}). " +
             $"Actual gate: {actualGate.StableId}. " +
@@ -269,7 +272,7 @@ public class AirportBaggageDispatcher : MonoBehaviour
                 requestKey,
                 out BaggageRequest request))
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"{name}: Arrival received for unknown request " +
                 $"'{requestKey}'.",
                 vehicle
@@ -281,7 +284,7 @@ public class AirportBaggageDispatcher : MonoBehaviour
         if (request.Status != RequestStatus.Assigned ||
             request.AssignedVehicle != vehicle)
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"{name}: Vehicle '{vehicle.name}' reported an arrival " +
                 $"for an assignment it does not own: {requestKey}.",
                 vehicle
@@ -292,7 +295,7 @@ public class AirportBaggageDispatcher : MonoBehaviour
 
         request.Status = RequestStatus.AtPickup;
 
-        Debug.Log(
+        Log(
             $"{name}: Vehicle '{vehicle.name}' arrived at gate " +
             $"{request.ActualGate.StableId} for {request.Type} task " +
             $"{request.OperationId}.",
@@ -389,7 +392,7 @@ public class AirportBaggageDispatcher : MonoBehaviour
 
         availableVehicles.Add(vehicle);
 
-        Debug.LogWarning(
+        LogWarning(
             $"{name}: {request.Type} assignment failed for " +
             $"{request.OperationId}. Reason: {reason}",
             vehicle
@@ -422,7 +425,7 @@ public class AirportBaggageDispatcher : MonoBehaviour
             string.IsNullOrWhiteSpace(operationId) ||
             completedCargoZone == null)
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"{name}: Incoming completion could not be processed because " +
                 "the vehicle, operation ID, or cargo zone is missing.",
                 this
@@ -438,7 +441,7 @@ public class AirportBaggageDispatcher : MonoBehaviour
                 incomingKey,
                 out BaggageRequest incomingRequest))
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"{name}: Completion received for unknown incoming request " +
                 $"'{incomingKey}'.",
                 vehicle
@@ -451,7 +454,7 @@ public class AirportBaggageDispatcher : MonoBehaviour
             incomingRequest.AssignedVehicle != vehicle ||
             incomingRequest.Type != RequestType.Incoming)
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"{name}: Vehicle '{vehicle.name}' attempted to complete " +
                 $"an incoming assignment it does not own: {incomingKey}.",
                 vehicle
@@ -468,7 +471,7 @@ public class AirportBaggageDispatcher : MonoBehaviour
                 ? incomingRequest.Aircraft.LoadingManifest
                 : null;
 
-        Debug.Log(
+        Log(
             $"{name}: Incoming baggage request completed for " +
             $"{operationId} at cargo zone '{completedCargoZone.name}'.",
             vehicle
@@ -483,7 +486,7 @@ public class AirportBaggageDispatcher : MonoBehaviour
             requestsByOperationId.Remove(incomingKey);
             availableVehicles.Add(vehicle);
 
-            Debug.Log(
+            Log(
                 $"{name}: {manifest.RemainingIncomingBaggage} incoming package(s) remain for {operationId}. Queuing another collection trip.",
                 vehicle
             );
@@ -506,7 +509,7 @@ public class AirportBaggageDispatcher : MonoBehaviour
             !manifest.HasOutgoingBaggageRemaining)
         {
             availableVehicles.Add(vehicle);
-            Debug.Log(
+            Log(
                 $"{name}: Vehicle '{vehicle.name}' is available.",
                 vehicle
             );
@@ -533,7 +536,7 @@ public class AirportBaggageDispatcher : MonoBehaviour
             }
             else if (existingOutgoing.Status != RequestStatus.Cancelled)
             {
-                Debug.LogWarning(
+                LogWarning(
                     $"{name}: An outgoing request is already active for " +
                     $"{operationId}. The incoming vehicle will be released.",
                     vehicle
@@ -581,7 +584,7 @@ public class AirportBaggageDispatcher : MonoBehaviour
             return;
         }
 
-        Debug.Log(
+        Log(
             $"{name}: Starting outgoing baggage for {operationId} directly " +
             $"from cargo zone '{completedCargoZone.name}'. " +
             $"The vehicle will drive straight to gate " +
@@ -644,7 +647,7 @@ public class AirportBaggageDispatcher : MonoBehaviour
                 requestKey,
                 out BaggageRequest request))
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"{name}: Completion received for unknown request " +
                 $"'{requestKey}'.",
                 vehicle
@@ -657,7 +660,7 @@ public class AirportBaggageDispatcher : MonoBehaviour
             request.AssignedVehicle != vehicle ||
             request.Type != expectedType)
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"{name}: Vehicle '{vehicle.name}' attempted to complete " +
                 $"an assignment it does not own: {requestKey}.",
                 vehicle
@@ -671,7 +674,7 @@ public class AirportBaggageDispatcher : MonoBehaviour
 
         availableVehicles.Add(vehicle);
 
-        Debug.Log(
+        Log(
             $"{name}: {request.Type} baggage request completed for " +
             $"{request.OperationId}. Vehicle '{vehicle.name}' is available.",
             vehicle
@@ -742,7 +745,7 @@ public class AirportBaggageDispatcher : MonoBehaviour
             {
                 request.Status = RequestStatus.Cancelled;
 
-                Debug.LogError(
+                LogError(
                     $"{name}: Vehicle '{vehicle.name}' has no " +
                     "AirportCargoVehicleDispatcherRegistration component.",
                     vehicle
@@ -755,7 +758,7 @@ public class AirportBaggageDispatcher : MonoBehaviour
             request.AssignedVehicle = vehicle;
             availableVehicles.Remove(vehicle);
 
-            Debug.Log(
+            Log(
                 $"{name}: Assigned vehicle '{vehicle.name}' to " +
                 $"{request.Type} task for flight operation " +
                 $"{request.OperationId}. Gate: " +
@@ -775,7 +778,7 @@ public class AirportBaggageDispatcher : MonoBehaviour
                 request.AssignedVehicle = null;
                 availableVehicles.Add(vehicle);
 
-                Debug.LogWarning(
+                LogWarning(
                     $"{name}: Could not start vehicle movement for " +
                     $"{request.Type} task {request.OperationId}.",
                     vehicle
@@ -829,4 +832,9 @@ public class AirportBaggageDispatcher : MonoBehaviour
         else
             dispatcherStatus = "Ready";
     }
+
+    private void Log(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.Log(message, context); else Debug.Log(message); }
+    private void LogWarning(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message); }
+    private void LogError(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogError(message, context); else Debug.LogError(message); }
+    private void LogException(System.Exception exception, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception); }
 }

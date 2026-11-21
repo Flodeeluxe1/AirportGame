@@ -5,6 +5,9 @@ using UnityEngine.InputSystem;
 
 public class BuildingSelectionController : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+{
     [Header("References")]
     [SerializeField] private Camera mainCamera;
     [SerializeField] private GridManager gridManager;
@@ -158,7 +161,7 @@ public class BuildingSelectionController : MonoBehaviour
 
         ClearSelection();
 
-        Debug.Log(
+        Log(
             "Delete mode active. Drag to select buildings, foundations, " +
             "roads and taxiways, then press Delete or Backspace."
         );
@@ -578,7 +581,7 @@ public class BuildingSelectionController : MonoBehaviour
 
         if (placedBuilding != null && placedBuilding.Definition != null)
         {
-            Debug.Log($"Selected: {placedBuilding.Definition.displayName}");
+            Log($"Selected: {placedBuilding.Definition.displayName}");
         }
     }
 
@@ -601,7 +604,7 @@ public class BuildingSelectionController : MonoBehaviour
         }
 
         RefreshHighlights();
-        Debug.Log($"Selected road module: {anchor}");
+        Log($"Selected road module: {anchor}");
     }
 
 
@@ -613,7 +616,7 @@ public class BuildingSelectionController : MonoBehaviour
 
         RefreshHighlights();
 
-        Debug.Log(
+        Log(
             $"Selected taxiway module containing cell {cell}. " +
             $"Selected cells: {selectedTaxiwayCells.Count}");
     }
@@ -653,7 +656,7 @@ public class BuildingSelectionController : MonoBehaviour
         ClearSelection();
         selectedPipelineCells.Add(cell);
         RefreshHighlights();
-        Debug.Log($"Selected pipeline cell: {cell}");
+        Log($"Selected pipeline cell: {cell}");
     }
 
 
@@ -978,7 +981,7 @@ public class BuildingSelectionController : MonoBehaviour
             return;
         }
 
-        Debug.Log(
+        Log(
             $"Deleting {buildingsToDelete.Count} building(s), " +
             $"{roadsToDelete.Count} road cell(s), " +
             $"{taxiwaysToDelete.Count} taxiway cell(s), and " +
@@ -1009,7 +1012,7 @@ public class BuildingSelectionController : MonoBehaviour
             }
             else
             {
-                Debug.LogWarning(
+                LogWarning(
                     "Taxiway deletion was cancelled because the visual " +
                     "modules could not be removed safely.");
             }
@@ -1041,7 +1044,7 @@ public class BuildingSelectionController : MonoBehaviour
         if (roadModuleRuleManager != null)
             roadModuleRuleManager.RefreshCellAndNeighbors(cell);
 
-        Debug.Log($"Deleted road cell: {cell}");
+        Log($"Deleted road cell: {cell}");
     }
 
 
@@ -1055,7 +1058,7 @@ public class BuildingSelectionController : MonoBehaviour
         if (gridSurface != null)
             gridSurface.UnregisterTaxiwayCell(cell);
 
-        Debug.Log($"Deleted taxiway cell: {cell}");
+        Log($"Deleted taxiway cell: {cell}");
     }
 
 
@@ -1151,7 +1154,7 @@ public class BuildingSelectionController : MonoBehaviour
             if (removedCells == 0)
                 return;
 
-            Debug.Log(
+            Log(
                 $"Removed {removedCells} {(isTarmac ? "tarmac" : "foundation")} " +
                 $"tile(s) from {displayName}."
             );
@@ -1167,7 +1170,7 @@ public class BuildingSelectionController : MonoBehaviour
 
             gridSurface.ReleaseObstacleOwner(building);
 
-            Debug.Log($"Deleted remaining area object: {displayName}");
+            Log($"Deleted remaining area object: {displayName}");
             Destroy(building);
             return;
         }
@@ -1191,7 +1194,7 @@ public class BuildingSelectionController : MonoBehaviour
                 }
                 else
                 {
-                    Debug.LogWarning(
+                    LogWarning(
                         $"Deleting {displayName}, but no " +
                         "FlightManagementUIController was found."
                     );
@@ -1211,7 +1214,7 @@ public class BuildingSelectionController : MonoBehaviour
             gridSurface.ReleaseObstacleOwner(building);
         }
 
-        Debug.Log($"Deleted building: {displayName}");
+        Log($"Deleted building: {displayName}");
         Destroy(building);
     }
 
@@ -1369,7 +1372,7 @@ public class BuildingSelectionController : MonoBehaviour
 
         if (shader == null)
         {
-            Debug.LogError("Could not find URP Unlit shader.");
+            LogError("Could not find URP Unlit shader.");
             return;
         }
 
@@ -1409,7 +1412,7 @@ public class BuildingSelectionController : MonoBehaviour
 
         if (shader == null)
         {
-            Debug.LogError("Could not find URP Unlit shader.");
+            LogError("Could not find URP Unlit shader.");
             return null;
         }
 
@@ -1429,7 +1432,7 @@ public class BuildingSelectionController : MonoBehaviour
 
         if (shader == null)
         {
-            Debug.LogError("Could not find URP Unlit shader.");
+            LogError("Could not find URP Unlit shader.");
             return;
         }
 
@@ -1455,4 +1458,9 @@ public class BuildingSelectionController : MonoBehaviour
         if (selectionBoxMaterial != null)
             Destroy(selectionBoxMaterial);
     }
+
+    private void Log(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.Log(message, context); else Debug.Log(message); }
+    private void LogWarning(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message); }
+    private void LogError(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogError(message, context); else Debug.LogError(message); }
+    private void LogException(System.Exception exception, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception); }
 }

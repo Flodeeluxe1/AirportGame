@@ -6,6 +6,9 @@ using UnityEngine.UIElements;
 
 public class AirportUIController : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+{
     [Header("References")]
     [SerializeField] private UIDocument uiDocument;
     [SerializeField] private BuildCatalog buildCatalog;
@@ -50,7 +53,7 @@ public class AirportUIController : MonoBehaviour
 
         if (uiDocument == null)
         {
-            Debug.LogError(
+            LogError(
                 "AirportUIController: UIDocument is not assigned."
             );
             enabled = false;
@@ -157,28 +160,28 @@ public class AirportUIController : MonoBehaviour
             root.Q<Button>("category-commercial");
 
         if (buildWindow == null)
-            Debug.LogError("AirportUIController: 'build-window' was not found.");
+            LogError("AirportUIController: 'build-window' was not found.");
 
         if (buildableList == null)
-            Debug.LogError("AirportUIController: 'buildable-list' was not found.");
+            LogError("AirportUIController: 'buildable-list' was not found.");
 
         if (airportSubcategoryList == null)
-            Debug.LogError("AirportUIController: 'airport-subcategory-list' was not found.");
+            LogError("AirportUIController: 'airport-subcategory-list' was not found.");
 
         if (floorSubcategoryList == null)
-            Debug.LogError("AirportUIController: 'floor-subcategory-list' was not found.");
+            LogError("AirportUIController: 'floor-subcategory-list' was not found.");
 
         if (wallSubcategoryList == null)
-            Debug.LogError("AirportUIController: 'wall-subcategory-list' was not found.");
+            LogError("AirportUIController: 'wall-subcategory-list' was not found.");
 
         if (buildButton == null)
-            Debug.LogError("AirportUIController: 'build-button' was not found.");
+            LogError("AirportUIController: 'build-button' was not found.");
 
         if (zoneButton == null)
-            Debug.LogError("AirportUIController: 'zone-button' was not found.");
+            LogError("AirportUIController: 'zone-button' was not found.");
 
         if (deleteAllButton == null)
-            Debug.LogError("AirportUIController: 'delete-all-button' was not found.");
+            LogError("AirportUIController: 'delete-all-button' was not found.");
     }
 
     private void PopulateAirportSubcategories()
@@ -553,7 +556,7 @@ public class AirportUIController : MonoBehaviour
     {
         if (buildController == null)
         {
-            Debug.LogError(
+            LogError(
                 "AirportUIController: BuildController is not assigned."
             );
             return;
@@ -583,7 +586,7 @@ public class AirportUIController : MonoBehaviour
 
     private void OnZoneButtonClicked()
     {
-        Debug.Log("Zones UI will be implemented later.");
+        Log("Zones UI will be implemented later.");
     }
 
     private void OnDeleteAllButtonClicked()
@@ -596,7 +599,7 @@ public class AirportUIController : MonoBehaviour
 
         if (buildingSelectionController == null)
         {
-            Debug.LogError(
+            LogError(
                 "AirportUIController: BuildingSelectionController " +
                 "could not be found."
             );
@@ -612,4 +615,9 @@ public class AirportUIController : MonoBehaviour
         HideBuildWindow();
         buildingSelectionController.BeginDeleteSelectionMode();
     }
+
+    private void Log(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.Log(message, context); else Debug.Log(message); }
+    private void LogWarning(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message); }
+    private void LogError(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogError(message, context); else Debug.LogError(message); }
+    private void LogException(System.Exception exception, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception); }
 }

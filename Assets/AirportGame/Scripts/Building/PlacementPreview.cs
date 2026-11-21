@@ -3,6 +3,9 @@ using UnityEngine;
 
 public class PlacementPreview : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+{
     [Header("Preview Colors")]
     [SerializeField]
     private Color validColor =
@@ -78,7 +81,7 @@ public class PlacementPreview : MonoBehaviour
 
         if (shader == null)
         {
-            Debug.LogError(
+            LogError(
                 "Could not find URP Unlit shader. " +
                 "Make sure the project is using URP."
             );
@@ -201,4 +204,9 @@ public class PlacementPreview : MonoBehaviour
 
         previewMaterials.Clear();
     }
+
+    private void Log(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.Log(message, context); else Debug.Log(message); }
+    private void LogWarning(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message); }
+    private void LogError(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogError(message, context); else Debug.LogError(message); }
+    private void LogException(System.Exception exception, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception); }
 }

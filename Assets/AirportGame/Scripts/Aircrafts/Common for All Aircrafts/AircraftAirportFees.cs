@@ -8,6 +8,9 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class AircraftAirportFees : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+{
     private AirportFeeCategory feeCategory = AirportFeeCategory.None;
     private AirportManagementController airportManagementController;
 
@@ -229,13 +232,13 @@ public class AircraftAirportFees : MonoBehaviour
 
         if (economyManager == null)
         {
-            Debug.LogError(name + ": Cannot record airport charge; AirportEconomyManager is missing.", this);
+            LogError(name + ": Cannot record airport charge; AirportEconomyManager is missing.", this);
             return false;
         }
 
         bool recorded = economyManager.AddRevenue(amount, description, category);
         if (!recorded)
-            Debug.LogWarning(name + ": Airport charge could not be recorded: " + description + " ($" + amount + ").", this);
+            LogWarning(name + ": Airport charge could not be recorded: " + description + " ($" + amount + ").", this);
 
         return recorded;
     }
@@ -278,7 +281,7 @@ public class AircraftAirportFees : MonoBehaviour
             return false;
 
         cleaningFeePaid = true;
-        Debug.Log(name + ": Cleaning revenue of " + fee + " received for an aircraft with " + seatCapacity + " passenger seats.", this);
+        Log(name + ": Cleaning revenue of " + fee + " received for an aircraft with " + seatCapacity + " passenger seats.", this);
         return true;
     }
 
@@ -287,4 +290,9 @@ public class AircraftAirportFees : MonoBehaviour
         return (gameTimeManager.CurrentDay - 1L) * SecondsPerDay +
                gameTimeManager.GetGameTimeSeconds();
     }
+
+    private void Log(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.Log(message, context); else Debug.Log(message); }
+    private void LogWarning(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message); }
+    private void LogError(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogError(message, context); else Debug.LogError(message); }
+    private void LogException(System.Exception exception, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception); }
 }

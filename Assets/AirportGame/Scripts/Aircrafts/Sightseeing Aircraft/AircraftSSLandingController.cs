@@ -8,6 +8,9 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class AircraftSSLandingController : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+{
     private enum LandingState
     {
         Initializing,
@@ -424,7 +427,7 @@ public class AircraftSSLandingController : MonoBehaviour
             state = LandingState.GoAround;
             debugStatus = "Crosswind exceeds limit. Performing go-around.";
 
-            Debug.LogWarning(
+            LogWarning(
                 $"SIGHTSEEING GO-AROUND | Crosswind " +
                 $"{debugSidewindComponentKnots:F1} knots exceeds " +
                 $"{maximumSidewindComponentKnots:F1} knots.",
@@ -670,7 +673,7 @@ public class AircraftSSLandingController : MonoBehaviour
         state = LandingState.Failed;
         debugStatus = reason;
 
-        Debug.LogError(
+        LogError(
             $"SIGHTSEEING LANDING FAILED | {reason}",
             this);
     }
@@ -698,4 +701,9 @@ public class AircraftSSLandingController : MonoBehaviour
         if (trafficManager != null)
             trafficManager.UnregisterLandingTraffic(this);
     }
+
+    private void Log(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.Log(message, context); else Debug.Log(message); }
+    private void LogWarning(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message); }
+    private void LogError(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogError(message, context); else Debug.LogError(message); }
+    private void LogException(System.Exception exception, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception); }
 }

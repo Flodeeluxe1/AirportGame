@@ -11,6 +11,9 @@ using UnityEngine;
 /// </summary>
 public class IntersectionManager : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+{
     private class EntryRequest
     {
         public Component Vehicle;
@@ -166,7 +169,7 @@ public class IntersectionManager : MonoBehaviour
 
         if (aSpawnID == null || bSpawnID == null)
         {
-            Debug.LogError(
+            LogError(
                 "IntersectionManager: A vehicle is missing VehicleSpawnID."
             );
 
@@ -209,4 +212,9 @@ public class IntersectionManager : MonoBehaviour
             request => request.Vehicle == null ||
                        request.Vehicle == vehicle);
     }
+
+    private void Log(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.Log(message, context); else Debug.Log(message); }
+    private void LogWarning(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message); }
+    private void LogError(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogError(message, context); else Debug.LogError(message); }
+    private void LogException(System.Exception exception, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception); }
 }
