@@ -66,6 +66,26 @@ public class CargoDeliveryTruck : MonoBehaviour
 
     [SerializeField] private float heightOffset = 0.2f;
 
+    /// <summary>
+    /// Aligns the bottom of the truck's collider with the road surface and
+    /// updates the movement height so the truck keeps that clearance.
+    /// </summary>
+    public bool AlignColliderBottomToGround(float groundY)
+    {
+        BoxCollider boxCollider = GetComponentInChildren<BoxCollider>();
+
+        if (boxCollider == null || !boxCollider.enabled)
+            return false;
+
+        float colliderBottom = boxCollider.bounds.min.y;
+        transform.position += Vector3.up * (groundY - colliderBottom);
+
+        // Movement waypoints position the root at groundY + heightOffset.
+        // Preserve the newly calculated root-to-ground distance while driving.
+        heightOffset = transform.position.y - groundY;
+        return true;
+    }
+
     [Header("Road Turn Smoothing")]
     [Tooltip("Requested turn radius in grid-cell units.")]
     [Min(0f)]
