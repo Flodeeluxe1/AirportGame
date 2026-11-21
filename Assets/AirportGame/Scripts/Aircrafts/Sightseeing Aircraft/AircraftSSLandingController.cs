@@ -70,7 +70,7 @@ public class AircraftSSLandingController : MonoBehaviour
     [SerializeField] private Vector3 modelRotationOffset;
 
     [Header("Debug")]
-    [SerializeField] private bool logToConsole = false;
+
     public string debugLandingState = "Initializing";
     public string debugSelectedRunway = "None";
     public string debugLandingHeading = "None";
