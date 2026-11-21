@@ -563,6 +563,21 @@ public class InteractionController : MonoBehaviour
         if (score <= 0f)
             return 0f;
 
+        foreach (NeedEffectDefinition effect in definition.ReusableNeedEffects)
+        {
+            if (effect == null || effect.Amount <= 0f)
+                continue;
+
+            float currentNeedValue = needs.GetValue(effect.Need);
+            if (currentNeedValue >= effect.MaximumNeedValueToConsider)
+                continue;
+
+            float urgency = needs.GetUrgency(effect.Need);
+            float utilityWeight = needs.GetUtilityWeight(effect.Need);
+            float potentialSatisfaction = Mathf.Min(100f, effect.Amount);
+            score += urgency * utilityWeight * potentialSatisfaction / 100f;
+        }
+
         foreach (InteractionDefinition.NeedConflict conflict in definition.NeedConflicts)
         {
             if (conflict == null || conflict.penaltyAtMaximumUrgency <= 0f)
@@ -732,13 +747,10 @@ public class InteractionController : MonoBehaviour
             }
         }
 
-        InteractionProvider completedProvider = reservedProvider;
-        if (completedProvider != null)
+        foreach (NeedEffectDefinition effect in completedInteraction.ReusableNeedEffects)
         {
-            ToiletHygieneEffect toiletEffect =
-                completedProvider.GetComponentInParent<ToiletHygieneEffect>();
-            if (toiletEffect != null)
-                toiletEffect.ApplyAfterInteraction(needs, completedInteraction);
+            if (effect != null && !Mathf.Approximately(effect.Amount, 0f))
+                needs.ModifyNeed(effect.Need, effect.Amount);
         }
 
         currentStatus = "Completed " + completedInteraction.DisplayName;
@@ -787,6 +799,16 @@ public class InteractionController : MonoBehaviour
 
             needs.PauseNeedDecay(effect.need);
             replenishingNeeds.Add(effect.need);
+        }
+
+        foreach (NeedEffectDefinition effect in reservedInteraction.ReusableNeedEffects)
+        {
+            if (effect == null || effect.Amount <= 0f ||
+                replenishingNeeds.Contains(effect.Need))
+                continue;
+
+            needs.PauseNeedDecay(effect.Need);
+            replenishingNeeds.Add(effect.Need);
         }
     }
 
