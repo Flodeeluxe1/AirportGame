@@ -205,8 +205,7 @@ public class DoorPlacementHandler : IPlacementHandler
             return;
 
         Vector3 position = gridManager.GridToWorld(firstEdge.cell);
-        float prefabHeight = GetPrefabHeight(target);
-        position.y = prefabHeight * 0.5f;
+        position.y = 0f;
 
         float halfLengthOffset =
             (Mathf.Max(1, definition.edgeLength) - 1) *
@@ -233,27 +232,6 @@ public class DoorPlacementHandler : IPlacementHandler
             target.transform.rotation =
                 Quaternion.Euler(0f, 90f, 0f);
         }
-    }
-
-    private float GetPrefabHeight(GameObject target)
-    {
-        BoxCollider rootCollider = target.GetComponent<BoxCollider>();
-
-        if (rootCollider != null)
-            return rootCollider.bounds.size.y;
-
-        Renderer[] renderers =
-            target.GetComponentsInChildren<Renderer>(true);
-
-        if (renderers.Length == 0)
-            return 0f;
-
-        Bounds bounds = renderers[0].bounds;
-
-        for (int i = 1; i < renderers.Length; i++)
-            bounds.Encapsulate(renderers[i].bounds);
-
-        return bounds.size.y;
     }
 
     private bool AreAllPreviewEdgesValid()
