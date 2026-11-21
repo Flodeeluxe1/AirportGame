@@ -918,102 +918,21 @@ public class EdgePlacementHandler : IPlacementHandler
     private bool HasRequiredFoundation(
         GridEdge edge)
     {
-        if (definition.requiredSurface ==
-            BuildSurface.Any)
-        {
+        if (definition.AllowsAnySurface)
             return true;
-        }
 
         if (gridSurface == null)
             return false;
 
-        if (definition.requiredSurface ==
-            BuildSurface.Foundation)
-        {
-            return HasFoundationAlongEdge(edge);
-        }
-
-        if (definition.requiredSurface ==
-            BuildSurface.Grass)
-        {
-            return HasGrassAlongEdge(edge);
-        }
-
-        return false;
-    }
-
-    private bool HasFoundationAlongEdge(
-        GridEdge edge)
-    {
-        Vector2Int cell =
-            edge.cell;
-
-        if (edge.direction ==
-            EdgeDirection.Horizontal)
-        {
-            Vector2Int firstCell =
-                cell;
-
-            Vector2Int secondCell =
-                cell +
-                Vector2Int.down;
-
-            return
-                gridSurface.GetSurface(firstCell) ==
-                    BuildSurface.Foundation ||
-                gridSurface.GetSurface(secondCell) ==
-                    BuildSurface.Foundation;
-        }
-
-        Vector2Int firstSide =
-            cell;
-
-        Vector2Int secondSide =
-            cell +
-            Vector2Int.left;
+        Vector2Int firstAdjacent = edge.cell;
+        Vector2Int secondAdjacent =
+            edge.direction == EdgeDirection.Horizontal
+                ? edge.cell + Vector2Int.down
+                : edge.cell + Vector2Int.left;
 
         return
-            gridSurface.GetSurface(firstSide) ==
-                BuildSurface.Foundation ||
-            gridSurface.GetSurface(secondSide) ==
-                BuildSurface.Foundation;
-    }
-
-    private bool HasGrassAlongEdge(
-        GridEdge edge)
-    {
-        Vector2Int cell =
-            edge.cell;
-
-        if (edge.direction ==
-            EdgeDirection.Horizontal)
-        {
-            Vector2Int firstCell =
-                cell;
-
-            Vector2Int secondCell =
-                cell +
-                Vector2Int.down;
-
-            return
-                gridSurface.GetSurface(firstCell) ==
-                    BuildSurface.Grass ||
-                gridSurface.GetSurface(secondCell) ==
-                    BuildSurface.Grass;
-        }
-
-        Vector2Int firstSide =
-            cell;
-
-        Vector2Int secondSide =
-            cell +
-            Vector2Int.left;
-
-        return
-            gridSurface.GetSurface(firstSide) ==
-                BuildSurface.Grass ||
-            gridSurface.GetSurface(secondSide) ==
-                BuildSurface.Grass;
+            definition.AllowsSurface(gridSurface.GetSurface(firstAdjacent)) ||
+            definition.AllowsSurface(gridSurface.GetSurface(secondAdjacent));
     }
 
     private bool IsEdgeInsideGrid(
