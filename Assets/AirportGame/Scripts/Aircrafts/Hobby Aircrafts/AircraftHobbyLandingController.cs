@@ -3,6 +3,9 @@ using UnityEngine;
 
 public class AircraftHobbyLandingController : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+
     private enum LandingState
     {
         Initializing,
@@ -276,7 +279,7 @@ public class AircraftHobbyLandingController : MonoBehaviour
 
         if (trafficManager == null)
         {
-            Debug.LogWarning(
+            LogWarning(
                 "AircraftHobbyLandingController: " +
                 "AircraftRunwayTrafficManager was not found. " +
                 "Runway traffic balancing is disabled."
@@ -490,7 +493,7 @@ public class AircraftHobbyLandingController : MonoBehaviour
             $"Headwind: {debugHeadwindComponentKnots:F1} knots. " +
             $"Sidewind: {debugSidewindComponentKnots:F1} knots.";
 
-        Debug.Log(
+        Log(
             $"AIRCRAFT RUNWAY SELECTED | " +
             $"Runway: {debugSelectedRunway} | " +
             $"Heading: {debugLandingHeading} | " +
@@ -518,7 +521,7 @@ public class AircraftHobbyLandingController : MonoBehaviour
 
         if (lineShader == null)
         {
-            Debug.LogWarning(
+            LogWarning(
                 "Could not find a shader for the glide path debug line.",
                 this);
             return;
@@ -690,7 +693,7 @@ public class AircraftHobbyLandingController : MonoBehaviour
                 $"{debugSidewindComponentKnots:F1} knots exceeds limit " +
                 $"{maximumSidewindComponentKnots:F1} knots.";
 
-            Debug.LogWarning(
+            LogWarning(
                 $"AIRCRAFT GO-AROUND | " +
                 $"Sidewind: {debugSidewindComponentKnots:F1} knots | " +
                 $"Limit: {maximumSidewindComponentKnots:F1} knots | " +
@@ -932,7 +935,7 @@ public class AircraftHobbyLandingController : MonoBehaviour
             debugStatus =
                 "Hobby landing complete, but AircraftFlightIdentity is missing.";
 
-            Debug.LogWarning(
+            LogWarning(
                 $"{name}: Landing completed without AircraftFlightIdentity.",
                 this
             );
@@ -972,7 +975,7 @@ public class AircraftHobbyLandingController : MonoBehaviour
                     "VFR landing complete, but no free placed grass " +
                     "parking spot is available.";
 
-                Debug.LogWarning(
+                LogWarning(
                     $"{flightIdentity.FlightNumber}: Landing completed, " +
                     "but no free hobby parking spot could be reserved.",
                     this
@@ -980,7 +983,7 @@ public class AircraftHobbyLandingController : MonoBehaviour
             }
         }
 
-        Debug.Log(
+        Log(
             $"AIRCRAFT LANDING COMPLETE | " +
             $"Flight: {(flightIdentity != null ? flightIdentity.FlightNumber : "Unknown")} | " +
             $"Runway: {debugSelectedRunway} | " +
@@ -1082,7 +1085,7 @@ public class AircraftHobbyLandingController : MonoBehaviour
         debugStatus =
             "Go-around altitude reached. Aircraft despawning.";
 
-        Debug.Log(
+        Log(
             $"AIRCRAFT GO-AROUND COMPLETE | " +
             $"Target altitude above runway: " +
             $"{Mathf.Max(goAroundAltitudeAboveRunway, flareHeight + 1f):F1}"
@@ -1246,7 +1249,7 @@ public class AircraftHobbyLandingController : MonoBehaviour
 
         debugStatus = reason;
 
-        Debug.LogError(
+        LogError(
             $"AIRCRAFT LANDING FAILED | {reason}",
             this
         );
@@ -1279,4 +1282,21 @@ public class AircraftHobbyLandingController : MonoBehaviour
                   )
                 : 0f;
     }
+
+    private void Log(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.Log(message, context); else Debug.Log(message);
+    }
+    private void LogWarning(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message);
+    }
+    private void LogError(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.LogError(message, context); else Debug.LogError(message);
+    }
+
 }
