@@ -563,20 +563,6 @@ public class InteractionController : MonoBehaviour
         if (score <= 0f)
             return 0f;
 
-        foreach (NeedEffectDefinition effect in definition.ReusableNeedEffects)
-        {
-            if (effect == null || effect.Amount <= 0f)
-                continue;
-
-            float currentNeedValue = needs.GetValue(effect.Need);
-            if (currentNeedValue >= effect.MaximumNeedValueToConsider)
-                continue;
-
-            float urgency = needs.GetUrgency(effect.Need);
-            float utilityWeight = needs.GetUtilityWeight(effect.Need);
-            float potentialSatisfaction = Mathf.Min(100f, effect.Amount);
-            score += urgency * utilityWeight * potentialSatisfaction / 100f;
-        }
 
         foreach (InteractionDefinition.NeedConflict conflict in definition.NeedConflicts)
         {
@@ -741,18 +727,13 @@ public class InteractionController : MonoBehaviour
         {
             foreach (InteractionDefinition.NeedEffect effect in needEffects)
             {
-                if (effect == null || effect.satisfactionAmount <= 0f)
+                if (effect == null || Mathf.Approximately(effect.satisfactionAmount, 0f))
                     continue;
 
-                needs.SatisfyNeed(effect.need, effect.satisfactionAmount);
+                needs.ModifyNeed(effect.need, effect.satisfactionAmount);
             }
         }
 
-        foreach (NeedEffectDefinition effect in completedInteraction.ReusableNeedEffects)
-        {
-            if (effect != null && !Mathf.Approximately(effect.Amount, 0f))
-                needs.ModifyNeed(effect.Need, effect.Amount);
-        }
 
         currentStatus = "Completed " + completedInteraction.DisplayName;
         interactionRoutine = null;
@@ -802,15 +783,6 @@ public class InteractionController : MonoBehaviour
             replenishingNeeds.Add(effect.need);
         }
 
-        foreach (NeedEffectDefinition effect in reservedInteraction.ReusableNeedEffects)
-        {
-            if (effect == null || effect.Amount <= 0f ||
-                replenishingNeeds.Contains(effect.Need))
-                continue;
-
-            needs.PauseNeedDecay(effect.Need);
-            replenishingNeeds.Add(effect.Need);
-        }
     }
 
     private void ResumeInteractionNeedDecay()
