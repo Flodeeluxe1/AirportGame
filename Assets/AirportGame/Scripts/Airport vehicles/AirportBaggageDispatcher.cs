@@ -523,12 +523,19 @@ public class AirportBaggageDispatcher : MonoBehaviour
                 outgoingKey,
                 out BaggageRequest existingOutgoing))
         {
-            if (existingOutgoing.Status != RequestStatus.Cancelled)
+            if (existingOutgoing.Status == RequestStatus.Queued)
+            {
+                // The aircraft may have queued an outgoing retry as soon
+                // as unloading completed. Prefer the vehicle already at
+                // this cargo zone and cancel the queued duplicate.
+                existingOutgoing.Status = RequestStatus.Cancelled;
+                requestsByOperationId.Remove(outgoingKey);
+            }
+            else if (existingOutgoing.Status != RequestStatus.Cancelled)
             {
                 Debug.LogWarning(
-                    $"{name}: An outgoing request already exists for " +
-                    $"{operationId}. The vehicle will be released rather " +
-                    "than creating a duplicate task.",
+                    $"{name}: An outgoing request is already active for " +
+                    $"{operationId}. The incoming vehicle will be released.",
                     vehicle
                 );
 
@@ -537,8 +544,10 @@ public class AirportBaggageDispatcher : MonoBehaviour
                 RefreshRuntimeStatus();
                 return;
             }
-
-            requestsByOperationId.Remove(outgoingKey);
+            else
+            {
+                requestsByOperationId.Remove(outgoingKey);
+            }
         }
 
         BaggageRequest outgoingRequest = new BaggageRequest
