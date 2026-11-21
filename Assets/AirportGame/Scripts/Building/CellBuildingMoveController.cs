@@ -361,9 +361,6 @@ public class CellBuildingMoveController : MonoBehaviour
         if (definition == null)
             return false;
 
-        if (definition.AllowsAnySurface)
-            return true;
-
         if (gridSurface == null)
             return false;
 
