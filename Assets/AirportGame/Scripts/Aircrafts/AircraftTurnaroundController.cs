@@ -1016,10 +1016,22 @@ public class AircraftTurnaroundController : MonoBehaviour
             this
         );
 
-        // Fueling has no simulated duration; it remains in progress until
-        // an airport fuel truck completes the real fuel transfer.
-        if (taskType != TaskType.Fueling && task.DurationSeconds <= 0f)
+        // External baggage transfers must not auto-complete from their
+        // simulated duration, even when that duration is configured as zero.
+        bool externallyControlledBaggage =
+            (taskType == TaskType.BaggageUnloading &&
+             incomingBaggageTransferControlled) ||
+            (taskType == TaskType.BaggageLoading &&
+             outgoingBaggageTransferControlled);
+
+        // Fueling and externally controlled baggage tasks are completed
+        // only by their corresponding airport vehicles.
+        if (taskType != TaskType.Fueling &&
+            !externallyControlledBaggage &&
+            task.DurationSeconds <= 0f)
+        {
             CompleteTask(taskType);
+        }
     }
 
     private void CompleteTask(TaskType taskType)
