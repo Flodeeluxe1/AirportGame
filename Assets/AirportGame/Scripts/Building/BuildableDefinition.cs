@@ -11,7 +11,8 @@ public enum BuildSurfaceOptions
     Taxiway = 1 << 3,
     Runway = 1 << 4,
     PedestrianTarmac = 1 << 5,
-    All = Grass | Foundation | Tarmac | Taxiway | Runway | PedestrianTarmac
+    Road = 1 << 6,
+    All = Grass | Foundation | Tarmac | Taxiway | Runway | PedestrianTarmac | Road
 }
 
 public enum BuildCategory
@@ -84,6 +85,7 @@ public class BuildableDefinition : ScriptableObject
             BuildSurface.Taxiway => BuildSurfaceOptions.Taxiway,
             BuildSurface.Runway => BuildSurfaceOptions.Runway,
             BuildSurface.PedestrianTarmac => BuildSurfaceOptions.PedestrianTarmac,
+            BuildSurface.Road => BuildSurfaceOptions.Road,
             _ => BuildSurfaceOptions.None
         };
 
