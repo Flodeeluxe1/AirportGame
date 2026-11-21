@@ -8,6 +8,9 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class FuelTruckController : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+
     [Header("Road Movement")]
     [Min(0.1f)]
     [SerializeField] private float movementSpeed = 5f;
@@ -509,7 +512,7 @@ public class FuelTruckController : MonoBehaviour
 
         if (economyManager == null || targetFuelNetwork == null)
         {
-            Debug.LogError(
+            LogError(
                 "FuelTruckController: AirportEconomyManager or target pipeline network is missing.",
                 this);
             FinishFuelOffloading(0f);
@@ -596,7 +599,7 @@ public class FuelTruckController : MonoBehaviour
 
         if (deliveredLitres > 0f)
         {
-            Debug.Log(
+            Log(
                 $"FUEL TANKER DELIVERY COMPLETE | Pipeline network reserve replenished | " +
                 $"Delivery station: {deliveryStation.name} | " +
                 $"Accepted: {deliveredLitres:F0} L | " +
@@ -664,4 +667,21 @@ public class FuelTruckController : MonoBehaviour
     {
         CloseDeliveryRequest();
     }
+
+    private void Log(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.Log(message, context); else Debug.Log(message);
+    }
+    private void LogWarning(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message);
+    }
+    private void LogError(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.LogError(message, context); else Debug.LogError(message);
+    }
+
 }
