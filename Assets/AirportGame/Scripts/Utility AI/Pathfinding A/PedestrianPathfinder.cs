@@ -746,7 +746,8 @@ public class PedestrianPathfinder : MonoBehaviour
         if (surface != BuildSurface.Grass &&
             surface != BuildSurface.Foundation &&
             surface != BuildSurface.Tarmac &&
-            surface != BuildSurface.PedestrianTarmac)
+            surface != BuildSurface.PedestrianTarmac &&
+            surface != BuildSurface.Road)
         {
             return false;
         }
