@@ -3,6 +3,9 @@ using UnityEngine;
 
 public class AircraftHobbyDepartureTaxiController : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+
     public enum DepartureState
     {
         WaitingForDepartureRequest,
@@ -557,7 +560,7 @@ public class AircraftHobbyDepartureTaxiController : MonoBehaviour
         hasLoggedWaitingMessage = false;
         lastRunwayWaitReason = string.Empty;
 
-        Debug.Log(
+        Log(
             $"AIRCRAFT DEPARTURE ROUTE SELECTED | " +
             $"Aircraft: {name} | Runway: {debugSelectedRunway} | " +
             $"Takeoff heading: {debugTakeoffHeading} | " +
@@ -597,7 +600,7 @@ public class AircraftHobbyDepartureTaxiController : MonoBehaviour
 
             if (reason != lastRunwayWaitReason)
             {
-                Debug.Log($"{name}: {debugStatus}", this);
+                Log($"{name}: {debugStatus}", this);
                 lastRunwayWaitReason = reason;
             }
 
@@ -606,7 +609,7 @@ public class AircraftHobbyDepartureTaxiController : MonoBehaviour
 
         lastRunwayWaitReason = string.Empty;
 
-        Debug.Log(
+        Log(
             $"{name}: Runway clear. Line-up reservation acquired " +
             $"for {selectedRunway.name}.",
             this
@@ -624,7 +627,7 @@ public class AircraftHobbyDepartureTaxiController : MonoBehaviour
             debugStatus =
                 "Cannot continue to runway entry: join route is invalid.";
 
-            Debug.LogWarning($"{name}: {debugStatus}", this);
+            LogWarning($"{name}: {debugStatus}", this);
 
             trafficManager.ReleaseRunwayLineUpReservation(this);
             currentState = DepartureState.AtHoldingPoint;
@@ -860,7 +863,7 @@ public class AircraftHobbyDepartureTaxiController : MonoBehaviour
 
         if (logLinedUpReadyForTakeoff)
         {
-            Debug.Log(
+            Log(
                 $"AIRCRAFT LINED UP READY FOR TAKEOFF | " +
                 $"Aircraft: {name} | Runway: {debugSelectedRunway} | " +
                 $"Heading: {debugTakeoffHeading} | " +
@@ -883,7 +886,7 @@ public class AircraftHobbyDepartureTaxiController : MonoBehaviour
         debugStatus =
             $"Line-up aborted; holding for a safe solution. {reason}";
 
-        Debug.LogWarning($"{name}: {debugStatus}", this);
+        LogWarning($"{name}: {debugStatus}", this);
 
         retryTimer = runwaySelectionRetryInterval;
     }
@@ -1547,7 +1550,7 @@ public class AircraftHobbyDepartureTaxiController : MonoBehaviour
             $"At safe holding point for {debugSelectedRunway}. " +
             "Waiting for runway clearance.";
 
-        Debug.Log(
+        Log(
             $"AIRCRAFT AT SAFE DEPARTURE HOLDING POINT | " +
             $"Aircraft: {name} | Runway: {debugSelectedRunway} | " +
             $"Holding cell: {holdingCell}",
@@ -1609,7 +1612,7 @@ public class AircraftHobbyDepartureTaxiController : MonoBehaviour
 
         hasLoggedWaitingMessage = true;
 
-        Debug.LogWarning(
+        LogWarning(
             $"{name}: Hobby departure taxi waiting. {message}",
             this
         );
@@ -1629,4 +1632,23 @@ public class AircraftHobbyDepartureTaxiController : MonoBehaviour
     {
         TrySelectDepartureRunway();
     }
+
+    private void Log(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.Log(message, context); else Debug.Log(message);
+    }
+
+    private void LogWarning(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message);
+    }
+
+    private void LogError(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.LogError(message, context); else Debug.LogError(message);
+    }
+
 }
