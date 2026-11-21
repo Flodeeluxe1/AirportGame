@@ -4,8 +4,7 @@ using UnityEngine;
 
 public class AircraftCargoPaxLandingTaxiController : MonoBehaviour
 {
-    [Header("Debug")]
-    [SerializeField] private bool logToConsole = false;
+
 {
     [Header("References")]
     [SerializeField] private AircraftCargoPaxLandingController landingController;
@@ -64,6 +63,7 @@ public class AircraftCargoPaxLandingTaxiController : MonoBehaviour
     [SerializeField] private float taxiPathPointTolerance = 0.02f;
 
     [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
     [SerializeField] private bool logRouteDetails = true;
     [SerializeField] private bool logTaxiProgress = true;
     [SerializeField] private bool drawDebugRoute = true;

@@ -5,8 +5,7 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class GuidedCargoTrailerFollower : MonoBehaviour
 {
-    [Header("Debug")]
-    [SerializeField] private bool logToConsole = false;
+
 {
     [Header("References")]
     [Tooltip("Legacy single trailer reference. Normally assigned by the lot spawner.")]
@@ -41,6 +40,7 @@ public class GuidedCargoTrailerFollower : MonoBehaviour
     [SerializeField] private bool positionTrailerAtStart = true;
 
     [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
     [SerializeField] private bool showDebugMessages = true;
     [SerializeField] private bool isInitialized;
     [SerializeField] private float currentHitchDistance;
