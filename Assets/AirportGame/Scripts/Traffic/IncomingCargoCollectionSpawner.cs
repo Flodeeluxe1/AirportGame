@@ -194,6 +194,16 @@ public class IncomingCargoCollectionSpawner : MonoBehaviour
                     continue;
                 }
 
+                if (!truck.AlignColliderBottomToGround(
+                        spawnPosition.y - spawnHeightOffset))
+                {
+                    LogWarning(
+                        "IncomingCargoCollectionSpawner: Cargo truck has no " +
+                        "enabled BoxCollider; leaving its spawn height unchanged.",
+                        truckObject
+                    );
+                }
+
                 if (!truck.InitializeOutgoingRecoveryRoute(
                         startCell, exitCell, zone, operationId))
                 {
@@ -284,6 +294,16 @@ public class IncomingCargoCollectionSpawner : MonoBehaviour
                 Destroy(truckObject);
                 enabled = false;
                 return;
+            }
+
+            if (!truck.AlignColliderBottomToGround(
+                    spawnPosition.y - spawnHeightOffset))
+            {
+                LogWarning(
+                    "IncomingCargoCollectionSpawner: Cargo truck has no " +
+                    "enabled BoxCollider; leaving its spawn height unchanged.",
+                    truckObject
+                );
             }
 
             if (!truck.InitializeIncomingCollectionRoute(
