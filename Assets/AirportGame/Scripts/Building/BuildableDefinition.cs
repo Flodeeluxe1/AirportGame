@@ -1,6 +1,19 @@
 
 using UnityEngine;
 
+[System.Flags]
+public enum BuildSurfaceOptions
+{
+    None = 0,
+    Grass = 1 << 0,
+    Foundation = 1 << 1,
+    Tarmac = 1 << 2,
+    Taxiway = 1 << 3,
+    Runway = 1 << 4,
+    PedestrianTarmac = 1 << 5,
+    All = Grass | Foundation | Tarmac | Taxiway | Runway | PedestrianTarmac
+}
+
 public enum BuildCategory
 {
     Floor,
@@ -44,7 +57,39 @@ public class BuildableDefinition : ScriptableObject
     [Header("Placement")]
     public PlacementType placementType = PlacementType.Cell;
 
+    [Tooltip("Select every ground surface this buildable may be placed on. Leave empty to use the legacy Required Surface setting below.")]
+    public BuildSurfaceOptions allowedSurfaces = BuildSurfaceOptions.None;
+
+    [HideInInspector]
     public BuildSurface requiredSurface = BuildSurface.Any;
+
+    public bool AllowsAnySurface =>
+        allowedSurfaces == BuildSurfaceOptions.All ||
+        (allowedSurfaces == BuildSurfaceOptions.None &&
+         requiredSurface == BuildSurface.Any);
+
+    public bool AllowsSurface(BuildSurface surface)
+    {
+        if (AllowsAnySurface)
+            return true;
+
+        if (allowedSurfaces == BuildSurfaceOptions.None)
+            return requiredSurface == surface;
+
+        BuildSurfaceOptions option = surface switch
+        {
+            BuildSurface.Grass => BuildSurfaceOptions.Grass,
+            BuildSurface.Foundation => BuildSurfaceOptions.Foundation,
+            BuildSurface.Tarmac => BuildSurfaceOptions.Tarmac,
+            BuildSurface.Taxiway => BuildSurfaceOptions.Taxiway,
+            BuildSurface.Runway => BuildSurfaceOptions.Runway,
+            BuildSurface.PedestrianTarmac => BuildSurfaceOptions.PedestrianTarmac,
+            _ => BuildSurfaceOptions.None
+        };
+
+        return option != BuildSurfaceOptions.None &&
+               (allowedSurfaces & option) != 0;
+    }
 
     [Header("Grid Footprint")]
     public int width = 1;
