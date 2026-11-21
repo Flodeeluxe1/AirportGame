@@ -218,9 +218,9 @@ public class CellPlacementHandler : IPlacementHandler
         int depth)
     {
         if (gridSurface == null)
-            return definition.requiredSurface == BuildSurface.Any;
+            return definition.AllowsAnySurface;
 
-        if (definition.requiredSurface == BuildSurface.Any)
+        if (definition.AllowsAnySurface)
             return true;
 
         for (int x = 0; x < width; x++)
@@ -229,7 +229,7 @@ public class CellPlacementHandler : IPlacementHandler
             {
                 Vector2Int cell = origin + new Vector2Int(x, z);
 
-                if (!gridSurface.IsSurface(cell, definition.requiredSurface))
+                if (!definition.AllowsSurface(gridSurface.GetSurface(cell)))
                     return false;
             }
         }
@@ -299,7 +299,7 @@ public class CellPlacementHandler : IPlacementHandler
         {
             Debug.Log(
                 $"Cannot place {definition.displayName}: " +
-                $"requires {definition.requiredSurface}."
+                "does not allow the surface under its footprint."
             );
             return;
         }
