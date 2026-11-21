@@ -239,11 +239,8 @@ public class WallMountedPlacementHandler : IPlacementHandler
 
     private bool HasRequiredFoundation(GridEdge edge)
     {
-        if (definition.requiredSurface ==
-            BuildSurface.Any)
-        {
+        if (definition.AllowsAnySurface)
             return true;
-        }
 
         if (gridSurface == null)
             return false;
@@ -258,10 +255,8 @@ public class WallMountedPlacementHandler : IPlacementHandler
                 cell + Vector2Int.down;
 
             return
-                gridSurface.GetSurface(firstCell) ==
-                    definition.requiredSurface ||
-                gridSurface.GetSurface(secondCell) ==
-                    definition.requiredSurface;
+                definition.AllowsSurface(gridSurface.GetSurface(firstCell)) ||
+                definition.AllowsSurface(gridSurface.GetSurface(secondCell));
         }
 
         Vector2Int firstSide = cell;
@@ -269,10 +264,8 @@ public class WallMountedPlacementHandler : IPlacementHandler
             cell + Vector2Int.left;
 
         return
-            gridSurface.GetSurface(firstSide) ==
-                definition.requiredSurface ||
-            gridSurface.GetSurface(secondSide) ==
-                definition.requiredSurface;
+            definition.AllowsSurface(gridSurface.GetSurface(firstSide)) ||
+            definition.AllowsSurface(gridSurface.GetSurface(secondSide));
     }
 
     private bool IsEdgeInsideGrid(GridEdge edge)
