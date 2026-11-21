@@ -5,6 +5,9 @@ using UnityEngine;
 public class AircraftRunwayTrafficManager : MonoBehaviour
 {
 
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+
     [Header("Logging")]
     [SerializeField] private bool logLineUpReservationReleased = false;
     [SerializeField] private bool logDepartureReservationReleased = false;
@@ -254,7 +257,7 @@ public class AircraftRunwayTrafficManager : MonoBehaviour
     {
         if (runway == null || departureAircraft == null)
         {
-            Debug.LogWarning(
+            LogWarning(
                 "Cannot register a departure reservation without " +
                 "a runway and an aircraft.",
                 this
@@ -335,7 +338,7 @@ public class AircraftRunwayTrafficManager : MonoBehaviour
 
             if (logDepartureReservationReleased)
             {
-                Debug.Log(
+                Log(
                     $"RUNWAY DEPARTURE RESERVATION RELEASED | " +
                     $"Aircraft: {departureAircraft.name} | " +
                     $"Runway: " +
@@ -475,7 +478,7 @@ public class AircraftRunwayTrafficManager : MonoBehaviour
             }
         );
 
-        Debug.Log(
+        Log(
             $"RUNWAY LINE-UP RESERVED | Aircraft: " +
             $"{departureAircraft.name} | Runway: {runway.name}",
             this
@@ -506,7 +509,7 @@ public class AircraftRunwayTrafficManager : MonoBehaviour
 
         if (logLineUpReservationReleased)
         {
-            Debug.Log(
+            Log(
                 $"RUNWAY LINE-UP RESERVATION RELEASED | Aircraft: " +
                 $"{departureAircraft.name} | Runway: " +
                 $"{(reservation.Runway != null ? reservation.Runway.name : "Unknown")}",
@@ -524,7 +527,7 @@ public class AircraftRunwayTrafficManager : MonoBehaviour
     {
         if (runway == null)
         {
-            Debug.LogWarning(
+            LogWarning(
                 "Cannot release runway reservations: no runway was supplied.",
                 this);
             return 0;
@@ -534,7 +537,7 @@ public class AircraftRunwayTrafficManager : MonoBehaviour
             RemoveReservationsForRunway(departureReservations, runway) +
             RemoveReservationsForRunway(lineupReservations, runway);
 
-        Debug.Log(
+        Log(
             "MANUAL RUNWAY RELEASE | Runway: " + runway.name +
             " | Reservations released: " + releasedCount +
             " | Landing traffic and physical occupancy checks remain active.",
@@ -787,7 +790,7 @@ public class AircraftRunwayTrafficManager : MonoBehaviour
         RemoveInvalidLandingTraffic();
         RemoveInvalidReservations();
 
-        Debug.Log(
+        Log(
             $"Landing traffic entries: {landingTraffic.Count} | " +
             $"Departure reservations: {departureReservations.Count} | " +
             $"Line-up reservations: {lineupReservations.Count}",
@@ -796,7 +799,7 @@ public class AircraftRunwayTrafficManager : MonoBehaviour
 
         foreach (LandingTrafficEntry entry in landingTraffic.Values)
         {
-            Debug.Log(
+            Log(
                 $"Landing traffic: {entry.Owner.name} | " +
                 $"Runway: {entry.Runway.name} | " +
                 $"Active: {entry.IsActive}",
@@ -807,7 +810,7 @@ public class AircraftRunwayTrafficManager : MonoBehaviour
         foreach (RunwayReservation reservation
                  in departureReservations.Values)
         {
-            Debug.Log(
+            Log(
                 $"Departure queued: {reservation.Owner.name} | " +
                 $"Runway: {reservation.Runway.name}",
                 reservation.Owner
@@ -817,11 +820,28 @@ public class AircraftRunwayTrafficManager : MonoBehaviour
         foreach (RunwayReservation reservation
                  in lineupReservations.Values)
         {
-            Debug.Log(
+            Log(
                 $"Line-up reserved: {reservation.Owner.name} | " +
                 $"Runway: {reservation.Runway.name}",
                 reservation.Owner
             );
         }
     }
+
+    private void Log(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.Log(message, context); else Debug.Log(message);
+    }
+    private void LogWarning(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message);
+    }
+    private void LogError(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.LogError(message, context); else Debug.LogError(message);
+    }
+
 }
