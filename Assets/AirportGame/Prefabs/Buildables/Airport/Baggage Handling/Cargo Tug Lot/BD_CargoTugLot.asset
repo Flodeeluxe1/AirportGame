@@ -16,8 +16,8 @@ MonoBehaviour:
   displayName: Cargo Tug Lot
   prefab: {fileID: 99491990832583298, guid: f82d49a951314a84a95cee800cfd3200, type: 3}
   placementType: 0
+  allowedSurfaces: 37
   requiredSurface: 0
-  allowedSurfaces: 5
   width: 6
   depth: 6
   edgeLength: 1
@@ -28,6 +28,8 @@ MonoBehaviour:
   canRotate: 1
   buildCost: 9000
   blocksPathfinding: 1
+  environmentValue: 0
+  environmentRadius: 0
   menuCategory: Baggage Handling
   category: 3
   icon: {fileID: 2800000, guid: e4f8ce875e804684ab534bda465066e5, type: 3}

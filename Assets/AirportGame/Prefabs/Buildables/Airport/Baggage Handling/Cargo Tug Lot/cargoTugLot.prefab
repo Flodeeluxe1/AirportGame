@@ -181,7 +181,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8275853014694940425, guid: d1841403ccfbc894f8d6a3fb2de7cdfc, type: 3}
       propertyPath: m_LocalScale.y
-      value: 0.01
+      value: 0.6
       objectReference: {fileID: 0}
     - target: {fileID: 8275853014694940425, guid: d1841403ccfbc894f8d6a3fb2de7cdfc, type: 3}
       propertyPath: m_LocalScale.z
@@ -297,10 +297,17 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CargoTugLotSpawner
   cargoTugPrefab: {fileID: 1970913010140861768, guid: 0fdce0589bc6e98448bedca492c16cb6, type: 3}
   cargoTrailerPrefab: {fileID: 6005868715613805659, guid: bb40a8a8ec9f6e145a8c02c13d91bab2, type: 3}
+  tugParking: {fileID: 0}
+  trailerParkingPositions:
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
   tugSpawnOffset: {x: 0, y: 0, z: 0}
-  trailerSpawnOffset: {x: 0, y: 0, z: 0}
   spawnHeight: -0.05
   trailerSpawnHeight: 0.7
+  trailerPrice: 1000
+  homeArrivalTolerance: 0.25
   showDebugMessages: 1
 --- !u!4 &8777928507184413422 stripped
 Transform:
