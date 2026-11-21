@@ -133,6 +133,15 @@ public class GarbageCollectorSpawner : MonoBehaviour
             return false;
         }
 
+        if (!collector.AlignColliderBottomToGround(
+                spawnPosition.y - spawnHeightOffset))
+        {
+            LogWarning(
+                "GarbageCollectorSpawner: Collector has no enabled " +
+                "BoxCollider; leaving its spawn height unchanged.",
+                collectorObject);
+        }
+
         activeCollectors.Add(collector);
 
         if (!collector.Initialize(
