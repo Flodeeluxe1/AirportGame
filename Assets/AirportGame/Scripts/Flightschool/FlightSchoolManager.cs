@@ -17,6 +17,9 @@ using UnityEngine;
 /// </summary>
 public class FlightSchoolManager : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+
     private const int SecondsPerDay = 86400;
     private const int OpeningTimeSeconds = 8 * 60 * 60;
     private const int ClosingTimeSeconds = 18 * 60 * 60;
@@ -92,7 +95,7 @@ public class FlightSchoolManager : MonoBehaviour
     {
         if (activeManager != null && activeManager != this)
         {
-            Debug.LogError(
+            LogError(
                 "Only one scene-level FlightSchoolManager should be active. " +
                 "The duplicate manager has been disabled.",
                 this);
@@ -444,7 +447,7 @@ public class FlightSchoolManager : MonoBehaviour
 
             if (identity == null || trainingController == null)
             {
-                Debug.LogError(
+                LogError(
                     $"{name}: The training aircraft prefab needs " +
                     "AircraftFlightIdentity and TrainingFlightController.",
                     aircraft);
@@ -473,7 +476,7 @@ public class FlightSchoolManager : MonoBehaviour
                 $"Aircraft spawned at '{spot.name}'. Initial preparation: " +
                 $"{turnaroundMinutes} in-game minute(s) remaining.";
 
-            Debug.Log(
+            Log(
                 $"{name}: Training aircraft spawned for Flight School room " +
                 $"at {operation.anchor}, parking at '{spot.name}'. " +
                 $"Waiting {turnaroundMinutes} in-game minutes before the first lesson.",
@@ -498,7 +501,7 @@ public class FlightSchoolManager : MonoBehaviour
         operation.turnaroundReadyAtGameSeconds =
             GetAbsoluteGameTimeSeconds() + turnaroundSeconds;
 
-        Debug.Log(
+        Log(
             $"{name}: Flight School room at {operation.anchor} began its " +
             $"{turnaroundMinutes}-minute preparation/turnaround period.",
             this);
@@ -608,7 +611,7 @@ public class FlightSchoolManager : MonoBehaviour
                 $"First lesson started after preparation. Daily students: " +
                 $"{operation.studentsStartedToday}. Same aircraft and parking retained.";
 
-            Debug.Log(
+            Log(
                 $"{name}: Started the first training lesson for Flight School " +
                 $"room at {operation.anchor} after its {turnaroundMinutes}-minute " +
                 $"initial preparation. Daily students started: " +
@@ -664,7 +667,7 @@ public class FlightSchoolManager : MonoBehaviour
 
             operation.rewardPaid = true;
 
-            Debug.Log(
+            Log(
                 $"{name}: Flight School room at {operation.anchor} paid " +
                 lessonReward + " for the completed lesson.",
                 this);
@@ -754,7 +757,7 @@ public class FlightSchoolManager : MonoBehaviour
             $"Next lesson started after turnaround. Daily students: " +
             $"{operation.studentsStartedToday}. Same aircraft and parking retained.";
 
-        Debug.Log(
+        Log(
             $"{name}: Started the next lesson for Flight School room " +
             $"{operation.anchor} after its {turnaroundMinutes}-minute turnaround. " +
             $"Daily students started: {operation.studentsStartedToday}.",
@@ -846,4 +849,21 @@ public class FlightSchoolManager : MonoBehaviour
             operation.trainingController = null;
         }
     }
+
+    private void Log(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.Log(message, context); else Debug.Log(message);
+    }
+    private void LogWarning(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message);
+    }
+    private void LogError(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.LogError(message, context); else Debug.LogError(message);
+    }
+
 }
