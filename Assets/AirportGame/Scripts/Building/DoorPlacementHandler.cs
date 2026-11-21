@@ -303,9 +303,6 @@ public class DoorPlacementHandler : IPlacementHandler
 
     private bool HasRequiredFoundation(GridEdge edge)
     {
-        if (definition.AllowsAnySurface)
-            return true;
-
         if (gridSurface == null)
             return false;
 
