@@ -71,6 +71,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8219253342127190247}
+  - component: {fileID: 4803924923707924664}
   m_Layer: 0
   m_Name: Seat03
   m_TagString: Untagged
@@ -95,6 +96,22 @@ Transform:
   - {fileID: 5176001256562545002}
   m_Father: {fileID: 2544912571634855681}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &4803924923707924664
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1310975093403600307}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b82a5f9d3c0e4a1f9b7d2e4c6f809132, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::InteractionProvider
+  interactions:
+  - {fileID: 11400000, guid: d10a1b2c3d4e5f67890123456789abcd, type: 2}
+  interactionPoint: {fileID: 0}
+  interactionsEnabled: 1
 --- !u!1 &1597916766590670212
 GameObject:
   m_ObjectHideFlags: 0
@@ -104,6 +121,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7782556569998886404}
+  - component: {fileID: 7454992978101585170}
   m_Layer: 0
   m_Name: Seat01
   m_TagString: Untagged
@@ -128,6 +146,22 @@ Transform:
   - {fileID: 3606421594295363835}
   m_Father: {fileID: 2544912571634855681}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &7454992978101585170
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1597916766590670212}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b82a5f9d3c0e4a1f9b7d2e4c6f809132, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::InteractionProvider
+  interactions:
+  - {fileID: 11400000, guid: d10a1b2c3d4e5f67890123456789abcd, type: 2}
+  interactionPoint: {fileID: 0}
+  interactionsEnabled: 1
 --- !u!1 &2108485884568851474
 GameObject:
   m_ObjectHideFlags: 0
@@ -137,6 +171,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2761912264666946236}
+  - component: {fileID: 6654351127119376042}
   m_Layer: 0
   m_Name: Seat06
   m_TagString: Untagged
@@ -161,6 +196,22 @@ Transform:
   - {fileID: 1908265053147710638}
   m_Father: {fileID: 2544912571634855681}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &6654351127119376042
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2108485884568851474}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b82a5f9d3c0e4a1f9b7d2e4c6f809132, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::InteractionProvider
+  interactions:
+  - {fileID: 11400000, guid: d10a1b2c3d4e5f67890123456789abcd, type: 2}
+  interactionPoint: {fileID: 0}
+  interactionsEnabled: 1
 --- !u!1 &2190529220996142490
 GameObject:
   m_ObjectHideFlags: 0
@@ -480,6 +531,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2554155225959727746}
+  - component: {fileID: 4910481059361822793}
   m_Layer: 0
   m_Name: Seat04
   m_TagString: Untagged
@@ -504,6 +556,22 @@ Transform:
   - {fileID: 3259632318091284805}
   m_Father: {fileID: 2544912571634855681}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &4910481059361822793
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7525499640520842197}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b82a5f9d3c0e4a1f9b7d2e4c6f809132, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::InteractionProvider
+  interactions:
+  - {fileID: 11400000, guid: d10a1b2c3d4e5f67890123456789abcd, type: 2}
+  interactionPoint: {fileID: 0}
+  interactionsEnabled: 1
 --- !u!1 &8386826422867737288
 GameObject:
   m_ObjectHideFlags: 0
@@ -513,6 +581,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8297969689179156250}
+  - component: {fileID: 6319732287847680365}
   m_Layer: 0
   m_Name: Seat05
   m_TagString: Untagged
@@ -537,6 +606,22 @@ Transform:
   - {fileID: 352602000548784608}
   m_Father: {fileID: 2544912571634855681}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &6319732287847680365
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8386826422867737288}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b82a5f9d3c0e4a1f9b7d2e4c6f809132, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::InteractionProvider
+  interactions:
+  - {fileID: 11400000, guid: d10a1b2c3d4e5f67890123456789abcd, type: 2}
+  interactionPoint: {fileID: 0}
+  interactionsEnabled: 1
 --- !u!1 &8737119838546730737
 GameObject:
   m_ObjectHideFlags: 0
@@ -546,6 +631,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8221193523696335953}
+  - component: {fileID: 4959506521080729656}
   m_Layer: 0
   m_Name: Seat02
   m_TagString: Untagged
@@ -570,6 +656,22 @@ Transform:
   - {fileID: 2707163400897350418}
   m_Father: {fileID: 2544912571634855681}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &4959506521080729656
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8737119838546730737}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b82a5f9d3c0e4a1f9b7d2e4c6f809132, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::InteractionProvider
+  interactions:
+  - {fileID: 11400000, guid: d10a1b2c3d4e5f67890123456789abcd, type: 2}
+  interactionPoint: {fileID: 0}
+  interactionsEnabled: 1
 --- !u!1001 &4546994697748546725
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -659,34 +761,10 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 2038849795486624676, guid: 96709d7bd9b81304f9eb1d5997602c69, type: 3}
       insertIndex: -1
       addedObject: {fileID: 2761912264666946236}
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 2038849795486624673, guid: 96709d7bd9b81304f9eb1d5997602c69, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 515088213938753726}
+    m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 96709d7bd9b81304f9eb1d5997602c69, type: 3}
 --- !u!4 &2544912571634855681 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 2038849795486624676, guid: 96709d7bd9b81304f9eb1d5997602c69, type: 3}
   m_PrefabInstance: {fileID: 4546994697748546725}
   m_PrefabAsset: {fileID: 0}
---- !u!1 &2544912571634855684 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 2038849795486624673, guid: 96709d7bd9b81304f9eb1d5997602c69, type: 3}
-  m_PrefabInstance: {fileID: 4546994697748546725}
-  m_PrefabAsset: {fileID: 0}
---- !u!114 &515088213938753726
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2544912571634855684}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b82a5f9d3c0e4a1f9b7d2e4c6f809132, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::InteractionProvider
-  interactions:
-  - {fileID: 11400000, guid: d10a1b2c3d4e5f67890123456789abcd, type: 2}
-  interactionPoint: {fileID: 0}
-  interactionsEnabled: 1
