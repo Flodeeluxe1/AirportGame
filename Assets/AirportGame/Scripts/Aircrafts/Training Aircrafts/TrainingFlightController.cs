@@ -4,6 +4,9 @@ using UnityEngine;
 
 public class TrainingFlightController : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+
     private enum TrainingState
     {
         Inactive,
@@ -168,7 +171,7 @@ public class TrainingFlightController : MonoBehaviour
 
         if (currentState != TrainingState.Inactive)
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"{name}: This training lesson has already been started.",
                 this
             );
@@ -180,7 +183,7 @@ public class TrainingFlightController : MonoBehaviour
             !flightIdentity.IsInitialized ||
             !flightIdentity.IsTrainingFlight)
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"{name}: Initialize this aircraft as a training flight " +
                 "before starting its lesson.",
                 this
@@ -219,7 +222,7 @@ public class TrainingFlightController : MonoBehaviour
         debugStatus =
             "Lesson started. Taxiing from school parking for takeoff.";
 
-        Debug.Log(
+        Log(
             $"{name}: Training lesson started. " +
             $"Required circuits: {requiredCircuits}.",
             this
@@ -263,7 +266,7 @@ public class TrainingFlightController : MonoBehaviour
             $"Takeoff complete. Flying circuit " +
             $"{completedCircuits + 1} of {requiredCircuits}.";
 
-        Debug.Log(
+        Log(
             $"{name}: Takeoff complete. Beginning training circuit " +
             $"{completedCircuits + 1}/{requiredCircuits}.",
             this
@@ -428,7 +431,7 @@ public class TrainingFlightController : MonoBehaviour
         debugStatus =
             $"Circuit {completedCircuits + 1}: approaching runway to land.";
 
-        Debug.Log(
+        Log(
             $"{name}: Circuit pattern complete. Beginning landing " +
             $"{completedCircuits + 1}/{requiredCircuits}.",
             this
@@ -445,7 +448,7 @@ public class TrainingFlightController : MonoBehaviour
             completedCircuits++;
             landingCounted = true;
 
-            Debug.Log(
+            Log(
                 $"{name}: Training landing complete. " +
                 $"Circuits completed: {completedCircuits}/{requiredCircuits}.",
                 this
@@ -460,7 +463,7 @@ public class TrainingFlightController : MonoBehaviour
             debugStatus =
                 "Final landing complete. Taxiing back to school parking.";
 
-            Debug.Log(
+            Log(
                 $"{name}: Final training landing complete. " +
                 "Taxiing to the flight-school parking spot.",
                 this
@@ -508,7 +511,7 @@ public class TrainingFlightController : MonoBehaviour
             $"Landing {completedCircuits}/{requiredCircuits} complete. " +
             "Preparing immediate runway takeoff.";
 
-        Debug.Log(
+        Log(
             $"{name}: Preparing touch-and-go after landing " +
             $"{completedCircuits}/{requiredCircuits}.",
             this
@@ -545,7 +548,7 @@ public class TrainingFlightController : MonoBehaviour
             $"Touch-and-go cleared. Taking off for circuit " +
             $"{completedCircuits + 1}/{requiredCircuits}.";
 
-        Debug.Log(
+        Log(
             $"{name}: Touch-and-go cleared. Taking off directly from " +
             $"the runway for circuit {completedCircuits + 1}/{requiredCircuits}.",
             this
@@ -570,7 +573,7 @@ public class TrainingFlightController : MonoBehaviour
         debugStatus =
             $"Parked. Turning {parkingTurnAngle:0} degrees to face the taxiway.";
 
-        Debug.Log(
+        Log(
             $"{name}: Arrived at school parking. Beginning a " +
             $"{parkingTurnAngle:0}-degree turn in place.",
             this
@@ -623,7 +626,7 @@ public class TrainingFlightController : MonoBehaviour
             $"Lesson complete: {completedCircuits} circuits. " +
             "Aircraft turned at parking and is ready for Flight School Manager payout.";
 
-        Debug.Log(
+        Log(
             $"{name}: TRAINING LESSON COMPLETE | " +
             $"Circuits: {completedCircuits}/{requiredCircuits}. " +
             "Aircraft is parked and has finished turning toward the taxiway. " +
@@ -638,7 +641,7 @@ public class TrainingFlightController : MonoBehaviour
         departureRequested = false;
         debugStatus = reason;
 
-        Debug.LogError(
+        LogError(
             $"{name}: Training lesson stopped. {reason}",
             this
         );
@@ -650,7 +653,7 @@ public class TrainingFlightController : MonoBehaviour
 
         if (currentState != TrainingState.Completed)
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"{name}: Cannot reset for the next lesson because " +
                 "the current lesson has not completed.",
                 this
@@ -661,7 +664,7 @@ public class TrainingFlightController : MonoBehaviour
 
         if (!HasRequiredComponents())
         {
-            Debug.LogError(
+            LogError(
                 $"{name}: Cannot reset for the next lesson because " +
                 "required components are missing.",
                 this
@@ -697,11 +700,28 @@ public class TrainingFlightController : MonoBehaviour
         currentState = TrainingState.Inactive;
         debugStatus = "Ready to start the next training lesson.";
 
-        Debug.Log(
+        Log(
             $"{name}: Reset complete. Ready for the next training lesson.",
             this
         );
 
         return true;
     }
+
+    private void Log(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.Log(message, context); else Debug.Log(message);
+    }
+    private void LogWarning(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message);
+    }
+    private void LogError(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.LogError(message, context); else Debug.LogError(message);
+    }
+
 }
