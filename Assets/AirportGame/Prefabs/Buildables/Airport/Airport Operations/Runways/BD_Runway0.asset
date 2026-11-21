@@ -17,6 +17,7 @@ MonoBehaviour:
   prefab: {fileID: 2218130463681279432, guid: d9580299e81304942a244ce6f3148576, type: 3}
   placementType: 0
   requiredSurface: 0
+  allowedSurfaces: 1
   width: 76
   depth: 6
   edgeLength: 1
