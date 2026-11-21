@@ -24,6 +24,10 @@ public class GridSurface : MonoBehaviour
             new Dictionary<Vector2Int, BuildSurface>();
 
     private readonly Dictionary<Vector2Int, BuildSurface>
+        roadUnderlyingSurfaces =
+            new Dictionary<Vector2Int, BuildSurface>();
+
+    private readonly Dictionary<Vector2Int, BuildSurface>
     runwayUnderlyingSurfaces =
         new Dictionary<Vector2Int, BuildSurface>();
 
@@ -62,6 +66,7 @@ public class GridSurface : MonoBehaviour
         surfaceOwners.Clear();
         obstacleOwners.Clear();
         taxiwayUnderlyingSurfaces.Clear();
+        roadUnderlyingSurfaces.Clear();
         runwayUnderlyingSurfaces.Clear();
     }
 
@@ -94,6 +99,27 @@ public class GridSurface : MonoBehaviour
             return;
 
         BuildSurface previousSurface = surfaces[position.x, position.y];
+
+        // Roads are an overlay: keep them visible to placement restrictions
+        // while allowing the underlying ground surface to be updated.
+        if (roadUnderlyingSurfaces.TryGetValue(
+                position,
+                out BuildSurface underlyingRoadSurface))
+        {
+            roadUnderlyingSurfaces[position] = surface;
+
+            if (surface == BuildSurface.Grass)
+                surfaceOwners.Remove(position);
+
+            if (underlyingRoadSurface == BuildSurface.Foundation ||
+                surface == BuildSurface.Foundation)
+            {
+                FoundationSurfaceChanged?.Invoke();
+            }
+
+            return;
+        }
+
         if (previousSurface == surface)
         {
             if (surface == BuildSurface.Grass)
@@ -265,6 +291,18 @@ public class GridSurface : MonoBehaviour
                 surfaces != null &&
                 gridManager.IsInsideGrid(cell))
             {
+                if (roadUnderlyingSurfaces.TryGetValue(
+                        cell,
+                        out BuildSurface underlyingRoadSurface))
+                {
+                    roadUnderlyingSurfaces[cell] = BuildSurface.Grass;
+
+                    if (underlyingRoadSurface == BuildSurface.Foundation)
+                        FoundationSurfaceChanged?.Invoke();
+
+                    continue;
+                }
+
                 BuildSurface previousSurface = surfaces[cell.x, cell.y];
                 surfaces[cell.x, cell.y] = BuildSurface.Grass;
 
@@ -382,6 +420,7 @@ public class GridSurface : MonoBehaviour
         surfaceOwners.Clear();
         obstacleOwners.Clear();
         taxiwayUnderlyingSurfaces.Clear();
+        roadUnderlyingSurfaces.Clear();
         runwayUnderlyingSurfaces.Clear();
     }
 
@@ -411,11 +450,24 @@ public class GridSurface : MonoBehaviour
         }
 
         surfaceOwners.Remove(position);
-        BuildSurface previousSurface = surfaces[position.x, position.y];
-        surfaces[position.x, position.y] = BuildSurface.Grass;
 
-        if (previousSurface == BuildSurface.Foundation)
-            FoundationSurfaceChanged?.Invoke();
+        if (roadUnderlyingSurfaces.TryGetValue(
+                position,
+                out BuildSurface underlyingRoadSurface))
+        {
+            roadUnderlyingSurfaces[position] = BuildSurface.Grass;
+
+            if (underlyingRoadSurface == BuildSurface.Foundation)
+                FoundationSurfaceChanged?.Invoke();
+        }
+        else
+        {
+            BuildSurface previousSurface = surfaces[position.x, position.y];
+            surfaces[position.x, position.y] = BuildSurface.Grass;
+
+            if (previousSurface == BuildSurface.Foundation)
+                FoundationSurfaceChanged?.Invoke();
+        }
 
         // Remove an obstacle only if this same object owns the cell.
         if (obstacleOwners.TryGetValue(position, out GameObject obstacleOwner) &&
@@ -441,6 +493,79 @@ public class GridSurface : MonoBehaviour
         return false;
     }
 
+
+    public void RegisterRoadArea(
+        Vector2Int origin,
+        int width,
+        int depth)
+    {
+        for (int x = 0; x < width; x++)
+        {
+            for (int z = 0; z < depth; z++)
+            {
+                Vector2Int cell = origin + new Vector2Int(x, z);
+
+                if (gridManager == null ||
+                    !gridManager.IsInsideGrid(cell))
+                    continue;
+
+                if (!roadUnderlyingSurfaces.ContainsKey(cell))
+                {
+                    BuildSurface underlying = surfaces[cell.x, cell.y];
+                    roadUnderlyingSurfaces[cell] =
+                        underlying == BuildSurface.Road
+                            ? BuildSurface.Grass
+                            : underlying;
+                }
+
+                BuildSurface previousSurface = surfaces[cell.x, cell.y];
+                surfaces[cell.x, cell.y] = BuildSurface.Road;
+
+                if (previousSurface == BuildSurface.Foundation)
+                    FoundationSurfaceChanged?.Invoke();
+            }
+        }
+    }
+
+    public void UnregisterRoadArea(
+        Vector2Int origin,
+        int width,
+        int depth)
+    {
+        for (int x = 0; x < width; x++)
+        {
+            for (int z = 0; z < depth; z++)
+            {
+                Vector2Int cell = origin + new Vector2Int(x, z);
+
+                if (gridManager == null ||
+                    surfaces == null ||
+                    !gridManager.IsInsideGrid(cell))
+                    continue;
+
+                BuildSurface previousSurface = surfaces[cell.x, cell.y];
+
+                if (roadUnderlyingSurfaces.TryGetValue(
+                        cell,
+                        out BuildSurface underlyingSurface))
+                {
+                    surfaces[cell.x, cell.y] = underlyingSurface;
+                    roadUnderlyingSurfaces.Remove(cell);
+                }
+                else if (previousSurface == BuildSurface.Road)
+                {
+                    surfaces[cell.x, cell.y] = BuildSurface.Grass;
+                }
+
+                BuildSurface currentSurface = surfaces[cell.x, cell.y];
+                if (previousSurface == BuildSurface.Foundation ||
+                    currentSurface == BuildSurface.Foundation)
+                {
+                    FoundationSurfaceChanged?.Invoke();
+                }
+            }
+        }
+    }
 
     public void RegisterTaxiwayCell(Vector2Int position)
     {
