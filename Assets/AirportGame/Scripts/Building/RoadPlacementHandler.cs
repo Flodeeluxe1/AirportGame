@@ -10,6 +10,7 @@ public class RoadPlacementHandler : IPlacementHandler
 
     private RoadNetwork roadNetwork;
     private RoadModuleRuleManager roadModuleRuleManager;
+    private GridSurface gridSurface;
 
     private BuildableDefinition definition;
     private GameObject previewObject;
@@ -37,6 +38,7 @@ public class RoadPlacementHandler : IPlacementHandler
         this.gridOccupancy = gridOccupancy;
         this.edgeOccupancy = edgeOccupancy;
 
+        gridSurface = gridManager.GetComponent<GridSurface>();
         roadNetwork = Object.FindAnyObjectByType<RoadNetwork>();
         roadModuleRuleManager =
             Object.FindAnyObjectByType<RoadModuleRuleManager>();
@@ -402,6 +404,14 @@ public class RoadPlacementHandler : IPlacementHandler
         {
             RoadDirection direction = GetTravelDirection(route, i);
             roadNetwork.AddRoad(route[i], direction);
+
+            if (gridSurface != null)
+            {
+                gridSurface.RegisterRoadArea(
+                    route[i],
+                    ModuleSize,
+                    ModuleSize);
+            }
         }
 
         // Refresh after the complete route exists so all connections
