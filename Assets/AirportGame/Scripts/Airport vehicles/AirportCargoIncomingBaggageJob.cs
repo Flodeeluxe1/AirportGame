@@ -290,23 +290,16 @@ public class AirportCargoIncomingBaggageJob : MonoBehaviour
             string packageId =
                 reservedPackageIds[nextPackageIndex];
 
-            if (!aircraft.ConfirmIncomingBaggageTransferred(packageId))
-            {
-                AbortJob(
-                    $"Could not confirm transfer of baggage '{packageId}'."
-                );
-
-                return;
-            }
-
+            // Keep the package in the aircraft manifest until it has
+            // been registered at the destination cargo zone. If the route
+            // fails, the reservation can be released and the package retried.
             nextPackageIndex++;
             transferredPackageCount++;
 
             Debug.Log(
-                $"{name}: Transferred baggage " +
+                $"{name}: Moved baggage " +
                 $"{transferredPackageCount}/{reservedPackageIds.Count} " +
-                $"for {currentOperationId}. Aircraft progress: " +
-                $"{aircraft.IncomingBaggageProgressText}.",
+                $"into the vehicle for {currentOperationId}.",
                 this
             );
         }
@@ -333,15 +326,6 @@ public class AirportCargoIncomingBaggageJob : MonoBehaviour
             return;
 
         phaseElapsedGameSeconds = 0f;
-
-        if (!aircraft.CompleteIncomingBaggageTransfer())
-        {
-            AbortJob(
-                "The aircraft did not accept completion of baggage unloading."
-            );
-
-            return;
-        }
 
         if (targetZone == null ||
             !vehicle.MoveToCargoZone(targetZone))
@@ -394,8 +378,10 @@ public class AirportCargoIncomingBaggageJob : MonoBehaviour
         }
 
         int deliveredCount = 0;
+        List<string> packagesToDeliver =
+            new List<string>(reservedPackageIds);
 
-        foreach (string packageId in reservedPackageIds)
+        foreach (string packageId in packagesToDeliver)
         {
             GameObject box = Instantiate(
                 cargoBoxPrefab,
@@ -408,13 +394,10 @@ public class AirportCargoIncomingBaggageJob : MonoBehaviour
             if (package == null)
             {
                 Destroy(box);
-
-                Debug.LogError(
-                    $"{name}: Spawned cargo box has no CargoPackage.",
-                    this
+                AbortJob(
+                    $"Spawned cargo box for '{packageId}' has no CargoPackage component."
                 );
-
-                continue;
+                return;
             }
 
             package.Initialize(
@@ -427,27 +410,44 @@ public class AirportCargoIncomingBaggageJob : MonoBehaviour
             if (!targetZone.RegisterPackage(package))
             {
                 Destroy(box);
-
-                Debug.LogError(
-                    $"{name}: Could not register baggage '{packageId}' " +
-                    $"in cargo zone '{targetZone.name}'.",
-                    targetZone
+                AbortJob(
+                    $"Could not register baggage '{packageId}' in cargo zone '{targetZone.name}'."
                 );
-
-                continue;
+                return;
             }
 
-            // The aircraft manifest was already updated at the aircraft,
-            // one item at a time. Do not confirm the same baggage twice.
+            // Commit removal from the aircraft only after the physical
+            // package exists in, and is registered with, its destination.
+            if (!aircraft.ConfirmIncomingBaggageTransferred(packageId))
+            {
+                targetZone.UnregisterPackage(package);
+                Destroy(box);
+                AbortJob(
+                    $"The aircraft manifest rejected delivered baggage '{packageId}'."
+                );
+                return;
+            }
+
+            reservedPackageIds.Remove(packageId);
             deliveredCount++;
         }
 
         targetZone.ReleaseFlightReservation(currentOperationId);
 
+        if (!manifest.HasIncomingBaggageRemaining &&
+            !aircraft.CompleteIncomingBaggageTransfer())
+        {
+            AbortJob(
+                "The aircraft did not accept completion after all incoming baggage reached a cargo zone."
+            );
+            return;
+        }
+
         Debug.Log(
             $"{name}: Delivered {deliveredCount} incoming baggage " +
             $"package(s) to cargo zone '{targetZone.name}' for " +
-            $"{currentOperationId}.",
+            $"{currentOperationId}. Remaining on aircraft: " +
+            $"{manifest.RemainingIncomingBaggage}.",
             this
         );
 
@@ -502,13 +502,9 @@ public class AirportCargoIncomingBaggageJob : MonoBehaviour
     {
         if (aircraft != null)
         {
-            for (int i = nextPackageIndex;
-                 i < reservedPackageIds.Count;
-                 i++)
+            foreach (string packageId in reservedPackageIds)
             {
-                aircraft.ReleaseIncomingBaggageReservation(
-                    reservedPackageIds[i]
-                );
+                aircraft.ReleaseIncomingBaggageReservation(packageId);
             }
         }
 
