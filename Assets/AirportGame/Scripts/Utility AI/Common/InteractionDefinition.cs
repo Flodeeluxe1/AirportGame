@@ -12,7 +12,8 @@ public class InteractionDefinition : ScriptableObject
     public class NeedEffect
     {
         public UtilityNeeds.NeedType need;
-        [Min(0f)] public float satisfactionAmount = 25f;
+        [Tooltip("Positive values improve the need; negative values reduce it.")]
+        public float satisfactionAmount = 25f;
         [Range(0f, 100f)]
         [Tooltip("The interaction is only considered while this need is below the threshold.")]
         public float maximumNeedValueToConsider = 80f;
@@ -44,9 +45,6 @@ public class InteractionDefinition : ScriptableObject
     [Header("Need Effects")]
     [SerializeField] private List<NeedEffect> needEffects = new List<NeedEffect>();
 
-    [Header("Reusable Need Effects")]
-    [SerializeField] private List<NeedEffectDefinition> reusableNeedEffects = new List<NeedEffectDefinition>();
-
     [Header("Need Conflicts")]
     [SerializeField] private List<NeedConflict> needConflicts = new List<NeedConflict>();
 
@@ -57,7 +55,6 @@ public class InteractionDefinition : ScriptableObject
     public int MaxConcurrentUsers => Mathf.Max(1, maxConcurrentUsers);
     public float InteractionRange => Mathf.Max(0f, interactionRange);
     public IReadOnlyList<NeedEffect> NeedEffects => needEffects;
-    public IReadOnlyList<NeedEffectDefinition> ReusableNeedEffects => reusableNeedEffects;
     public IReadOnlyList<NeedConflict> NeedConflicts => needConflicts;
 
     private void OnValidate()
@@ -73,14 +70,10 @@ public class InteractionDefinition : ScriptableObject
         {
             if (effect != null)
             {
-                effect.satisfactionAmount = Mathf.Max(0f, effect.satisfactionAmount);
                 effect.maximumNeedValueToConsider =
                     Mathf.Clamp(effect.maximumNeedValueToConsider, 0f, 100f);
             }
         }
-
-        if (reusableNeedEffects == null)
-            reusableNeedEffects = new List<NeedEffectDefinition>();
 
         if (needConflicts == null)
             needConflicts = new List<NeedConflict>();
