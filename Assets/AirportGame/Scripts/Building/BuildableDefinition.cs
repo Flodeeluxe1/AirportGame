@@ -71,6 +71,16 @@ public class BuildableDefinition : ScriptableObject
 
     public bool AllowsSurface(BuildSurface surface)
     {
+        // Unrestricted legacy definitions may use every ground surface,
+        // but roads remain forbidden unless Road is explicitly selected
+        // (or the definition explicitly selects All).
+        if (surface == BuildSurface.Road &&
+            allowedSurfaces != BuildSurfaceOptions.All &&
+            (allowedSurfaces & BuildSurfaceOptions.Road) == 0)
+        {
+            return false;
+        }
+
         if (AllowsAnySurface)
             return true;
 
