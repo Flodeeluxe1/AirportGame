@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: Door 3m
   prefab: {fileID: 6044022844713416654, guid: b9554b4d9e1240c4ea99eae68ed199fd, type: 3}
   placementType: 1
+  allowedSurfaces: 2
   requiredSurface: 1
   width: 3
   depth: 1
@@ -27,6 +28,8 @@ MonoBehaviour:
   canRotate: 0
   buildCost: 400
   blocksPathfinding: 0
+  environmentValue: 0
+  environmentRadius: 0
   menuCategory: Door
   category: 2
   icon: {fileID: 2800000, guid: 701c93379db28b747a4ce6c6dd3a4503, type: 3}

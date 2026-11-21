@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: Bush 01
   prefab: {fileID: 1253365200111527898, guid: 8109e9e16ba4cc04b8e0928aea897927, type: 3}
   placementType: 0
+  allowedSurfaces: 1
   requiredSurface: 0
   width: 1
   depth: 1
@@ -27,6 +28,8 @@ MonoBehaviour:
   canRotate: 1
   buildCost: 30
   blocksPathfinding: 1
+  environmentValue: 0
+  environmentRadius: 0
   menuCategory: Plants & Landscaping
   category: 3
   icon: {fileID: 2800000, guid: 63a23574572d49342b053bee0172d1b4, type: 3}

@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: Storage 1
   prefab: {fileID: 5616866160908503314, guid: 97bc4339b3151c34799878d35be91e6f, type: 3}
   placementType: 0
+  allowedSurfaces: 2
   requiredSurface: 1
   width: 1
   depth: 1
@@ -27,6 +28,8 @@ MonoBehaviour:
   canRotate: 1
   buildCost: 65
   blocksPathfinding: 1
+  environmentValue: 0
+  environmentRadius: 0
   menuCategory: Office & Staff
   category: 3
   icon: {fileID: 2800000, guid: fe958d9d10c888d48af61ce04ba73377, type: 3}

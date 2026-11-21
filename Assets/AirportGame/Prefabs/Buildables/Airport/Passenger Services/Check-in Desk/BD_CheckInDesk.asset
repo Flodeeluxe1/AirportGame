@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: Check-in Desk
   prefab: {fileID: 5763874352558134915, guid: f631780a1cb54e743b698821217b37b8, type: 3}
   placementType: 0
+  allowedSurfaces: 2
   requiredSurface: 1
   width: 1
   depth: 1
@@ -27,6 +28,8 @@ MonoBehaviour:
   canRotate: 1
   buildCost: 200
   blocksPathfinding: 1
+  environmentValue: 0
+  environmentRadius: 0
   menuCategory: Passenger Services
   category: 3
   icon: {fileID: 2800000, guid: 56848a07af905a44f910da25b56b25a0, type: 3}

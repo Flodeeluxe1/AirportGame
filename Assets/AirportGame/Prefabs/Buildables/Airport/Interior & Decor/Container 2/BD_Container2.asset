@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: Container 2
   prefab: {fileID: 189606965178147312, guid: dffdf6411c04f9146a126f1cd6000fda, type: 3}
   placementType: 0
+  allowedSurfaces: 2
   requiredSurface: 1
   width: 1
   depth: 1
@@ -27,6 +28,8 @@ MonoBehaviour:
   canRotate: 1
   buildCost: 50
   blocksPathfinding: 1
+  environmentValue: 0
+  environmentRadius: 0
   menuCategory: Interior & Decor
   category: 3
   icon: {fileID: 2800000, guid: 66116a1a345ed654f908dbe26a4130b9, type: 3}

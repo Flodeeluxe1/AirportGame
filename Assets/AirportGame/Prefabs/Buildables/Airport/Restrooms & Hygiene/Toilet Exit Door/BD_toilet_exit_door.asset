@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: Toilet Exit Door
   prefab: {fileID: 338332209792738343, guid: d610d3e3e1b088b4a82abc7aa7c56a13, type: 3}
   placementType: 0
+  allowedSurfaces: 2
   requiredSurface: 1
   width: 1
   depth: 1
@@ -27,6 +28,8 @@ MonoBehaviour:
   canRotate: 1
   buildCost: 100
   blocksPathfinding: 0
+  environmentValue: 0
+  environmentRadius: 0
   menuCategory: Restrooms & Hygiene
   category: 3
   icon: {fileID: 2800000, guid: 7ad735c7dee1e9643827c7b7e4bac190, type: 3}

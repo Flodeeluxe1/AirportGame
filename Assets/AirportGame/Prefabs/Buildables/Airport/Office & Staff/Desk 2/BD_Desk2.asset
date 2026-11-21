@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: Desk 2
   prefab: {fileID: 4162566305189541030, guid: 067fb86e8e4f5744a82f28c508805f86, type: 3}
   placementType: 0
+  allowedSurfaces: 2
   requiredSurface: 1
   width: 1
   depth: 2
@@ -27,6 +28,8 @@ MonoBehaviour:
   canRotate: 1
   buildCost: 110
   blocksPathfinding: 1
+  environmentValue: 0
+  environmentRadius: 0
   menuCategory: Office & Staff
   category: 3
   icon: {fileID: 2800000, guid: cf3069b87988ae64caedcbeeefecfb92, type: 3}

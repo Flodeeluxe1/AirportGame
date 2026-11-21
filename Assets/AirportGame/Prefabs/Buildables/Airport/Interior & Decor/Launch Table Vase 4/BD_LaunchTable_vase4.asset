@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: Launch Table Vase 4
   prefab: {fileID: 7224224261973349338, guid: c4357fd2cd18af449b8680904f04757c, type: 3}
   placementType: 0
+  allowedSurfaces: 2
   requiredSurface: 1
   width: 1
   depth: 1
@@ -27,6 +28,8 @@ MonoBehaviour:
   canRotate: 1
   buildCost: 110
   blocksPathfinding: 1
+  environmentValue: 0
+  environmentRadius: 0
   menuCategory: Interior & Decor
   category: 3
   icon: {fileID: 2800000, guid: 9af9ba20a2a337f45b9f9a49a9d4c944, type: 3}

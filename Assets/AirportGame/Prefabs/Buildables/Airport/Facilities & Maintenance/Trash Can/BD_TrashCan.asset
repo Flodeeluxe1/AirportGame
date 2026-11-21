@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: Trash Can
   prefab: {fileID: 1202981191471370897, guid: 458271fb06e38ef4abfe60d080c61a94, type: 3}
   placementType: 0
+  allowedSurfaces: 2
   requiredSurface: 1
   width: 1
   depth: 1
@@ -27,6 +28,8 @@ MonoBehaviour:
   canRotate: 1
   buildCost: 20
   blocksPathfinding: 1
+  environmentValue: 0
+  environmentRadius: 0
   menuCategory: Facilities & Maintenance
   category: 3
   icon: {fileID: 2800000, guid: 3d7eaeb540583064eb27a08c3efbb44b, type: 3}

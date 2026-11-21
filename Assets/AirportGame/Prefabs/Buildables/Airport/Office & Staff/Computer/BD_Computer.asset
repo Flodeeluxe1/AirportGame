@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: Computer
   prefab: {fileID: 1077917156098284, guid: 95b7030fe576ba84e930b6af82eb2738, type: 3}
   placementType: 0
+  allowedSurfaces: 2
   requiredSurface: 1
   width: 1
   depth: 1

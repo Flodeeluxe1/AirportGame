@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: Open Book
   prefab: {fileID: 7795102498530785269, guid: c2f17a2926fbc774d990dd6e286d4fad, type: 3}
   placementType: 0
+  allowedSurfaces: 2
   requiredSurface: 1
   width: 1
   depth: 1
@@ -27,6 +28,8 @@ MonoBehaviour:
   canRotate: 1
   buildCost: 10
   blocksPathfinding: 1
+  environmentValue: 0
+  environmentRadius: 0
   menuCategory: Office & Staff
   category: 3
   icon: {fileID: 2800000, guid: 071e0ebbf75562440a78143cce301d95, type: 3}

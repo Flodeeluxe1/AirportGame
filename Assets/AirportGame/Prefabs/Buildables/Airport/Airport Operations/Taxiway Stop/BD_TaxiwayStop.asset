@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: TaxiwayStop
   prefab: {fileID: 1164336239030874389, guid: 43926e09f7567ac46b71a7c0febede21, type: 3}
   placementType: 0
+  allowedSurfaces: 8
   requiredSurface: 3
   width: 3
   depth: 1
@@ -27,6 +28,8 @@ MonoBehaviour:
   canRotate: 1
   buildCost: 100
   blocksPathfinding: 1
+  environmentValue: 0
+  environmentRadius: 0
   menuCategory: Airport Operations
   category: 3
   icon: {fileID: 2800000, guid: eb1922fe25cae4941976373cb4f265ef, type: 3}

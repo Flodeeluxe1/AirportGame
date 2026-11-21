@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: Ceiling Fan
   prefab: {fileID: 292275607453869481, guid: 7df07a42d42030b49a881233f734958a, type: 3}
   placementType: 0
+  allowedSurfaces: 2
   requiredSurface: 1
   width: 1
   depth: 1
@@ -27,6 +28,8 @@ MonoBehaviour:
   canRotate: 1
   buildCost: 100
   blocksPathfinding: 1
+  environmentValue: 0
+  environmentRadius: 0
   menuCategory: Interior & Decor
   category: 3
   icon: {fileID: 2800000, guid: 03ce512ee7d5afb44ad2da921fb742f4, type: 3}

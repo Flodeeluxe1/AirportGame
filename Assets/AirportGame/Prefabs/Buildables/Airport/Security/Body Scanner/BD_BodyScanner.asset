@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: Body Scanner
   prefab: {fileID: 2118959692243125625, guid: 90efb25eaaadfa146974be81bf31fb6f, type: 3}
   placementType: 0
+  allowedSurfaces: 2
   requiredSurface: 1
   width: 1
   depth: 1
@@ -27,6 +28,8 @@ MonoBehaviour:
   canRotate: 1
   buildCost: 200
   blocksPathfinding: 1
+  environmentValue: 0
+  environmentRadius: 0
   menuCategory: Security
   category: 3
   icon: {fileID: 2800000, guid: 4f99221144e012b4d9389ab0c856a0ed, type: 3}

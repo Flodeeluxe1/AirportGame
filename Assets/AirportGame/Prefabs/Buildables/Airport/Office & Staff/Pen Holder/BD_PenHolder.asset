@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: Pen Holder
   prefab: {fileID: 208974801609211804, guid: 0177ee00efab698438288ebb753747ce, type: 3}
   placementType: 0
+  allowedSurfaces: 2
   requiredSurface: 1
   width: 1
   depth: 1
@@ -27,6 +28,8 @@ MonoBehaviour:
   canRotate: 1
   buildCost: 10
   blocksPathfinding: 1
+  environmentValue: 0
+  environmentRadius: 0
   menuCategory: Office & Staff
   category: 3
   icon: {fileID: 2800000, guid: f8dbe19ee5b2c2344b0bb53235eba308, type: 3}

@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: Drawer 2
   prefab: {fileID: 8936260285095580740, guid: 8ff4ad687e8a081468b81cfdd2d710e4, type: 3}
   placementType: 0
+  allowedSurfaces: 2
   requiredSurface: 1
   width: 1
   depth: 1
@@ -27,6 +28,8 @@ MonoBehaviour:
   canRotate: 1
   buildCost: 55
   blocksPathfinding: 1
+  environmentValue: 0
+  environmentRadius: 0
   menuCategory: Office & Staff
   category: 3
   icon: {fileID: 2800000, guid: 57f0d63a3f3be464d8eb9578dba51448, type: 3}

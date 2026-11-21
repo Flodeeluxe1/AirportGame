@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: Clock
   prefab: {fileID: 1996829000367705453, guid: b2baa11c7e87fe941afe32f3c50cc082, type: 3}
   placementType: 1
+  allowedSurfaces: 63
   requiredSurface: 5
   width: 1
   depth: 1
@@ -27,6 +28,8 @@ MonoBehaviour:
   canRotate: 1
   buildCost: 20
   blocksPathfinding: 1
+  environmentValue: 0
+  environmentRadius: 0
   menuCategory: Interior & Decor
   category: 3
   icon: {fileID: 2800000, guid: 68b7f2040d640cf4aac66de355c64304, type: 3}

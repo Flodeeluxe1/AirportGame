@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: Iron Wooden Table
   prefab: {fileID: 7850197418817486844, guid: eaf8f488444be3f478faae3935df5bcd, type: 3}
   placementType: 0
+  allowedSurfaces: 2
   requiredSurface: 1
   width: 2
   depth: 3
@@ -27,6 +28,8 @@ MonoBehaviour:
   canRotate: 1
   buildCost: 80
   blocksPathfinding: 1
+  environmentValue: 0
+  environmentRadius: 0
   menuCategory: Restrooms & Hygiene
   category: 3
   icon: {fileID: 2800000, guid: e7a3f7d76e6674d47983f15f6944c141, type: 3}

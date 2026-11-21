@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: Plastic Cabin
   prefab: {fileID: 535613585177336435, guid: b5aaa84df65a4b841a8dcbfa6dbf6181, type: 3}
   placementType: 0
+  allowedSurfaces: 2
   requiredSurface: 1
   width: 1
   depth: 1
@@ -27,6 +28,8 @@ MonoBehaviour:
   canRotate: 1
   buildCost: 250
   blocksPathfinding: 1
+  environmentValue: 0
+  environmentRadius: 0
   menuCategory: Restrooms & Hygiene
   category: 3
   icon: {fileID: 2800000, guid: 02561fab0c412cc4991d70f3c5603733, type: 3}

@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: Gate Grass
   prefab: {fileID: 1467511360092420718, guid: ff9968db9d7d78748a60ae0aab3e7e08, type: 3}
   placementType: 0
+  allowedSurfaces: 1
   requiredSurface: 0
   width: 12
   depth: 12
@@ -27,6 +28,8 @@ MonoBehaviour:
   canRotate: 1
   buildCost: 3500
   blocksPathfinding: 1
+  environmentValue: 0
+  environmentRadius: 0
   menuCategory: Gates & Boarding
   category: 3
   icon: {fileID: 2800000, guid: b6435792e2c66f742a3df099438d9014, type: 3}

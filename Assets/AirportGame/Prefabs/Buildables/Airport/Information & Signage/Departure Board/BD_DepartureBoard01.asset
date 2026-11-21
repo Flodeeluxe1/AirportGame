@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: Departure Board
   prefab: {fileID: 6992574014121642372, guid: fdcdbfe7f67cf47409a74a7a4a70775e, type: 3}
   placementType: 1
+  allowedSurfaces: 2
   requiredSurface: 1
   width: 1
   depth: 1
@@ -27,6 +28,8 @@ MonoBehaviour:
   canRotate: 0
   buildCost: 150
   blocksPathfinding: 1
+  environmentValue: 0
+  environmentRadius: 0
   menuCategory: Information & Signage
   category: 3
   icon: {fileID: 2800000, guid: d942d7bd6e019fb409e2eac41875406b, type: 3}

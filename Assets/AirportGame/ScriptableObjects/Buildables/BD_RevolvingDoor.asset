@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: Revolving Door
   prefab: {fileID: 1910880371667356, guid: fb72cc81254f07241b07fcc6986eb510, type: 3}
   placementType: 1
+  allowedSurfaces: 2
   requiredSurface: 1
   width: 2
   depth: 2

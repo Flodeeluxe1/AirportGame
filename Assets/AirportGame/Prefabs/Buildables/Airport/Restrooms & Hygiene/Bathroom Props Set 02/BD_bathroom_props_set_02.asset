@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: Bathroom Props Set 02
   prefab: {fileID: 6022712818120890771, guid: 7e9544ecb8d786849856abd3d6c1feee, type: 3}
   placementType: 0
+  allowedSurfaces: 2
   requiredSurface: 1
   width: 2
   depth: 1
@@ -27,6 +28,8 @@ MonoBehaviour:
   canRotate: 1
   buildCost: 300
   blocksPathfinding: 1
+  environmentValue: 0
+  environmentRadius: 0
   menuCategory: Restrooms & Hygiene
   category: 3
   icon: {fileID: 2800000, guid: e2644c9bed5ab8b4aa0931df78f4a5c8, type: 3}

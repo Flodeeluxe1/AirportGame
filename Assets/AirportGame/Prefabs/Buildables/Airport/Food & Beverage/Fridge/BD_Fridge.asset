@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: Fridge
   prefab: {fileID: 7546884429290622553, guid: 5e5be735ac697564c9d232fa4619bcf9, type: 3}
   placementType: 0
+  allowedSurfaces: 2
   requiredSurface: 1
   width: 1
   depth: 1
@@ -27,6 +28,8 @@ MonoBehaviour:
   canRotate: 1
   buildCost: 180
   blocksPathfinding: 1
+  environmentValue: 0
+  environmentRadius: 0
   menuCategory: Food & Beverage
   category: 3
   icon: {fileID: 2800000, guid: a15cad226fcb77b4b82084299a45ad13, type: 3}

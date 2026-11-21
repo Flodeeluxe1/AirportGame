@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: Office Chair 001
   prefab: {fileID: 6669340541240733609, guid: a28e3905859d9644bb5db0c5d4e2860c, type: 3}
   placementType: 0
+  allowedSurfaces: 2
   requiredSurface: 1
   width: 1
   depth: 1
@@ -27,6 +28,8 @@ MonoBehaviour:
   canRotate: 1
   buildCost: 20
   blocksPathfinding: 1
+  environmentValue: 0
+  environmentRadius: 0
   menuCategory: Office & Staff
   category: 3
   icon: {fileID: 2800000, guid: 77a6c29ef3168c44ea64139705405d2e, type: 3}

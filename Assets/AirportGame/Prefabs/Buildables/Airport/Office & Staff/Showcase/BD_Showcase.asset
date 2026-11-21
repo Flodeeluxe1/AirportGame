@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: Showcase
   prefab: {fileID: 1797056699924840, guid: 07f95da47d340af46b603c05bffc1cde, type: 3}
   placementType: 0
+  allowedSurfaces: 2
   requiredSurface: 1
   width: 1
   depth: 1

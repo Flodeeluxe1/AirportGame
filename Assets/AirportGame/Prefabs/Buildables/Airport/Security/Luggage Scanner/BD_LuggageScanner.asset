@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: Luggage Scanner
   prefab: {fileID: 4578231713234692578, guid: 21cfe8849bc72c04ba46cdac9eff4e14, type: 3}
   placementType: 0
+  allowedSurfaces: 2
   requiredSurface: 1
   width: 2
   depth: 3
@@ -27,6 +28,8 @@ MonoBehaviour:
   canRotate: 1
   buildCost: 1100
   blocksPathfinding: 1
+  environmentValue: 0
+  environmentRadius: 0
   menuCategory: Security
   category: 3
   icon: {fileID: 2800000, guid: b7b253503add9ce4291ef0ee0e8b9931, type: 3}

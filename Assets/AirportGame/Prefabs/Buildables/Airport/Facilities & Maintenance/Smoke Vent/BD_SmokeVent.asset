@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: Smoke Vent
   prefab: {fileID: 314261652325226937, guid: cb011d3e851dd79499d8fbe7490394f0, type: 3}
   placementType: 0
+  allowedSurfaces: 2
   requiredSurface: 1
   width: 1
   depth: 1
@@ -27,6 +28,8 @@ MonoBehaviour:
   canRotate: 1
   buildCost: 45
   blocksPathfinding: 1
+  environmentValue: 0
+  environmentRadius: 0
   menuCategory: Facilities & Maintenance
   category: 3
   icon: {fileID: 2800000, guid: 69085e2afb1774b44a611b2afe36caa6, type: 3}

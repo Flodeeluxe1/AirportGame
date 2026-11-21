@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: Fire Safety Equipment
   prefab: {fileID: 1165130320748170, guid: 4bc798f368a5f214ba2ad9cc17bc9b80, type: 3}
   placementType: 0
+  allowedSurfaces: 2
   requiredSurface: 1
   width: 1
   depth: 1

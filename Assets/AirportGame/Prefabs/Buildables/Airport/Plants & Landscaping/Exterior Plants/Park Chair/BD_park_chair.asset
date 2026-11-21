@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: Park Chair
   prefab: {fileID: 142472, guid: 24a898469d9c2394bb863db56a74b3d6, type: 3}
   placementType: 0
+  allowedSurfaces: 1
   requiredSurface: 0
   width: 2
   depth: 1
@@ -27,6 +28,8 @@ MonoBehaviour:
   canRotate: 1
   buildCost: 60
   blocksPathfinding: 1
+  environmentValue: 0
+  environmentRadius: 0
   menuCategory: Plants & Landscaping
   category: 3
   icon: {fileID: 2800000, guid: 7db1c767878a63b40a234671072b8ade, type: 3}

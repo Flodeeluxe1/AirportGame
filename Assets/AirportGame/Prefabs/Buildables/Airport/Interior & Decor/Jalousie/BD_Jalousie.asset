@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: Jalousie
   prefab: {fileID: 1255291659422360, guid: f67ff9d455ede6d448bdf23bc838c236, type: 3}
   placementType: 1
+  allowedSurfaces: 63
   requiredSurface: 5
   width: 1
   depth: 1

@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: Peddestrian Tarmac
   prefab: {fileID: 4480693509306558337, guid: 212ca038e4f07d942933f3b9c3a5fbad, type: 3}
   placementType: 2
+  allowedSurfaces: 63
   requiredSurface: 5
   width: 1
   depth: 1

@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: Big Drawer
   prefab: {fileID: 9198732267505218595, guid: c53fe300edecc524f9f511dc58792d47, type: 3}
   placementType: 0
+  allowedSurfaces: 2
   requiredSurface: 1
   width: 1
   depth: 1
@@ -27,6 +28,8 @@ MonoBehaviour:
   canRotate: 1
   buildCost: 100
   blocksPathfinding: 1
+  environmentValue: 0
+  environmentRadius: 0
   menuCategory: Office & Staff
   category: 3
   icon: {fileID: 2800000, guid: adf9e9d3c11c3514f85f261acded6d42, type: 3}

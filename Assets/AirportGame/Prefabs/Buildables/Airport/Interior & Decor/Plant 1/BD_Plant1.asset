@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: Plant 1
   prefab: {fileID: 5289405857127828154, guid: 09786b2145094304f8e76c50e272040f, type: 3}
   placementType: 0
+  allowedSurfaces: 2
   requiredSurface: 1
   width: 1
   depth: 1
@@ -27,6 +28,8 @@ MonoBehaviour:
   canRotate: 1
   buildCost: 40
   blocksPathfinding: 1
+  environmentValue: 0
+  environmentRadius: 0
   menuCategory: Interior & Decor
   category: 3
   icon: {fileID: 2800000, guid: a5a7315987a440049926a80a2ff23b61, type: 3}

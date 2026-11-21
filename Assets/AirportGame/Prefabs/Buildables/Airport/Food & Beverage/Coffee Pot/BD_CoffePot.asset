@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: Coffee Pot
   prefab: {fileID: 4476808827924231168, guid: 7c525024ae8431e45b357520bb8407a6, type: 3}
   placementType: 0
+  allowedSurfaces: 2
   requiredSurface: 1
   width: 1
   depth: 1
@@ -27,6 +28,8 @@ MonoBehaviour:
   canRotate: 1
   buildCost: 30
   blocksPathfinding: 1
+  environmentValue: 0
+  environmentRadius: 0
   menuCategory: Food & Beverage
   category: 3
   icon: {fileID: 2800000, guid: 6f2034b25ee715f4fa83bcd3246cc492, type: 3}

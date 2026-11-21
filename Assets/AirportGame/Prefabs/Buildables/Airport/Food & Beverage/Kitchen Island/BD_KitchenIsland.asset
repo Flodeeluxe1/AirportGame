@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: Kitchen Island
   prefab: {fileID: 3557654067395680959, guid: 255e79009c0081f4b90ea3205cc262c1, type: 3}
   placementType: 0
+  allowedSurfaces: 2
   requiredSurface: 1
   width: 1
   depth: 1
@@ -27,6 +28,8 @@ MonoBehaviour:
   canRotate: 1
   buildCost: 150
   blocksPathfinding: 1
+  environmentValue: 0
+  environmentRadius: 0
   menuCategory: Food & Beverage
   category: 3
   icon: {fileID: 2800000, guid: 2de277800ecef6340a5b1839ca64418d, type: 3}

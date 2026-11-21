@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: Smoke Detector
   prefab: {fileID: 4763749918957636779, guid: 76a7e6c2e588e024d85efa115fe688c2, type: 3}
   placementType: 0
+  allowedSurfaces: 2
   requiredSurface: 1
   width: 1
   depth: 1
@@ -27,6 +28,8 @@ MonoBehaviour:
   canRotate: 1
   buildCost: 25
   blocksPathfinding: 1
+  environmentValue: 0
+  environmentRadius: 0
   menuCategory: Facilities & Maintenance
   category: 3
   icon: {fileID: 2800000, guid: 1dfde8569a8196949abb2c59abdb40f0, type: 3}

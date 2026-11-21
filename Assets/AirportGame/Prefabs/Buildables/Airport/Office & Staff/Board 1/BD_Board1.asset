@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: Board 1
   prefab: {fileID: 1322341926649374, guid: 883fda0b73369fe41bc2ed262338a937, type: 3}
   placementType: 1
+  allowedSurfaces: 63
   requiredSurface: 5
   width: 1
   depth: 1

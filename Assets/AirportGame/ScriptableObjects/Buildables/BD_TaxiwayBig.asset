@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: Taxiway Big
   prefab: {fileID: 9344313534737377, guid: 1addbc0033f7c244199706821c9339a6, type: 3}
   placementType: 0
+  allowedSurfaces: 1
   requiredSurface: 0
   width: 7
   depth: 1
@@ -27,6 +28,8 @@ MonoBehaviour:
   canRotate: 1
   buildCost: 10
   blocksPathfinding: 1
+  environmentValue: 0
+  environmentRadius: 0
   menuCategory: Taxiways
   category: 6
   icon: {fileID: 2800000, guid: a9cbb1c861b09354eb16f4fb5a87610b, type: 3}

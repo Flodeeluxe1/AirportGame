@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: Potted Plant 32
   prefab: {fileID: 7658184198552583822, guid: 7c151d35a2d2bcb41a70499fc2ce2251, type: 3}
   placementType: 0
+  allowedSurfaces: 2
   requiredSurface: 1
   width: 1
   depth: 1
@@ -27,6 +28,8 @@ MonoBehaviour:
   canRotate: 1
   buildCost: 40
   blocksPathfinding: 1
+  environmentValue: 0
+  environmentRadius: 0
   menuCategory: Plants & Landscaping
   category: 3
   icon: {fileID: 2800000, guid: be27496f2821bc64a9dae26a416afc04, type: 3}

@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: Info Counter
   prefab: {fileID: 6860734732833718646, guid: 9192939f3f38a9146b5f59f8ec50130c, type: 3}
   placementType: 0
+  allowedSurfaces: 2
   requiredSurface: 1
   width: 8
   depth: 8
@@ -27,6 +28,8 @@ MonoBehaviour:
   canRotate: 1
   buildCost: 1000
   blocksPathfinding: 1
+  environmentValue: 0
+  environmentRadius: 0
   menuCategory: Information & Signage
   category: 3
   icon: {fileID: 2800000, guid: fb179d37c894ea84b9a33958020793f7, type: 3}

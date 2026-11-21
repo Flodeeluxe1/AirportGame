@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: Chair
   prefab: {fileID: 1578530219999206, guid: 5a652a60006d6ec46980e623412396f9, type: 3}
   placementType: 0
+  allowedSurfaces: 2
   requiredSurface: 1
   width: 1
   depth: 1

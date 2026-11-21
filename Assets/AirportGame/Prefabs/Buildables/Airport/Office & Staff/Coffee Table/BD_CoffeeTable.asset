@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: Coffee Table
   prefab: {fileID: 2299578420850200342, guid: b235c805f008f6f4da469f7364846b10, type: 3}
   placementType: 0
+  allowedSurfaces: 2
   requiredSurface: 1
   width: 1
   depth: 2
@@ -27,6 +28,8 @@ MonoBehaviour:
   canRotate: 1
   buildCost: 45
   blocksPathfinding: 1
+  environmentValue: 0
+  environmentRadius: 0
   menuCategory: Office & Staff
   category: 3
   icon: {fileID: 2800000, guid: 0c19e0826ed3943429e5570a977e4688, type: 3}

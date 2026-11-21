@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: Security area
   prefab: {fileID: 7655109164969689796, guid: 19f0e913484ab074cafb463507a7cd90, type: 3}
   placementType: 0
+  allowedSurfaces: 2
   requiredSurface: 1
   width: 1
   depth: 1
@@ -27,6 +28,8 @@ MonoBehaviour:
   canRotate: 1
   buildCost: 200
   blocksPathfinding: 1
+  environmentValue: 0
+  environmentRadius: 0
   menuCategory: Security
   category: 3
   icon: {fileID: 2800000, guid: b64bc1fb45d73d7449308310b262cc2b, type: 3}

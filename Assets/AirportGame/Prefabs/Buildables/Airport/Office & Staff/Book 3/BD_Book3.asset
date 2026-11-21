@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: Book 3
   prefab: {fileID: 1183540044900982, guid: 0c6751314cb92ff49980ac423b66ecfa, type: 3}
   placementType: 0
+  allowedSurfaces: 2
   requiredSurface: 1
   width: 1
   depth: 1

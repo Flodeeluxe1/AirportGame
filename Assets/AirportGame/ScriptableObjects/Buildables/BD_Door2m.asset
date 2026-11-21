@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: Door 2m
   prefab: {fileID: 1004302560272389388, guid: 81ed578ccf5d9604d9be618deb960a4b, type: 3}
   placementType: 1
+  allowedSurfaces: 2
   requiredSurface: 1
   width: 2
   depth: 1
@@ -27,6 +28,8 @@ MonoBehaviour:
   canRotate: 0
   buildCost: 400
   blocksPathfinding: 0
+  environmentValue: 0
+  environmentRadius: 0
   menuCategory: Door
   category: 2
   icon: {fileID: 2800000, guid: e93a77b5e3e56ed4fb5129ed372036da, type: 3}

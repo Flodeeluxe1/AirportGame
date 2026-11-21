@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: Tarmac
   prefab: {fileID: 6054397010566601028, guid: 245523ffa58952e40a5f2aab3597ccc1, type: 3}
   placementType: 2
+  allowedSurfaces: 1
   requiredSurface: 0
   width: 1
   depth: 1
@@ -27,6 +28,8 @@ MonoBehaviour:
   canRotate: 0
   buildCost: 15
   blocksPathfinding: 0
+  environmentValue: 0
+  environmentRadius: 0
   menuCategory: Tarmac
   category: 7
   icon: {fileID: 2800000, guid: 825a1d41837ae0e4e8f7a370fbc82c3b, type: 3}

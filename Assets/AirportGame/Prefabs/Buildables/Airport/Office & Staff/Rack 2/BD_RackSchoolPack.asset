@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: Rack (School Pack)
   prefab: {fileID: 1457971339235080, guid: 4f9d36e206efd9c408c4487f1d8c65af, type: 3}
   placementType: 0
+  allowedSurfaces: 2
   requiredSurface: 1
   width: 2
   depth: 1

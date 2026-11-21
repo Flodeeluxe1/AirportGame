@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: Projector
   prefab: {fileID: 1504105867294326118, guid: c4769332a3574e543a8455feae3cc05d, type: 3}
   placementType: 0
+  allowedSurfaces: 2
   requiredSurface: 1
   width: 1
   depth: 1
@@ -27,6 +28,8 @@ MonoBehaviour:
   canRotate: 1
   buildCost: 250
   blocksPathfinding: 1
+  environmentValue: 0
+  environmentRadius: 0
   menuCategory: Office & Staff
   category: 3
   icon: {fileID: 2800000, guid: 531f92aed79ebc947844cd0c145316ce, type: 3}

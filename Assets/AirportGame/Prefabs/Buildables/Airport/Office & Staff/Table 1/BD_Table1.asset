@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: Table 1
   prefab: {fileID: 1429071196916812, guid: 006691b87ee6ce7429992a2a172ecf29, type: 3}
   placementType: 0
+  allowedSurfaces: 2
   requiredSurface: 1
   width: 1
   depth: 1

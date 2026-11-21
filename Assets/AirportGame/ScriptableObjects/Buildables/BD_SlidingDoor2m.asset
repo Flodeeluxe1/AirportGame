@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: Sliding Door 2m
   prefab: {fileID: 3869858728218482400, guid: 1154f196a15830f448ba6299e1ac0c09, type: 3}
   placementType: 1
+  allowedSurfaces: 2
   requiredSurface: 1
   width: 2
   depth: 1

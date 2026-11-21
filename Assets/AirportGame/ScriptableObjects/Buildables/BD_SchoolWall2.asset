@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: School Wall 2
   prefab: {fileID: 1926777631656740, guid: 935ba91ea5459eb4d8917d5e94bc3ddf, type: 3}
   placementType: 1
+  allowedSurfaces: 2
   requiredSurface: 1
   width: 1
   depth: 1

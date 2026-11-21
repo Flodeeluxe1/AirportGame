@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: Teacher Table 001
   prefab: {fileID: 6231505095282216803, guid: e72e97b611f276f488c2e89642c6b1ef, type: 3}
   placementType: 0
+  allowedSurfaces: 2
   requiredSurface: 1
   width: 4
   depth: 2
@@ -27,6 +28,8 @@ MonoBehaviour:
   canRotate: 1
   buildCost: 120
   blocksPathfinding: 1
+  environmentValue: 0
+  environmentRadius: 0
   menuCategory: Office & Staff
   category: 3
   icon: {fileID: 2800000, guid: 228a8ef3163df7c43b76eae3501d7eff, type: 3}

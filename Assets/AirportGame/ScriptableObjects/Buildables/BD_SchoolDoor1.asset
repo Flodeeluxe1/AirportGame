@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: School Door 1
   prefab: {fileID: 1457838970446620, guid: 54fc4a62ccb7e304f910c5444e778f6b, type: 3}
   placementType: 1
+  allowedSurfaces: 2
   requiredSurface: 1
   width: 1
   depth: 1

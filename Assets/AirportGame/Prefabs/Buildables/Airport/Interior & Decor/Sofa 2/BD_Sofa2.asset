@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: Sofa 2
   prefab: {fileID: 1390155814627656235, guid: 9cf94939f3dfab54eb62e181bdc60594, type: 3}
   placementType: 0
+  allowedSurfaces: 2
   requiredSurface: 1
   width: 1
   depth: 2
@@ -27,6 +28,8 @@ MonoBehaviour:
   canRotate: 1
   buildCost: 220
   blocksPathfinding: 1
+  environmentValue: 0
+  environmentRadius: 0
   menuCategory: Interior & Decor
   category: 3
   icon: {fileID: 2800000, guid: 42443f28c18c7934a9724d118bea077a, type: 3}

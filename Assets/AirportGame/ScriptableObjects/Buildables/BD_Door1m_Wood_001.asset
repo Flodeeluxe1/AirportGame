@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: Door 001
   prefab: {fileID: 7557887864462471445, guid: be9e889e131eefa44b82ff9051fba8d6, type: 3}
   placementType: 1
+  allowedSurfaces: 2
   requiredSurface: 1
   width: 1
   depth: 1
@@ -27,6 +28,8 @@ MonoBehaviour:
   canRotate: 0
   buildCost: 100
   blocksPathfinding: 0
+  environmentValue: 0
+  environmentRadius: 0
   menuCategory: Door
   category: 2
   icon: {fileID: 2800000, guid: 2dd8724b8416a1842b6e7fbc75395cdf, type: 3}

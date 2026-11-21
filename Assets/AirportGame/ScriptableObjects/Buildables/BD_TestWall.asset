@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: Test Wall
   prefab: {fileID: 1809504597871627220, guid: 6dbb9fe9fd4f44c46a3bf09aed2549ce, type: 3}
   placementType: 1
+  allowedSurfaces: 2
   requiredSurface: 1
   width: 1
   depth: 1
@@ -27,6 +28,8 @@ MonoBehaviour:
   canRotate: 0
   buildCost: 25
   blocksPathfinding: 1
+  environmentValue: 0
+  environmentRadius: 0
   menuCategory: Wall
   category: 1
   icon: {fileID: 2800000, guid: 01f879467bcce764abe03cbaa0892be5, type: 3}

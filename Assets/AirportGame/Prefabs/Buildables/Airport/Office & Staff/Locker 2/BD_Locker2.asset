@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: Locker 2
   prefab: {fileID: 1674143152414700, guid: 5c2334af47df6454c9e2eaadbfaa2cb0, type: 3}
   placementType: 0
+  allowedSurfaces: 2
   requiredSurface: 1
   width: 1
   depth: 1

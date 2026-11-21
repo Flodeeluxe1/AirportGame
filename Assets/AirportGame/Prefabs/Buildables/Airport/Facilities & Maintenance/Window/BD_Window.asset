@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: Window
   prefab: {fileID: 8050769435677208664, guid: 89cfaf2600805bd4f9562f6e545966f7, type: 3}
   placementType: 0
+  allowedSurfaces: 2
   requiredSurface: 1
   width: 1
   depth: 1
@@ -27,6 +28,8 @@ MonoBehaviour:
   canRotate: 1
   buildCost: 90
   blocksPathfinding: 1
+  environmentValue: 0
+  environmentRadius: 0
   menuCategory: Facilities & Maintenance
   category: 3
   icon: {fileID: 2800000, guid: 4da2933864808f04da1686ed62bae852, type: 3}

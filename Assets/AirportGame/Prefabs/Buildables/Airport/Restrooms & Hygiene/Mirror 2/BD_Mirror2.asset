@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: Mirror 2
   prefab: {fileID: 2959209561591578852, guid: bebe37461aa0901409254caebff7ac4e, type: 3}
   placementType: 0
+  allowedSurfaces: 2
   requiredSurface: 1
   width: 1
   depth: 1
@@ -27,6 +28,8 @@ MonoBehaviour:
   canRotate: 1
   buildCost: 40
   blocksPathfinding: 1
+  environmentValue: 0
+  environmentRadius: 0
   menuCategory: Restrooms & Hygiene
   category: 3
   icon: {fileID: 2800000, guid: a1778b273f03d444c8c1e6efdbec504e, type: 3}

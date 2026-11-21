@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: Looking Glass
   prefab: {fileID: 6116256500195629002, guid: 10be2c5525cbbfc4da0d15365777e5d9, type: 3}
   placementType: 0
+  allowedSurfaces: 63
   requiredSurface: 5
   width: 1
   depth: 1
@@ -27,6 +28,8 @@ MonoBehaviour:
   canRotate: 1
   buildCost: 90
   blocksPathfinding: 1
+  environmentValue: 0
+  environmentRadius: 0
   menuCategory: Entertainment & Leisure
   category: 3
   icon: {fileID: 0}

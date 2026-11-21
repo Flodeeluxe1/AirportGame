@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: Bathroom Sink
   prefab: {fileID: 9114213536884176907, guid: fa3db0668a5ddff4c899e2c3fd2c0c72, type: 3}
   placementType: 0
+  allowedSurfaces: 2
   requiredSurface: 1
   width: 2
   depth: 1

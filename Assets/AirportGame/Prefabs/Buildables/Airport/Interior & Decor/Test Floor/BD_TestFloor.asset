@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: Test Floor
   prefab: {fileID: 9344313534737377, guid: 0eb4ed5c985964c4189c388d03a52173, type: 3}
   placementType: 2
+  allowedSurfaces: 2
   requiredSurface: 1
   width: 1
   depth: 1
@@ -27,6 +28,8 @@ MonoBehaviour:
   canRotate: 0
   buildCost: 1
   blocksPathfinding: 1
+  environmentValue: 0
+  environmentRadius: 0
   menuCategory: Interior & Decor
   category: 3
   icon: {fileID: 2800000, guid: d6dd0e12ed41a7a42ac03409f4330ce8, type: 3}

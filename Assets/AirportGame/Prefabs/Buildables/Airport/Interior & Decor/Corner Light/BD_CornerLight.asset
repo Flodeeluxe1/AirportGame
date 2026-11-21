@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: Corner Light
   prefab: {fileID: 297888784413324495, guid: 7232880492f88cd4d9624a501fc37aba, type: 3}
   placementType: 0
+  allowedSurfaces: 2
   requiredSurface: 1
   width: 1
   depth: 1
@@ -27,6 +28,8 @@ MonoBehaviour:
   canRotate: 1
   buildCost: 35
   blocksPathfinding: 1
+  environmentValue: 0
+  environmentRadius: 0
   menuCategory: Interior & Decor
   category: 3
   icon: {fileID: 2800000, guid: 582702aad3f9f774aafb7f9883189448, type: 3}
