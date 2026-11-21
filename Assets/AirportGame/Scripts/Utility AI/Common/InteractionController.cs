@@ -725,6 +725,7 @@ public class InteractionController : MonoBehaviour
         }
 
         InteractionDefinition completedInteraction = reservedInteraction;
+        InteractionProvider completedProvider = reservedProvider;
         ResumeInteractionNeedDecay();
 
         if (completedInteraction == null || needs == null)
