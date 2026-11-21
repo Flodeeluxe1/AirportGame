@@ -246,11 +246,8 @@ public class DoorPlacementHandler : IPlacementHandler
 
     private float GetDoorBottomY(GameObject target)
     {
-        BoxCollider rootCollider = target.GetComponent<BoxCollider>();
-
-        if (rootCollider != null)
-            return rootCollider.bounds.min.y;
-
+        // Colliders are gameplay volumes and are not authored consistently
+        // as visual ground anchors across door prefabs. Use the visible model.
         Renderer[] renderers =
             target.GetComponentsInChildren<Renderer>(true);
 
