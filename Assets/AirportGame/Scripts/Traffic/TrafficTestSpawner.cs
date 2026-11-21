@@ -3,6 +3,9 @@ using UnityEngine;
 
 public class TrafficTestSpawner : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+
     private enum TrafficSpawnMode
     {
         NormalTrafficOnly,
@@ -49,7 +52,7 @@ public class TrafficTestSpawner : MonoBehaviour
     {
         if (gameTimeManager == null)
         {
-            Debug.LogError(
+            LogError(
                 "TrafficTestSpawner: GameTimeManager is missing; spawning requires in-game time.",
                 this);
             enabled = false;
@@ -86,7 +89,7 @@ public class TrafficTestSpawner : MonoBehaviour
     {
         if (gridManager == null)
         {
-            Debug.LogError(
+            LogError(
                 "TrafficTestSpawner: GridManager is missing.",
                 this
             );
@@ -95,7 +98,7 @@ public class TrafficTestSpawner : MonoBehaviour
 
         if (exitPoint == null)
         {
-            Debug.LogError(
+            LogError(
                 "TrafficTestSpawner: Exit Point is missing.",
                 this
             );
@@ -110,7 +113,7 @@ public class TrafficTestSpawner : MonoBehaviour
 
         if (selectedPrefab == null)
         {
-            Debug.LogError(
+            LogError(
                 spawnCargoTruck
                     ? "TrafficTestSpawner: Cargo Truck Prefab is missing."
                     : "TrafficTestSpawner: Traffic Vehicle Prefab is missing.",
@@ -143,7 +146,7 @@ public class TrafficTestSpawner : MonoBehaviour
 
         if (spawnID == null)
         {
-            Debug.LogError(
+            LogError(
                 "TrafficTestSpawner: Vehicle prefab must have " +
                 "VehicleSpawnID attached.",
                 vehicle
@@ -155,7 +158,7 @@ public class TrafficTestSpawner : MonoBehaviour
 
         spawnID.InitializeID();
 
-        Debug.Log(
+        Log(
             $"VEHICLE SPAWNED | ID: {spawnID.SpawnID} | " +
             $"Type: {(spawnCargoTruck ? "Cargo Truck" : "Normal Traffic")}",
             vehicle
@@ -169,7 +172,7 @@ public class TrafficTestSpawner : MonoBehaviour
 
             if (cargoTruck == null)
             {
-                Debug.LogError(
+                LogError(
                     "TrafficTestSpawner: Cargo Truck Prefab must have " +
                     "CargoDeliveryTruck attached.",
                     vehicle
@@ -182,7 +185,7 @@ public class TrafficTestSpawner : MonoBehaviour
             // Pass the spawner's route before the truck's Start() runs.
             cargoTruck.InitializeRoute(startCell, exitCell);
 
-            Debug.Log(
+            Log(
                 $"CARGO TRUCK SPAWNED | Start: {startCell} | " +
                 $"Exit: {exitCell}",
                 vehicle
@@ -195,7 +198,7 @@ public class TrafficTestSpawner : MonoBehaviour
 
             if (trafficVehicle == null)
             {
-                Debug.LogError(
+                LogError(
                     "TrafficTestSpawner: Traffic Vehicle Prefab must have " +
                     "TrafficTestVehicle attached.",
                     vehicle
@@ -207,7 +210,7 @@ public class TrafficTestSpawner : MonoBehaviour
 
             trafficVehicle.InitializeRoute(startCell, exitCell);
 
-            Debug.Log(
+            Log(
                 $"TRAFFIC SPAWNED | Start: {startCell} | Exit: {exitCell}",
                 vehicle
             );
@@ -226,7 +229,7 @@ public class TrafficTestSpawner : MonoBehaviour
 
         if (gridManager == null || exitPoint == null || vehiclePrefab == null)
         {
-            Debug.LogError(
+            LogError(
                 "TrafficTestSpawner: Cannot spawn externally controlled vehicle. " +
                 "GridManager, Exit Point and vehicle prefab are required.",
                 this);
@@ -257,7 +260,7 @@ public class TrafficTestSpawner : MonoBehaviour
 
         if (spawnID == null || trafficVehicle == null)
         {
-            Debug.LogError(
+            LogError(
                 "TrafficTestSpawner: Externally controlled vehicle prefab " +
                 "must contain VehicleSpawnID and TrafficTestVehicle.",
                 vehicleObject);
@@ -269,7 +272,7 @@ public class TrafficTestSpawner : MonoBehaviour
         spawnID.InitializeID();
         trafficVehicle.InitializeRoute(startCell, exitCell, true);
 
-        Debug.Log(
+        Log(
             $"EXTERNALLY CONTROLLED TRAFFIC SPAWNED | " +
             $"ID: {spawnID.SpawnID} | Start: {startCell} | Exit: {exitCell}",
             vehicleObject);
@@ -301,4 +304,23 @@ public class TrafficTestSpawner : MonoBehaviour
                 return false;
         }
     }
+
+    private void Log(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.Log(message, context); else Debug.Log(message);
+    }
+
+    private void LogWarning(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message);
+    }
+
+    private void LogError(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.LogError(message, context); else Debug.LogError(message);
+    }
+
 }
