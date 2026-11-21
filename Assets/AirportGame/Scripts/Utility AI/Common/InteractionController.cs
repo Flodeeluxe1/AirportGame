@@ -732,12 +732,20 @@ public class InteractionController : MonoBehaviour
             }
         }
 
+        InteractionProvider completedProvider = reservedProvider;
+        if (completedProvider != null)
+        {
+            ToiletHygieneEffect toiletEffect =
+                completedProvider.GetComponentInParent<ToiletHygieneEffect>();
+            if (toiletEffect != null)
+                toiletEffect.ApplyAfterInteraction(needs, completedInteraction);
+        }
+
         currentStatus = "Completed " + completedInteraction.DisplayName;
         interactionRoutine = null;
 
         // The animation point may be inside the object's blocked footprint.
         // Return to the reachable approach point before releasing the slot.
-        InteractionProvider completedProvider = reservedProvider;
         if (completedProvider != null && movement != null)
             movement.AlignToInteractionPoint(completedProvider);
 
