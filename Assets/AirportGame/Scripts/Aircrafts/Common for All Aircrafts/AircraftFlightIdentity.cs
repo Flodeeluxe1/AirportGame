@@ -6,6 +6,9 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class AircraftFlightIdentity : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+
     private static readonly HashSet<AircraftFlightIdentity> activeAircraft = new();
 
     public static IReadOnlyCollection<AircraftFlightIdentity> ActiveAircraft =>
@@ -77,7 +80,7 @@ public class AircraftFlightIdentity : MonoBehaviour
     {
         if (definition == null)
         {
-            Debug.LogError(
+            LogError(
                 $"{nameof(AircraftFlightIdentity)} on {name}: " +
                 "Cannot initialize without a flight definition.",
                 this
@@ -98,7 +101,7 @@ public class AircraftFlightIdentity : MonoBehaviour
         IsInitialized = true;
         NotifyAircraftChanged();
 
-        Debug.Log(
+        Log(
             $"Aircraft initialized | Flight: {FlightNumber} | " +
             $"Planned gate: {PlannedGateStableId} | " +
             $"Scheduled time: {FormatTime(PlannedStartMinute)} | " +
@@ -114,7 +117,7 @@ public class AircraftFlightIdentity : MonoBehaviour
     {
         if (string.IsNullOrWhiteSpace(hobbyFlightNumber))
         {
-            Debug.LogError(
+            LogError(
                 $"{nameof(AircraftFlightIdentity)} on {name}: " +
                 "Cannot initialize a hobby flight without a flight number.",
                 this
@@ -136,7 +139,7 @@ public class AircraftFlightIdentity : MonoBehaviour
         IsInitialized = true;
         NotifyAircraftChanged();
 
-        Debug.Log(
+        Log(
             $"Hobby aircraft initialized | Flight: {FlightNumber} | " +
             $"Operation: {OperationId}",
             this
@@ -150,7 +153,7 @@ public class AircraftFlightIdentity : MonoBehaviour
     {
         if (string.IsNullOrWhiteSpace(trainingFlightNumber))
         {
-            Debug.LogError(
+            LogError(
                 $"{nameof(AircraftFlightIdentity)} on {name}: " +
                 "Cannot initialize a training flight without a flight number.",
                 this
@@ -172,7 +175,7 @@ public class AircraftFlightIdentity : MonoBehaviour
         IsInitialized = true;
         NotifyAircraftChanged();
 
-        Debug.Log(
+        Log(
             $"Training aircraft initialized | Flight: {FlightNumber} | " +
             $"Operation: {OperationId}",
             this
@@ -183,7 +186,7 @@ public class AircraftFlightIdentity : MonoBehaviour
     {
         if (string.IsNullOrWhiteSpace(gateStableId))
         {
-            Debug.LogError(
+            LogError(
                 $"{FlightNumber}: Cannot assign an empty actual gate ID.",
                 this
             );
@@ -228,4 +231,21 @@ public class AircraftFlightIdentity : MonoBehaviour
         IncomingCargoCollectionSpawner.QueueOutgoingRecoveryForFlight(
             OperationId);
     }
+
+    private void Log(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.Log(message, context); else Debug.Log(message);
+    }
+    private void LogWarning(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message);
+    }
+    private void LogError(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.LogError(message, context); else Debug.LogError(message);
+    }
+
 }
