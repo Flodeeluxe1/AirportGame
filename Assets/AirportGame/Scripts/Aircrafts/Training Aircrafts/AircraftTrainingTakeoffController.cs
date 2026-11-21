@@ -3,6 +3,9 @@ using UnityEngine;
 
 public class AircraftTrainingTakeoffController : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+
     public enum TakeoffState
     {
         WaitingForLineUp,
@@ -215,7 +218,7 @@ public class AircraftTrainingTakeoffController : MonoBehaviour
             debugStatus =
                 "Cannot take off: aircraft is not initialized as a training flight.";
 
-            Debug.LogError($"{name}: {debugStatus}", this);
+            LogError($"{name}: {debugStatus}", this);
             return false;
         }
 
@@ -226,7 +229,7 @@ public class AircraftTrainingTakeoffController : MonoBehaviour
             debugStatus =
                 "Cannot take off: a required controller or manager is missing.";
 
-            Debug.LogError($"{name}: {debugStatus}", this);
+            LogError($"{name}: {debugStatus}", this);
             return false;
         }
 
@@ -243,7 +246,7 @@ public class AircraftTrainingTakeoffController : MonoBehaviour
             debugStatus =
                 "Cannot take off: selected runway geometry is unavailable.";
 
-            Debug.LogError($"{name}: {debugStatus}", this);
+            LogError($"{name}: {debugStatus}", this);
             return false;
         }
 
@@ -252,7 +255,7 @@ public class AircraftTrainingTakeoffController : MonoBehaviour
             debugStatus =
                 "Cannot take off: aircraft-sized BoxCollider is missing.";
 
-            Debug.LogError($"{name}: {debugStatus}", this);
+            LogError($"{name}: {debugStatus}", this);
             return false;
         }
 
@@ -268,7 +271,7 @@ public class AircraftTrainingTakeoffController : MonoBehaviour
                 debugStatus =
                     "Cannot take off: takeoff direction is invalid.";
 
-                Debug.LogError($"{name}: {debugStatus}", this);
+                LogError($"{name}: {debugStatus}", this);
                 return false;
             }
 
@@ -317,7 +320,7 @@ public class AircraftTrainingTakeoffController : MonoBehaviour
             $"Accelerating on runway from {currentSpeedKnots:F1} knots. " +
             $"Rotation begins at {rotationTriggerSpeedKnots:F1} knots.";
 
-        Debug.Log(
+        Log(
             $"TRAINING TAKEOFF ROLL STARTED | " +
             $"Aircraft: {name} | Runway: {selectedRunway.name} | " +
             $"Initial speed: {currentSpeedKnots:F1} knots | " +
@@ -361,7 +364,7 @@ public class AircraftTrainingTakeoffController : MonoBehaviour
             debugStatus =
                 $"Rotation started at {currentSpeedKnots:F1} knots.";
 
-            Debug.Log(
+            Log(
                 $"TRAINING AIRCRAFT ROTATION STARTED | Aircraft: {name} | " +
                 $"Speed: {currentSpeedKnots:F1} knots | " +
                 $"Nose rotation: {rotationRateDegreesPerSecond:F1} degrees/sec",
@@ -446,7 +449,7 @@ public class AircraftTrainingTakeoffController : MonoBehaviour
             debugStatus =
                 $"Climbing at {targetNoseUpDegrees:F1} degrees nose-up.";
 
-            Debug.Log(
+            Log(
                 $"TRAINING AIRCRAFT ROTATION COMPLETE | Aircraft: {name} | " +
                 $"Speed: {currentSpeedKnots:F1} knots | " +
                 $"Nose-up attitude: {currentNoseUpDegrees:F1} degrees",
@@ -630,7 +633,7 @@ public class AircraftTrainingTakeoffController : MonoBehaviour
 
         ReleaseRunwayReservations();
 
-        Debug.Log(
+        Log(
             $"TRAINING AIRCRAFT CLEARED RUNWAY | Aircraft: {name} | " +
             $"Runway: {selectedRunway.name}",
             this
@@ -666,7 +669,7 @@ public class AircraftTrainingTakeoffController : MonoBehaviour
             !identity.IsInitialized ||
             !identity.IsTrainingFlight)
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"{name}: Only initialized training aircraft can reset " +
                 "the takeoff controller for another circuit.",
                 this
@@ -677,7 +680,7 @@ public class AircraftTrainingTakeoffController : MonoBehaviour
 
         if (currentState != TakeoffState.Completed)
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"{name}: Cannot reset takeoff because the " +
                 "previous takeoff has not completed.",
                 this
@@ -724,7 +727,7 @@ public class AircraftTrainingTakeoffController : MonoBehaviour
         debugStatus =
             "Training takeoff complete. Aircraft retained for circuit.";
 
-        Debug.Log(
+        Log(
             $"TRAINING TAKEOFF COMPLETE | Aircraft: {name} | " +
             $"Runway: {(selectedRunway != null ? selectedRunway.name : "Unknown")} | " +
             $"Final speed: {currentSpeedKnots:F1} knots | " +
@@ -739,4 +742,21 @@ public class AircraftTrainingTakeoffController : MonoBehaviour
         if (!runwayReservationReleased)
             ReleaseRunwayReservations();
     }
+
+    private void Log(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.Log(message, context); else Debug.Log(message);
+    }
+    private void LogWarning(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message);
+    }
+    private void LogError(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.LogError(message, context); else Debug.LogError(message);
+    }
+
 }
