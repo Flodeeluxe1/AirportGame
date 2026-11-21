@@ -122,7 +122,7 @@ public class IncomingCargoCollectionSpawner : MonoBehaviour
         if (spawner != null)
             spawner.pendingOutgoingRecoveryOperations.Add(operationId);
         else
-            LogWarning(
+            Debug.LogWarning(
                 "Cannot recover undelivered cargo: IncomingCargoCollectionSpawner " +
                 "was not found.");
     }
