@@ -96,6 +96,23 @@ public class FuelTruckController : MonoBehaviour
             gameObject.AddComponent<VehicleSpawnID>();
     }
 
+    /// <summary>
+    /// Aligns the bottom of the vehicle collider with the road and keeps
+    /// the movement height consistent with the corrected spawn position.
+    /// </summary>
+    public bool AlignColliderBottomToGround(float groundY)
+    {
+        BoxCollider boxCollider = GetComponentInChildren<BoxCollider>();
+
+        if (boxCollider == null || !boxCollider.enabled)
+            return false;
+
+        float colliderBottom = boxCollider.bounds.min.y;
+        transform.position += Vector3.up * (groundY - colliderBottom);
+        heightOffset = transform.position.y - groundY;
+        return true;
+    }
+
     public void InitializeDelivery(
         List<Vector2Int> outbound,
         List<Vector2Int> returning,
