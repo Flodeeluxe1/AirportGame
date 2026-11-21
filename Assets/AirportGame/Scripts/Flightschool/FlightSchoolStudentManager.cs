@@ -378,21 +378,30 @@ public class FlightSchoolStudentManager : MonoBehaviour
                 // Their two named points must be configured on that seat object.
                 if (provider.transform != placed.transform)
                 {
+                    bool hasValidSeatPoints = true;
+
                     if (!provider.HasExplicitInteractionPoint)
                     {
                         Debug.LogWarning(
                             $"FlightSchoolStudentManager: Seat provider '{provider.name}' " +
-                            $"on '{placed.name}' is missing its InteractionPoint child.",
+                            $"on '{placed.name}' is missing its InteractionPoint child. " +
+                            "This seat will be ignored.",
                             provider);
+                        hasValidSeatPoints = false;
                     }
 
                     if (!provider.HasExplicitAnimationPoint)
                     {
                         Debug.LogWarning(
                             $"FlightSchoolStudentManager: Seat provider '{provider.name}' " +
-                            $"on '{placed.name}' is missing its AnimationPoint child.",
+                            $"on '{placed.name}' is missing its AnimationPoint child. " +
+                            "This seat will be ignored.",
                             provider);
+                        hasValidSeatPoints = false;
                     }
+
+                    if (!hasValidSeatPoints)
+                        continue;
                 }
 
                 InteractionDefinition seatInteraction = null;
