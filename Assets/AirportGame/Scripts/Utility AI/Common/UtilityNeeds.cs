@@ -24,7 +24,8 @@ public class UtilityNeeds : MonoBehaviour
         Entertainment,
         Comfort,
         Boredom,
-        DepartureUrgency
+        DepartureUrgency,
+        Hygiene
     }
 
     [Serializable]
@@ -38,6 +39,7 @@ public class UtilityNeeds : MonoBehaviour
         [Min(0f)] public float entertainment = 0.08f;
         [Min(0f)] public float comfort = 0.05f;
         [FormerlySerializedAs("curiosity")] [Min(0f)] public float boredom = 0.05f;
+        [Min(0f)] public float hygiene = 0.05f;
     }
 
     [Serializable]
@@ -59,6 +61,8 @@ public class UtilityNeeds : MonoBehaviour
         [Range(0f, 100f)] public float comfortMax = 100f;
         [FormerlySerializedAs("curiosityMin")] [Range(0f, 100f)] public float boredomMin = 70f;
         [FormerlySerializedAs("curiosityMax")] [Range(0f, 100f)] public float boredomMax = 100f;
+        [Range(0f, 100f)] public float hygieneMin = 70f;
+        [Range(0f, 100f)] public float hygieneMax = 100f;
 
         public float GetRandomValue(NeedType need)
         {
@@ -76,6 +80,7 @@ public class UtilityNeeds : MonoBehaviour
                 case NeedType.Comfort: minimum = comfortMin; maximum = comfortMax; break;
                 case NeedType.Boredom: minimum = boredomMin; maximum = boredomMax; break;
                 case NeedType.DepartureUrgency: minimum = 100f; maximum = 100f; break;
+                case NeedType.Hygiene: minimum = hygieneMin; maximum = hygieneMax; break;
                 default: minimum = 70f; maximum = 100f; break;
             }
 
@@ -102,6 +107,8 @@ public class UtilityNeeds : MonoBehaviour
             comfortMax = Mathf.Clamp(comfortMax, comfortMin, 100f);
             boredomMin = Mathf.Clamp(boredomMin, 0f, 100f);
             boredomMax = Mathf.Clamp(boredomMax, boredomMin, 100f);
+            hygieneMin = Mathf.Clamp(hygieneMin, 0f, 100f);
+            hygieneMax = Mathf.Clamp(hygieneMax, hygieneMin, 100f);
         }
     }
 
@@ -139,6 +146,7 @@ public class UtilityNeeds : MonoBehaviour
         public AnimationCurve comfort = CreateCurve(new[] { 0f, 0.03f, 0.12f, 0.40f, 0.90f });
         [FormerlySerializedAs("curiosity")] public AnimationCurve boredom = CreateCurve(new[] { 0.03f, 0.08f, 0.20f, 0.45f, 0.85f });
         public AnimationCurve departureUrgency = CreateCurve(new[] { 0f, 0.05f, 0.20f, 0.55f, 1f });
+        public AnimationCurve hygiene = CreateCurve(new[] { 0f, 0.05f, 0.22f, 0.58f, 1f });
 
         public AnimationCurve GetCurve(NeedType need)
         {
@@ -153,6 +161,7 @@ public class UtilityNeeds : MonoBehaviour
                 NeedType.Comfort => comfort,
                 NeedType.Boredom => boredom,
                 NeedType.DepartureUrgency => departureUrgency,
+                NeedType.Hygiene => hygiene,
                 _ => thirst
             };
         }
@@ -170,6 +179,7 @@ public class UtilityNeeds : MonoBehaviour
         [Min(0f)] public float comfort = 0.85f;
         [FormerlySerializedAs("curiosity")] [Min(0f)] public float boredom = 0.7f;
         [Min(0f)] public float departureUrgency = 1.5f;
+        [Min(0f)] public float hygiene = 0.9f;
 
         public float GetWeight(NeedType need)
         {
@@ -184,6 +194,7 @@ public class UtilityNeeds : MonoBehaviour
                 NeedType.Comfort => comfort,
                 NeedType.Boredom => boredom,
                 NeedType.DepartureUrgency => departureUrgency,
+                NeedType.Hygiene => hygiene,
                 _ => 1f
             };
         }
@@ -201,6 +212,7 @@ public class UtilityNeeds : MonoBehaviour
         public bool comfort = true;
         public bool boredom = true;
         public bool departureUrgency = true;
+        public bool hygiene = true;
 
         public bool IsEnabled(NeedType need)
         {
@@ -215,6 +227,7 @@ public class UtilityNeeds : MonoBehaviour
                 NeedType.Comfort => comfort,
                 NeedType.Boredom => boredom,
                 NeedType.DepartureUrgency => departureUrgency,
+                NeedType.Hygiene => hygiene,
                 _ => false
             };
         }
@@ -268,6 +281,7 @@ public class UtilityNeeds : MonoBehaviour
     [SerializeField, Range(0f, 100f)] private float comfort = 100f;
     [FormerlySerializedAs("curiosity")] [SerializeField, Range(0f, 100f)] private float boredom = 100f;
     [SerializeField, Range(0f, 100f)] private float departureUrgency = 100f;
+    [SerializeField, Range(0f, 100f)] private float hygiene = 100f;
 
     private GameTimeManager gameTimeManager;
     private long lastGameSecond;
@@ -291,6 +305,7 @@ public class UtilityNeeds : MonoBehaviour
             NeedType.Comfort => comfort,
             NeedType.Boredom => boredom,
             NeedType.DepartureUrgency => departureUrgency,
+            NeedType.Hygiene => hygiene,
             _ => 100f
         };
     }
@@ -453,6 +468,7 @@ public class UtilityNeeds : MonoBehaviour
         changed |= ApplyDecay(NeedType.Entertainment, decayRates.entertainment, elapsedGameMinutes);
         changed |= ApplyDecay(NeedType.Comfort, GetEnvironmentAdjustedComfortDecayRate(), elapsedGameMinutes);
         changed |= ApplyDecay(NeedType.Boredom, decayRates.boredom, elapsedGameMinutes);
+        changed |= ApplyDecay(NeedType.Hygiene, decayRates.hygiene, elapsedGameMinutes);
 
         if (changed)
             NeedsChanged?.Invoke();
@@ -508,6 +524,7 @@ public class UtilityNeeds : MonoBehaviour
         comfort = clamped;
         boredom = clamped;
         departureUrgency = 100f;
+        hygiene = clamped;
     }
 
     private void SetValue(NeedType need, float value, bool notify = true)
@@ -529,6 +546,7 @@ public class UtilityNeeds : MonoBehaviour
             case NeedType.Comfort: comfort = clamped; break;
             case NeedType.Boredom: boredom = clamped; break;
             case NeedType.DepartureUrgency: departureUrgency = clamped; break;
+            case NeedType.Hygiene: hygiene = clamped; break;
         }
 
         if (notify)
@@ -556,5 +574,6 @@ public class UtilityNeeds : MonoBehaviour
         entertainment = Mathf.Clamp(entertainment, 0f, 100f);
         comfort = Mathf.Clamp(comfort, 0f, 100f);
         boredom = Mathf.Clamp(boredom, 0f, 100f);
+        hygiene = Mathf.Clamp(hygiene, 0f, 100f);
     }
 }
