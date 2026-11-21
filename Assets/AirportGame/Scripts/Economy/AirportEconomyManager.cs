@@ -22,9 +22,6 @@ public enum AirportFinancialCategory
 [Serializable]
 public class AirportFinancialTransaction
 {
-    [Header("Debug")]
-    [SerializeField] private bool logToConsole = false;
-
     public int amount;
     public bool isIncome;
     public AirportFinancialCategory category;
@@ -38,6 +35,9 @@ public class AirportFinancialTransaction
 /// </summary>
 public class AirportEconomyManager : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+
     private const long SecondsPerDay = 86400L;
 
     [Header("New Game")]
