@@ -9,6 +9,9 @@ using UnityEngine;
 [RequireComponent(typeof(AircraftFlightIdentity))]
 public class HobbyAircraftIdentityInitializer : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+
     [Header("Hobby Flight Identity")]
     [SerializeField] private string flightNumber = "VFR101";
 
@@ -19,7 +22,7 @@ public class HobbyAircraftIdentityInitializer : MonoBehaviour
 
         if (identity == null)
         {
-            Debug.LogError(
+            LogError(
                 $"Hobby aircraft {name} has no AircraftFlightIdentity.",
                 this
             );
@@ -29,7 +32,7 @@ public class HobbyAircraftIdentityInitializer : MonoBehaviour
         // Never overwrite an identity that has already been initialized.
         if (identity.IsInitialized)
         {
-            Debug.Log(
+            Log(
                 $"Aircraft identity already initialized: " +
                 $"{identity.FlightNumber}",
                 this
@@ -54,10 +57,27 @@ public class HobbyAircraftIdentityInitializer : MonoBehaviour
             dayIndex
         );
 
-        Debug.Log(
+        Log(
             $"Hobby aircraft initialized: {flightNumber} | " +
             $"Day: {dayIndex} | Minute: {startMinute}",
             this
         );
     }
+
+    private void Log(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.Log(message, context); else Debug.Log(message);
+    }
+    private void LogWarning(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message);
+    }
+    private void LogError(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.LogError(message, context); else Debug.LogError(message);
+    }
+
 }
