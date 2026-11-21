@@ -61,7 +61,6 @@ public class AircraftTrainingLandingTaxiController : MonoBehaviour
     [SerializeField] private float taxiPathPointTolerance = 0.02f;
 
     [Header("Debug")]
-    [SerializeField] private bool logToConsole = false;
     [SerializeField] private bool logTaxiProgress = true;
     [TextArea(2, 5)]
     public string debugStatus = "Waiting for training landing completion.";

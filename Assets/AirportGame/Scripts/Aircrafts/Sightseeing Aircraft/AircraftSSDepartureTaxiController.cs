@@ -79,7 +79,6 @@ public class AircraftSSDepartureTaxiController : MonoBehaviour
     [SerializeField] private float lineUpSafetyMarginInCells = 0.25f;
 
     [Header("Debug")]
-    [SerializeField] private bool logToConsole = false;
     [SerializeField]
     private DepartureState currentState =
         DepartureState.WaitingForBoarding;
