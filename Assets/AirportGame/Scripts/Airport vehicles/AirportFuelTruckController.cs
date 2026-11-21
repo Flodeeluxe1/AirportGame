@@ -67,7 +67,7 @@ public class AirportFuelTruckController : MonoBehaviour
     [SerializeField] private GameTimeManager gameTimeManager;
 
     [Header("Debug")]
-    [SerializeField] private bool logToConsole = false;
+
     [SerializeField] private bool showDebugMessages = true;
 
     [Header("Runtime Status")]
