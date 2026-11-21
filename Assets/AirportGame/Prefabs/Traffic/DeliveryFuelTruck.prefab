@@ -110,7 +110,7 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 1.8, y: 2.2, z: 7.5}
+  m_Size: {x: 2.04, y: 2.2, z: 7.5}
   m_Center: {x: 0, y: 1.1, z: -0.79}
 --- !u!114 &-6662293146020897560
 MonoBehaviour:
@@ -124,6 +124,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6a4e9d1c8b2f47a5a3c6e0d91f7b8245, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FuelTruckController
+  logToConsole: 0
   movementSpeed: 5
   rotationSpeed: 10
   heightOffset: 0.2
@@ -152,7 +153,9 @@ MonoBehaviour:
   detectionDistance: 3
   safeFollowingDistance: 0.7
   rayOriginHeight: 0.15
-  rayOriginForwardOffset: 0.3
+  rayOriginForwardOffset: 2.18
+  sideSensorInterval: 0.1
+  captureRaycastDebugInfo: 0
   acceleration: 4
   braking: 8
   debugRaycastSummary: Not tested

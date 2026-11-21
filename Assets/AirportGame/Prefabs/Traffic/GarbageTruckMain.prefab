@@ -54,7 +54,7 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 3.6, y: 1.6, z: 1.32}
+  m_Size: {x: 1.67, y: 1.6, z: 4.37}
   m_Center: {x: 0, y: 0.8, z: 0}
 --- !u!114 &-643947288131750254
 MonoBehaviour:
@@ -68,6 +68,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e4a7c2d91f6b4380a5d3e9c7f1b62480, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GarbageCollectorController
+  logToConsole: 0
   movementSpeed: 4.5
   rotationSpeed: 10
   heightOffset: 0.2
@@ -99,7 +100,9 @@ MonoBehaviour:
   detectionDistance: 3
   safeFollowingDistance: 1
   rayOriginHeight: 0.15
-  rayOriginForwardOffset: 0.3
+  rayOriginForwardOffset: 2.18
+  sideSensorInterval: 0.1
+  captureRaycastDebugInfo: 0
   acceleration: 2
   braking: 4
   debugRaycastSummary: Not tested

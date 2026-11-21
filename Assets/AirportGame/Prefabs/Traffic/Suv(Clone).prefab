@@ -236,8 +236,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 1.73, y: 1.47, z: 5.29}
-  m_Center: {x: 0, y: 0.74, z: 0.76}
+  m_Size: {x: 1.73, y: 1.62, z: 4.9}
+  m_Center: {x: 0, y: 0.78, z: 0.71}
 --- !u!114 &-2697450970952581212
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -262,6 +262,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a5d2260c988f8f04c9e8190d1021393b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TrafficTestVehicle
+  logToConsole: 0
   roadNetwork: {fileID: 0}
   gridManager: {fileID: 0}
   intersectionManager: {fileID: 0}
@@ -301,7 +302,9 @@ MonoBehaviour:
   detectionDistance: 4
   safeFollowingDistance: 2
   rayOriginHeight: 0.15
-  rayOriginForwardOffset: 0.3
+  rayOriginForwardOffset: 1.72
+  sideSensorInterval: 0.1
+  captureRaycastDebugInfo: 0
   acceleration: 4
   braking: 8
   debugRaycastSummary: Not tested
@@ -317,8 +320,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 31e2fdefd1f606a4295bc97849d4440b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TrafficStuckFailsafe
+  logToConsole: 0
   stuckTime: 30
   movementThreshold: 0.02
+  movementCheckInterval: 0.25
   parkingWaitDestroyTime: 10
   disableCollidersUntilMoving: 1
   logFailsafe: 1
