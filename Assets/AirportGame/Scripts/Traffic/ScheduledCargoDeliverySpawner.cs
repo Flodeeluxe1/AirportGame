@@ -558,6 +558,16 @@ public class ScheduledCargoDeliverySpawner : MonoBehaviour
             return true;
         }
 
+        if (!truck.AlignColliderBottomToGround(
+                spawnPosition.y - spawnHeightOffset))
+        {
+            LogWarning(
+                "ScheduledCargoDeliverySpawner: Cargo truck has no enabled " +
+                "BoxCollider; leaving its spawn height unchanged.",
+                truckObject
+            );
+        }
+
         truck.InitializeRoute(
             startCell,
             exitCell,
