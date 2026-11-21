@@ -4,6 +4,9 @@ using UnityEngine;
 
 public class TrafficTestVehicle : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+
     public enum VehicleState
     {
         Idle,
@@ -191,21 +194,21 @@ public class TrafficTestVehicle : MonoBehaviour
     {
         if (roadNetwork == null)
         {
-            Debug.LogError(
+            LogError(
                 "TrafficTestVehicle: RoadNetwork is missing.");
             return;
         }
 
         if (gridManager == null)
         {
-            Debug.LogError(
+            LogError(
                 "TrafficTestVehicle: GridManager is missing.");
             return;
         }
 
         if (!TryFindParkingSpace())
         {
-            Debug.Log(
+            Log(
                 $"TRAFFIC NO PARKING CANDIDATE | Start: {startCell}");
 
             state = VehicleState.Idle;
@@ -214,7 +217,7 @@ public class TrafficTestVehicle : MonoBehaviour
 
         if (!parkingSpace.Reserve(gameObject))
         {
-            Debug.Log("TRAFFIC FAILED TO RESERVE PARKING.");
+            Log("TRAFFIC FAILED TO RESERVE PARKING.");
 
             state = VehicleState.Idle;
             return;
@@ -229,7 +232,7 @@ public class TrafficTestVehicle : MonoBehaviour
             parkingSpace.CancelReservation(gameObject);
             parkingSpace = null;
 
-            Debug.Log(
+            Log(
                 $"TRAFFIC NO PATH TO PARKING | " +
                 $"Start: {startCell} | " +
                 $"Approach: {parkingApproachCell}");
@@ -238,7 +241,7 @@ public class TrafficTestVehicle : MonoBehaviour
             return;
         }
 
-        Debug.Log(
+        Log(
             $"TRAFFIC PARKING ROUTE | " +
             $"Start: {startCell} | " +
             $"Approach: {parkingApproachCell} | " +
@@ -423,7 +426,7 @@ public class TrafficTestVehicle : MonoBehaviour
             0f,
             bestAvailableTime - Time.time);
 
-        Debug.Log(
+        Log(
             $"TRAFFIC WAITING PARKING SELECTED | " +
             $"Estimated Available In: {waitTime:F1}s");
 
@@ -547,7 +550,7 @@ public class TrafficTestVehicle : MonoBehaviour
             building.Width <= 0 ||
             building.Depth <= 0)
         {
-            Debug.LogError(
+            LogError(
                 "TrafficTestVehicle: Parking space has no valid PlacedBuilding.",
                 this);
 
@@ -567,7 +570,7 @@ public class TrafficTestVehicle : MonoBehaviour
 
         if (directionToRoad.sqrMagnitude < 0.001f)
         {
-            Debug.LogError(
+            LogError(
                 "TrafficTestVehicle: Road approach is too close " +
                 "to the parking center to determine an exit direction.",
                 this);
@@ -644,7 +647,7 @@ public class TrafficTestVehicle : MonoBehaviour
 
         if (exitDirection.sqrMagnitude < 0.001f)
         {
-            Debug.LogError(
+            LogError(
                 "TrafficTestVehicle: Invalid parking exit direction.",
                 this);
 
@@ -654,7 +657,7 @@ public class TrafficTestVehicle : MonoBehaviour
         parkingOutwardDirection =
             exitDirection.normalized;
 
-        Debug.Log(
+        Log(
             $"PARKING MANEUVER CONFIGURED | " +
             $"Approach: {parkingApproachCell} | " +
             $"Outward: {parkingOutwardDirection} | " +
@@ -678,7 +681,7 @@ public class TrafficTestVehicle : MonoBehaviour
         {
             state = VehicleState.WaitingForParking;
 
-            Debug.Log(
+            Log(
                 $"TRAFFIC WAITING AT PARKING APPROACH | " +
                 $"Cell: {parkingApproachCell} | " +
                 $"Queue Position: {parkingSpace.GetQueuePosition(gameObject)}");
@@ -692,7 +695,7 @@ public class TrafficTestVehicle : MonoBehaviour
             return;
         }
 
-        Debug.Log(
+        Log(
             $"TRAFFIC ALIGNING FOR PARKING | " +
             $"Cell: {parkingApproachCell}");
 
@@ -712,7 +715,7 @@ public class TrafficTestVehicle : MonoBehaviour
         if (!parkingSpace.CanVehicleEnter(gameObject))
             return;
 
-        Debug.Log("TRAFFIC PARKING SPACE NOW AVAILABLE");
+        Log("TRAFFIC PARKING SPACE NOW AVAILABLE");
 
         BeginParkingEntry();
     }
@@ -726,7 +729,7 @@ public class TrafficTestVehicle : MonoBehaviour
 
         transform.position = parkingAlignmentPosition;
 
-        Debug.Log("TRAFFIC PARKING APPROACH ALIGNED");
+        Log("TRAFFIC PARKING APPROACH ALIGNED");
 
         state = VehicleState.ApproachingParkingEntry;
     }
@@ -740,7 +743,7 @@ public class TrafficTestVehicle : MonoBehaviour
 
         transform.position = parkingPreEntryPosition;
 
-        Debug.Log("TRAFFIC REACHED PARKING PRE-ENTRY");
+        Log("TRAFFIC REACHED PARKING PRE-ENTRY");
 
         state = VehicleState.EnteringParking;
     }
@@ -754,7 +757,7 @@ public class TrafficTestVehicle : MonoBehaviour
 
         transform.position = parkingEntryPosition;
 
-        Debug.Log("TRAFFIC REACHED PARKING EDGE");
+        Log("TRAFFIC REACHED PARKING EDGE");
 
         state = VehicleState.MovingIntoParking;
     }
@@ -773,7 +776,7 @@ public class TrafficTestVehicle : MonoBehaviour
                 parkingDuration,
                 holdAtParking))
         {
-            Debug.LogError(
+            LogError(
                 "TrafficTestVehicle: Failed to occupy parking space.");
 
             state = VehicleState.Idle;
@@ -784,7 +787,7 @@ public class TrafficTestVehicle : MonoBehaviour
         currentSpeed = speed;
         state = VehicleState.Parked;
 
-        Debug.Log(
+        Log(
             holdAtParking
                 ? "TRAFFIC PARKED | Waiting for external departure request."
                 : $"TRAFFIC PARKED | Duration: {parkingDuration} seconds");
@@ -813,7 +816,7 @@ public class TrafficTestVehicle : MonoBehaviour
         if (parkingTimer > 0f)
             return;
 
-        Debug.Log("TRAFFIC PARKING COMPLETE");
+        Log("TRAFFIC PARKING COMPLETE");
 
         leavingParkingStep = 0;
         state = VehicleState.LeavingParking;
@@ -900,7 +903,7 @@ public class TrafficTestVehicle : MonoBehaviour
         parkingExitStartCell =
             gridManager.WorldToGrid(parkingAlignmentPosition);
 
-        Debug.Log(
+        Log(
             $"TRAFFIC LEFT PARKING | " +
             $"A* Start Cell: {parkingExitStartCell} | " +
             $"Exit: {exitCell}");
@@ -919,7 +922,7 @@ public class TrafficTestVehicle : MonoBehaviour
 
         if (path == null || path.Count == 0)
         {
-            Debug.Log(
+            Log(
                 $"TRAFFIC NO PATH TO EXIT | " +
                 $"From: {parkingExitStartCell} | " +
                 $"Exit: {exitCell}");
@@ -935,7 +938,7 @@ public class TrafficTestVehicle : MonoBehaviour
 
         if (path.Count == 1)
         {
-            Debug.Log(
+            Log(
                 $"TRAFFIC ARRIVED AT EXIT | Cell: {exitCell}");
 
             state = VehicleState.Arrived;
@@ -1235,7 +1238,7 @@ public class TrafficTestVehicle : MonoBehaviour
                     reservedIntersection,
                     this);
 
-                Debug.Log(
+                Log(
                     $"INTERSECTION RELEASED | Vehicle: {name} | " +
                     $"Intersection: {reservedIntersection}");
 
@@ -1309,7 +1312,7 @@ public class TrafficTestVehicle : MonoBehaviour
                 requestedIntersection,
                 this);
 
-            Debug.Log(
+            Log(
                 $"INTERSECTION REQUESTED | Vehicle: {name} | " +
                 $"Intersection: {requestedIntersection} | " +
                 $"Holding Path Index: {holdingPathIndex}");
@@ -1325,7 +1328,7 @@ public class TrafficTestVehicle : MonoBehaviour
             waitingForIntersection = false;
             requestedIntersectionPathIndex = -1;
 
-            Debug.Log(
+            Log(
                 $"INTERSECTION GRANTED | Vehicle: {name} | " +
                 $"Intersection: {reservedIntersection}");
 
@@ -1406,7 +1409,7 @@ public class TrafficTestVehicle : MonoBehaviour
 
         if (state == VehicleState.DrivingToExit)
         {
-            Debug.Log(
+            Log(
                 $"TRAFFIC ARRIVED AT EXIT | Cell: {exitCell}");
 
             state = VehicleState.Arrived;
@@ -1636,11 +1639,45 @@ private bool ShouldDetectVehicle(TrafficTestVehicle vehicle)
             pathText += cell + " ";
         }
 
-        Debug.Log($"{title}: {pathText}");
+        Log($"{title}: {pathText}");
     }
 
     // ---------------------------------------------------------
     // TRAFFIC SENSOR GIZMOS
     // ---------------------------------------------------------
+
+
+    private void Log(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole)
+            return;
+
+        if (context != null)
+            Debug.Log(message, context);
+        else
+            Debug.Log(message);
+    }
+
+    private void LogWarning(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole)
+            return;
+
+        if (context != null)
+            Debug.LogWarning(message, context);
+        else
+            Debug.LogWarning(message);
+    }
+
+    private void LogError(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole)
+            return;
+
+        if (context != null)
+            Debug.LogError(message, context);
+        else
+            Debug.LogError(message);
+    }
 
 }
