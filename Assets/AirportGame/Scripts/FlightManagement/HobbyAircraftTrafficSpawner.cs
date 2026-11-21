@@ -10,6 +10,9 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class HobbyAircraftTrafficSpawner : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+
     [Header("References")]
     [SerializeField] private GameObject hobbyAircraftPrefab;
     [SerializeField] private Transform spawnPoint;
@@ -119,7 +122,7 @@ public class HobbyAircraftTrafficSpawner : MonoBehaviour
 
         if (hobbyAircraftPrefab == null)
         {
-            Debug.LogError(
+            LogError(
                 "HobbyAircraftTrafficSpawner: Assign a hobby aircraft prefab.",
                 this
             );
@@ -130,7 +133,7 @@ public class HobbyAircraftTrafficSpawner : MonoBehaviour
 
         if (spawnPoint == null)
         {
-            Debug.LogError(
+            LogError(
                 "HobbyAircraftTrafficSpawner: Assign an approach spawn point.",
                 this
             );
@@ -141,7 +144,7 @@ public class HobbyAircraftTrafficSpawner : MonoBehaviour
 
         if (gameTimeManager == null)
         {
-            Debug.LogError(
+            LogError(
                 "HobbyAircraftTrafficSpawner: GameTimeManager is missing.",
                 this
             );
@@ -171,7 +174,7 @@ public class HobbyAircraftTrafficSpawner : MonoBehaviour
             ? "Test flight mode enabled; waiting for first test spawn"
             : "Waiting for first demand check";
 
-        Debug.Log(
+        Log(
             "HobbyAircraftTrafficSpawner ready. " +
             $"Demand checks every {demandCheckIntervalMinutes} " +
             "in-game minutes.",
@@ -195,12 +198,12 @@ public class HobbyAircraftTrafficSpawner : MonoBehaviour
                     Time.unscaledTime + Mathf.Max(1f, testSpawnIntervalSeconds);
 
                 debugStatus = "Test flight mode enabled";
-                Debug.Log("Hobby test flight mode enabled.", this);
+                Log("Hobby test flight mode enabled.", this);
             }
             else
             {
                 debugStatus = "Test flight mode disabled; normal demand resumed";
-                Debug.Log("Hobby test flight mode disabled.", this);
+                Log("Hobby test flight mode disabled.", this);
             }
         }
 
@@ -227,7 +230,7 @@ public class HobbyAircraftTrafficSpawner : MonoBehaviour
 
         if (!spawned && logDemandChecks)
         {
-            Debug.Log(
+            Log(
                 $"Hobby test spawn skipped: {debugStatus}",
                 this
             );
@@ -351,7 +354,7 @@ public class HobbyAircraftTrafficSpawner : MonoBehaviour
 
             if (logDemandChecks)
             {
-                Debug.Log(
+                Log(
                     $"Hobby demand check | Parking: {parkingSpotCount} | " +
                     $"Free: {freeSpotCount} | Active: {activeAircraftCount} | " +
                     $"Fuel station: {hasFuelStation} | " +
@@ -369,7 +372,7 @@ public class HobbyAircraftTrafficSpawner : MonoBehaviour
         }
         else if (logDemandChecks)
         {
-            Debug.Log(
+            Log(
                 $"Hobby TEST spawn | Parking: {parkingSpotCount} | " +
                 $"Free: {freeSpotCount} | Active: {activeAircraftCount}",
                 this
@@ -498,7 +501,7 @@ public class HobbyAircraftTrafficSpawner : MonoBehaviour
         }
         else if (!warnedMissingAirportRatingManager)
         {
-            Debug.LogWarning(
+            LogWarning(
                 "HobbyAircraftTrafficSpawner: AirportRatingManager is missing. " +
                 "Using neutral reputation demand.",
                 this
@@ -601,7 +604,7 @@ public class HobbyAircraftTrafficSpawner : MonoBehaviour
 
         if (identity == null)
         {
-            Debug.LogError(
+            LogError(
                 "Spawned hobby aircraft has no AircraftFlightIdentity.",
                 aircraft
             );
@@ -627,7 +630,7 @@ public class HobbyAircraftTrafficSpawner : MonoBehaviour
 
         debugStatus = $"Spawned visiting aircraft {flightNumber}";
 
-        Debug.Log(
+        Log(
             $"HOBBY VISITOR ARRIVAL | Flight: {flightNumber} | " +
             $"Day: {gameTimeManager.CurrentDay} | " +
             $"Time: {gameTimeManager.FormattedTime}",
@@ -650,7 +653,7 @@ public class HobbyAircraftTrafficSpawner : MonoBehaviour
 
         if (fuelTank == null)
         {
-            Debug.LogWarning(
+            LogWarning(
                 "Hobby visitor has no AircraftFuelTank; starting fuel was not randomized.",
                 aircraft);
             return;
@@ -710,7 +713,7 @@ public class HobbyAircraftTrafficSpawner : MonoBehaviour
             hobbyAircraftPrefab.GetComponent<AircraftHobbyFuelDepartureController>() == null ||
             hobbyAircraftPrefab.GetComponent<AircraftHobbyTakeoffController>() == null)
         {
-            Debug.LogError(
+            LogError(
                 "Hobby aircraft prefab is missing one or more required " +
                 "root components: AircraftFlightIdentity, " +
                 "AircraftLandingController, HobbyAircraftTaxiController, " +
@@ -736,4 +739,21 @@ public class HobbyAircraftTrafficSpawner : MonoBehaviour
     {
         return Mathf.Max(1, demandCheckIntervalMinutes) * 60L;
     }
+
+    private void Log(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.Log(message, context); else Debug.Log(message);
+    }
+    private void LogWarning(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message);
+    }
+    private void LogError(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.LogError(message, context); else Debug.LogError(message);
+    }
+
 }
