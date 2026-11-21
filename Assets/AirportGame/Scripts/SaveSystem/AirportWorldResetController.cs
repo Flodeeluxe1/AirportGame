@@ -1038,6 +1038,11 @@ public class AirportWorldResetController : MonoBehaviour
 
             roadNetwork.AddRoad(cell, direction);
 
+            gridSurface.RegisterRoadArea(
+                cell,
+                RoadNetwork.RoadModuleSize,
+                RoadNetwork.RoadModuleSize);
+
             restoredRoadCells++;
         }
 
