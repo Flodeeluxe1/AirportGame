@@ -22,5 +22,6 @@ MonoBehaviour:
   - need: 2
     satisfactionAmount: 50
     maximumNeedValueToConsider: 80
-  reusableNeedEffects:
-  - {fileID: 11400000, guid: 5d8f2a1c7b4e49d3a6c0f1e8b2a59734, type: 2}
+  - need: 9
+    satisfactionAmount: -50
+    maximumNeedValueToConsider: 100
