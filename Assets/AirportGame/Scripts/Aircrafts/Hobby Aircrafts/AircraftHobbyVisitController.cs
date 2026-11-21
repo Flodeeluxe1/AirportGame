@@ -10,6 +10,9 @@ using UnityEngine;
 [RequireComponent(typeof(AircraftFlightIdentity))]
 public class AircraftHobbyVisitController : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+
     [Header("Visit Duration")]
     [Min(1)]
     [SerializeField] public int minimumStayMinutes = 60;
@@ -143,7 +146,7 @@ public class AircraftHobbyVisitController : MonoBehaviour
 
         debugStatus = $"Parked for {stayMinutes} in-game minutes";
 
-        Debug.Log(
+        Log(
             $"{flightIdentity.FlightNumber}: parked at {reservedSpot.name}. " +
             $"Planned stay: {stayMinutes} in-game minutes.",
             this);
@@ -168,7 +171,7 @@ public class AircraftHobbyVisitController : MonoBehaviour
         {
             BeginDepartureSequence();
 
-            Debug.Log(
+            Log(
                 $"{flightIdentity.FlightNumber}: planned visit completed after " +
                 $"{totalVisitSeconds / 60.0:F0} in-game minutes. Pilot departure sequence started.",
                 this);
@@ -238,7 +241,7 @@ public class AircraftHobbyVisitController : MonoBehaviour
         departureRequested = true;
         debugStatus = "Turnaround complete; departure taxi requested";
 
-        Debug.Log(
+        Log(
             $"{flightIdentity.FlightNumber}: pilot boarded and " +
             $"{postBoardingTurnaroundMinutes:F0}-minute turnaround completed. " +
             "Departure taxi released.",
@@ -277,7 +280,7 @@ public class AircraftHobbyVisitController : MonoBehaviour
         if (needs != null)
             needs.ResetForNewVisit();
 
-        Debug.Log(
+        Log(
             $"{flightIdentity.FlightNumber}: pilot spawned " +
             $"{pilotSpawnDelayMinutes:F1} in-game minutes after parking.",
             spawnedPilot);
@@ -294,7 +297,7 @@ public class AircraftHobbyVisitController : MonoBehaviour
 
         if (pilot != null)
         {
-            Debug.Log(
+            Log(
                 $"{flightIdentity.FlightNumber}: pilot completed walk-around and boarded.",
                 pilot);
             Destroy(pilot);
@@ -356,4 +359,21 @@ public class AircraftHobbyVisitController : MonoBehaviour
     {
         postBoardingTurnaroundMinutes = Mathf.Max(0f, postBoardingTurnaroundMinutes);
     }
+
+    private void Log(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.Log(message, context); else Debug.Log(message);
+    }
+    private void LogWarning(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message);
+    }
+    private void LogError(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.LogError(message, context); else Debug.LogError(message);
+    }
+
 }
