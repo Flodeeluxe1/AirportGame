@@ -58,7 +58,7 @@ public class BuildableDefinition : ScriptableObject
     [Header("Placement")]
     public PlacementType placementType = PlacementType.Cell;
 
-    [Tooltip("Select every ground surface this buildable may be placed on. Leave empty to use the legacy Required Surface setting below.")]
+    [Tooltip("Select every ground surface this buildable may be placed on. Unrestricted (Any) placement excludes roads unless Road or All is selected. Leave empty to use the legacy Required Surface setting below.")]
     public BuildSurfaceOptions allowedSurfaces = BuildSurfaceOptions.None;
 
     [HideInInspector]
