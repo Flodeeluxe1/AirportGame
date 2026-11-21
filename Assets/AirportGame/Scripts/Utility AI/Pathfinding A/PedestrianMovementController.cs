@@ -9,6 +9,9 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class PedestrianMovementController : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+
     private static readonly List<PedestrianMovementController> NearbyPedestrians =
         new List<PedestrianMovementController>(16);
 
@@ -544,7 +547,7 @@ public class PedestrianMovementController : MonoBehaviour
 
         selectedDestination.y = transform.position.y;
 
-        Debug.Log(
+        Log(
             $"PedestrianMovementController {name}: Selected nearby approach " +
             $"point {selectedDestination} for preferred target {preferredWorld}.",
             this);
@@ -963,4 +966,21 @@ public class PedestrianMovementController : MonoBehaviour
         avoidanceStrength = Mathf.Clamp01(avoidanceStrength);
         avoidanceResponse = Mathf.Max(0.1f, avoidanceResponse);
     }
+
+    private void Log(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.Log(message, context); else Debug.Log(message);
+    }
+    private void LogWarning(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message);
+    }
+    private void LogError(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.LogError(message, context); else Debug.LogError(message);
+    }
+
 }
