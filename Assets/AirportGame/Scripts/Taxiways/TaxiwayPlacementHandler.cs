@@ -336,14 +336,10 @@ public class TaxiwayPlacementHandler : IPlacementHandler
                 // New taxiway cells must meet the definition's
                 // required surface. For example, a taxiway that
                 // requires grass must start on grass.
-                if (definition.requiredSurface != BuildSurface.Any &&
-                    !gridSurface.IsSurface(
-                        cell,
-                        definition.requiredSurface))
+                if (!definition.AllowsSurface(gridSurface.GetSurface(cell)))
                 {
                     reason =
-                        $"Cell {cell} has the wrong surface. " +
-                        $"Required: {definition.requiredSurface}.";
+                        $"Cell {cell} has a surface not allowed by this taxiway definition.";
                     return false;
                 }
             }
