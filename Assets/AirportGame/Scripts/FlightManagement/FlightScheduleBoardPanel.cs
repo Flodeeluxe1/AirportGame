@@ -9,7 +9,6 @@ public class FlightScheduleBoardPanel : MonoBehaviour
 {
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
-{
     private const string ScheduleFileName = "flight_schedule.json";
 
     [Header("References")]

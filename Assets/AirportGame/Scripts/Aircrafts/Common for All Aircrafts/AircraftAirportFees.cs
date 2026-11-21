@@ -10,7 +10,6 @@ public class AircraftAirportFees : MonoBehaviour
 {
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
-{
     private AirportFeeCategory feeCategory = AirportFeeCategory.None;
     private AirportManagementController airportManagementController;
 

@@ -7,7 +7,6 @@ public class AirportBaggageDispatcher : MonoBehaviour
 {
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
-{
     public static AirportBaggageDispatcher Instance { get; private set; }
 
     public enum RequestStatus

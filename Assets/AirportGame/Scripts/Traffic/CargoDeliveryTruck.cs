@@ -6,7 +6,6 @@ public class CargoDeliveryTruck : MonoBehaviour
 {
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
-{
     public enum TruckState
     {
         Idle,

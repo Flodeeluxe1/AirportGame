@@ -12,7 +12,6 @@ public class WasteCollectionManager : MonoBehaviour
 {
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
-{
     [Header("References")]
     [SerializeField] private GarbageCollectorSpawner garbageCollectorSpawner;
 

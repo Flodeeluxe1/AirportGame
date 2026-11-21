@@ -7,7 +7,6 @@ public class ScheduledCargoDeliverySpawner : MonoBehaviour
 {
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
-{
     [Header("References")]
     [SerializeField] private GameObject cargoTruckPrefab;
     [SerializeField] private Transform spawnPoint;

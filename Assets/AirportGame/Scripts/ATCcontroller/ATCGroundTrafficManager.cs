@@ -7,7 +7,6 @@ public class ATCGroundTrafficManager : MonoBehaviour
 {
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
-{
     private struct ControlPointKey : IEquatable<ControlPointKey>
     {
         public bool IsManual;

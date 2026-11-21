@@ -5,7 +5,6 @@ public class PedestrianMovementTest : MonoBehaviour
 {
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
-{
     [SerializeField] private PedestrianMovementController movementController;
     [SerializeField] private Transform destination;
     [SerializeField] private bool logResults = true;

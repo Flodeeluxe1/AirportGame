@@ -19,7 +19,6 @@ public class CargoPackage : MonoBehaviour
 {
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
-{
     [Header("Package Identity")]
     [SerializeField] private string packageId;
 

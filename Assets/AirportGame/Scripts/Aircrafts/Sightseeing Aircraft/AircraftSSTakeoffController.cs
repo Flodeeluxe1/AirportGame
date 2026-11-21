@@ -9,7 +9,6 @@ public class AircraftSSTakeoffController : MonoBehaviour
 {
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
-{
     public enum TakeoffState
     {
         WaitingForLineUp,

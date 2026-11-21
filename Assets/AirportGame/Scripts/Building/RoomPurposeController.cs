@@ -21,7 +21,6 @@ public class RoomPurposeController : MonoBehaviour
 {
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
-{
     public event System.Action AssignmentsChanged;
 
     [Header("References")]

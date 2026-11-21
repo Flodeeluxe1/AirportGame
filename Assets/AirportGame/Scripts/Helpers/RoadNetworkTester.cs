@@ -5,7 +5,6 @@ public class RoadNetworkTester : MonoBehaviour
 {
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
-{
     [SerializeField] private RoadNetwork roadNetwork;
 
     [Header("Test Cells")]

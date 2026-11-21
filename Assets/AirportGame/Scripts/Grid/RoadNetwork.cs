@@ -5,7 +5,6 @@ public class RoadNetwork : MonoBehaviour
 {
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
-{
     public const int RoadModuleSize = 2;
 
     private class RoadCell

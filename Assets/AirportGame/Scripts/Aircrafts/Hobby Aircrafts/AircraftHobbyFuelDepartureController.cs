@@ -12,7 +12,6 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
 {
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
-{
     private enum FuelDepartureState
     {
         WaitingForVisit,

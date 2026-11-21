@@ -7,7 +7,6 @@ public class AirportCargoVehicleController : MonoBehaviour
 {
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
-{
     [Header("Movement Component")]
     [SerializeField]
     private AirportGroundVehicleMovement groundVehicleMovement;

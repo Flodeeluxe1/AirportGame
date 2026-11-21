@@ -6,7 +6,6 @@ public class AirportGroundVehicleMovement : MonoBehaviour
 {
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
-{
     [Header("Grid References")]
     [SerializeField] private GridManager gridManager;
     [SerializeField] private GridOccupancy gridOccupancy;

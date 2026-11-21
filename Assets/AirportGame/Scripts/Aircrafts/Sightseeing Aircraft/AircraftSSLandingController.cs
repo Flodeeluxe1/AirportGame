@@ -8,8 +8,9 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class AircraftSSLandingController : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
 
-{
     private enum LandingState
     {
         Initializing,

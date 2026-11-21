@@ -5,7 +5,6 @@ public class GridSurface : MonoBehaviour
 {
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
-{
     public event System.Action FoundationSurfaceChanged;
 
     [SerializeField]

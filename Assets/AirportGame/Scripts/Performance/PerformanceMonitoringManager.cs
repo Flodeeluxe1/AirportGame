@@ -14,7 +14,6 @@ public class PerformanceMonitoringManager : MonoBehaviour
 {
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
-{
     [Header("Sampling")]
     [SerializeField, Min(0.1f)] private float sampleInterval = 1f;
     [SerializeField, Min(1f)] private float frameSpikeThresholdMs = 33.3f;

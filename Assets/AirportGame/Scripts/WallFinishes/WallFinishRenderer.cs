@@ -4,7 +4,6 @@ public class WallFinishRenderer : MonoBehaviour
 {
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
-{
     [Header("References")]
     [SerializeField] private WallFinishCatalogue catalogue;
     [SerializeField] private GridSurface gridSurface;

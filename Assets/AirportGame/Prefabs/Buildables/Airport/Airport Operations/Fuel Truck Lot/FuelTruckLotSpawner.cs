@@ -6,8 +6,9 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class FuelTruckLotSpawner : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
 
-{
     [Header("Prefab")]
     [SerializeField] private GameObject fuelTruckPrefab;
 

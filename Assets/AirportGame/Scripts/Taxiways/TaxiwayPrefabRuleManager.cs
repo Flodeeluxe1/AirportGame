@@ -13,7 +13,6 @@ public sealed class TaxiwayPrefabRuleManager : MonoBehaviour
 {
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
-{
     private const int North = 1;
     private const int East = 2;
     private const int South = 4;

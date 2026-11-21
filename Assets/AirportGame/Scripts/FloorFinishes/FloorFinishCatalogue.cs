@@ -9,7 +9,6 @@ public class FloorFinishCatalogue : ScriptableObject
 {
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
-{
     [SerializeField] private FloorFinishDefinition[] finishes;
 
     [Header("Shared Chunk Rendering")]

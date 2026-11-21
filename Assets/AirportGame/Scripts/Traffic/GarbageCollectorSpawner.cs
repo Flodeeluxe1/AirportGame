@@ -10,7 +10,6 @@ public class GarbageCollectorSpawner : MonoBehaviour
 {
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
-{
     [Header("References")]
     [SerializeField] private GameObject garbageCollectorPrefab;
     [SerializeField] private Transform spawnPoint;

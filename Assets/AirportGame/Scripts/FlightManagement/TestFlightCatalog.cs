@@ -7,7 +7,6 @@ public class TestFlightCatalog : MonoBehaviour
 {
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
-{
     [Header("Test Flight Generation")]
     [SerializeField] private string testAirlineName = "Test Airline";
 

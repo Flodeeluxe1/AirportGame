@@ -10,7 +10,6 @@ public class FlightOperationsBoardUI : MonoBehaviour
 {
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
-{
     public static FlightOperationsBoardUI Instance { get; private set; }
 
     [Header("UI")]

@@ -10,8 +10,9 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class AircraftSSLandingTaxiController : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
 
-{
     [Header("References")]
     [SerializeField] private AircraftSSLandingController landingController;
     [SerializeField] private GridManager gridManager;

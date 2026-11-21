@@ -7,7 +7,6 @@ public class AircraftCleaningVehicleController : MonoBehaviour
 {
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
-{
     private enum CleaningState
     {
         Idle,

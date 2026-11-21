@@ -8,7 +8,6 @@ public class RoomDetectionController : MonoBehaviour
 {
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
-{
     public event Action RoomsChanged;
 
     [Serializable]

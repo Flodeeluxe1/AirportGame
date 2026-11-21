@@ -5,8 +5,9 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class GuidedCargoTrailerFollower : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
 
-{
     [Header("References")]
     [Tooltip("Legacy single trailer reference. Normally assigned by the lot spawner.")]
     [SerializeField] private Transform trailer;

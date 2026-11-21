@@ -7,7 +7,6 @@ public class AircraftLoadingManifest : MonoBehaviour
 {
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
-{
     [Header("Initial Baggage")]
     [Min(0)]
     [SerializeField] private int initialIncomingBaggageCount = 10;

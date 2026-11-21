@@ -13,7 +13,6 @@ public class IntersectionManager : MonoBehaviour
 {
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
-{
     private class EntryRequest
     {
         public Component Vehicle;

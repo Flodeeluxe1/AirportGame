@@ -6,7 +6,6 @@ public class FloorFinishPainter : MonoBehaviour
 {
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
-{
     [Header("References")]
     [SerializeField] private Camera mainCamera;
     [SerializeField] private GridManager gridManager;

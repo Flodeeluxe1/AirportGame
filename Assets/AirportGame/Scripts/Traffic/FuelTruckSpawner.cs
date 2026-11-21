@@ -8,7 +8,6 @@ public class FuelTruckSpawner : MonoBehaviour
 {
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
-{
     [Header("References")]
     [SerializeField] private GameObject fuelTruckPrefab;
     [SerializeField] private Transform spawnPoint;

@@ -6,7 +6,6 @@ public class IncomingCargoCollectionSpawner : MonoBehaviour
 {
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
-{
     private const long RetryIntervalGameSeconds = 1L;
 
     private GameObject cargoTruckPrefab;

@@ -6,7 +6,6 @@ public class AirportPassengerRevenueManager : MonoBehaviour
 {
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
-{
     public static AirportPassengerRevenueManager Instance { get; private set; }
 
     [Header("Passenger Pricing")]

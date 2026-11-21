@@ -8,7 +8,6 @@ public class AirportCargoOutgoingBaggageJob : MonoBehaviour
 {
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
-{
     private enum JobState
     {
         Idle,

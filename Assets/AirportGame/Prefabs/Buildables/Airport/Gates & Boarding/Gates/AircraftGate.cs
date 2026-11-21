@@ -13,7 +13,6 @@ public class AircraftGate : MonoBehaviour
 {
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
-{
     [Header("Gate")]
     [SerializeField]
     private AircraftGateSize gateSize =

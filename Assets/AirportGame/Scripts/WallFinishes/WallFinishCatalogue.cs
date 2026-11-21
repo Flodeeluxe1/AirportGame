@@ -9,7 +9,6 @@ public class WallFinishCatalogue : ScriptableObject
 {
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
-{
     [SerializeField] private WallFinishDefinition[] finishes;
 
     [Header("Shared Wall Rendering")]

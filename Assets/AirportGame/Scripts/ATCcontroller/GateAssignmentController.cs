@@ -6,7 +6,6 @@ public class GateAssignmentController : MonoBehaviour
 {
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
-{
     public static GateAssignmentController Instance { get; private set; }
 
     [Header("References")]

@@ -6,7 +6,6 @@ public class RoadModuleRuleManager : MonoBehaviour
 {
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
-{
     [Header("References")]
     [SerializeField] private GridManager gridManager;
     [SerializeField] private RoadNetwork roadNetwork;

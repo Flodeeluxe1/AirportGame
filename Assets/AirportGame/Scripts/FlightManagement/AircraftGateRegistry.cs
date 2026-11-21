@@ -6,7 +6,6 @@ public class AircraftGateRegistry : MonoBehaviour
 {
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
-{
     private readonly List<AircraftGate> gates =
         new List<AircraftGate>();
 

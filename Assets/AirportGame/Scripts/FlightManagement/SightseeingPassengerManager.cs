@@ -12,7 +12,6 @@ public class SightseeingPassengerManager : MonoBehaviour
 {
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
-{
     private const string DeskDefinitionId = "airport.sightseeing.ticketdesk";
 
     [Header("Prefabs")]

@@ -12,7 +12,6 @@ public sealed class PipelineNetworkManager : MonoBehaviour
 {
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
-{
     public sealed class PipelineNetwork
     {
         public IReadOnlyCollection<Vector2Int> PipeCells => pipeCells;

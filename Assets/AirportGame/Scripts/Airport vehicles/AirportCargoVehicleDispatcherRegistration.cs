@@ -6,7 +6,6 @@ public class AirportCargoVehicleDispatcherRegistration : MonoBehaviour
 {
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
-{
 
     public bool HasActiveAssignment => waitingForPickupArrival;
     private AirportCargoVehicleController vehicle;

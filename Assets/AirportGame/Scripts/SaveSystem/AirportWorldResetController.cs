@@ -5,7 +5,6 @@ public class AirportWorldResetController : MonoBehaviour
 {
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
-{
     [Header("Building and Grid")]
     [SerializeField] private BuildController buildController;
     [SerializeField] private BuildCatalog buildCatalog;

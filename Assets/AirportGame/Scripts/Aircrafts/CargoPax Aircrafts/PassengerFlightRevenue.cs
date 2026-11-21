@@ -4,7 +4,6 @@ public class PassengerFlightRevenue : MonoBehaviour
 {
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
-{
     [Header("Passenger Capacity")]
     [Tooltip("Maximum number of seats available on this aircraft.")]
     [SerializeField, Min(1)]

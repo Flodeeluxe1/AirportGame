@@ -6,7 +6,6 @@ public class AirportCameraController : MonoBehaviour
 {
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
-{
     [Header("References")]
     [SerializeField] private Camera controlledCamera;
 

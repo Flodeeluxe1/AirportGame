@@ -5,7 +5,6 @@ public class RunwayNetworkRegistration : MonoBehaviour
 {
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
-{
     private TaxiwayNetwork taxiwayNetwork;
     private GridSurface gridSurface;
     private PlacedBuilding placedBuilding;

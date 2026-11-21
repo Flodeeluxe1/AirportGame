@@ -10,7 +10,6 @@ public class SightseeingFlightEconomy : MonoBehaviour
 {
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
-{
     public static SightseeingFlightEconomy Instance { get; private set; }
 
     [Header("Ticket Pricing")]

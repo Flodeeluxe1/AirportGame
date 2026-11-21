@@ -2,8 +2,9 @@ using UnityEngine;
 
 public class AircraftCargoPaxLandingController : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
 
-{
     private enum LandingState
     {
         Initializing,

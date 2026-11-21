@@ -5,7 +5,6 @@ public class AircraftCargoPaxGateExitController : MonoBehaviour
 {
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
-{
     public enum GateExitState
     {
         WaitingForTurnaround,

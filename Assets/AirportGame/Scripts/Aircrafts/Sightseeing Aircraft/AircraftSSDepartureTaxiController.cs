@@ -13,8 +13,9 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class AircraftSSDepartureTaxiController : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
 
-{
     public enum DepartureState
     {
         WaitingForBoarding,

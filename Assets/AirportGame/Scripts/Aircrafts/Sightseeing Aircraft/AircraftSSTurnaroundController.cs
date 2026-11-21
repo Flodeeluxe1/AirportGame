@@ -8,8 +8,9 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class AircraftSSTurnaroundController : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
 
-{
     public enum TurnaroundState
     {
         WaitingForParking,

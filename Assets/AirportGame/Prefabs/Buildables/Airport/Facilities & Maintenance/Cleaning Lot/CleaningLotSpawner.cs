@@ -5,7 +5,6 @@ public class CleaningLotSpawner : MonoBehaviour
 {
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
-{
     [Header("Prefab")]
     [SerializeField] private GameObject cleaningVehiclePrefab;
 

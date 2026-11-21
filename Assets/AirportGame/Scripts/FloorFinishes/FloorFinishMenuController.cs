@@ -5,7 +5,6 @@ public class FloorFinishMenuController : MonoBehaviour
 {
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
-{
     [Header("References")]
     [SerializeField] private UIDocument uiDocument;
     [SerializeField] private FloorFinishCatalogue catalogue;

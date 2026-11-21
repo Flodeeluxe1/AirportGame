@@ -22,7 +22,6 @@ public class AirportManagementController : MonoBehaviour
 {
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
-{
     public static AirportManagementController Instance { get; private set; }
 
     [Serializable]

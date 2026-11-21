@@ -5,7 +5,6 @@ public class EdgeOccupancy : MonoBehaviour
 {
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
-{
     public event System.Action OccupancyChanged;
 
     private readonly Dictionary<GridEdge, GameObject> occupiedEdges =

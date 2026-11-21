@@ -10,7 +10,6 @@ public class AirportRatingManager : MonoBehaviour
 {
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
-{
     private const int MaximumVisitorsPerFrame = 250;
     private static AirportRatingManager instance;
 

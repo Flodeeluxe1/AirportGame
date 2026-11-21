@@ -6,7 +6,6 @@ public class TaxiwayPathfinder : MonoBehaviour
 {
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
-{
     [Header("References")]
     [SerializeField] private TaxiwayNetwork taxiwayNetwork;
 

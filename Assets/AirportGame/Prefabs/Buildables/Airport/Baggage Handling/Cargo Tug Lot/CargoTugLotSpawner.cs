@@ -5,8 +5,9 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class CargoTugLotSpawner : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
 
-{
     [Header("Prefabs")]
     [Tooltip("The cargo tug prefab, including GuidedCargoTrailerFollower.")]
     [SerializeField] private GameObject cargoTugPrefab;

@@ -4,8 +4,9 @@ using UnityEngine;
 
 public class AircraftCargoPaxLandingTaxiController : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
 
-{
     [Header("References")]
     [SerializeField] private AircraftCargoPaxLandingController landingController;
     [SerializeField] private AircraftFlightIdentity flightIdentity;

@@ -9,8 +9,9 @@ using UnityEngine;
 [RequireComponent(typeof(AirportGroundVehicleMovement))]
 public class AirportFuelTruckController : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
 
-{
     private enum TruckState
     {
         Idle,

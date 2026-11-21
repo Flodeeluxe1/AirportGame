@@ -5,7 +5,6 @@ public class AircraftHobbyTakeoffController : MonoBehaviour
 {
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
-{
     public enum TakeoffState
     {
         WaitingForLineUp,

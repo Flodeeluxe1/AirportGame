@@ -7,7 +7,6 @@ public class CargoZone : MonoBehaviour
 {
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
-{
     private static readonly HashSet<CargoZone> registeredZones =
         new HashSet<CargoZone>();
 

@@ -11,7 +11,6 @@ public class HobbyAircraftParkingSpot : MonoBehaviour
 {
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
-{
     public static event Action ParkingStatusChanged;
 
     [Header("Parking Position")]

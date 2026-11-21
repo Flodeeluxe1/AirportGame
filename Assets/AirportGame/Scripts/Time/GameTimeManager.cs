@@ -6,7 +6,6 @@ public class GameTimeManager : MonoBehaviour
 {
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
-{
     private const double SecondsPerDay = 86400.0;
 
     [Header("Initial Game Time")]

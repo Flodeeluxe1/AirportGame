@@ -16,7 +16,6 @@ public class SightseeingAircraftSpawner : MonoBehaviour
 {
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
-{
     private enum SpawnAttemptResult
     {
         Spawned,

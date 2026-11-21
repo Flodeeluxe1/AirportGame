@@ -6,7 +6,6 @@ public class TaxiwayNetwork : MonoBehaviour
 {
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
-{
     private class TaxiwayCell
     {
         public Vector2Int Position;

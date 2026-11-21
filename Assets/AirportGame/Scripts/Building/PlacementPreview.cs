@@ -5,7 +5,6 @@ public class PlacementPreview : MonoBehaviour
 {
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
-{
     [Header("Preview Colors")]
     [SerializeField]
     private Color validColor =

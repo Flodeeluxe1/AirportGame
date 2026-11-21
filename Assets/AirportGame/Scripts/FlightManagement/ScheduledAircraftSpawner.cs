@@ -8,7 +8,6 @@ public class ScheduledAircraftSpawner : MonoBehaviour
 {
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
-{
     [Header("References")]
     [SerializeField] private GameObject aircraftPrefab;
     [SerializeField] private GameObject passengerAircraftPrefab;

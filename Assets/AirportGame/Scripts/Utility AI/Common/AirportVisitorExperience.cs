@@ -11,7 +11,6 @@ public class AirportVisitorExperience : MonoBehaviour
 {
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
-{
     private static readonly UtilityNeeds.NeedType[] NeedTypes =
         (UtilityNeeds.NeedType[])System.Enum.GetValues(typeof(UtilityNeeds.NeedType));
 

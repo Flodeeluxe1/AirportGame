@@ -6,7 +6,6 @@ public class GateReadyForTaxiTestSpawner : MonoBehaviour
 {
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
-{
     [Header("Aircraft")]
     [SerializeField]
     private GameObject aircraftPrefab;

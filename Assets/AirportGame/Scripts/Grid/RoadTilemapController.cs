@@ -5,7 +5,6 @@ public class RoadTilemapController : MonoBehaviour
 {
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
-{
     [Header("References")]
     [SerializeField] private Tilemap roadTilemap;
 

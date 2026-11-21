@@ -6,7 +6,6 @@ public class FloorFinishRenderer : MonoBehaviour
 {
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
-{
     [Header("References")]
     [SerializeField] private GridManager gridManager;
     [SerializeField] private GridSurface gridSurface;

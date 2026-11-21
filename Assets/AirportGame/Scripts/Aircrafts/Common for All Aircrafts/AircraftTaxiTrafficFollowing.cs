@@ -5,7 +5,6 @@ public class AircraftTaxiTrafficFollowing : MonoBehaviour
 {
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
-{
     private static readonly List<AircraftTaxiTrafficFollowing> activeAircraft =
         new List<AircraftTaxiTrafficFollowing>();
 

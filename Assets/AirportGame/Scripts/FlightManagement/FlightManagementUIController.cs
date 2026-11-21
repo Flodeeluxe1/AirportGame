@@ -10,7 +10,6 @@ public class FlightManagementUIController : MonoBehaviour
 {
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
-{
     public static event Action AirportScheduleChanged;
     [Header("References")]
     [SerializeField] private UIDocument uiDocument;

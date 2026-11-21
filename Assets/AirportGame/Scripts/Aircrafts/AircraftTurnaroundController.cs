@@ -14,7 +14,6 @@ public class AircraftTurnaroundController : MonoBehaviour
 {
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
-{
     private interface ITaskProgress
     {
         float DurationMinutes { get; }
