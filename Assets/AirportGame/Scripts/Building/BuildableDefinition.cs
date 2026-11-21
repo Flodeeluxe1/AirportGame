@@ -76,7 +76,9 @@ public class BuildableDefinition : ScriptableObject
         // (or the definition explicitly selects All).
         if (surface == BuildSurface.Road &&
             allowedSurfaces != BuildSurfaceOptions.All &&
-            (allowedSurfaces & BuildSurfaceOptions.Road) == 0)
+            (allowedSurfaces & BuildSurfaceOptions.Road) == 0 &&
+            !(allowedSurfaces == BuildSurfaceOptions.None &&
+              requiredSurface == BuildSurface.Road))
         {
             return false;
         }
