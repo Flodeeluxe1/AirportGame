@@ -42,7 +42,6 @@ GameObject:
   - component: {fileID: 965483202004288150}
   - component: {fileID: 5836870956885251310}
   - component: {fileID: -8292466491534414172}
-  - component: {fileID: 7246319820456712390}
   m_Layer: 0
   m_Name: Toilet
   m_TagString: Untagged
@@ -166,17 +165,3 @@ Transform:
   m_CorrespondingSourceObject: {fileID: -8127066762358778823, guid: 5321e7b5209247349a23a8ba3cb53229, type: 3}
   m_PrefabInstance: {fileID: 8843043461022885386}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &7246319820456712390
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6433370530536976996}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b7e3a1c95d2f4b6a8c0e1f3d5a7b9c24, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ToiletHygieneEffect
-  interactionId: use_toilet
-  hygieneReduction: 20
