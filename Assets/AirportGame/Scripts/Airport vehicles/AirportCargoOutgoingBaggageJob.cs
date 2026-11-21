@@ -651,30 +651,41 @@ private void CollectAndReservePackages()
 
     private void FinishAircraftLoadingSequence()
     {
-        if (aircraft == null)
+        if (aircraft == null || manifest == null)
         {
-            AbortJob("Aircraft reference was lost before loading completed.");
+            AbortJob(
+                "Aircraft or manifest reference was lost before loading completed."
+            );
             return;
         }
 
-        if (!aircraft.CompleteOutgoingBaggageTransfer())
+        // A tug may only carry part of the flight's outgoing baggage.
+        // Completing this trip releases the tug for another collection run;
+        // the aircraft loading task completes only after the final bag.
+        bool allOutgoingBaggageLoaded =
+            !manifest.HasOutgoingBaggageRemaining;
+
+        if (allOutgoingBaggageLoaded &&
+            !aircraft.CompleteOutgoingBaggageTransfer())
         {
             AbortJob(
-                "The aircraft could not complete baggage loading. " +
-                "Some outgoing baggage may remain in the manifest."
+                "The aircraft could not complete baggage loading after " +
+                "the final outgoing package was transferred."
             );
 
             return;
         }
 
         Log(
-            $"{name}: Outgoing baggage job completed for " +
-            $"{currentOperationId}. Loaded: {loadedPackageCount}. " +
+            $"{name}: Outgoing baggage trip completed for " +
+            $"{currentOperationId}. Loaded this trip: {loadedPackageCount}. " +
             $"Remaining manifest load: {manifest.RemainingOutgoingBaggage}.",
             this
         );
 
-        jobStatus = "Completed";
+        jobStatus = allOutgoingBaggageLoaded
+            ? "Completed"
+            : "Trip completed - more baggage remains";
 
         string completedOperationId = currentOperationId;
 
