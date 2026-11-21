@@ -10,6 +10,9 @@ using UnityEngine;
 /// </summary>
 public class PedestrianPathfinder : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+
     [Header("Grid References")]
     [SerializeField] private GridManager gridManager;
     [SerializeField] private GridSurface gridSurface;
@@ -396,7 +399,7 @@ public class PedestrianPathfinder : MonoBehaviour
 
             if (logFailure)
             {
-                Debug.LogWarning(
+                LogWarning(
                     $"PedestrianPathfinder: No interaction approach route. " +
                     $"Start={startWorld} cell={startCell} startWalkable={IsWalkable(startCell)}; " +
                     $"Preferred={preferredWorld} cell={gridManager.WorldToGrid(preferredWorld)}; " +
@@ -1016,4 +1019,21 @@ public class PedestrianPathfinder : MonoBehaviour
 
         return a.Order < b.Order;
     }
+
+    private void Log(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.Log(message, context); else Debug.Log(message);
+    }
+    private void LogWarning(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message);
+    }
+    private void LogError(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.LogError(message, context); else Debug.LogError(message);
+    }
+
 }
