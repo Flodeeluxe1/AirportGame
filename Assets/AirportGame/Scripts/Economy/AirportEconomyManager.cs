@@ -22,6 +22,9 @@ public enum AirportFinancialCategory
 [Serializable]
 public class AirportFinancialTransaction
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+
     public int amount;
     public bool isIncome;
     public AirportFinancialCategory category;
@@ -74,7 +77,7 @@ public class AirportEconomyManager : MonoBehaviour
         transactions.Clear();
         SetBalance(startingBalance);
 
-        Debug.Log(
+        Log(
             $"AirportEconomyManager: New airport funded with {FormatMoney(balance)}.");
     }
 
@@ -90,13 +93,13 @@ public class AirportEconomyManager : MonoBehaviour
     {
         if (amount <= 0)
         {
-            Debug.LogWarning("AirportEconomyManager: Spending amount must be positive.");
+            LogWarning("AirportEconomyManager: Spending amount must be positive.");
             return false;
         }
 
         if (balance < amount)
         {
-            Debug.Log(
+            Log(
                 $"AirportEconomyManager: Cannot afford {FormatMoney(amount)} for '{reason}'. " +
                 $"Current balance: {FormatMoney(balance)}.");
             return false;
@@ -119,14 +122,14 @@ public class AirportEconomyManager : MonoBehaviour
     {
         if (amount <= 0)
         {
-            Debug.LogWarning("AirportEconomyManager: Revenue amount must be positive.");
+            LogWarning("AirportEconomyManager: Revenue amount must be positive.");
             return false;
         }
 
         long newBalance = (long)balance + amount;
         if (newBalance > int.MaxValue)
         {
-            Debug.LogWarning(
+            LogWarning(
                 "AirportEconomyManager: Revenue would exceed the maximum supported balance.");
             return false;
         }
@@ -134,7 +137,7 @@ public class AirportEconomyManager : MonoBehaviour
         SetBalance((int)newBalance);
         RecordTransaction(amount, true, category, reason);
 
-        Debug.Log(
+        Log(
             $"AirportEconomyManager: Earned {FormatMoney(amount)} from '{reason}'. " +
             $"New balance: {FormatMoney(balance)}.");
         return true;
@@ -177,13 +180,13 @@ public class AirportEconomyManager : MonoBehaviour
     {
         if (savedBalance < 0)
         {
-            Debug.LogWarning(
+            LogWarning(
                 "AirportEconomyManager: Saved balance was negative. Restoring with a balance of $0.");
             savedBalance = 0;
         }
 
         SetBalance(savedBalance);
-        Debug.Log(
+        Log(
             $"AirportEconomyManager: Restored airport balance: {FormatMoney(balance)}.");
     }
 
@@ -231,4 +234,21 @@ public class AirportEconomyManager : MonoBehaviour
     {
         return "$" + amount.ToString("N0");
     }
+
+    private void Log(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.Log(message, context); else Debug.Log(message);
+    }
+    private void LogWarning(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message);
+    }
+    private void LogError(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.LogError(message, context); else Debug.LogError(message);
+    }
+
 }
