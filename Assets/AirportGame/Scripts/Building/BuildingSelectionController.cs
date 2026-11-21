@@ -1031,8 +1031,20 @@ public class BuildingSelectionController : MonoBehaviour
 
     private void DeleteRoadCell(Vector2Int cell)
     {
+        Vector2Int roadAnchor = roadNetwork != null
+            ? roadNetwork.GetRoadAnchor(cell)
+            : cell;
+
         if (roadNetwork != null)
-            roadNetwork.RemoveRoad(cell);
+            roadNetwork.RemoveRoad(roadAnchor);
+
+        if (gridSurface != null)
+        {
+            gridSurface.UnregisterRoadArea(
+                roadAnchor,
+                RoadNetwork.RoadModuleSize,
+                RoadNetwork.RoadModuleSize);
+        }
 
         // Clean up any legacy tile at this position, if one remains.
         if (roadTilemapController != null)
