@@ -12,7 +12,8 @@ public class InteractionDefinition : ScriptableObject
     public class NeedEffect
     {
         public UtilityNeeds.NeedType need;
-        [Tooltip("Positive values improve the need; negative values reduce it.")]
+        [Min(-100f)]
+        [Tooltip("Signed change: positive values improve the need; negative values reduce it.")]
         public float satisfactionAmount = 25f;
         [Range(0f, 100f)]
         [Tooltip("The interaction is only considered while this need is below the threshold.")]
@@ -70,6 +71,7 @@ public class InteractionDefinition : ScriptableObject
         {
             if (effect != null)
             {
+                effect.satisfactionAmount = Mathf.Clamp(effect.satisfactionAmount, -100f, 100f);
                 effect.maximumNeedValueToConsider =
                     Mathf.Clamp(effect.maximumNeedValueToConsider, 0f, 100f);
             }
