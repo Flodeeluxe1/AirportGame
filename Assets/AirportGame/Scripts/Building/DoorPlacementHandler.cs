@@ -205,7 +205,7 @@ public class DoorPlacementHandler : IPlacementHandler
             return;
 
         Vector3 position = gridManager.GridToWorld(firstEdge.cell);
-        position.y = 0f;
+        float floorY = position.y;
 
         float halfLengthOffset =
             (Mathf.Max(1, definition.edgeLength) - 1) *
@@ -218,7 +218,6 @@ public class DoorPlacementHandler : IPlacementHandler
                 0f,
                 0f);
 
-            target.transform.position = position;
             target.transform.rotation = Quaternion.identity;
         }
         else
@@ -228,10 +227,43 @@ public class DoorPlacementHandler : IPlacementHandler
                 0f,
                 gridManager.CellSize * 0.5f + halfLengthOffset);
 
-            target.transform.position = position;
             target.transform.rotation =
                 Quaternion.Euler(0f, 90f, 0f);
         }
+
+        // First place the root at floor height, then measure the actual
+        // collider/visual bottom relative to that root position.
+        target.transform.position = position;
+
+        float bottomY = GetDoorBottomY(target);
+        if (!float.IsNaN(bottomY))
+        {
+            position.y += floorY - bottomY;
+            target.transform.position = position;
+        }
+
+    }
+
+    private float GetDoorBottomY(GameObject target)
+    {
+        BoxCollider rootCollider = target.GetComponent<BoxCollider>();
+
+        if (rootCollider != null)
+            return rootCollider.bounds.min.y;
+
+        Renderer[] renderers =
+            target.GetComponentsInChildren<Renderer>(true);
+
+        if (renderers.Length == 0)
+            return float.NaN;
+
+        float bottomY = renderers[0].bounds.min.y;
+
+        for (int i = 1; i < renderers.Length; i++)
+            bottomY = Mathf.Min(bottomY, renderers[i].bounds.min.y);
+
+        return bottomY;
+    }
     }
 
     private bool AreAllPreviewEdgesValid()
