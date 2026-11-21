@@ -237,6 +237,11 @@ public class DoorPlacementHandler : IPlacementHandler
 
     private float GetPrefabHeight(GameObject target)
     {
+        BoxCollider rootCollider = target.GetComponent<BoxCollider>();
+
+        if (rootCollider != null)
+            return rootCollider.bounds.size.y;
+
         Renderer[] renderers =
             target.GetComponentsInChildren<Renderer>(true);
 
