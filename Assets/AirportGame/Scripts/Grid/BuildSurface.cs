@@ -7,5 +7,6 @@ public enum BuildSurface
     Taxiway,
     Runway,
     Any,
-    PedestrianTarmac
+    PedestrianTarmac,
+    Road
 }
