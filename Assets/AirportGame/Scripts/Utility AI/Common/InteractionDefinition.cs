@@ -44,6 +44,9 @@ public class InteractionDefinition : ScriptableObject
     [Header("Need Effects")]
     [SerializeField] private List<NeedEffect> needEffects = new List<NeedEffect>();
 
+    [Header("Reusable Need Effects")]
+    [SerializeField] private List<NeedEffectDefinition> reusableNeedEffects = new List<NeedEffectDefinition>();
+
     [Header("Need Conflicts")]
     [SerializeField] private List<NeedConflict> needConflicts = new List<NeedConflict>();
 
@@ -54,6 +57,7 @@ public class InteractionDefinition : ScriptableObject
     public int MaxConcurrentUsers => Mathf.Max(1, maxConcurrentUsers);
     public float InteractionRange => Mathf.Max(0f, interactionRange);
     public IReadOnlyList<NeedEffect> NeedEffects => needEffects;
+    public IReadOnlyList<NeedEffectDefinition> ReusableNeedEffects => reusableNeedEffects;
     public IReadOnlyList<NeedConflict> NeedConflicts => needConflicts;
 
     private void OnValidate()
@@ -74,6 +78,9 @@ public class InteractionDefinition : ScriptableObject
                     Mathf.Clamp(effect.maximumNeedValueToConsider, 0f, 100f);
             }
         }
+
+        if (reusableNeedEffects == null)
+            reusableNeedEffects = new List<NeedEffectDefinition>();
 
         if (needConflicts == null)
             needConflicts = new List<NeedConflict>();
