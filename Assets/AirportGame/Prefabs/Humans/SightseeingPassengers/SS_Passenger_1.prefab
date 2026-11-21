@@ -146,6 +146,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a3c7e91f4b2d4680a5f6c9e1d3b7a824, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PedestrianMovementController
+  logToConsole: 0
   pathfinder: {fileID: 0}
   movementSpeed: 1.5
   individualSpeedMultiplierRange: {x: 0.9, y: 1.1}
@@ -183,6 +184,8 @@ MonoBehaviour:
     entertainment: 1
     comfort: 1
     boredom: 1
+    departureUrgency: 1
+    hygiene: 1
   randomizeInitialNeeds: 1
   initialNeedRanges:
     thirstMin: 70
@@ -201,6 +204,8 @@ MonoBehaviour:
     comfortMax: 100
     boredomMin: 70
     boredomMax: 100
+    hygieneMin: 70
+    hygieneMax: 100
   initialNeedValue: 100
   decayRates:
     thirst: 0.25
@@ -211,6 +216,7 @@ MonoBehaviour:
     entertainment: 0.08
     comfort: 0.05
     boredom: 0.05
+    hygiene: 0.05
   comfortDecayMultiplierAtZeroEnvironment: 2
   comfortDecayMultiplierAtFullEnvironment: 0
   urgencyCurves:
@@ -622,6 +628,108 @@ MonoBehaviour:
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
+    departureUrgency:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0
+        inSlope: 0.2
+        outSlope: 0.2
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 0.25
+        value: 0.05
+        inSlope: 0.4
+        outSlope: 0.4
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 0.5
+        value: 0.2
+        inSlope: 1
+        outSlope: 1
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 0.75
+        value: 0.55
+        inSlope: 1.6
+        outSlope: 1.6
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 1
+        value: 1
+        inSlope: 1.8
+        outSlope: 1.8
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    hygiene:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0
+        inSlope: 0.2
+        outSlope: 0.2
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 0.25
+        value: 0.05
+        inSlope: 0.44
+        outSlope: 0.44
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 0.5
+        value: 0.22
+        inSlope: 1.06
+        outSlope: 1.06
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 0.75
+        value: 0.58
+        inSlope: 1.56
+        outSlope: 1.56
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 1
+        value: 1
+        inSlope: 1.6800001
+        outSlope: 1.6800001
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
   utilityWeights:
     thirst: 1.4
     hunger: 0.9
@@ -631,6 +739,8 @@ MonoBehaviour:
     entertainment: 0.75
     comfort: 0.85
     boredom: 0.7
+    departureUrgency: 1.5
+    hygiene: 0.9
   thirst: 100
   hunger: 100
   bladder: 100
@@ -639,6 +749,8 @@ MonoBehaviour:
   entertainment: 100
   comfort: 100
   boredom: 100
+  departureUrgency: 100
+  hygiene: 100
 --- !u!114 &7391915496937533256
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -687,6 +799,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c82e5d9f3b704a61a6d8f2e9c3b71502, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AirportVisitorExperience
+  logToConsole: 1
   currentNeedSatisfaction: 50
   currentEnvironmentExperience: 50
   recordedVisitGameMinutes: 0

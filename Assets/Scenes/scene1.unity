@@ -148,6 +148,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bc1557b8cbf230f40addad3c838f2b31, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AirportBaggageDispatcher
+  logToConsole: 0
   queuedRequestCount: 0
   activeRequestCount: 0
   dispatcherStatus: Initializing
@@ -197,6 +198,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0e72c21431b32b145b1aed810d2cd8dc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BuildController
+  logToConsole: 0
   mainCamera: {fileID: 330585545}
   gridManager: {fileID: 728659359}
   gridOccupancy: {fileID: 751787734}
@@ -237,6 +239,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a04d353d9ee024f499284411758285e0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BuildingSelectionController
+  logToConsole: 0
   mainCamera: {fileID: 330585545}
   gridManager: {fileID: 728659359}
   gridOccupancy: {fileID: 751787734}
@@ -270,6 +273,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bd5e1d6471bb6544d8e6a68e15c388dd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CellBuildingMoveController
+  logToConsole: 0
   mainCamera: {fileID: 330585545}
   gridManager: {fileID: 728659359}
   gridOccupancy: {fileID: 751787734}
@@ -359,6 +363,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a1390c25e297e1c42a27af34ec3fae65, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SightseeingFlightEconomy
+  logToConsole: 0
   ticketPrice: 100
   referenceDemand: 4
   demandVariation: 0.25
@@ -561,6 +566,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9e8ec3679af9e2544bbd143d0364f672, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AircraftGateRegistry
+  logToConsole: 0
 --- !u!1 &401526680
 GameObject:
   m_ObjectHideFlags: 0
@@ -606,6 +612,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9878692e7ac5575458b60dcb4ff2b5d8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RoadNetwork
+  logToConsole: 0
 --- !u!114 &401526683
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -618,6 +625,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1de9cbbbd3076744f9002aa4f4726c29, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RoadTilemapController
+  logToConsole: 0
   roadTilemap: {fileID: 788607068}
   roadTile: {fileID: 11400000, guid: b3692791c0c36fe4ebc0f069d77861da, type: 2}
 --- !u!1 &403195573
@@ -664,6 +672,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b71d4c8e2a6f4930a5c7e1d8f2b60491, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AirportRatingManager
+  logToConsole: 0
   visitorSatisfactionWeight: 0.75
   environmentWeight: 0.25
   ratingSmoothingTimeSeconds: 30
@@ -741,6 +750,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 12a76f44375d3664195a68274ef301a1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TaxiwayNetwork
+  logToConsole: 0
 --- !u!114 &405670569
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -753,6 +763,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 49febf7cb73e9e642a18f3c5211ac12f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TaxiwayPathfinder
+  logToConsole: 0
   taxiwayNetwork: {fileID: 0}
   offCenterlineCost: 3
   debugStart: {x: 0, y: 0}
@@ -915,6 +926,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f132bad5ca9fd34eaf075fc7a1704ec, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameTimeManager
+  logToConsole: 0
   startHour: 8
   startMinute: 0
   startSecond: 0
@@ -979,6 +991,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 38650e2bbb802554fa054413281f7a12, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SaveLoadMenuController
+  logToConsole: 0
   uiDocument: {fileID: 762824360}
   airportWorldResetController: {fileID: 1332688658}
   numberOfSlots: 10
@@ -1016,6 +1029,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 220f5eec9e8e20449a4671e8232f6015, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SightseeingAircraftSpawner
+  logToConsole: 0
   sightseeingAircraftPrefab: {fileID: 753756043139321930, guid: 73bbd05b27119c540aea09ff477ca1cb, type: 3}
   spawnPoint: {fileID: 549940485}
   gameTimeManager: {fileID: 449210932}
@@ -1134,6 +1148,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6e9a7c2f4d1b48a5a3e7c9d2f1b60485, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SightseeingPassengerManager
+  logToConsole: 0
   passengerPrefab: {fileID: 7225608004980206237, guid: 5f6c3da8c2867f44aab7979bbc9a2435, type: 3}
   passengerCarPrefab: {fileID: 2154428240389558112, guid: 9150906fb3da9b049807bba55795f99b, type: 3}
   checkInInteraction: {fileID: 11400000, guid: 8a6b3d1f5c2e49a7b4d0e8f1c3a62579, type: 2}
@@ -1198,6 +1213,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a3c8e5f106d947b2c7f3e0a9d5b12843, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FloorFinishRenderer
+  logToConsole: 0
   gridManager: {fileID: 0}
   gridSurface: {fileID: 0}
   edgeOccupancy: {fileID: 0}
@@ -1216,6 +1232,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b4d9f60117ea48c3d8a4f1b0e6c23954, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FloorFinishPainter
+  logToConsole: 0
   mainCamera: {fileID: 0}
   gridManager: {fileID: 0}
   gridSurface: {fileID: 0}
@@ -1234,6 +1251,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c2f84a9b7d3146e0a5c8f1b2d3e4a507, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::WallFinishPainter
+  logToConsole: 0
   mainCamera: {fileID: 0}
   gridManager: {fileID: 0}
   wallFinishRenderer: {fileID: 0}
@@ -1251,6 +1269,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c2f84a9b7d3146e0a5c8f1b2d3e4a506, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::WallFinishRenderer
+  logToConsole: 0
   catalogue: {fileID: 11400000, guid: 49bd0928823c6994c83f15b59a0cf454, type: 2}
   gridSurface: {fileID: 0}
 --- !u!1001 &598322431
@@ -1530,6 +1549,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: db1953bef9d08ac438271ccb02e4f8bd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GridSurface
+  logToConsole: 0
   gridManager: {fileID: 728659359}
 --- !u!114 &728659361
 MonoBehaviour:
@@ -1543,6 +1563,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b9dbd637c81059444bea557c1362d30a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FoundationSystem
+  logToConsole: 0
   gridManager: {fileID: 728659359}
   gridSurface: {fileID: 728659360}
   foundationTilePrefab: {fileID: 0}
@@ -1580,6 +1601,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: be9dd65d715c42d4c8a8870bee1a4388, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RoomDetectionController
+  logToConsole: 0
   gridManager: {fileID: 728659359}
   gridSurface: {fileID: 728659360}
   edgeOccupancy: {fileID: 751787733}
@@ -1713,6 +1735,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 39be8f54f3c00474da26e2ff6f958601, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RoadNetworkTester
+  logToConsole: 0
   roadNetwork: {fileID: 401526682}
   startCell: {x: 0, y: 0}
   targetCell: {x: 0, y: 0}
@@ -1775,6 +1798,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0cb38dc4818c360498cff4f875ac4bc7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PerformanceMonitoringManager
+  logToConsole: 0
   sampleInterval: 1
   frameSpikeThresholdMs: 350
   startVisible: 1
@@ -1827,6 +1851,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fd5ff78d94419164690fbe4d76d02ec6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EdgeOccupancy
+  logToConsole: 0
 --- !u!114 &751787734
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2214,6 +2239,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cc4d124fd0bc56149ac114a56d7bbcf4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GateAssignmentController
+  logToConsole: 0
   gateRegistry: {fileID: 0}
   gridManager: {fileID: 0}
   taxiwayNetwork: {fileID: 0}
@@ -2423,6 +2449,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e498e72d79b16f04993422ecf82e1774, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AircraftTestSpawner
+  logToConsole: 0
   aircraftPrefab: {fileID: 2387620211239937619, guid: c1be6962e7b8a7b4492d64878a85de86, type: 3}
   gridManager: {fileID: 728659359}
   spawnInterval: 3
@@ -2653,6 +2680,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ec5ca510eb29e2748a5cc6270b8d599f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ScheduledAircraftSpawner
+  logToConsole: 0
   aircraftPrefab: {fileID: 2387620211239937619, guid: c1be6962e7b8a7b4492d64878a85de86, type: 3}
   passengerAircraftPrefab: {fileID: 3545578725970996442, guid: f37c4f3a3f5f80640bc40e596f3c8532, type: 3}
   spawnPoint: {fileID: 1023196800}
@@ -2818,6 +2846,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0263292f2fb28ca4a923b81e5c888bea, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AirportEconomyHUD
+  logToConsole: 0
   uiDocument: {fileID: 762824360}
   economyManager: {fileID: 1048131944}
   fontSize: 24
@@ -2835,6 +2864,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c16e24850c042844f85f429e8f4f69ec, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AirportPassengerRevenueManager
+  logToConsole: 0
   baseTicketPrice: 10
   airportFeePercent: 26
   departedPassengerFlights: 0
@@ -2939,6 +2969,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3c9f5a1d7e6248b0a6d2f4c8e1b73590, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::WasteCollectionManager
+  logToConsole: 0
   garbageCollectorSpawner: {fileID: 2134991062}
   fixedCollectionFeePerTrip: 25
   disposalFeePerUnit: 0.2
@@ -2976,6 +3007,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 51ac4e44dee0e9a44b04dceeec9b7e10, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AirportWorldResetController
+  logToConsole: 0
   buildController: {fileID: 88094025}
   buildCatalog: {fileID: 11400000, guid: 14c95e23fb54bf747ac31137285880d0, type: 2}
   gridOccupancy: {fileID: 751787734}
@@ -3058,6 +3090,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c4a76e2f9b814e2ca16d5d8f7039b421, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AirportManagementController
+  logToConsole: 0
   roomPurposeController: {fileID: 1399790236}
   roomDetectionController: {fileID: 0}
   hasValidCEOOffice: 0
@@ -3119,6 +3152,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: efc8826e4de85fd44bb1becbff049193, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RoomPurposeController
+  logToConsole: 0
   mainCamera: {fileID: 0}
   gridManager: {fileID: 0}
   gridSurface: {fileID: 0}
@@ -3190,6 +3224,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0d98464154ccf2e458bed7b963bd6af6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PipelinePrefabRuleManager
+  logToConsole: 0
   gridManager: {fileID: 728659359}
   gridOccupancy: {fileID: 751787734}
   gridSurface: {fileID: 0}
@@ -3218,6 +3253,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e402540e3d2fc2a4dbe2f422ac654728, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PipelineNetworkManager
+  logToConsole: 0
   pipelineRuleManager: {fileID: 0}
   fuelTruckSpawner: {fileID: 0}
   automaticRefillThresholdPercent: 25
@@ -3382,6 +3418,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 619de980ac4224e4c9c0e942f75220ac, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AirportUIController
+  logToConsole: 0
   uiDocument: {fileID: 762824360}
   buildCatalog: {fileID: 11400000, guid: 14c95e23fb54bf747ac31137285880d0, type: 2}
   buildController: {fileID: 88094025}
@@ -3398,6 +3435,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b1799dbd152f10243b8a598bed094d0b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameTimeUIController
+  logToConsole: 0
   uiDocument: {fileID: 762824360}
   gameTimeManager: {fileID: 449210932}
 --- !u!114 &1478484325
@@ -3412,6 +3450,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f671d311ff058994997afe48833e7512, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FlightManagementUIController
+  logToConsole: 0
   uiDocument: {fileID: 762824360}
   flightCatalog: {fileID: 1712716984}
   gateRegistry: {fileID: 335832197}
@@ -3431,6 +3470,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b2fb4b72902fdd448930d83fe4bec6da, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FlightOperationsStatusPanel
+  logToConsole: 0
   uiDocument: {fileID: 762824360}
   gateRegistry: {fileID: 0}
   statusListHeight: 54
@@ -3446,6 +3486,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7e2908faef9091843857d0355481a0bc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameMenuUIController
+  logToConsole: 0
   uiDocument: {fileID: 762824360}
   gameTimeManager: {fileID: 449210932}
   onNewRequested:
@@ -3512,6 +3553,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b4be1c8c5a341bd4d8cfd1f9789bb5bb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RoomInfoPanelController
+  logToConsole: 0
   uiDocument: {fileID: 762824360}
   roomPurposeController: {fileID: 1399790236}
   gridManager: {fileID: 728659359}
@@ -3537,6 +3579,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f7fe911e66a361145870d71b5517541c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FlightScheduleBoardPanel
+  logToConsole: 0
   uiDocument: {fileID: 762824360}
   flightCatalog: {fileID: 1712716984}
   gateRegistry: {fileID: 335832197}
@@ -3554,6 +3597,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 49c4de175d119c74b99058c5faf1c045, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CargoTugLotShopUIController
+  logToConsole: 0
   uiDocument: {fileID: 762824360}
   mainCamera: {fileID: 0}
   buildController: {fileID: 0}
@@ -3577,6 +3621,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9a6f3b8e2d1c4f07a5b8e6d3c2f109ab, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FuelManagementUIController
+  logToConsole: 0
   uiDocument: {fileID: 762824360}
   pipelineNetworkManager: {fileID: 1428745612}
   fuelTruckSpawner: {fileID: 0}
@@ -3593,6 +3638,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7e6f1a9b3c2d4e5f8a0b1c6d9e2f7345, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FinanceManagementUIController
+  logToConsole: 0
   uiDocument: {fileID: 762824360}
   airportManagementController: {fileID: 1390174456}
 --- !u!114 &1478484333
@@ -3607,6 +3653,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3cf174899f7254d0a5e6237a9b4c81d2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FloorFinishMenuController
+  logToConsole: 0
   uiDocument: {fileID: 762824360}
   catalogue: {fileID: 11400000, guid: ea2804e6da8724b4380e6eb475a1100c, type: 2}
   painter: {fileID: 555229058}
@@ -3622,6 +3669,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c2f84a9b7d3146e0a5c8f1b2d3e4a508, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::WallFinishMenuController
+  logToConsole: 0
   uiDocument: {fileID: 762824360}
   catalogue: {fileID: 11400000, guid: 49bd0928823c6994c83f15b59a0cf454, type: 2}
   painter: {fileID: 555229059}
@@ -3638,6 +3686,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a9c72d14e6b84f309d5a1c7e2f6084b3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AirportRatingUI
+  logToConsole: 0
   uiDocument: {fileID: 762824360}
   ratingManager: {fileID: 403195575}
   fontSize: 24
@@ -3656,6 +3705,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7b9e2d4a6c1f4380a5d7e9b2c4f61830, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AirportFinancialReportsUI
+  logToConsole: 0
   uiDocument: {fileID: 762824360}
   economyHUD: {fileID: 1048131946}
   economyManager: {fileID: 1048131944}
@@ -3994,6 +4044,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 448db345fd2eeca43b9971288a06c79e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AirportCameraController
+  logToConsole: 0
   controlledCamera: {fileID: 330585545}
   minMoveSpeed: 5
   maxMoveSpeed: 250
@@ -4310,6 +4361,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 140d758f8ea17ee4db0a2ea1ee8c4e55, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TestFlightCatalog
+  logToConsole: 0
   testAirlineName: Test Airline
   randomSeed: 271828
 --- !u!4 &1712716985
@@ -4574,6 +4626,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 82f53cf8d5d1a234baacf5c345649de2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RoadModuleRuleManager
+  logToConsole: 0
   gridManager: {fileID: 728659359}
   roadNetwork: {fileID: 401526682}
   moduleParent: {fileID: 0}
@@ -4600,6 +4653,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 888f3d32f7c80d0428e7736d374bd65d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::IntersectionManager
+  logToConsole: 0
 --- !u!1 &1832935775
 GameObject:
   m_ObjectHideFlags: 0
@@ -4753,6 +4807,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5c30bcabd1d23684d9846c57a7424746, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FoundationTilemapController
+  logToConsole: 0
   gridManager: {fileID: 728659359}
   gridSurface: {fileID: 728659360}
   foundationTilemap: {fileID: 1832935778}
@@ -5300,7 +5355,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &2059796010
 Transform:
   m_ObjectHideFlags: 0
@@ -5328,6 +5383,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6761c6dde941eb843a4e03767420dd01, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ScheduledCargoDeliverySpawner
+  logToConsole: 1
   cargoTruckPrefab: {fileID: 7704799895376171895, guid: 739ed671cc5ea6c459769b72b223d80d, type: 3}
   spawnPoint: {fileID: 2134991058}
   exitPoint: {fileID: 1964681761}
@@ -5386,6 +5442,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 540d9b04bcbf9dc48bb2e62d7c095acc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TaxiwayPrefabRuleManager
+  logToConsole: 0
   gridManager: {fileID: 728659359}
   moduleParent: {fileID: 2112575486}
   straight5x5Prefab: {fileID: 1615233932406022375, guid: 8fe46e16172794c40a135be2676962af, type: 3}
@@ -5411,6 +5468,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2422db3ba476ac54ba1c38e9d152f70a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TaxiwayGraphDebugVisualizer
+  logToConsole: 0
   gridManager: {fileID: 728659359}
   taxiwayNetwork: {fileID: 405670568}
   showGraph: 1
@@ -5562,9 +5620,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TrafficTestSpawner
   logToConsole: 0
   trafficVehiclePrefab: {fileID: 2154428240389558112, guid: 9150906fb3da9b049807bba55795f99b, type: 3}
-  cargoTruckPrefab: {fileID: 7704799895376171895, guid: 739ed671cc5ea6c459769b72b223d80d, type: 3}
+  cargoTruckPrefab: {fileID: 2876963977285442096, guid: 072df177d23f8f644afaf21ba3679ff6, type: 3}
   gridManager: {fileID: 728659359}
-  gameTimeManager: {fileID: 0}
+  gameTimeManager: {fileID: 449210932}
   spawnMode: 2
   randomizeWhenBoth: 1
   spawnInterval: 3
@@ -5582,7 +5640,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6761c6dde941eb843a4e03767420dd01, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ScheduledCargoDeliverySpawner
-  cargoTruckPrefab: {fileID: 7704799895376171895, guid: 739ed671cc5ea6c459769b72b223d80d, type: 3}
+  logToConsole: 1
+  cargoTruckPrefab: {fileID: 2876963977285442096, guid: 072df177d23f8f644afaf21ba3679ff6, type: 3}
   spawnPoint: {fileID: 2134991058}
   exitPoint: {fileID: 1964681761}
   gridManager: {fileID: 728659359}
@@ -5592,9 +5651,9 @@ MonoBehaviour:
   minutesBeforeDeparture: 30
   spawnIntervalGameSeconds: 2
   spawnHeightOffset: 0.2
-  logScheduleChanges: 0
-  logTruckSpawns: 0
-  logQueueChanges: 0
+  logScheduleChanges: 1
+  logTruckSpawns: 1
+  logQueueChanges: 1
 --- !u!114 &2134991061
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5607,6 +5666,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e964f9beef1f0ce43a888d78988df280, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FuelTruckSpawner
+  logToConsole: 0
   fuelTruckPrefab: {fileID: 5019100724431002640, guid: e6371642692c28f4fb820f552bec9e9a, type: 3}
   spawnPoint: {fileID: 2134991058}
   exitPoint: {fileID: 1964681761}
@@ -5630,6 +5690,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b73e1f9a4c6d428f9a1e5b7c3d2f6084, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GarbageCollectorSpawner
+  logToConsole: 0
   garbageCollectorPrefab: {fileID: 5132349342966066208, guid: 65d7f4facc6e6e344a1f5c19b873647d, type: 3}
   spawnPoint: {fileID: 2134991058}
   exitPoint: {fileID: 1964681761}
