@@ -187,7 +187,7 @@ public class PerformanceMonitoringManager : MonoBehaviour
         TrackedTimings.Clear();
     }
 
-    private static void LogSpikeTimings(float frameMilliseconds)
+    private void LogSpikeTimings(float frameMilliseconds)
     {
         if (TrackedTimings.Count == 0)
         {
