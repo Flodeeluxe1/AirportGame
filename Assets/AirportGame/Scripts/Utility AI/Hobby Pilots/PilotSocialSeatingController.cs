@@ -342,14 +342,37 @@ public class PilotSocialSeatingController : MonoBehaviour
                     {
                         float ownFirst = movement.EstimateTravelTime(firstSeat.Provider);
                         float partnerSecond = candidate.movement.EstimateTravelTime(secondSeat.Provider);
-                        firstAssignment = ownFirst + partnerSecond;
+                        if (!IsValidTravelTime(ownFirst) ||
+                            !IsValidTravelTime(partnerSecond))
+                        {
+                            firstAssignmentAllowed = false;
+                        }
+                        else
+                        {
+                            // Prefer pairs where both pilots arrive promptly,
+                            // rather than minimizing the sum while leaving one
+                            // pilot waiting much longer than the other.
+                            firstAssignment =
+                                Mathf.Max(ownFirst, partnerSecond) +
+                                (ownFirst + partnerSecond) * 0.25f;
+                        }
                     }
 
                     if (secondAssignmentAllowed)
                     {
                         float ownSecond = movement.EstimateTravelTime(secondSeat.Provider);
                         float partnerFirst = candidate.movement.EstimateTravelTime(firstSeat.Provider);
-                        secondAssignment = ownSecond + partnerFirst;
+                        if (!IsValidTravelTime(ownSecond) ||
+                            !IsValidTravelTime(partnerFirst))
+                        {
+                            secondAssignmentAllowed = false;
+                        }
+                        else
+                        {
+                            secondAssignment =
+                                Mathf.Max(ownSecond, partnerFirst) +
+                                (ownSecond + partnerFirst) * 0.25f;
+                        }
                     }
 
                     bool swap = secondAssignment < firstAssignment;
@@ -421,6 +444,11 @@ public class PilotSocialSeatingController : MonoBehaviour
                (roomPurposeController == null ||
                 roomPurposeController.IsPositionAccessibleToPedestrian(
                     provider.InteractionPosition, pedestrian));
+    }
+
+    private static bool IsValidTravelTime(float travelTime)
+    {
+        return !float.IsNaN(travelTime) && !float.IsInfinity(travelTime);
     }
 
     private static bool IsSeatInteraction(InteractionDefinition definition)
