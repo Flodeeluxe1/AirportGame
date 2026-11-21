@@ -31,7 +31,7 @@ public class AircraftSSTurnaroundController : MonoBehaviour
     [SerializeField] private float boardingDurationSeconds = 10f;
 
     [Header("Debug")]
-    [SerializeField] private bool logToConsole = false;
+
     [SerializeField] private bool logProgress = true;
 
     [SerializeField]
