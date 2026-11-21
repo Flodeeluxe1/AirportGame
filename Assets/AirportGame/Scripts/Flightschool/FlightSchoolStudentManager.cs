@@ -53,6 +53,13 @@ public class FlightSchoolStudentManager : MonoBehaviour
         public InteractionDefinition interaction;
     }
 
+    private struct SeatCandidate
+    {
+        public SeatSlot seat;
+        public float travelTime;
+        public bool attempted;
+    }
+
     private sealed class StudentRecord
     {
         public Vector2Int roomAnchor;
@@ -73,6 +80,9 @@ public class FlightSchoolStudentManager : MonoBehaviour
 
     private readonly Dictionary<Vector2Int, List<SeatSlot>> seatsByRoom =
         new Dictionary<Vector2Int, List<SeatSlot>>();
+
+    private readonly List<SeatCandidate> seatCandidates =
+        new List<SeatCandidate>(16);
 
     private readonly Dictionary<Vector2Int, GameObject> readyAircraftByRoom =
         new Dictionary<Vector2Int, GameObject>();
@@ -606,20 +616,90 @@ public class FlightSchoolStudentManager : MonoBehaviour
             return false;
         }
 
+        PedestrianMovementController studentMovement =
+            student.GetComponent<PedestrianMovementController>();
+        if (studentMovement == null)
+            return false;
+
+        PedestrianAccessProfile studentAccess =
+            student.GetComponent<PedestrianAccessProfile>();
+
+        // Rank seats by the student's actual path estimate rather than by
+        // hierarchy/build order. Unreachable and inaccessible seats are
+        // excluded before attempting a reservation.
+        seatCandidates.Clear();
+
         foreach (SeatSlot seat in seats)
         {
-            if (seat.provider == null || seat.interaction == null)
+            if (seat.provider == null || seat.interaction == null ||
+                !seat.provider.InteractionsEnabled ||
+                !seat.provider.CanOffer(seat.interaction))
+            {
+                continue;
+            }
+
+            if (roomPurposeController != null &&
+                !roomPurposeController.IsPositionAccessibleToPedestrian(
+                    seat.provider.InteractionPosition,
+                    studentAccess))
+            {
+                continue;
+            }
+
+            float travelTime =
+                studentMovement.EstimateTravelTime(seat.provider);
+
+            if (float.IsNaN(travelTime) || float.IsInfinity(travelTime))
                 continue;
 
-            // The room's seat list is a snapshot taken before the cohort arrives.
-            // Another student or pilot may have reserved a chair since then.
-            // Treat that as normal contention and try the next available chair
-            // instead of asking AssignSeat to reserve a known-unavailable slot.
-            if (!seat.provider.CanOffer(seat.interaction))
-                continue;
+            seatCandidates.Add(new SeatCandidate
+            {
+                seat = seat,
+                travelTime = travelTime,
+                attempted = false
+            });
+        }
 
-            if (student.AssignSeat(seat.provider, seat.interaction))
+        // Try candidates from shortest to longest route. A reservation can
+        // still be lost between scoring and assignment, so fall through to
+        // the next reachable seat if that happens.
+        for (int attempt = 0; attempt < seatCandidates.Count; attempt++)
+        {
+            int bestIndex = -1;
+            float bestTravelTime = float.PositiveInfinity;
+
+            for (int i = 0; i < seatCandidates.Count; i++)
+            {
+                SeatCandidate candidate = seatCandidates[i];
+                if (candidate.attempted ||
+                    candidate.travelTime >= bestTravelTime)
+                {
+                    continue;
+                }
+
+                bestTravelTime = candidate.travelTime;
+                bestIndex = i;
+            }
+
+            if (bestIndex < 0)
+                break;
+
+            SeatCandidate selected = seatCandidates[bestIndex];
+            selected.attempted = true;
+            seatCandidates[bestIndex] = selected;
+
+            if (selected.seat.provider == null ||
+                !selected.seat.provider.CanOffer(selected.seat.interaction))
+            {
+                continue;
+            }
+
+            if (student.AssignSeat(
+                    selected.seat.provider,
+                    selected.seat.interaction))
+            {
                 return true;
+            }
 
             if (record.departing)
                 return false;
