@@ -5,6 +5,9 @@ using UnityEngine;
 public class ParkingSpace : MonoBehaviour
 {
     [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+
+    [Header("Debug")]
     [Tooltip("Live status of the parking space and its waiting queue.")]
     [TextArea(3, 10)]
     public string debugQueueStatus = "Not checked";
@@ -69,7 +72,7 @@ public class ParkingSpace : MonoBehaviour
 
         if (vehicle == null)
         {
-            Debug.LogWarning(
+            LogWarning(
                 "ParkingSpace: Cannot reserve with a null vehicle.",
                 this);
 
@@ -100,7 +103,7 @@ public class ParkingSpace : MonoBehaviour
         RefreshDebugQueueStatus(
             $"RESERVED: {vehicle.name} joined the queue.");
 
-        Debug.Log(
+        Log(
             $"PARKING RESERVED | Space: {name} | " +
             $"Vehicle: {vehicle.name} | " +
             $"Queue Position: {waitingVehicles.Count}",
@@ -161,7 +164,7 @@ public class ParkingSpace : MonoBehaviour
 
         if (!CanVehicleEnter(vehicle))
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"PARKING FAILED | Space: {name} | " +
                 $"Vehicle: {(vehicle != null ? vehicle.name : "null")} | " +
                 "Vehicle is not allowed to enter.",
@@ -181,7 +184,7 @@ public class ParkingSpace : MonoBehaviour
         RefreshDebugQueueStatus(
             $"PARKED: {vehicle.name}.");
 
-        Debug.Log(
+        Log(
             $"PARKING OCCUPIED | Space: {name} | " +
             $"Vehicle: {vehicle.name} | " +
             $"Duration: {parkingDuration:F1}s",
@@ -204,7 +207,7 @@ public class ParkingSpace : MonoBehaviour
         RefreshDebugQueueStatus(
             $"PARKING RELEASED by {vehicle.name}.");
 
-        Debug.Log(
+        Log(
             $"PARKING RELEASED | Space: {name} | " +
             $"Vehicle: {vehicle.name}",
             this);
@@ -225,7 +228,7 @@ public class ParkingSpace : MonoBehaviour
             RefreshDebugQueueStatus(
                 $"RESERVATION CANCELLED for {vehicle.name}.");
 
-            Debug.Log(
+            Log(
                 $"PARKING RESERVATION CANCELLED | " +
                 $"Space: {name} | Vehicle: {vehicle.name}",
                 this);
@@ -280,7 +283,7 @@ public class ParkingSpace : MonoBehaviour
             RefreshDebugQueueStatus(
                 "CLEANUP: Removed destroyed vehicles from queue.");
 
-            Debug.LogWarning(
+            LogWarning(
                 $"PARKING QUEUE CLEANUP | Space: {name} | " +
                 $"Removed {previousCount - waitingVehicles.Count} " +
                 "destroyed vehicle(s).",
@@ -365,7 +368,7 @@ public class ParkingSpace : MonoBehaviour
 
         RefreshDebugQueueStatus("MANUAL DEBUG CHECK");
 
-        Debug.Log(
+        Log(
             $"PARKING SPACE | {name} | " +
             $"Origin: {positionText} | " +
             $"Size: {sizeText} | " +
@@ -378,4 +381,21 @@ public class ParkingSpace : MonoBehaviour
             debugQueueStatus,
             this);
     }
+
+    private void Log(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.Log(message, context); else Debug.Log(message);
+    }
+    private void LogWarning(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message);
+    }
+    private void LogError(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.LogError(message, context); else Debug.LogError(message);
+    }
+
 }
