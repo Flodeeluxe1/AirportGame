@@ -9,6 +9,9 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class FlightSchoolStudentAgent : MonoBehaviour
 {
+    [Header("Debug")]
+    [SerializeField] private bool logToConsole = false;
+
     private PedestrianMovementController movement;
     private TrafficTestVehicle vehicle;
     private Renderer[] studentRenderers;
@@ -169,7 +172,7 @@ public class FlightSchoolStudentAgent : MonoBehaviour
     {
         if (provider == null || interaction == null || movement == null)
         {
-            Debug.LogError(
+            LogError(
                 $"FlightSchoolStudentAgent {name}: Cannot assign chair. " +
                 $"ProviderMissing={provider == null}, InteractionMissing={interaction == null}, " +
                 $"MovementControllerMissing={movement == null}.",
@@ -179,7 +182,7 @@ public class FlightSchoolStudentAgent : MonoBehaviour
 
         if (!provider.TryReserve(this, interaction))
         {
-            Debug.LogWarning(
+            LogWarning(
                 $"FlightSchoolStudentAgent {name}: Chair reservation failed. " +
                 $"Provider={provider.name}, Interaction={interaction.InteractionId}, " +
                 $"Enabled={provider.InteractionsEnabled}, CanOffer={provider.CanOffer(interaction)}.",
@@ -198,7 +201,7 @@ public class FlightSchoolStudentAgent : MonoBehaviour
 
         if (!movement.TryMoveTo(provider))
         {
-            Debug.LogError(
+            LogError(
                 $"FlightSchoolStudentAgent {name}: Reserved chair {provider.name}, " +
                 $"but no reachable approach cell was found. Preferred target={provider.InteractionPosition}.",
                 this);
@@ -206,7 +209,7 @@ public class FlightSchoolStudentAgent : MonoBehaviour
             return false;
         }
 
-        Debug.Log(
+        Log(
             $"FlightSchoolStudentAgent {name}: Reserved chair {provider.name}; " +
             $"walking to selected approach point at {movement.Destination}.",
             this);
@@ -247,7 +250,7 @@ public class FlightSchoolStudentAgent : MonoBehaviour
                 aircraft.transform.position,
                 aircraftBuilding))
         {
-            Debug.Log(
+            Log(
                 $"FlightSchoolStudentAgent {name}: Walking to aircraft {aircraft.name}. " +
                 $"Start={transform.position}, preferred approach={aircraftApproach}, " +
                 $"selected approach={movement.Destination}.",
@@ -255,7 +258,7 @@ public class FlightSchoolStudentAgent : MonoBehaviour
             return true;
         }
 
-        Debug.LogError(
+        LogError(
             $"FlightSchoolStudentAgent {name}: No reachable aircraft approach found. " +
             $"Aircraft={aircraft.name}, Start={transform.position}, " +
             $"StartCell={GridCellForDiagnostics(transform.position)}, " +
@@ -365,7 +368,7 @@ public class FlightSchoolStudentAgent : MonoBehaviour
                 vehicle.ParkingPosition))
         {
             walkingToCar = false;
-            Debug.LogWarning(
+            LogWarning(
                 $"FlightSchoolStudentAgent {name}: No reachable approach cell " +
                 $"beside car {vehicle.name}. Preferred={carSidePosition}, " +
                 $"car position={vehicle.ParkingPosition}.",
@@ -389,7 +392,7 @@ public class FlightSchoolStudentAgent : MonoBehaviour
     {
         if (logMovementArrivals)
         {
-            Debug.Log(
+            Log(
                 $"FlightSchoolStudentAgent {name}: Movement arrived. " +
                 $"WalkingToSeat={walkingToSeat}, WalkingToAircraft={walkingToAircraft}, " +
                 $"WalkingToCar={walkingToCar}.",
@@ -468,7 +471,7 @@ public class FlightSchoolStudentAgent : MonoBehaviour
         if (groupConversationActive)
             return;
 
-        Debug.LogError(
+        LogError(
             $"FlightSchoolStudentAgent {name}: Pedestrian path failed. " +
             $"WalkingToSeat={walkingToSeat}, WalkingToAircraft={walkingToAircraft}, " +
             $"WalkingToCar={walkingToCar}, ReservedSeat={(reservedSeat != null ? reservedSeat.name : "none")}.",
@@ -913,4 +916,21 @@ public class FlightSchoolStudentAgent : MonoBehaviour
 
         ReleaseSeat();
     }
+
+    private void Log(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.Log(message, context); else Debug.Log(message);
+    }
+    private void LogWarning(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message);
+    }
+    private void LogError(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.LogError(message, context); else Debug.LogError(message);
+    }
+
 }
