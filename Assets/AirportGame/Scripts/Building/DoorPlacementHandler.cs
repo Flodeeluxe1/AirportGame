@@ -264,7 +264,6 @@ public class DoorPlacementHandler : IPlacementHandler
 
         return bottomY;
     }
-    }
 
     private bool AreAllPreviewEdgesValid()
     {
