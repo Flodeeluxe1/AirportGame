@@ -633,7 +633,7 @@ public class AircraftTurnaroundController : MonoBehaviour
         if (dispatcher == null)
         {
             Debug.LogWarning(
-                $"\${name}: Cannot request baggage service because the baggage dispatcher is unavailable. Retrying.",
+                $"${name}: Cannot request baggage service because the baggage dispatcher is unavailable. Retrying.",
                 this
             );
             return;
@@ -647,7 +647,7 @@ public class AircraftTurnaroundController : MonoBehaviour
             !identity.HasActualGate)
         {
             Debug.LogWarning(
-                $"\${name}: Cannot request baggage service because the aircraft has no valid actual gate. Retrying.",
+                $"${name}: Cannot request baggage service because the aircraft has no valid actual gate. Retrying.",
                 this
             );
             return;
@@ -662,7 +662,7 @@ public class AircraftTurnaroundController : MonoBehaviour
                 out AircraftGate actualGate))
         {
             Debug.LogWarning(
-                $"\${name}: Cannot request baggage service because actual gate '\${identity.ActualGateStableId}' could not be found. Retrying.",
+                $"${name}: Cannot request baggage service because actual gate '${identity.ActualGateStableId}' could not be found. Retrying.",
                 this
             );
             return;
@@ -680,7 +680,7 @@ public class AircraftTurnaroundController : MonoBehaviour
         if (!requestAccepted)
         {
             Debug.LogWarning(
-                $"\${name}: Baggage service request was not accepted. It will be retried.",
+                $"${name}: Baggage service request was not accepted. It will be retried.",
                 this
             );
         }
