@@ -704,6 +704,42 @@ public class AirportBaggageDispatcher : MonoBehaviour
             }
         }
 
+        // Outgoing baggage can exceed one tug load. Once this trip has
+        // delivered its packages, replace the completed request with
+        // another request while the aircraft manifest still has bags.
+        if (request.Type == RequestType.Outgoing &&
+            request.Aircraft != null &&
+            request.FlightIdentity != null &&
+            request.ActualGate != null)
+        {
+            AircraftLoadingManifest manifest =
+                request.Aircraft.LoadingManifest;
+
+            if (manifest != null &&
+                manifest.IsInitialized &&
+                manifest.HasOutgoingBaggageRemaining)
+            {
+                requestsByOperationId.Remove(requestKey);
+
+                Log(
+                    $"{name}: {manifest.RemainingOutgoingBaggage} outgoing package(s) remain for {request.OperationId}. Queuing another collection trip.",
+                    vehicle
+                );
+
+                QueueRequest(
+                    request.Aircraft,
+                    request.FlightIdentity,
+                    request.ActualGate,
+                    request.OperationId,
+                    RequestType.Outgoing,
+                    manifest.RemainingOutgoingBaggage
+                );
+
+                RefreshRuntimeStatus();
+                return;
+            }
+        }
+
         ProcessQueue();
         RefreshRuntimeStatus();
     }
