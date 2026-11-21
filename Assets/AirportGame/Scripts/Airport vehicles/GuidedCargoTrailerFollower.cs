@@ -1,4 +1,3 @@
-
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -41,16 +40,20 @@ public class GuidedCargoTrailerFollower : MonoBehaviour
     [SerializeField] private bool positionTrailerAtStart = true;
 
     [Header("Debug")]
-
     [SerializeField] private bool showDebugMessages = true;
     [SerializeField] private bool isInitialized;
     [SerializeField] private float currentHitchDistance;
 
-    private readonly List<Transform> trailers =
-        new List<Transform>();
+    private readonly List<Transform> trailers = new List<Transform>();
+    private readonly List<float> trailerHeights = new List<float>();
 
-    private readonly List<float> trailerHeights =
-        new List<float>();
+    // Newest hitch position is at index zero. Older positions form the
+    // path the tug has travelled, allowing trailers to follow corners
+    // instead of cutting directly toward the tug's current position.
+    private readonly List<Vector3> hitchPath = new List<Vector3>();
+
+    private const float MinimumPathSampleDistance = 0.05f;
+    private const float PathHistoryBuffer = 3f;
 
     private bool hasExplicitTrailerSet;
 
@@ -71,9 +74,18 @@ public class GuidedCargoTrailerFollower : MonoBehaviour
 
     public void SetTrailers(Transform[] trailerTransforms)
     {
+        SetTrailersInternal(trailerTransforms, true);
+    }
+
+    private void SetTrailersInternal(
+        Transform[] trailerTransforms,
+        bool snapToHitch)
+    {
         hasExplicitTrailerSet = true;
         trailers.Clear();
         trailerHeights.Clear();
+        hitchPath.Clear();
+        isInitialized = false;
 
         if (trailerTransforms == null)
             return;
@@ -98,6 +110,9 @@ public class GuidedCargoTrailerFollower : MonoBehaviour
             trailerHeights.Add(trailerTransform.position.y);
         }
 
+        if (trailers.Count == 0)
+            return;
+
         if (tugHitchPoint == null)
         {
             LogError(
@@ -108,8 +123,12 @@ public class GuidedCargoTrailerFollower : MonoBehaviour
         }
 
         isInitialized = true;
+        InitializeHitchPath();
 
-        if (showDebugMessages && trailers.Count > 0)
+        if (snapToHitch)
+            UpdateTrailerPositions(true);
+
+        if (showDebugMessages)
         {
             Log(
                 $"Guided trailer chain initialized with {trailers.Count} trailer(s).",
@@ -122,7 +141,7 @@ public class GuidedCargoTrailerFollower : MonoBehaviour
     {
         trailers.Clear();
         trailerHeights.Clear();
-
+        hitchPath.Clear();
         isInitialized = false;
 
         if (showDebugMessages)
@@ -150,10 +169,10 @@ public class GuidedCargoTrailerFollower : MonoBehaviour
         // Preserve support for a trailer assigned directly in the Inspector.
         if (!hasExplicitTrailerSet && trailer != null && trailers.Count == 0)
         {
-            SetTrailers(new[] { trailer });
-
-            if (positionTrailerAtStart && trailers.Count > 0)
-                PositionTrailerBehindTug();
+            SetTrailersInternal(
+                new[] { trailer },
+                positionTrailerAtStart
+            );
         }
     }
 
@@ -166,89 +185,244 @@ public class GuidedCargoTrailerFollower : MonoBehaviour
             return;
         }
 
+        RecordHitchPosition();
+        UpdateTrailerPositions(false);
+    }
+
+    private void InitializeHitchPath()
+    {
+        hitchPath.Clear();
+
+        Vector3 hitchPosition = tugHitchPoint.position;
+        hitchPath.Add(hitchPosition);
+
+        Vector3 rearDirection = hitchPosition - transform.position;
+        rearDirection.y = 0f;
+
+        if (rearDirection.sqrMagnitude < 0.0001f)
+        {
+            rearDirection = transform.forward;
+            rearDirection.y = 0f;
+        }
+
+        if (rearDirection.sqrMagnitude < 0.0001f)
+            rearDirection = Vector3.forward;
+
+        rearDirection.Normalize();
+
+        float requiredHistoryDistance = GetTotalTrailerChainDistance() +
+            PathHistoryBuffer;
+
+        hitchPath.Add(
+            hitchPosition + rearDirection * requiredHistoryDistance
+        );
+    }
+
+    private void RecordHitchPosition()
+    {
+        Vector3 currentPosition = tugHitchPoint.position;
+
+        if (hitchPath.Count == 0)
+        {
+            hitchPath.Add(currentPosition);
+            return;
+        }
+
+        float movement = Vector3.Distance(
+            hitchPath[0],
+            currentPosition
+        );
+
+        if (movement < MinimumPathSampleDistance)
+            return;
+
+        hitchPath.Insert(0, currentPosition);
+        TrimHitchPath();
+    }
+
+    private void TrimHitchPath()
+    {
+        float maximumHistory = GetTotalTrailerChainDistance() +
+            PathHistoryBuffer;
+
+        while (hitchPath.Count > 2)
+        {
+            float pathLength = GetHitchPathLength();
+
+            if (pathLength <= maximumHistory)
+                break;
+
+            hitchPath.RemoveAt(hitchPath.Count - 1);
+        }
+    }
+
+    private float GetHitchPathLength()
+    {
+        float length = 0f;
+
+        for (int i = 0; i < hitchPath.Count - 1; i++)
+            length += Vector3.Distance(hitchPath[i], hitchPath[i + 1]);
+
+        return length;
+    }
+
+    private float GetTotalTrailerChainDistance()
+    {
+        if (trailers.Count == 0)
+            return hitchToTrailerDistance;
+
+        return Mathf.Max(0f, hitchToTrailerDistance) +
+            Mathf.Max(0, trailers.Count - 1) *
+            Mathf.Max(0f, trailerToTrailerDistance);
+    }
+
+    private void UpdateTrailerPositions(bool snapRotation)
+    {
+        float distanceBehindHitch = Mathf.Max(0.1f, hitchToTrailerDistance);
+
         for (int i = 0; i < trailers.Count; i++)
         {
             Transform currentTrailer = trailers[i];
 
             if (currentTrailer == null)
+            {
+                distanceBehindHitch += trailerToTrailerDistance;
                 continue;
+            }
 
-            Transform objectInFront = i == 0
-                ? tugHitchPoint
-                : trailers[i - 1];
+            if (TryGetHitchPathPosition(
+                    distanceBehindHitch,
+                    out Vector3 targetPosition,
+                    out Vector3 directionToHitch))
+            {
+                targetPosition.y = trailerHeights[i];
+                currentHitchDistance = Vector3.Distance(
+                    currentTrailer.position,
+                    targetPosition
+                );
 
-            if (objectInFront == null)
-                continue;
+                currentTrailer.position = snapRotation
+                    ? targetPosition
+                    : Vector3.MoveTowards(
+                        currentTrailer.position,
+                        targetPosition,
+                        Mathf.Max(0.1f, followSpeed) * Time.deltaTime
+                    );
 
-            Vector3 directionToFront =
-                objectInFront.position - currentTrailer.position;
+                if (directionToHitch.sqrMagnitude > 0.0001f)
+                {
+                    Quaternion targetRotation = Quaternion.LookRotation(
+                        directionToHitch,
+                        Vector3.up
+                    );
 
-            directionToFront.y = 0f;
+                    currentTrailer.rotation = snapRotation
+                        ? targetRotation
+                        : Quaternion.Slerp(
+                            currentTrailer.rotation,
+                            targetRotation,
+                            Mathf.Clamp01(rotationSpeed * Time.deltaTime)
+                        );
+                }
+            }
 
-            if (directionToFront.sqrMagnitude < 0.0001f)
-                continue;
-
-            currentHitchDistance = directionToFront.magnitude;
-            directionToFront.Normalize();
-
-            float spacing = i == 0
-                ? hitchToTrailerDistance
-                : trailerToTrailerDistance;
-
-            Vector3 targetPosition =
-                objectInFront.position -
-                directionToFront * spacing;
-
-            targetPosition.y = trailerHeights[i];
-
-            currentTrailer.position = Vector3.MoveTowards(
-                currentTrailer.position,
-                targetPosition,
-                followSpeed * Time.deltaTime
-            );
-
-            Quaternion targetRotation =
-                Quaternion.LookRotation(directionToFront, Vector3.up);
-
-            currentTrailer.rotation = Quaternion.Slerp(
-                currentTrailer.rotation,
-                targetRotation,
-                rotationSpeed * Time.deltaTime
-            );
+            distanceBehindHitch += Mathf.Max(0.1f, trailerToTrailerDistance);
         }
     }
 
-    private void PositionTrailerBehindTug()
+    private bool TryGetHitchPathPosition(
+        float distanceBehindHitch,
+        out Vector3 position,
+        out Vector3 directionToHitch)
     {
-        if (trailers.Count == 0 || tugHitchPoint == null)
-            return;
+        position = Vector3.zero;
+        directionToHitch = Vector3.zero;
 
-        Vector3 tugForward = transform.forward;
-        tugForward.y = 0f;
+        if (hitchPath.Count < 2)
+            return false;
 
-        if (tugForward.sqrMagnitude < 0.0001f)
-            tugForward = Vector3.forward;
+        float distanceAlongPath = 0f;
 
-        tugForward.Normalize();
+        for (int i = 0; i < hitchPath.Count - 1; i++)
+        {
+            Vector3 newerPoint = hitchPath[i];
+            Vector3 olderPoint = hitchPath[i + 1];
 
-        Transform firstTrailer = trailers[0];
+            float segmentLength = Vector3.Distance(
+                newerPoint,
+                olderPoint
+            );
 
-        firstTrailer.rotation = Quaternion.LookRotation(
-            tugForward,
-            Vector3.up
-        );
+            if (segmentLength <= 0.0001f)
+                continue;
 
-        firstTrailer.position =
-            tugHitchPoint.position -
-            tugForward * hitchToTrailerDistance;
+            if (distanceAlongPath + segmentLength >= distanceBehindHitch)
+            {
+                float segmentProgress =
+                    (distanceBehindHitch - distanceAlongPath) /
+                    segmentLength;
 
-        Vector3 position = firstTrailer.position;
-        position.y = trailerHeights[0];
-        firstTrailer.position = position;
+                position = Vector3.Lerp(
+                    newerPoint,
+                    olderPoint,
+                    segmentProgress
+                );
+
+                directionToHitch = newerPoint - olderPoint;
+                directionToHitch.y = 0f;
+
+                if (directionToHitch.sqrMagnitude > 0.0001f)
+                    directionToHitch.Normalize();
+
+                return true;
+            }
+
+            distanceAlongPath += segmentLength;
+        }
+
+        // If the tug has not yet travelled far enough to fill the requested
+        // trailer spacing, extend the last path segment behind the tug.
+        Vector3 lastDirection =
+            hitchPath[hitchPath.Count - 2] -
+            hitchPath[hitchPath.Count - 1];
+
+        lastDirection.y = 0f;
+
+        if (lastDirection.sqrMagnitude < 0.0001f)
+            return false;
+
+        lastDirection.Normalize();
+
+        float extraDistance = distanceBehindHitch - distanceAlongPath;
+
+        position = hitchPath[hitchPath.Count - 1] -
+            lastDirection * extraDistance;
+
+        directionToHitch = lastDirection;
+        return true;
     }
 
-    private void Log(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.Log(message, context); else Debug.Log(message); }
-    private void LogWarning(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message); }
-    private void LogError(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogError(message, context); else Debug.LogError(message); }
-    private void LogException(System.Exception exception, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception); }
+    private void Log(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.Log(message, context); else Debug.Log(message);
+    }
+
+    private void LogWarning(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message);
+    }
+
+    private void LogError(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.LogError(message, context); else Debug.LogError(message);
+    }
+
+    private void LogException(System.Exception exception, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception);
+    }
 }
