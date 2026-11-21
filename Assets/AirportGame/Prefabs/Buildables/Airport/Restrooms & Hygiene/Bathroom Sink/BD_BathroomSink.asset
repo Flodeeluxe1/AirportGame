@@ -17,7 +17,7 @@ MonoBehaviour:
   prefab: {fileID: 9114213536884176907, guid: fa3db0668a5ddff4c899e2c3fd2c0c72, type: 3}
   placementType: 0
   requiredSurface: 1
-  width: 1
+  width: 2
   depth: 1
   edgeLength: 1
   requiresExistingWall: 0
@@ -27,6 +27,8 @@ MonoBehaviour:
   canRotate: 1
   buildCost: 100
   blocksPathfinding: 1
+  environmentValue: 0
+  environmentRadius: 0
   menuCategory: Restrooms & Hygiene
   category: 3
   icon: {fileID: 2800000, guid: 6c3064a24a18eba469547e1bc8cdc82f, type: 3}
