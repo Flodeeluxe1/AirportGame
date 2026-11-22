@@ -15,11 +15,19 @@ public class AirportGroundVehicleMovement : MonoBehaviour
 
     [Header("Movement Costs")]
     [Min(1)]
+    [SerializeField] private int grassMovementCost = 10;
+    [Min(1)]
+    [SerializeField] private int foundationMovementCost = 1;
+    [Min(1)]
     [SerializeField] private int tarmacMovementCost = 1;
     [Min(1)]
     [SerializeField] private int taxiwayMovementCost = 5;
     [Min(1)]
-    [SerializeField] private int grassMovementCost = 10;
+    [SerializeField] private int runwayMovementCost = 5;
+    [Min(1)]
+    [SerializeField] private int pedestrianTarmacMovementCost = 1;
+    [Min(1)]
+    [SerializeField] private int roadMovementCost = 5;
 
     [Header("Foundation Clearance")]
     [Range(0, 3)]
@@ -138,9 +146,13 @@ public class AirportGroundVehicleMovement : MonoBehaviour
             return;
         }
 
+        grassMovementCost = Mathf.Max(1, grassMovementCost);
+        foundationMovementCost = Mathf.Max(1, foundationMovementCost);
         tarmacMovementCost = Mathf.Max(1, tarmacMovementCost);
         taxiwayMovementCost = Mathf.Max(1, taxiwayMovementCost);
-        grassMovementCost = Mathf.Max(1, grassMovementCost);
+        runwayMovementCost = Mathf.Max(1, runwayMovementCost);
+        pedestrianTarmacMovementCost = Mathf.Max(1, pedestrianTarmacMovementCost);
+        roadMovementCost = Mathf.Max(1, roadMovementCost);
 
         movementHeight = transform.position.y + groundHeightOffset;
     }
@@ -312,9 +324,13 @@ public class AirportGroundVehicleMovement : MonoBehaviour
             $"{name}: Weighted route calculated. " +
             $"Grid cells: {routeCellCount}, " +
             $"waypoints: {movementPath.Count}, " +
-            $"tarmac cost: {tarmacMovementCost}, " +
-            $"taxiway/road cost: {taxiwayMovementCost}, " +
             $"grass cost: {grassMovementCost}, " +
+            $"foundation cost: {foundationMovementCost}, " +
+            $"tarmac cost: {tarmacMovementCost}, " +
+            $"taxiway cost: {taxiwayMovementCost}, " +
+            $"runway cost: {runwayMovementCost}, " +
+            $"pedestrian tarmac cost: {pedestrianTarmacMovementCost}, " +
+            $"road cost: {roadMovementCost}, " +
             $"foundation clearance: {foundationClearance}, " +
             $"parking turn distance: {parkingTurnDistanceInCells} cells.",
             this);
@@ -679,17 +695,41 @@ public class AirportGroundVehicleMovement : MonoBehaviour
 
     private int GetMovementCost(Vector2Int cell)
     {
-        BuildSurface surface = gridSurface.GetSurface(cell);
-        if (surface == BuildSurface.Tarmac || surface == BuildSurface.PedestrianTarmac)
-            return tarmacMovementCost;
-
-        if (taxiwayNetwork.IsTaxiway(cell) ||
-            roadNetwork.IsRoad(cell))
-        {
+        // Prefer the live network data where available, then use the
+        // surface recorded on the grid for all other surface types.
+        if (taxiwayNetwork.IsTaxiway(cell))
             return taxiwayMovementCost;
-        }
 
-        return grassMovementCost;
+        if (roadNetwork.IsRoad(cell))
+            return roadMovementCost;
+
+        switch (gridSurface.GetSurface(cell))
+        {
+            case BuildSurface.Grass:
+                return grassMovementCost;
+
+            case BuildSurface.Foundation:
+                return foundationMovementCost;
+
+            case BuildSurface.Tarmac:
+                return tarmacMovementCost;
+
+            case BuildSurface.Taxiway:
+                return taxiwayMovementCost;
+
+            case BuildSurface.Runway:
+                return runwayMovementCost;
+
+            case BuildSurface.PedestrianTarmac:
+                return pedestrianTarmacMovementCost;
+
+            case BuildSurface.Road:
+                return roadMovementCost;
+
+            case BuildSurface.Any:
+            default:
+                return grassMovementCost;
+        }
     }
 
     private List<Vector2Int> ReconstructPath(
