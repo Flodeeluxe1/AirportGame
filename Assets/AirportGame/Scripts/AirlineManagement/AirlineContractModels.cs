@@ -14,7 +14,6 @@ public class AirlineContractTerms
     public float minimumCargoStorageCapacity;
     public float minimumCargoHandlingThroughputPerHour;
     public int paymentPerCompletedFlight;
-    [Range(0f, 1f)] public float missedFlightPaymentReduction;
     public int missedFlightPenalty;
     public int completionBonus;
 
@@ -37,7 +36,6 @@ public class AirlineContractTerms
                 template.MinimumCargoHandlingThroughputPerHour,
             paymentPerCompletedFlight = Mathf.RoundToInt(
                 template.PaymentPerCompletedFlight * paymentMultiplier),
-            missedFlightPaymentReduction = template.MissedFlightPaymentReduction,
             missedFlightPenalty = template.MissedFlightPenalty,
             completionBonus = Mathf.RoundToInt(template.CompletionBonus * paymentMultiplier)
         };
