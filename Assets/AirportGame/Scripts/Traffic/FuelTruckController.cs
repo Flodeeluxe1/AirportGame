@@ -272,7 +272,9 @@ public class FuelTruckController : MonoBehaviour
         currentSpeed = trafficFollowing.GetFollowingSpeed(
             movementSpeed,
             currentSpeed,
-            ShouldBlockTrafficCollider,
+            route,
+            roadNetwork,
+            gridManager,
             hasIntersectionReservation,
             out _);
 
