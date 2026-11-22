@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -69,7 +70,8 @@ public sealed class CargoPackageData
 
         CargoPackage oldVisual = visual;
         visual = null;
-        UnityEngine.Object.Destroy(oldVisual.gameObject);
+        oldVisual.UnbindDataForPool();
+        CargoPackageVisualPool.Release(visualPrefab, oldVisual.gameObject);
     }
 
     public bool CreateVisualAt(Vector3 position, Quaternion rotation)
@@ -83,7 +85,7 @@ public sealed class CargoPackageData
         if (visualPrefab == null)
             return false;
 
-        GameObject instance = UnityEngine.Object.Instantiate(
+        GameObject instance = CargoPackageVisualPool.Acquire(
             visualPrefab,
             position,
             rotation);
@@ -91,11 +93,12 @@ public sealed class CargoPackageData
         CargoPackage packageVisual = instance.GetComponent<CargoPackage>();
         if (packageVisual == null)
         {
-            UnityEngine.Object.Destroy(instance);
+            CargoPackageVisualPool.Discard(instance);
             return false;
         }
 
         packageVisual.BindData(this);
+        instance.SetActive(true);
         return true;
     }
 
@@ -153,5 +156,87 @@ public sealed class CargoPackageData
         currentZone = zone;
         state = CargoPackageState.Staged;
         return true;
+    }
+}
+
+/// <summary>
+/// Reuses cargo box visuals while keeping the number of inactive GameObjects
+/// bounded. Pool entries are keyed by their source prefab.
+/// </summary>
+internal static class CargoPackageVisualPool
+{
+    private const int MaxInactivePerPrefab = 256;
+
+    private static readonly Dictionary<GameObject, Stack<GameObject>> pools =
+        new Dictionary<GameObject, Stack<GameObject>>();
+
+    private static Transform poolRoot;
+
+    public static GameObject Acquire(
+        GameObject prefab,
+        Vector3 position,
+        Quaternion rotation)
+    {
+        if (prefab != null &&
+            pools.TryGetValue(prefab, out Stack<GameObject> pool))
+        {
+            while (pool.Count > 0)
+            {
+                GameObject pooled = pool.Pop();
+                if (pooled == null)
+                    continue;
+
+                pooled.transform.SetParent(null, false);
+                pooled.transform.SetPositionAndRotation(position, rotation);
+                return pooled;
+            }
+        }
+
+        return UnityEngine.Object.Instantiate(prefab, position, rotation);
+    }
+
+    public static void Release(GameObject prefab, GameObject instance)
+    {
+        if (instance == null)
+            return;
+
+        if (prefab == null)
+        {
+            UnityEngine.Object.Destroy(instance);
+            return;
+        }
+
+        if (!pools.TryGetValue(prefab, out Stack<GameObject> pool))
+        {
+            pool = new Stack<GameObject>();
+            pools.Add(prefab, pool);
+        }
+
+        if (pool.Count >= MaxInactivePerPrefab)
+        {
+            UnityEngine.Object.Destroy(instance);
+            return;
+        }
+
+        EnsurePoolRoot();
+        instance.SetActive(false);
+        instance.transform.SetParent(poolRoot, false);
+        pool.Push(instance);
+    }
+
+    public static void Discard(GameObject instance)
+    {
+        if (instance != null)
+            UnityEngine.Object.Destroy(instance);
+    }
+
+    private static void EnsurePoolRoot()
+    {
+        if (poolRoot != null)
+            return;
+
+        GameObject root = new GameObject("Cargo Package Visual Pool");
+        UnityEngine.Object.DontDestroyOnLoad(root);
+        poolRoot = root.transform;
     }
 }
