@@ -166,7 +166,7 @@ public class GameTimeManager : MonoBehaviour
             multiplier != 1 &&
             multiplier != 10 &&
             multiplier != 100 &&
-            multiplier != 1000)
+            multiplier != 500)
         {
             LogWarning(
                 $"GameTimeManager: Unsupported speed {multiplier}."
@@ -255,9 +255,15 @@ public class GameTimeManager : MonoBehaviour
         SetSpeed(100);
     }
 
+    public void SetFiveHundredfoldSpeed()
+    {
+        SetSpeed(500);
+    }
+
+    // Compatibility for any existing UnityEvent or script reference.
     public void SetThousandfoldSpeed()
     {
-        SetSpeed(1000);
+        SetFiveHundredfoldSpeed();
     }
 
     private void OnDestroy()
