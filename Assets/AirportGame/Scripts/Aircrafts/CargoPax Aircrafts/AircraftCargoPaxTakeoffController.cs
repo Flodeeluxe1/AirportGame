@@ -3,6 +3,7 @@ using UnityEngine;
 
 public class AircraftCargoPaxTakeoffController : MonoBehaviour
 {
+    public static event System.Action<AircraftFlightIdentity> ContractFlightDepartureCompleted;
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
     public enum TakeoffState
@@ -578,6 +579,12 @@ public class AircraftCargoPaxTakeoffController : MonoBehaviour
 
         AircraftFlightIdentity flightIdentity =
             GetComponent<AircraftFlightIdentity>();
+
+        if (flightIdentity != null && flightIdentity.IsInitialized &&
+            !string.IsNullOrWhiteSpace(flightIdentity.Definition != null ? flightIdentity.Definition.ContractId : null))
+        {
+            ContractFlightDepartureCompleted?.Invoke(flightIdentity);
+        }
 
         if (FlightOperationsBoardUI.Instance != null)
         {
