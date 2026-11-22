@@ -155,7 +155,10 @@ public class AirlineContractOfferManager : MonoBehaviour
     {
         List<OfferCandidate> candidates = new List<OfferCandidate>();
 
-        foreach (AirlineDefinition airline in airlines)
+        IReadOnlyList<AirlineDefinition> configuredAirlines =
+            airlines.Count > 0 ? airlines : snapshotCollector.ConfiguredAirlines;
+
+        foreach (AirlineDefinition airline in configuredAirlines)
         {
             if (airline == null || HasActiveContract(airline))
                 continue;
@@ -195,7 +198,7 @@ public class AirlineContractOfferManager : MonoBehaviour
             return false;
 
         if (snapshot.suitableGateCount <= 0 ||
-            airline.PreferredGateSize < template.MinimumGateSize ||
+            (int)airline.PreferredGateSize < (int)template.MinimumGateSize ||
             snapshot.longestRunwayLengthMeters < template.MinimumRunwayLengthMeters)
         {
             return false;
@@ -273,7 +276,9 @@ public class AirlineContractOfferManager : MonoBehaviour
         for (int i = pendingOffers.Count - 1; i >= 0; i--)
         {
             AirlineContractOffer offer = pendingOffers[i];
-            if (offer == null || gameTimeManager.CurrentDay > offer.expiresOnDay)
+            if (offer == null)
+                pendingOffers.RemoveAt(i);
+            else if (gameTimeManager.CurrentDay > offer.expiresOnDay)
                 RemoveOfferAsExpired(offer);
         }
     }
