@@ -108,6 +108,9 @@ public class AircraftSSLandingController : MonoBehaviour
 
     private float runwaySurfaceY;
     private float currentSpeed;
+    private Vector3 rolloutStartPosition;
+    private float rolloutStartSpeed;
+    private float rolloutIntegratedTime;
     private float rolloutElapsed;
     private bool flareDecisionMade;
 
@@ -136,6 +139,19 @@ public class AircraftSSLandingController : MonoBehaviour
         alignmentPoint = Vector3.zero;
         flareDecisionMade = false;
         rolloutElapsed = 0f;
+        rolloutStartPosition = transform.position;
+        rolloutStartSpeed = currentSpeed;
+        rolloutIntegratedTime = 0f;
+        Vector3 touchdownRunwayEnd =
+            runwayCenter + runwayDirection * (runwayLength * 0.5f);
+        float runwayRemainingAtTouchdown = Vector3.Dot(
+            touchdownRunwayEnd - rolloutStartPosition,
+            runwayDirection);
+        Log(
+            $"SIGHTSEEING ROLLOUT START | Aircraft: {name} | " +
+            $"Runway: {debugSelectedRunway} | Speed: {AircraftStatus.WorldSpeedToKnots(currentSpeed):F1} knots | " +
+            $"Runway remaining: {runwayRemainingAtTouchdown:F2} | Runway length: {runwayLength:F2}",
+            this);
         return InitializeLanding(incomingSpeedKnots);
     }
 
@@ -515,6 +531,7 @@ public class AircraftSSLandingController : MonoBehaviour
         transform.position = position;
 
         rolloutElapsed += movementTime;
+        rolloutIntegratedTime += movementTime;
 
         float lowering = Mathf.Clamp01(
             rolloutElapsed / noseLoweringDuration);
@@ -526,6 +543,22 @@ public class AircraftSSLandingController : MonoBehaviour
             return;
 
         currentSpeed = targetSpeed;
+        Vector3 rolloutRunwayEnd =
+            runwayCenter + runwayDirection * (runwayLength * 0.5f);
+        float runwayRemainingAtCompletion = Vector3.Dot(
+            rolloutRunwayEnd - transform.position,
+            runwayDirection);
+        float rolloutDistance = Vector3.Dot(
+            transform.position - rolloutStartPosition,
+            runwayDirection);
+        Log(
+            $"SIGHTSEEING ROLLOUT COMPLETE | Aircraft: {name} | " +
+            $"Runway: {debugSelectedRunway} | Start speed: {AircraftStatus.WorldSpeedToKnots(rolloutStartSpeed):F1} knots | " +
+            $"Target speed: {rolloutTargetSpeedKnots:F1} knots | Distance: {rolloutDistance:F2} | " +
+            $"Integrated time: {rolloutIntegratedTime:F2}s | Frame delta: {rolloutDeltaTime:F2}s | " +
+            $"Runway remaining: {runwayRemainingAtCompletion:F2}",
+            this);
+
 
         // Publish the final rollout speed before handing control to taxi.
         AircraftStatus status = GetComponent<AircraftStatus>();
