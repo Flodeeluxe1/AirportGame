@@ -21,7 +21,7 @@ public class FlightSchoolStudentGroupConversationController : MonoBehaviour
     private static readonly List<Vector2Int> FreeMeetingCells = new List<Vector2Int>(128);
     private static readonly List<Vector3> FreeMeetingTargets = new List<Vector3>(128);
     private static readonly Dictionary<Vector2Int, double> NextRoomSearchTime =
-        new Dictionary<Vector2Int, float>();
+        new Dictionary<Vector2Int, double>();
     private static readonly HashSet<Vector2Int> ReservedMeetingCells =
         new HashSet<Vector2Int>();
 
