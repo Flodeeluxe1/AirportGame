@@ -17,6 +17,7 @@ public static class CreateNorthstarCargoAirlineAsset
 
         if (existing != null)
         {
+            AttachAirlineToOpenScene(existing);
             Selection.activeObject = existing;
             EditorGUIUtility.PingObject(existing);
             return;
