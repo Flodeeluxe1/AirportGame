@@ -727,17 +727,18 @@ public class PedestrianMovementController : MonoBehaviour
         const float maximumSimulationStep = 0.2f;
         const int maximumMovementStepsPerFrame = 96;
 
-        pendingMovementTime += GameTimeManager.SimulationDeltaTime;
+        SimulationMovementUtility.AccumulateTime(
+            ref pendingMovementTime,
+            GameTimeManager.SimulationDeltaTime);
 
         int movementSteps = 0;
-        while (pendingMovementTime > 0f &&
-               isMoving &&
-               movementSteps < maximumMovementStepsPerFrame)
+        while (isMoving &&
+               movementSteps < maximumMovementStepsPerFrame &&
+               SimulationMovementUtility.TryConsumeStep(
+                   ref pendingMovementTime,
+                   maximumSimulationStep,
+                   out float step))
         {
-            float step = Mathf.Min(
-                pendingMovementTime,
-                maximumSimulationStep);
-
             if (!UpdateMovementStep(step))
             {
                 // Do not bank time while blocked; otherwise the pedestrian
@@ -746,7 +747,6 @@ public class PedestrianMovementController : MonoBehaviour
                 return;
             }
 
-            pendingMovementTime = Mathf.Max(0f, pendingMovementTime - step);
             movementSteps++;
 
             SkipReachedWaypoints();
