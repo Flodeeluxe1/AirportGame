@@ -18,7 +18,10 @@ public class AirlineContractFlightIntegration : MonoBehaviour
         ResolveReferences();
 
         if (contractManager != null)
+        {
             contractManager.ContractAccepted += HandleContractAccepted;
+            contractManager.ContractCompleted += HandleContractCompleted;
+        }
 
         RegisterExistingContracts();
     }
@@ -33,7 +36,10 @@ public class AirlineContractFlightIntegration : MonoBehaviour
     private void OnDisable()
     {
         if (contractManager != null)
+        {
             contractManager.ContractAccepted -= HandleContractAccepted;
+            contractManager.ContractCompleted -= HandleContractCompleted;
+        }
     }
 
     private IEnumerator RefreshFlightManagementAfterInitialization()
@@ -81,9 +87,28 @@ public class AirlineContractFlightIntegration : MonoBehaviour
             flightManagementUI.RefreshAvailableFlights();
     }
 
+    private void HandleContractCompleted(ActiveAirlineContract contract)
+    {
+        if (contract == null)
+            return;
+
+        if (flightCatalog == null || flightManagementUI == null)
+            ResolveReferences();
+
+        if (flightManagementUI != null)
+            flightManagementUI.RemoveContractFlights(contract.contractId);
+
+        if (flightCatalog != null)
+            flightCatalog.RemoveContractFlights(contract.contractId);
+
+        if (flightManagementUI != null)
+            flightManagementUI.RefreshAvailableFlights();
+    }
+
     private void RegisterContractFlights(ActiveAirlineContract contract)
     {
         if (contract == null ||
+            contract.status != AirlineContractStatus.Active ||
             contract.airline == null ||
             contract.agreedTerms == null ||
             contract.flightObligations == null ||
