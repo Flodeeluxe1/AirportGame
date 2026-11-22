@@ -422,7 +422,7 @@ public class AirlineManagementUIController : MonoBehaviour
             AddDetailLine(detail, "Cargo storage", terms.minimumCargoStorageCapacity.ToString("0.#") + " packages");
             AddDetailLine(detail, "Handling throughput", terms.minimumCargoHandlingThroughputPerHour.ToString("0.#") + " packages/hour");
         }
-        AddDetailLine(detail, "Payment if missed", "0 € (not earned)");
+        AddDetailLine(detail, "Payment lost if missed", terms.paymentPerCompletedFlight.ToString("N0") + " €");
         AddDetailLine(detail, "Additional missed-flight penalty", terms.missedFlightPenalty.ToString("N0") + " € / flight");
         AddDetailLine(detail, "Completion bonus", terms.completionBonus.ToString("N0") + " €");
         card.Add(detail);
@@ -543,10 +543,14 @@ public class AirlineManagementUIController : MonoBehaviour
             AddMetric(metrics, "DAILY FLIGHTS", GetFlightsPerDay(contract.agreedTerms).ToString());
             AddMetric(metrics, "PAYMENT / FLIGHT", contract.agreedTerms.paymentPerCompletedFlight.ToString("N0") + " €");
             AddMetric(metrics, "TURNAROUND", contract.agreedTerms.turnaroundMinutes + " min");
-            AddMetric(metrics, "COMPLETED", (contract.onTimeFlights + contract.lateFlights).ToString());
-            AddMetric(metrics, "MISSED / CANCELLED", (contract.missedFlights + contract.cancelledFlights + contract.operationalFailures).ToString());
+            AddMetric(metrics, "ON TIME", contract.onTimeFlights.ToString());
+            AddMetric(metrics, "LATE", contract.lateFlights.ToString());
+            AddMetric(metrics, "MISSED", contract.missedFlights.ToString());
+            AddMetric(metrics, "CANCELLED / FAILED", (contract.cancelledFlights + contract.operationalFailures).ToString());
             AddMetric(metrics, "PAYMENTS RECEIVED", contract.totalPaymentsReceived.ToString("N0") + " €");
             AddMetric(metrics, "PENALTIES PAID", contract.totalPenaltiesPaid.ToString("N0") + " €");
+            if (contract.unpaidPenaltyAmount > 0)
+                AddMetric(metrics, "UNPAID PENALTIES", contract.unpaidPenaltyAmount.ToString("N0") + " €");
             card.Add(metrics);
 
             VisualElement requirements = CreateInset();
