@@ -29,6 +29,7 @@ public class AirlineAirportSnapshotCollector : MonoBehaviour
     public event Action<AirlineDefinition, AirlineInterestResult> InterestUpdated;
 
     public IReadOnlyList<AirlineInterestRecord> InterestResults => interestResults;
+    public IReadOnlyList<AirlineDefinition> ConfiguredAirlines => airlines;
 
     private void OnEnable()
     {
