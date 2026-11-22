@@ -127,8 +127,16 @@ public class AirlineContractFlightIntegration : MonoBehaviour
         if (flightCatalog == null || flightManagementUI == null)
             ResolveReferences();
 
-        if (flightManagementUI != null)
+        if (!string.IsNullOrWhiteSpace(contract.renewedByContractId))
+        {
+            if (flightManagementUI != null)
+                flightManagementUI.TransferContractFlights(
+                    contract.contractId, contract.renewedByContractId);
+        }
+        else if (flightManagementUI != null)
+        {
             flightManagementUI.RemoveContractFlights(contract.contractId);
+        }
 
         if (flightCatalog != null)
             flightCatalog.RemoveContractFlights(contract.contractId);
