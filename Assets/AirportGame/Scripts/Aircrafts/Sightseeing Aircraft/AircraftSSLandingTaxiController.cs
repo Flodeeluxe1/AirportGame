@@ -918,7 +918,8 @@ public class AircraftSSLandingTaxiController : MonoBehaviour
 
     private void MoveToRunwayExit()
     {
-        if (MoveToward(runwayExitPoint, waypointArrivalDistance))
+        float remainingTime = GameTimeManager.SimulationDeltaTime;
+        if (MoveToward(runwayExitPoint, waypointArrivalDistance, ref remainingTime))
         {
             SetPositionAt(runwayExitPoint);
             phase = TaxiPhase.JoiningTaxiway;
@@ -928,7 +929,8 @@ public class AircraftSSLandingTaxiController : MonoBehaviour
 
     private void MoveToTaxiwayJoin()
     {
-        if (MoveToward(taxiwayJoinPoint, waypointArrivalDistance))
+        float remainingTime = GameTimeManager.SimulationDeltaTime;
+        if (MoveToward(taxiwayJoinPoint, waypointArrivalDistance, ref remainingTime))
         {
             SetPositionAt(taxiwayJoinPoint);
             phase = TaxiPhase.FollowingTaxiway;
@@ -950,7 +952,12 @@ public class AircraftSSLandingTaxiController : MonoBehaviour
 
     private void FollowTaxiwayRoute()
     {
-        while (currentRouteIndex < taxiMovementPath.Count)
+        float remainingTime = GameTimeManager.SimulationDeltaTime;
+        const int maximumWaypointTransitions = 256;
+        int transitions = 0;
+
+        while (currentRouteIndex < taxiMovementPath.Count &&
+               transitions < maximumWaypointTransitions)
         {
             Vector3 waypoint = taxiMovementPath[currentRouteIndex];
             waypoint.y = taxiWorldY;
@@ -960,20 +967,32 @@ public class AircraftSSLandingTaxiController : MonoBehaviour
             {
                 SetPositionAt(waypoint);
                 currentRouteIndex++;
+                transitions++;
                 continue;
             }
 
-            MoveToward(waypoint, taxiPathPointTolerance);
-            return;
+            if (!MoveToward(waypoint, taxiPathPointTolerance, ref remainingTime))
+                return;
+
+            SetPositionAt(waypoint);
+            currentRouteIndex++;
+            transitions++;
+
+            if (remainingTime <= 0.0001f)
+                return;
         }
 
-        phase = TaxiPhase.ApproachingParking;
-        debugStatus =
-            $"Taxiway route complete. Approaching {reservedSpot.name}.";
+        if (currentRouteIndex >= taxiMovementPath.Count)
+        {
+            phase = TaxiPhase.ApproachingParking;
+            debugStatus =
+                $"Taxiway route complete. Approaching {reservedSpot.name}.";
+        }
     }
 
     private void MoveToParkingSpot()
     {
+        float remainingTime = GameTimeManager.SimulationDeltaTime;
         if (reservedSpot == null || !reservedSpot.IsPlacedBuilding)
         {
             Fail("The reserved sightseeing parking spot was removed during taxiing.");
@@ -983,7 +1002,7 @@ public class AircraftSSLandingTaxiController : MonoBehaviour
         parkingTarget = reservedSpot.ParkingWorldPosition;
         parkingTarget.y = taxiWorldY;
 
-        if (MoveToward(parkingTarget, parkingArrivalDistance))
+        if (MoveToward(parkingTarget, parkingArrivalDistance, ref remainingTime))
         {
             SetPositionAt(parkingTarget);
 
@@ -1027,26 +1046,16 @@ public class AircraftSSLandingTaxiController : MonoBehaviour
         }
     }
 
-    private bool MoveToward(Vector3 target, float arrivalDistance)
+    private bool MoveToward(
+        Vector3 target,
+        float arrivalDistance,
+        ref float remainingTime)
     {
         if (HorizontalDistance(transform.position, target) <= arrivalDistance)
             return true;
 
         Vector3 movement = target - transform.position;
         movement.y = 0f;
-
-        if (movement.sqrMagnitude > 0.0001f)
-        {
-            Quaternion targetRotation = Quaternion.LookRotation(
-                movement.normalized, Vector3.up);
-
-            targetRotation *= Quaternion.Euler(modelRotationOffset);
-
-            transform.rotation = Quaternion.Slerp(
-                transform.rotation,
-                targetRotation,
-                rotationSpeed * GameTimeManager.SimulationDeltaTime);
-        }
 
         float speedKnots = taxiSpeedKnots;
 
@@ -1059,18 +1068,35 @@ public class AircraftSSLandingTaxiController : MonoBehaviour
         else
         {
             AircraftStatus status = GetComponent<AircraftStatus>();
-
             if (status != null)
                 status.SetCurrentSpeedKnots(speedKnots);
         }
 
         float speed = AircraftStatus.KnotsToWorldSpeed(speedKnots);
+        if (speed <= 0.001f || remainingTime <= 0.0001f)
+            return false;
+
+        float distance = movement.magnitude;
+        float travelTime = Mathf.Min(remainingTime, distance / speed);
+
+        if (movement.sqrMagnitude > 0.0001f)
+        {
+            Quaternion targetRotation =
+                Quaternion.LookRotation(movement.normalized, Vector3.up) *
+                Quaternion.Euler(modelRotationOffset);
+
+            transform.rotation = Quaternion.Slerp(
+                transform.rotation,
+                targetRotation,
+                rotationSpeed * travelTime);
+        }
 
         transform.position = Vector3.MoveTowards(
             transform.position,
             target,
-            speed * GameTimeManager.SimulationDeltaTime);
+            speed * travelTime);
 
+        remainingTime = Mathf.Max(0f, remainingTime - travelTime);
         return HorizontalDistance(transform.position, target) <= arrivalDistance;
     }
 
