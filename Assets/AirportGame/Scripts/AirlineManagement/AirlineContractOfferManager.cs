@@ -202,6 +202,14 @@ public class AirlineContractOfferManager : MonoBehaviour
         return data;
     }
 
+    public void ResetForNewGame()
+    {
+        pendingOffers.Clear();
+        activeContracts.Clear();
+        lastEvaluatedPeriod = -1;
+        ContractsRestored?.Invoke();
+    }
+
     public void RestoreFromSave(AirlineManagementSaveData data)
     {
         if (data == null)
