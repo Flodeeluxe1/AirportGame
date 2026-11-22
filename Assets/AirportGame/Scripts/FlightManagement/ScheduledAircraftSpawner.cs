@@ -334,6 +334,19 @@ public class ScheduledAircraftSpawner : MonoBehaviour
         // CEO Office is skipped rather than held for a later arrival.
         if (!IsAirportOperational())
         {
+            if (!string.IsNullOrWhiteSpace(scheduled.ContractId))
+            {
+                AirlineContractPerformanceTracker tracker =
+                    FindAnyObjectByType<AirlineContractPerformanceTracker>();
+                if (tracker != null)
+                {
+                    tracker.RecordOperationalFailure(
+                        scheduled.ContractId,
+                        scheduled.Definition.ObligationId,
+                        scheduledDayIndex + 1);
+                }
+            }
+
             spawnedOperationIds.Add(operationId);
 
             if (logQueueChanges)
