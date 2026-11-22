@@ -170,6 +170,22 @@ public class AirportWorldResetController : MonoBehaviour
             return false;
 
         flightManagementUIController.ClearActiveSchedule();
+
+        AirlineContractFlightIntegration contractFlightIntegration =
+            FindAnyObjectByType<AirlineContractFlightIntegration>();
+        if (contractFlightIntegration != null)
+            contractFlightIntegration.ResetContractFlightsForNewGame();
+
+        AirlineContractPerformanceTracker contractPerformanceTracker =
+            FindAnyObjectByType<AirlineContractPerformanceTracker>();
+        if (contractPerformanceTracker != null)
+            contractPerformanceTracker.ResetForNewGame();
+
+        AirlineContractOfferManager contractOfferManager =
+            FindAnyObjectByType<AirlineContractOfferManager>();
+        if (contractOfferManager != null)
+            contractOfferManager.ResetForNewGame();
+
         gameTimeManager.ResetToStartTime();
         economyManager.InitializeNewGame();
 
