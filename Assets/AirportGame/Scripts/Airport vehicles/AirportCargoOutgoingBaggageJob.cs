@@ -321,10 +321,10 @@ private void CollectAndReservePackages()
 
         // Reserve each collected package in the aircraft manifest.
         // Packages that cannot be reserved are returned to the zone.
-        List<CargoPackage> carriedPackages =
-            new List<CargoPackage>(vehicle.CarriedPackages);
+        List<CargoPackageData> carriedPackages =
+            new List<CargoPackageData>(vehicle.CarriedPackages);
 
-        foreach (CargoPackage package in carriedPackages)
+        foreach (CargoPackageData package in carriedPackages)
         {
             if (package == null)
                 continue;
@@ -581,12 +581,12 @@ private void CollectAndReservePackages()
 
     private bool LoadNextPackage()
     {
-        List<CargoPackage> carriedPackages =
-            new List<CargoPackage>(vehicle.CarriedPackages);
+        List<CargoPackageData> carriedPackages =
+            new List<CargoPackageData>(vehicle.CarriedPackages);
 
-        CargoPackage packageToLoad = null;
+        CargoPackageData packageToLoad = null;
 
-        foreach (CargoPackage package in carriedPackages)
+        foreach (CargoPackageData package in carriedPackages)
         {
             if (package == null)
                 continue;
@@ -707,7 +707,7 @@ private void CollectAndReservePackages()
         }
     }
 
-    private void ReturnPackageToZone(CargoPackage package)
+    private void ReturnPackageToZone(CargoPackageData package)
     {
         if (package == null || cargoZone == null)
             return;
@@ -717,14 +717,6 @@ private void CollectAndReservePackages()
         {
             manifest.ReleaseOutgoingBaggageReservation(
                 package.PackageId
-            );
-        }
-
-        if (cargoZone.CargoAreaPoint != null)
-        {
-            package.transform.SetPositionAndRotation(
-                cargoZone.CargoAreaPoint.position,
-                cargoZone.CargoAreaPoint.rotation
             );
         }
 
@@ -763,10 +755,10 @@ private void CollectAndReservePackages()
         );
 
         // Return any cargo still on the tug to the selected zone.
-        List<CargoPackage> carriedPackages =
-            new List<CargoPackage>(vehicle.CarriedPackages);
+        List<CargoPackageData> carriedPackages =
+            new List<CargoPackageData>(vehicle.CarriedPackages);
 
-        foreach (CargoPackage package in carriedPackages)
+        foreach (CargoPackageData package in carriedPackages)
         {
             if (package != null)
                 ReturnPackageToZone(package);
