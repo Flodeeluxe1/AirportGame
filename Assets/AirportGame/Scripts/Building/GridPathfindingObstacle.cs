@@ -20,22 +20,31 @@ public class GridPathfindingObstacle : MonoBehaviour
         SynchronizeObstacle();
     }
 
-    private void Update()
+    private void OnEnable()
     {
+        PlacedBuilding.BuildingChanged += HandleBuildingChanged;
         SynchronizeObstacle();
+    }
+
+    private void OnDisable()
+    {
+        PlacedBuilding.BuildingChanged -= HandleBuildingChanged;
+        ReleaseObstacle();
+    }
+
+    private void HandleBuildingChanged(PlacedBuilding building)
+    {
+        if (building == placedBuilding)
+            SynchronizeObstacle();
     }
 
     private void SynchronizeObstacle()
     {
         if (gridSurface == null ||
             placedBuilding == null ||
-            placedBuilding.Definition == null)
-        {
-            ReleaseObstacle();
-            return;
-        }
-
-        if (!placedBuilding.Definition.blocksPathfinding)
+            !placedBuilding.isActiveAndEnabled ||
+            placedBuilding.Definition == null ||
+            !placedBuilding.Definition.blocksPathfinding)
         {
             ReleaseObstacle();
             return;
@@ -54,13 +63,7 @@ public class GridPathfindingObstacle : MonoBehaviour
         }
 
         gridSurface.ReleaseObstacleOwner(gameObject);
-
-        gridSurface.SetObstacleArea(
-            origin,
-            width,
-            depth,
-            gameObject
-        );
+        gridSurface.SetObstacleArea(origin, width, depth, gameObject);
 
         registeredOrigin = origin;
         registeredWidth = width;
@@ -71,18 +74,14 @@ public class GridPathfindingObstacle : MonoBehaviour
     private void ReleaseObstacle()
     {
         if (gridSurface != null && isRegistered)
-        {
             gridSurface.ReleaseObstacleOwner(gameObject);
-        }
 
         isRegistered = false;
     }
 
     private void OnDestroy()
     {
-        if (gridSurface != null)
-        {
-            gridSurface.ReleaseObstacleOwner(gameObject);
-        }
+        PlacedBuilding.BuildingChanged -= HandleBuildingChanged;
+        ReleaseObstacle();
     }
 }
