@@ -99,10 +99,11 @@ public sealed class TrafficFollowing : MonoBehaviour
             {
                 LastRayDistance = followingDistance;
                 float safeDistance = Mathf.Max(0.1f, desiredFollowingDistance);
-                float releaseDistance = safeDistance + Mathf.Max(1f, desiredSpeed * 0.75f);
-                float spacingFactor = Mathf.InverseLerp(
-                    safeDistance, releaseDistance, followingDistance);
-                targetSpeed *= spacingFactor;
+                float availableBrakingDistance = Mathf.Max(
+                    0f, followingDistance - safeDistance);
+                float safeSpeed = Mathf.Sqrt(
+                    2f * Mathf.Max(0.1f, braking) * availableBrakingDistance);
+                targetSpeed = Mathf.Min(targetSpeed, safeSpeed);
             }
         }
 
