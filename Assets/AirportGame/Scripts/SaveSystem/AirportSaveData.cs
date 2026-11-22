@@ -189,6 +189,8 @@ public class FlightScheduleSaveData
     public string flightNumber = "";
     public string gateStableId = "";
     public int startMinute;
+    public string contractId = "";
+    public string obligationId = "";
 }
 
 [Serializable]
