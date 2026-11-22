@@ -42,6 +42,12 @@ public class CargoPackage : MonoBehaviour
 
     private CargoPackageData data;
 
+    private void OnDestroy()
+    {
+        if (data != null)
+            data.DetachVisual(this);
+    }
+
     public CargoPackageData Data
     {
         get
@@ -90,7 +96,11 @@ public class CargoPackage : MonoBehaviour
             return;
         }
 
+        if (data != null)
+            data.DetachVisual(this);
+
         data = packageData;
+        data.AttachVisual(this);
         SyncSerializedFields();
     }
 
@@ -128,7 +138,13 @@ public class CargoPackage : MonoBehaviour
             CargoPackageState.Staged,
             assignedFlightOperationId,
             startingZone);
+        data.AttachVisual(this);
         SyncSerializedFields();
+    }
+
+    public void SetVisualPrefab(GameObject prefab)
+    {
+        Data.SetVisualPrefab(prefab);
     }
 
     public bool IsForFlight(string operationId)
