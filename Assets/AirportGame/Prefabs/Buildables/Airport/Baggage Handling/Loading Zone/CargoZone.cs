@@ -22,6 +22,7 @@ public class CargoZone : MonoBehaviour
     }
 
     public static event Action<CargoZone> AvailabilityChanged;
+    public static event Action CapacityChanged;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void ResetStaticState()
@@ -29,6 +30,7 @@ public class CargoZone : MonoBehaviour
         registeredZones.Clear();
         registryInitialized = false;
         AvailabilityChanged = null;
+        CapacityChanged = null;
     }
 
     private static void EnsureRegistryInitialized()
@@ -105,13 +107,19 @@ public class CargoZone : MonoBehaviour
         registryInitialized = true;
 
         if (registeredZones.Add(this))
+        {
             NotifyAvailabilityChanged();
+            CapacityChanged?.Invoke();
+        }
     }
 
     private void OnDisable()
     {
         if (registeredZones.Remove(this))
+        {
             NotifyAvailabilityChanged();
+            CapacityChanged?.Invoke();
+        }
     }
 
     private void Awake()
@@ -127,6 +135,7 @@ public class CargoZone : MonoBehaviour
         handlingThroughputPackagesPerHour =
             Mathf.Max(0f, handlingThroughputPackagesPerHour);
         NotifyAvailabilityChanged();
+        CapacityChanged?.Invoke();
     }
 
     private void FindZonePoints()
