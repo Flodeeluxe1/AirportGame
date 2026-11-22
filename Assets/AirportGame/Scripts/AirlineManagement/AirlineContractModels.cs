@@ -77,6 +77,15 @@ public enum AirlineContractStatus
 }
 
 [Serializable]
+public class AirlineContractFlightObligation
+{
+    public string obligationId;
+    public string flightNumber;
+    public AirlineOperatingWindow window;
+    public int slotIndex;
+}
+
+[Serializable]
 public class ActiveAirlineContract
 {
     public string contractId;
@@ -87,4 +96,6 @@ public class ActiveAirlineContract
     public long endDay;
     public AirlineContractStatus status;
     public AirlineContractTerms agreedTerms;
+    public List<AirlineContractFlightObligation> flightObligations =
+        new List<AirlineContractFlightObligation>();
 }
