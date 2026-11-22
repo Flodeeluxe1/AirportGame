@@ -181,12 +181,11 @@ public class GameMenuUIController : MonoBehaviour
 
     private void PauseGame()
     {
-        // Pause the game clock, including systems driven by its speed.
+        // GameTimeManager owns pause state whenever it is available.
         if (gameTimeManager != null)
             gameTimeManager.Pause();
-
-        // Also pause scripts and physics using Unity's scaled time.
-        Time.timeScale = 0f;
+        else
+            Time.timeScale = 0f;
     }
 
     private void RestorePauseState()
@@ -194,15 +193,17 @@ public class GameMenuUIController : MonoBehaviour
         if (!pauseStateCaptured)
             return;
 
-        // Restore the original Unity time scale and game clock speed,
-        // including an original paused state.
-        Time.timeScale = previousTimeScale;
-
+        // Restore the original game speed. The time manager also owns
+        // Unity's legacy time-scale setting during the migration period.
         if (gameTimeManager != null)
         {
             gameTimeManager.SetSpeed(
                 Mathf.RoundToInt(previousGameSpeedMultiplier)
             );
+        }
+        else
+        {
+            Time.timeScale = previousTimeScale;
         }
 
         pauseStateCaptured = false;
