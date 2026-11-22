@@ -200,13 +200,13 @@ public class AirlineAirportSnapshotCollector : MonoBehaviour
     private int GetRepresentativeFee(AirlineDefinition airline)
     {
         if (airportManagementController == null)
-            return 0;
+            return airline.MaximumAcceptableLandingAndParkingFee;
 
         AirportManagementController.FeeSettings settings =
             airportManagementController.GetFeeSettingsForDisplay();
 
         if (settings == null)
-            return 0;
+            return airline.MaximumAcceptableLandingAndParkingFee;
 
         int cargoFee = GetProfileTotal(settings.cargo);
         int passengerFee = GetProfileTotal(settings.passenger);
