@@ -3077,9 +3077,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AirlineAirportSnapshotCollector
   airlines:
   - {fileID: 11400000, guid: 3a727a5df3503ce4895cc42516af8ec2, type: 2}
-  airportManagementController: {fileID: 0}
-  gateRegistry: {fileID: 0}
-  gridManager: {fileID: 0}
+  airportManagementController: {fileID: 1390174456}
+  gateRegistry: {fileID: 335832197}
+  gridManager: {fileID: 728659359}
   interestResults: []
 --- !u!4 &1352646395
 Transform:
