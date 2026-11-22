@@ -73,7 +73,7 @@ public class SightseeingPassengerManager : MonoBehaviour
     private bool subscribedToSpawner;
     private bool subscribedToGameTime;
     private bool initialSchedulePrepared;
-    private float nextCheckInRetryTime;
+    private double nextCheckInRetryTime;
 
     private void Awake() => ResolveReferences();
 
@@ -137,9 +137,9 @@ public class SightseeingPassengerManager : MonoBehaviour
             return;
         }
 
-        if (Time.time >= nextCheckInRetryTime)
+        if (GameTimeManager.SimulationTime >= nextCheckInRetryTime)
         {
-            nextCheckInRetryTime = Time.time + Mathf.Max(0.1f, checkInRetrySeconds);
+            nextCheckInRetryTime = GameTimeManager.SimulationTime + Mathf.Max(0.1f, checkInRetrySeconds);
             RetryCheckIn();
         }
     }
