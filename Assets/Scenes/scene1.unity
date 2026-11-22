@@ -2687,6 +2687,7 @@ MonoBehaviour:
   flightCatalog: {fileID: 1712716984}
   gameTimeManager: {fileID: 449210932}
   airportManagementController: {fileID: 0}
+  contractManager: {fileID: 0}
   spawnIntervalSeconds: 120
   logScheduleReloads: 1
   logAircraftSpawns: 1
@@ -3056,6 +3057,8 @@ GameObject:
   m_Component:
   - component: {fileID: 1352646395}
   - component: {fileID: 1352646394}
+  - component: {fileID: 1352646397}
+  - component: {fileID: 1352646396}
   m_Layer: 0
   m_Name: Airline Management System
   m_TagString: Untagged
@@ -3096,6 +3099,38 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1352646396
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1352646393}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3f361eeb9e795a44d85ea8b742503bd6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AirlineContractFlightIntegration
+  contractManager: {fileID: 0}
+  flightCatalog: {fileID: 0}
+  flightManagementUI: {fileID: 0}
+--- !u!114 &1352646397
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1352646393}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b5ec7ad0b029125429fcdf2359decc9b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AirlineContractOfferManager
+  snapshotCollector: {fileID: 0}
+  gameTimeManager: {fileID: 0}
+  airlines: []
+  pendingOffers: []
+  activeContracts: []
 --- !u!1 &1390174454
 GameObject:
   m_ObjectHideFlags: 0
@@ -3433,6 +3468,7 @@ GameObject:
   - component: {fileID: 1478484334}
   - component: {fileID: 1478484335}
   - component: {fileID: 1478484336}
+  - component: {fileID: 1478484337}
   m_Layer: 0
   m_Name: AirportUI
   m_TagString: Untagged
@@ -3760,6 +3796,22 @@ MonoBehaviour:
   economyHUD: {fileID: 1048131946}
   economyManager: {fileID: 1048131944}
   gameTimeManager: {fileID: 0}
+--- !u!114 &1478484337
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1478484321}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b87e5a2d4c6f4189a3d7e0b2c5f61984, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AirlineManagementUIController
+  uiDocument: {fileID: 762824360}
+  contractManager: {fileID: 0}
+  snapshotCollector: {fileID: 0}
+  gameTimeManager: {fileID: 449210932}
 --- !u!1 &1482440049
 GameObject:
   m_ObjectHideFlags: 0

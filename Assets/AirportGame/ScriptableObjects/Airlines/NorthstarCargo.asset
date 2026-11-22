@@ -31,5 +31,7 @@ MonoBehaviour:
   minimumRunwayLengthMeters: 100
   desiredCargoStorageCapacity: 100
   desiredCargoHandlingThroughputPerHour: 10
+  contractTemplates:
+  - {fileID: 11400000, guid: 07f3d59c5ad5e164db82499267bb4684, type: 2}
   minimumPreferredAirportReputation: 50
   priceSensitivity: 1.25
