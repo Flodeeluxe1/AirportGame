@@ -15,6 +15,11 @@ public sealed class CargoPackageData
     [SerializeField] private string flightOperationId;
     [SerializeField] private CargoZone currentZone;
 
+    [NonSerialized] private CargoPackage visual;
+    [NonSerialized] private GameObject visualPrefab;
+
+    public CargoPackage Visual => visual;
+
     public string PackageId => packageId;
     public CargoDirection Direction => direction;
     public CargoPackageState State => state;
@@ -39,6 +44,59 @@ public sealed class CargoPackageData
             packageState,
             assignedFlightOperationId,
             startingZone);
+    }
+
+    public void SetVisualPrefab(GameObject prefab)
+    {
+        visualPrefab = prefab;
+    }
+
+    public void AttachVisual(CargoPackage packageVisual)
+    {
+        visual = packageVisual;
+    }
+
+    public void DetachVisual(CargoPackage packageVisual)
+    {
+        if (visual == packageVisual)
+            visual = null;
+    }
+
+    public void ReleaseVisual()
+    {
+        if (visual == null)
+            return;
+
+        CargoPackage oldVisual = visual;
+        visual = null;
+        UnityEngine.Object.Destroy(oldVisual.gameObject);
+    }
+
+    public bool CreateVisualAt(Vector3 position, Quaternion rotation)
+    {
+        if (visual != null)
+        {
+            visual.transform.SetPositionAndRotation(position, rotation);
+            return true;
+        }
+
+        if (visualPrefab == null)
+            return false;
+
+        GameObject instance = UnityEngine.Object.Instantiate(
+            visualPrefab,
+            position,
+            rotation);
+
+        CargoPackage packageVisual = instance.GetComponent<CargoPackage>();
+        if (packageVisual == null)
+        {
+            UnityEngine.Object.Destroy(instance);
+            return false;
+        }
+
+        packageVisual.BindData(this);
+        return true;
     }
 
     public void Initialize(
