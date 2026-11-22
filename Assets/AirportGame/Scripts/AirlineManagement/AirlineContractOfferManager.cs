@@ -35,6 +35,7 @@ public class AirlineContractOfferManager : MonoBehaviour
     public event Action<AirlineContractOffer> OfferGenerated;
     public event Action<AirlineContractOffer> OfferExpired;
     public event Action<ActiveAirlineContract> ContractAccepted;
+    public event Action<ActiveAirlineContract> ContractCompleted;
     public event Action<string> OfferDeclined;
 
     public IReadOnlyList<AirlineContractOffer> PendingOffers => pendingOffers;
@@ -86,6 +87,7 @@ public class AirlineContractOfferManager : MonoBehaviour
         if (gameTimeManager == null)
             return;
 
+        CompleteExpiredContracts();
         ExpireOldOffers();
         EvaluateForCurrentDay();
     }
@@ -338,6 +340,25 @@ public class AirlineContractOfferManager : MonoBehaviour
         pendingOffers.Remove(offer);
         OfferDeclined?.Invoke(offerId);
         return true;
+    }
+
+    private void CompleteExpiredContracts()
+    {
+        if (gameTimeManager == null)
+            return;
+
+        foreach (ActiveAirlineContract contract in activeContracts)
+        {
+            if (contract == null ||
+                contract.status != AirlineContractStatus.Active ||
+                gameTimeManager.CurrentDay <= contract.endDay)
+            {
+                continue;
+            }
+
+            contract.status = AirlineContractStatus.Completed;
+            ContractCompleted?.Invoke(contract);
+        }
     }
 
     private void ExpireOldOffers()
