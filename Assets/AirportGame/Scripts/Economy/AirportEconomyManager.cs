@@ -16,7 +16,8 @@ public enum AirportFinancialCategory
     PassengerRevenue,
     SightseeingFlights,
     FuelSales,
-    FlightSchool
+    FlightSchool,
+    AirlineContracts
 }
 
 [Serializable]
