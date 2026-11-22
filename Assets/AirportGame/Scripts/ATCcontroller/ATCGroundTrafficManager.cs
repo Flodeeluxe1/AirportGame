@@ -147,15 +147,15 @@ public class ATCGroundTrafficManager : MonoBehaviour
         public AircraftTaxiTrafficFollowing Aircraft;
         public Vector3 TravelDirection;
         public bool HasEntered;
-        public float LastSeenTime;
+        public double LastSeenTime;
     }
 
     private sealed class WaitRequest
     {
         public AircraftTaxiTrafficFollowing Aircraft;
         public Vector3 TravelDirection;
-        public float RequestedAt;
-        public float LastSeenTime;
+        public double RequestedAt;
+        public double LastSeenTime;
     }
 
     private sealed class ControlPointState
@@ -234,7 +234,7 @@ public class ATCGroundTrafficManager : MonoBehaviour
 
     private int cachedNetworkVersion = int.MinValue;
     private int cachedManualPointVersion = int.MinValue;
-    private float nextCleanupTime;
+    private double nextCleanupTime;
 
     private readonly Dictionary<AircraftTaxiTrafficFollowing, string> lastLoggedTaxiDecisions =
         new Dictionary<AircraftTaxiTrafficFollowing, string>();
@@ -310,11 +310,11 @@ public class ATCGroundTrafficManager : MonoBehaviour
 
     private void Update()
     {
-        if (Time.unscaledTime < nextCleanupTime)
+        if (GameTimeManager.SimulationTime < nextCleanupTime)
             return;
 
         nextCleanupTime =
-            Time.unscaledTime + Mathf.Max(0.1f, cleanupInterval);
+            GameTimeManager.SimulationTime + Mathf.Max(0.1f, cleanupInterval);
 
         CleanupStaleReservations();
         CleanupStaleSectionReservations();
@@ -1318,7 +1318,7 @@ public class ATCGroundTrafficManager : MonoBehaviour
 
         if (existingOwner != null)
         {
-            existingOwner.LastSeenTime = Time.unscaledTime;
+            existingOwner.LastSeenTime = GameTimeManager.SimulationTime;
             decision = "Cleared on taxiway section";
             return true;
         }
@@ -1331,8 +1331,8 @@ public class ATCGroundTrafficManager : MonoBehaviour
             {
                 Aircraft = aircraft,
                 TravelDirection = travelDirection,
-                RequestedAt = Time.unscaledTime,
-                LastSeenTime = Time.unscaledTime
+                RequestedAt = GameTimeManager.SimulationTime,
+                LastSeenTime = GameTimeManager.SimulationTime
             };
 
             state.Waiters.Add(request);
@@ -1341,7 +1341,7 @@ public class ATCGroundTrafficManager : MonoBehaviour
         else
         {
             request.TravelDirection = travelDirection;
-            request.LastSeenTime = Time.unscaledTime;
+            request.LastSeenTime = GameTimeManager.SimulationTime;
         }
 
         if (HasSameDirectionSectionOwner(state, travelDirection) &&
@@ -1416,7 +1416,7 @@ public class ATCGroundTrafficManager : MonoBehaviour
                 continue;
             }
 
-            reservation.LastSeenTime = Time.unscaledTime;
+            reservation.LastSeenTime = GameTimeManager.SimulationTime;
 
             float nearestDistance = float.MaxValue;
 
@@ -1544,7 +1544,7 @@ public class ATCGroundTrafficManager : MonoBehaviour
         {
             Aircraft = aircraft,
             TravelDirection = request.TravelDirection,
-            LastSeenTime = Time.unscaledTime
+            LastSeenTime = GameTimeManager.SimulationTime
         });
 
         if (!activeSectionReservations.TryGetValue(
@@ -1667,7 +1667,7 @@ public class ATCGroundTrafficManager : MonoBehaviour
 
     private void CleanupStaleSectionReservations()
     {
-        float now = Time.unscaledTime;
+        double now = GameTimeManager.SimulationTime;
         List<AircraftTaxiTrafficFollowing> staleAircraft = null;
 
         foreach (KeyValuePair<AircraftTaxiTrafficFollowing, List<TaxiwaySectionKey>> pair
@@ -2770,7 +2770,7 @@ public class ATCGroundTrafficManager : MonoBehaviour
             return false;
         }
 
-        reservation.LastSeenTime = Time.unscaledTime;
+        reservation.LastSeenTime = GameTimeManager.SimulationTime;
 
         float distance = HorizontalDistance(
             aircraft.transform.position,
@@ -2838,8 +2838,8 @@ public class ATCGroundTrafficManager : MonoBehaviour
             {
                 Aircraft = aircraft,
                 TravelDirection = travelDirection,
-                RequestedAt = Time.unscaledTime,
-                LastSeenTime = Time.unscaledTime
+                RequestedAt = GameTimeManager.SimulationTime,
+                LastSeenTime = GameTimeManager.SimulationTime
             };
 
             state.Waiters.Add(request);
@@ -2848,7 +2848,7 @@ public class ATCGroundTrafficManager : MonoBehaviour
         else
         {
             request.TravelDirection = travelDirection;
-            request.LastSeenTime = Time.unscaledTime;
+            request.LastSeenTime = GameTimeManager.SimulationTime;
         }
 
         // A manual holding point may pass a same-direction convoy together.
@@ -2972,7 +2972,7 @@ public class ATCGroundTrafficManager : MonoBehaviour
             {
                 Aircraft = aircraft,
                 TravelDirection = request.TravelDirection,
-                LastSeenTime = Time.unscaledTime
+                LastSeenTime = GameTimeManager.SimulationTime
             };
 
         state.Owners.Add(reservation);
@@ -3059,7 +3059,7 @@ public class ATCGroundTrafficManager : MonoBehaviour
 
     private void CleanupStaleReservations()
     {
-        float now = Time.unscaledTime;
+        double now = GameTimeManager.SimulationTime;
         List<AircraftTaxiTrafficFollowing> staleAircraft = null;
 
         foreach (KeyValuePair<AircraftTaxiTrafficFollowing, ControlPointKey> pair
