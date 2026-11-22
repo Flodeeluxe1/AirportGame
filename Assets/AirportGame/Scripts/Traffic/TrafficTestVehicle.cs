@@ -1192,19 +1192,66 @@ public class TrafficTestVehicle : MonoBehaviour
             return;
         }
 
-        Vector3 targetPosition =
-            smoothedMovementWaypoints[
-                currentSmoothedWaypointIndex];
-
         float movementSpeed = GetTrafficFollowingSpeed();
+        float remainingTime = GameTimeManager.SimulationDeltaTime;
+        const int maxWaypointsPerUpdate = 64;
 
-        MoveTowards(targetPosition, movementSpeed);
-
-        if (ReachedPosition(targetPosition))
+        for (int step = 0;
+             step < maxWaypointsPerUpdate &&
+             remainingTime > 0.0001f &&
+             currentSmoothedWaypointIndex < smoothedMovementWaypoints.Count;
+             step++)
         {
-            transform.position = targetPosition;
-            currentSmoothedWaypointIndex++;
+            // Re-check reservations after each crossed waypoint so a large
+            // time step cannot carry the vehicle through an unreserved junction.
+            if (HandleIntersectionControl())
+                return;
+
+            Vector3 targetPosition =
+                smoothedMovementWaypoints[currentSmoothedWaypointIndex];
+
+            Vector3 offset = targetPosition - transform.position;
+            offset.y = 0f;
+            float distance = offset.magnitude;
+
+            if (distance <= 0.01f)
+            {
+                transform.position = targetPosition;
+                currentSmoothedWaypointIndex++;
+                continue;
+            }
+
+            if (movementSpeed <= 0.001f)
+                return;
+
+            float timeToTarget = distance / movementSpeed;
+            float segmentTime = Mathf.Min(remainingTime, timeToTarget);
+            float travelDistance = movementSpeed * segmentTime;
+
+            Quaternion targetRotation = Quaternion.LookRotation(
+                offset.normalized,
+                Vector3.up);
+
+            transform.rotation = Quaternion.Slerp(
+                transform.rotation,
+                targetRotation,
+                Mathf.Clamp01(rotationSpeed * segmentTime));
+
+            if (segmentTime >= timeToTarget)
+            {
+                transform.position = targetPosition;
+                currentSmoothedWaypointIndex++;
+            }
+            else
+            {
+                transform.position += offset.normalized * travelDistance;
+            }
+
+            remainingTime -= segmentTime;
         }
+
+        if (currentSmoothedWaypointIndex >= smoothedMovementWaypoints.Count)
+            HandleRoadPathFinished();
     }
 
     /// <summary>
