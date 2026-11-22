@@ -127,32 +127,47 @@ public class AircraftCargoPaxTakeoffController : MonoBehaviour
 
             if (departureController == null ||
                 !departureController.IsLinedUp)
-            {
                 return;
-            }
 
             if (!BeginTakeoff())
                 return;
         }
 
-        float deltaTime = GetSimulationDeltaTime();
-
-        if (deltaTime <= 0f)
+        float remainingSimulationTime = GetSimulationDeltaTime();
+        if (remainingSimulationTime <= 0f)
             return;
 
-        switch (currentState)
+        const float maximumSubstep = 0.25f;
+        const int maximumSubstepsPerFrame = 512;
+        int substeps = 0;
+
+        while (remainingSimulationTime > 0.0001f &&
+               currentState != TakeoffState.Completed &&
+               substeps < maximumSubstepsPerFrame)
         {
-            case TakeoffState.TakeoffRoll:
-                UpdateTakeoffRoll(deltaTime);
-                break;
+            float step = Mathf.Min(remainingSimulationTime, maximumSubstep);
 
-            case TakeoffState.Rotating:
-                UpdateRotationAndLiftoff(deltaTime);
-                break;
+            switch (currentState)
+            {
+                case TakeoffState.TakeoffRoll:
+                    UpdateTakeoffRoll(step);
+                    break;
 
-            case TakeoffState.Climbing:
-                UpdateClimb(deltaTime);
-                break;
+                case TakeoffState.Rotating:
+                    UpdateRotationAndLiftoff(step);
+                    break;
+
+                case TakeoffState.Climbing:
+                    UpdateClimb(step);
+                    break;
+
+                default:
+                    remainingSimulationTime = 0f;
+                    continue;
+            }
+
+            remainingSimulationTime -= step;
+            substeps++;
         }
 
         PublishCurrentSpeed();
