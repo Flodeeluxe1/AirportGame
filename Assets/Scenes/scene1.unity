@@ -3059,6 +3059,7 @@ GameObject:
   - component: {fileID: 1352646394}
   - component: {fileID: 1352646397}
   - component: {fileID: 1352646396}
+  - component: {fileID: 1352646398}
   m_Layer: 0
   m_Name: Airline Management System
   m_TagString: Untagged
@@ -3131,6 +3132,28 @@ MonoBehaviour:
   airlines: []
   pendingOffers: []
   activeContracts: []
+--- !u!114 &1352646398
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1352646393}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d2a7c4e8b1f46a0b3d5e7f912c684ab, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AirlineContractPerformanceTracker
+  contractManager: {fileID: 0}
+  economyManager: {fileID: 0}
+  gameTimeManager: {fileID: 0}
+  startingRelationship: 50
+  onTimeRelationshipChange: 2
+  lateRelationshipChange: -0.5
+  missedRelationshipChange: -5
+  cancelledRelationshipChange: -6
+  operationalFailureRelationshipChange: -3
+  relationships: []
 --- !u!1 &1390174454
 GameObject:
   m_ObjectHideFlags: 0
@@ -3812,6 +3835,7 @@ MonoBehaviour:
   contractManager: {fileID: 0}
   snapshotCollector: {fileID: 0}
   gameTimeManager: {fileID: 449210932}
+  performanceTracker: {fileID: 0}
 --- !u!1 &1482440049
 GameObject:
   m_ObjectHideFlags: 0
