@@ -112,6 +112,8 @@ public class ActiveAirlineContract
     public bool completionBonusPaid;
     public int renewalCount;
     public bool renewalDeclined;
+    public int renewalBasePaymentPerFlight;
+    public int renewalBaseCompletionBonus;
 }
 
 public enum AirlineContractFlightResult
