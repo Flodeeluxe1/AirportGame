@@ -21,6 +21,7 @@ public class AirlineContractFlightIntegration : MonoBehaviour
         {
             contractManager.ContractAccepted += HandleContractAccepted;
             contractManager.ContractCompleted += HandleContractCompleted;
+            contractManager.ContractsRestored += HandleContractsRestored;
         }
 
         RegisterExistingContracts();
@@ -39,6 +40,7 @@ public class AirlineContractFlightIntegration : MonoBehaviour
         {
             contractManager.ContractAccepted -= HandleContractAccepted;
             contractManager.ContractCompleted -= HandleContractCompleted;
+            contractManager.ContractsRestored -= HandleContractsRestored;
         }
     }
 
@@ -74,6 +76,17 @@ public class AirlineContractFlightIntegration : MonoBehaviour
 
         foreach (ActiveAirlineContract contract in contractManager.ActiveContracts)
             RegisterContractFlights(contract);
+    }
+
+    private void HandleContractsRestored()
+    {
+        RegisterExistingContracts();
+
+        if (flightManagementUI == null)
+            ResolveReferences();
+
+        if (flightManagementUI != null)
+            flightManagementUI.RefreshAvailableFlights();
     }
 
     private void HandleContractAccepted(ActiveAirlineContract contract)
