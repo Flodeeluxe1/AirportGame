@@ -3046,6 +3046,56 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1352646393
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1352646395}
+  - component: {fileID: 1352646394}
+  m_Layer: 0
+  m_Name: Airline Management System
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1352646394
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1352646393}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 68757bd794a9828428e15b0d91e93b8d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AirlineAirportSnapshotCollector
+  airlines:
+  - {fileID: 11400000, guid: 3a727a5df3503ce4895cc42516af8ec2, type: 2}
+  airportManagementController: {fileID: 0}
+  gateRegistry: {fileID: 0}
+  gridManager: {fileID: 0}
+  interestResults: []
+--- !u!4 &1352646395
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1352646393}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1390174454
 GameObject:
   m_ObjectHideFlags: 0
@@ -6004,6 +6054,7 @@ SceneRoots:
   - {fileID: 2136825552}
   - {fileID: 403195574}
   - {fileID: 1390174455}
+  - {fileID: 1352646395}
   - {fileID: 1048131945}
   - {fileID: 1832806717}
   - {fileID: 2112575486}

@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 087e4e2989a0ec942ac28b0ec5d91c70, type: 3}
+  m_Name: NorthstarCargo
+  m_EditorClassIdentifier: Assembly-CSharp::AirlineDefinition
+  airlineId: northstar_cargo
+  displayName: Northstar Cargo
+  logo: {fileID: 0}
+  operationType: 0
+  interestWeights:
+    airportFees: 20
+    suitableGates: 15
+    runwaySuitability: 15
+    cargoHandlingCapacity: 15
+    nightOperations: 10
+    airportReputation: 10
+    previousContractPerformance: 15
+  idealLandingAndParkingFee: 250
+  maximumAcceptableLandingAndParkingFee: 750
+  preferredGateSize: 0
+  desiredSuitableGateCount: 1
+  minimumRunwayLengthMeters: 100
+  desiredCargoStorageCapacity: 100
+  desiredCargoHandlingThroughputPerHour: 10
+  minimumPreferredAirportReputation: 50
+  priceSensitivity: 1.25
