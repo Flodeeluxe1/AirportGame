@@ -227,4 +227,6 @@ MonoBehaviour:
   vanStopPoint: {fileID: 1960276579273926634}
   cargoAreaPoint: {fileID: 4124562235543511034}
   airportVehicleStopPoint: {fileID: 634233464997302549}
+  storageCapacityPackages: 100
+  handlingThroughputPackagesPerHour: 10
   stagedPackageCount: 0
