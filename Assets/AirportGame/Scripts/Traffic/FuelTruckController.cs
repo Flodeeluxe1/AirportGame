@@ -256,14 +256,66 @@ public class FuelTruckController : MonoBehaviour
 
     private void MoveToCurrentWaypoint()
     {
-        Vector3 target = GetRoadWorldPosition(route[pathIndex]);
-        float trafficAwareSpeed = GetTrafficFollowingSpeed();
-        MoveTowards(target, trafficAwareSpeed);
+        float remainingTime = GameTimeManager.SimulationDeltaTime;
+        const int maxWaypointsPerUpdate = 64;
 
-        if (HasReached(target))
+        for (int step = 0;
+             step < maxWaypointsPerUpdate &&
+             remainingTime > 0.0001f &&
+             pathIndex < route.Count;
+             step++)
         {
-            transform.position = target;
-            pathIndex++;
+            // Stop at the delivery-station route node. The normal Update
+            // flow must acquire the station before leaving the road.
+            if (pathIndex == deliveryPathIndex && !delivered)
+                return;
+
+            if (ShouldWaitForIntersection())
+            {
+                debugState = "Waiting for intersection";
+                return;
+            }
+
+            float trafficAwareSpeed = GetTrafficFollowingSpeed();
+            if (trafficAwareSpeed <= 0.001f)
+                return;
+
+            Vector3 target = GetRoadWorldPosition(route[pathIndex]);
+            Vector3 offset = target - transform.position;
+            offset.y = 0f;
+            float distance = offset.magnitude;
+
+            if (distance <= 0.03f)
+            {
+                transform.position = target;
+                pathIndex++;
+                continue;
+            }
+
+            float timeToTarget = distance / trafficAwareSpeed;
+            float segmentTime = Mathf.Min(remainingTime, timeToTarget);
+            float travelDistance = trafficAwareSpeed * segmentTime;
+
+            Quaternion targetRotation = Quaternion.LookRotation(
+                offset.normalized,
+                Vector3.up);
+
+            transform.rotation = Quaternion.Slerp(
+                transform.rotation,
+                targetRotation,
+                Mathf.Clamp01(rotationSpeed * segmentTime));
+
+            if (segmentTime >= timeToTarget)
+            {
+                transform.position = target;
+                pathIndex++;
+            }
+            else
+            {
+                transform.position += offset.normalized * travelDistance;
+            }
+
+            remainingTime -= segmentTime;
         }
     }
 
