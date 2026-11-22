@@ -56,7 +56,7 @@ public class FlightSchoolManager : MonoBehaviour
         public GameObject aircraft;
         public HobbyAircraftParkingSpot parkingSpot;
         public TrainingFlightController trainingController;
-        public float nextSpawnAttemptTime;
+        public double nextSpawnAttemptTime;
 
         public bool rewardPaid;
         public bool lessonRestartPending;
@@ -79,8 +79,8 @@ public class FlightSchoolManager : MonoBehaviour
     private FlightSchoolAssessmentController assessmentController;
     private GameTimeManager gameTimeManager;
 
-    private float nextRoomRefreshTime;
-    private float nextParkingSpotRefreshTime;
+    private double nextRoomRefreshTime;
+    private double nextParkingSpotRefreshTime;
     private HobbyAircraftParkingSpot[] cachedParkingSpots =
         Array.Empty<HobbyAircraftParkingSpot>();
     private static FlightSchoolManager activeManager;
@@ -115,18 +115,18 @@ public class FlightSchoolManager : MonoBehaviour
 
         ResolveReferences();
 
-        if (Time.unscaledTime >= nextRoomRefreshTime)
+        if (GameTimeManager.SimulationTime >= nextRoomRefreshTime)
         {
             nextRoomRefreshTime =
-                Time.unscaledTime + Mathf.Max(0.1f, roomRefreshInterval);
+                GameTimeManager.SimulationTime + Mathf.Max(0.1f, roomRefreshInterval);
 
             RefreshSchoolRooms();
         }
 
-        if (Time.unscaledTime >= nextParkingSpotRefreshTime)
+        if (GameTimeManager.SimulationTime >= nextParkingSpotRefreshTime)
         {
             nextParkingSpotRefreshTime =
-                Time.unscaledTime + Mathf.Max(0.5f, parkingSpotRefreshInterval);
+                GameTimeManager.SimulationTime + Mathf.Max(0.5f, parkingSpotRefreshInterval);
             RefreshParkingSpotCache();
         }
 
@@ -404,11 +404,11 @@ public class FlightSchoolManager : MonoBehaviour
             return;
         }
 
-        if (Time.unscaledTime < operation.nextSpawnAttemptTime)
+        if (GameTimeManager.SimulationTime < operation.nextSpawnAttemptTime)
             return;
 
         operation.nextSpawnAttemptTime =
-            Time.unscaledTime + Mathf.Max(0.1f, spawnRetryInterval);
+            GameTimeManager.SimulationTime + Mathf.Max(0.1f, spawnRetryInterval);
 
         foreach (HobbyAircraftParkingSpot spot in cachedParkingSpots)
         {
