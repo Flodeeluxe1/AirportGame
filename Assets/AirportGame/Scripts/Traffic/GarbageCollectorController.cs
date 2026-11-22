@@ -230,37 +230,85 @@ public class GarbageCollectorController : MonoBehaviour
             return;
         }
 
-        Vector3 target = GetRoadWorldPosition(route[pathIndex]);
-        float followingSpeed = trafficFollowing.GetFollowingSpeed(
-            movementSpeed,
-            currentSpeed,
-            route,
-            roadNetwork,
-            gridManager,
-            hasIntersectionReservation,
-            out _);
+        float remainingTime = GameTimeManager.SimulationDeltaTime;
+        const int maxWaypointsPerUpdate = 64;
 
-        currentSpeed = followingSpeed;
-        MoveTowards(target, followingSpeed);
-
-        if (HasReached(target))
+        for (int step = 0;
+             step < maxWaypointsPerUpdate &&
+             remainingTime > 0.0001f &&
+             pathIndex < route.Count;
+             step++)
         {
-            transform.position = target;
-            pathIndex++;
-            debugPathIndex = pathIndex;
-
-            if (pathIndex >= route.Count)
+            if (ShouldWaitForIntersection())
             {
-                if (state == CollectorState.DrivingToDisposal)
-                {
-                    ReleaseIntersectionReservation();
-                    state = CollectorState.ApproachingDisposal;
-                    debugState = "Approaching GarbageCollectorStopPoint";
-                }
-                else
-                {
-                    CompleteTripAndDespawn();
-                }
+                debugState = "Waiting for intersection";
+                return;
+            }
+
+            float followingSpeed = trafficFollowing.GetFollowingSpeed(
+                movementSpeed,
+                currentSpeed,
+                route,
+                roadNetwork,
+                gridManager,
+                hasIntersectionReservation,
+                out _);
+
+            currentSpeed = followingSpeed;
+            if (followingSpeed <= 0.001f)
+                return;
+
+            Vector3 target = GetRoadWorldPosition(route[pathIndex]);
+            Vector3 offset = target - transform.position;
+            offset.y = 0f;
+            float distance = offset.magnitude;
+
+            if (distance <= 0.03f)
+            {
+                transform.position = target;
+                pathIndex++;
+                debugPathIndex = pathIndex;
+                continue;
+            }
+
+            float timeToTarget = distance / followingSpeed;
+            float segmentTime = Mathf.Min(remainingTime, timeToTarget);
+            float travelDistance = followingSpeed * segmentTime;
+
+            Quaternion targetRotation = Quaternion.LookRotation(
+                offset.normalized,
+                Vector3.up);
+
+            transform.rotation = Quaternion.Slerp(
+                transform.rotation,
+                targetRotation,
+                Mathf.Clamp01(rotationSpeed * segmentTime));
+
+            if (segmentTime >= timeToTarget)
+            {
+                transform.position = target;
+                pathIndex++;
+                debugPathIndex = pathIndex;
+            }
+            else
+            {
+                transform.position += offset.normalized * travelDistance;
+            }
+
+            remainingTime -= segmentTime;
+        }
+
+        if (pathIndex >= route.Count)
+        {
+            if (state == CollectorState.DrivingToDisposal)
+            {
+                ReleaseIntersectionReservation();
+                state = CollectorState.ApproachingDisposal;
+                debugState = "Approaching GarbageCollectorStopPoint";
+            }
+            else
+            {
+                CompleteTripAndDespawn();
             }
         }
     }
