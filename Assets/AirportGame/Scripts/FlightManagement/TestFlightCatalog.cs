@@ -22,6 +22,27 @@ public class TestFlightCatalog : MonoBehaviour
 
     public int FlightCount => flights.Count;
 
+    public bool AddContractFlight(FlightDefinition flight)
+    {
+        if (flight == null || string.IsNullOrWhiteSpace(flight.ContractId) ||
+            string.IsNullOrWhiteSpace(flight.ObligationId))
+            return false;
+
+        if (flights.Exists(existing =>
+                existing != null &&
+                existing.FlightNumber == flight.FlightNumber))
+            return false;
+
+        flights.Add(flight);
+        return true;
+    }
+
+    public bool ContainsFlight(string flightNumber)
+    {
+        return flights.Exists(flight =>
+            flight != null && flight.FlightNumber == flightNumber);
+    }
+
     private void Awake()
     {
         GenerateTestFlights();
