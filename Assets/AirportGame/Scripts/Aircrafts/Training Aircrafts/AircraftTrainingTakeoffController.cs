@@ -23,8 +23,6 @@ public class AircraftTrainingTakeoffController : MonoBehaviour
     private AircraftRunwayTrafficManager trafficManager;
 
     [SerializeField]
-
-    [SerializeField]
     private GridManager gridManager;
 
     [Tooltip("BoxCollider enclosing the aircraft.")]
