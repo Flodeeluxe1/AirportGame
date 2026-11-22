@@ -408,8 +408,9 @@ public class AirportCargoIncomingBaggageJob : MonoBehaviour
                 currentOperationId,
                 targetZone
             );
+            package.SetVisualPrefab(cargoBoxPrefab);
 
-            if (!targetZone.RegisterPackage(package))
+            if (!targetZone.RegisterPackage(package.Data))
             {
                 Destroy(box);
                 AbortJob(
@@ -422,7 +423,7 @@ public class AirportCargoIncomingBaggageJob : MonoBehaviour
             // package exists in, and is registered with, its destination.
             if (!aircraft.ConfirmIncomingBaggageTransferred(packageId))
             {
-                targetZone.UnregisterPackage(package);
+                targetZone.UnregisterPackage(package.Data);
                 Destroy(box);
                 AbortJob(
                     $"The aircraft manifest rejected delivered baggage '{packageId}'."
