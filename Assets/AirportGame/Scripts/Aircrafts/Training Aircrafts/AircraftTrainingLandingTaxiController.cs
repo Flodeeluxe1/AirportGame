@@ -966,7 +966,7 @@ public class AircraftTrainingLandingTaxiController : MonoBehaviour
             transform.rotation = Quaternion.Slerp(
                 transform.rotation,
                 targetRotation,
-                rotationSpeed * Time.deltaTime
+                rotationSpeed * GameTimeManager.SimulationDeltaTime
             );
         }
 
@@ -992,7 +992,7 @@ public class AircraftTrainingLandingTaxiController : MonoBehaviour
         transform.position = Vector3.MoveTowards(
             transform.position,
             target,
-            speed * Time.deltaTime
+            speed * GameTimeManager.SimulationDeltaTime
         );
 
         return HorizontalDistance(
