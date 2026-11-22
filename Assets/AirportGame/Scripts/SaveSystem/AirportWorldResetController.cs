@@ -1211,16 +1211,16 @@ public class AirportWorldResetController : MonoBehaviour
             AirlineContractPerformanceTracker savedPerformanceTracker =
                 FindAnyObjectByType<AirlineContractPerformanceTracker>();
 
+            if (savedPerformanceTracker != null)
+                savedPerformanceTracker.RestoreRelationshipsFromSave(
+                    data.airlineManagement.relationships);
+
             if (savedContractManager != null)
                 savedContractManager.RestoreFromSave(data.airlineManagement);
             else
                 LogWarning(
                     "Save contains airline contract state, but " +
                     "AirlineContractOfferManager was not found.");
-
-            if (savedPerformanceTracker != null)
-                savedPerformanceTracker.RestoreRelationshipsFromSave(
-                    data.airlineManagement.relationships);
         }
 
 
