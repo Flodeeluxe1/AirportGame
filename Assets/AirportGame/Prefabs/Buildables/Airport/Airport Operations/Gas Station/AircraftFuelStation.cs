@@ -244,7 +244,7 @@ public class AircraftFuelStation : MonoBehaviour
         }
 
         float amountToTransfer =
-            refuellingRateLitresPerMinute * Time.deltaTime / 60f;
+            refuellingRateLitresPerMinute * GameTimeManager.SimulationDeltaTime / 60f;
 
         if (amountToTransfer <= 0f)
             return;
