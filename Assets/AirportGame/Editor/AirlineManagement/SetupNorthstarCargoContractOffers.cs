@@ -61,6 +61,15 @@ public static class SetupNorthstarCargoContractOffers
                 collector.gameObject);
         }
 
+        AirlineContractFlightIntegration integration =
+            collector.GetComponent<AirlineContractFlightIntegration>();
+
+        if (integration == null)
+        {
+            integration = Undo.AddComponent<AirlineContractFlightIntegration>(
+                collector.gameObject);
+        }
+
         EditorSceneManager.MarkSceneDirty(collector.gameObject.scene);
         AssetDatabase.SaveAssets();
 
@@ -68,8 +77,8 @@ public static class SetupNorthstarCargoContractOffers
         EditorGUIUtility.PingObject(template);
 
         Debug.Log(
-            "Northstar Cargo contract template assigned and AirlineContractOfferManager " +
-            "added to the Airline Management System.");
+            "Northstar Cargo contract template assigned. AirlineContractOfferManager " +
+            "and AirlineContractFlightIntegration are configured on the Airline Management System.");
     }
 
     private static void ConfigureTemplate(AirlineContractTemplate template)
