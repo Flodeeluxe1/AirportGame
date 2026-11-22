@@ -112,6 +112,7 @@ public class ActiveAirlineContract
     public bool completionBonusPaid;
     public int renewalCount;
     public bool renewalDeclined;
+    public string renewedByContractId = "";
     public int renewalBasePaymentPerFlight;
     public int renewalBaseCompletionBonus;
 }
