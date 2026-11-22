@@ -178,22 +178,23 @@ MonoBehaviour:
   gridSurface: {fileID: 0}
   roadNetwork: {fileID: 0}
   taxiwayNetwork: {fileID: 0}
-  grassMovementCost: 2
+  grassMovementCost: 4
   foundationMovementCost: 100
   tarmacMovementCost: 1
-  taxiwayMovementCost: 8
+  taxiwayMovementCost: 16
   runwayMovementCost: 100
-  pedestrianTarmacMovementCost: 4
-  roadMovementCost: 16
+  pedestrianTarmacMovementCost: 8
+  roadMovementCost: 32
   foundationClearance: 1
-  runwayClearance: 3
+  runwayClearance: 5
+  maxPathNodesPerFrame: 200
   movementSpeed: 3
   rotationSpeed: 5
   waypointArrivalDistance: 0.08
   groundHeightOffset: 0.05
   turningRadiusInCells: 2
   turnCurveResolution: 15
-  parkingTurnDistanceInCells: 30
+  parkingTurnDistanceInCells: 10
   parkingCurveResolution: 30
   parkFacingWorldNegativeZ: 0
   isMoving: 0
