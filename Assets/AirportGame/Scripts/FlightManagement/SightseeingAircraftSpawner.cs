@@ -220,7 +220,7 @@ public class SightseeingAircraftSpawner : MonoBehaviour
 
         if (retryTimer > 0f)
         {
-            retryTimer -= Time.unscaledDeltaTime;
+            retryTimer -= GameTimeManager.SimulationDeltaTime;
 
             if (retryTimer > 0f)
                 return;
