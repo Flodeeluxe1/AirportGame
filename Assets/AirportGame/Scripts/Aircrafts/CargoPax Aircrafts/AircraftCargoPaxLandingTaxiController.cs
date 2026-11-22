@@ -1038,7 +1038,7 @@ public class AircraftCargoPaxLandingTaxiController : MonoBehaviour
         transform.position = Vector3.MoveTowards(
             transform.position,
             target,
-            taxiSpeed * Time.deltaTime);
+            taxiSpeed * GameTimeManager.SimulationDeltaTime);
     }
 
     private void FaceMovementDirection(Vector3 movement)
@@ -1056,7 +1056,7 @@ public class AircraftCargoPaxLandingTaxiController : MonoBehaviour
         transform.rotation = Quaternion.Slerp(
             transform.rotation,
             targetRotation,
-            rotationSpeed * Time.deltaTime);
+            rotationSpeed * GameTimeManager.SimulationDeltaTime);
     }
 
     private void SetPositionAt(Vector3 target)
