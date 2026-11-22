@@ -80,7 +80,7 @@ public class PilotGroupConversationController : MonoBehaviour
     private GroupState state;
     private PilotGroupConversationController activeLeader;
     private readonly List<Member> members = new List<Member>();
-    private float nextSearchTime;
+    private double nextSearchTime;
     private float travelElapsed;
     private long conversationStartGameSecond;
     private bool isLeader;
@@ -106,7 +106,7 @@ public class PilotGroupConversationController : MonoBehaviour
             movement.PathFailed += HandlePathFailed;
         }
         ResolveGameTimeManager();
-        nextSearchTime = Time.time + UnityEngine.Random.Range(0f, searchInterval);
+        nextSearchTime = GameTimeManager.SimulationTime + UnityEngine.Random.Range(0f, searchInterval);
     }
 
     private void OnDisable()
@@ -136,7 +136,7 @@ public class PilotGroupConversationController : MonoBehaviour
 
         if (state == GroupState.Travelling)
         {
-            travelElapsed += Time.deltaTime;
+            travelElapsed += GameTimeManager.SimulationDeltaTime;
             if (travelElapsed >= travelTimeout)
                 CancelGroup("Could not reach group meeting point");
             return;
@@ -148,10 +148,10 @@ public class PilotGroupConversationController : MonoBehaviour
             return;
         }
 
-        if (Time.time < nextSearchTime)
+        if (GameTimeManager.SimulationTime < nextSearchTime)
             return;
 
-        nextSearchTime = Time.time + searchInterval;
+        nextSearchTime = GameTimeManager.SimulationTime + searchInterval;
         TryStartGroup();
     }
 
@@ -440,7 +440,7 @@ public class PilotGroupConversationController : MonoBehaviour
             member.Controller.transform.rotation = Quaternion.RotateTowards(
                 member.Controller.transform.rotation,
                 target,
-                facingRotationSpeed * Time.deltaTime);
+                facingRotationSpeed * GameTimeManager.SimulationDeltaTime);
         }
     }
 
@@ -526,7 +526,7 @@ public class PilotGroupConversationController : MonoBehaviour
             controller.isLeader = false;
             controller.currentGroupSize = 0;
             controller.currentStatus = status;
-            controller.nextSearchTime = Time.time + controller.searchInterval;
+            controller.nextSearchTime = GameTimeManager.SimulationTime + controller.searchInterval;
         }
         members.Clear();
         activeLeader = null;
@@ -536,7 +536,7 @@ public class PilotGroupConversationController : MonoBehaviour
         currentStatus = status;
         travelElapsed = 0f;
         conversationStartGameSecond = 0;
-        nextSearchTime = Time.time + searchInterval;
+        nextSearchTime = GameTimeManager.SimulationTime + searchInterval;
     }
 
     private void OnValidate()
