@@ -377,7 +377,7 @@ public class ParkingSpace : MonoBehaviour
             $"Reserved: {IsReserved} | " +
             $"Queue Count: {waitingVehicles.Count} | " +
             $"Estimated Available In: " +
-            $"{Mathf.Max(0f, GetEstimatedAvailableTime(5f) - GameTimeManager.SimulationTime):F1}s\n" +
+            $"{System.Math.Max(0d, GetEstimatedAvailableTime(5f) - GameTimeManager.SimulationTime):F1}s\n" +
             debugQueueStatus,
             this);
     }
