@@ -37,6 +37,15 @@ public class TestFlightCatalog : MonoBehaviour
         return true;
     }
 
+    public int RemoveContractFlights(string contractId)
+    {
+        if (string.IsNullOrWhiteSpace(contractId))
+            return 0;
+
+        return flights.RemoveAll(flight =>
+            flight != null && flight.ContractId == contractId);
+    }
+
     public bool ContainsFlight(string flightNumber)
     {
         return flights.Exists(flight =>
