@@ -40,7 +40,7 @@ public class SightseeingPassengerAgent : MonoBehaviour
     private float nextQueueRefresh;
     private Vector3 lastRequestedQueuePosition;
     private bool hasRequestedQueuePosition;
-    private float nextWander;
+    private double nextWander;
 
     private sealed class FoundationCache
     {
@@ -57,7 +57,7 @@ public class SightseeingPassengerAgent : MonoBehaviour
     private GridSurface subscribedFoundationSurface;
     private RoomPurposeController roomPurposeController;
     private PedestrianAccessProfile accessProfile;
-    private float nextCarRetry;
+    private double nextCarRetry;
     private int carRetries;
 
     public PassengerState State => state;
@@ -122,7 +122,7 @@ public class SightseeingPassengerAgent : MonoBehaviour
         movement.PathFailed += HandlePathFailed;
         UpdateFoundationSurfaceSubscription();
         state = PassengerState.Initializing;
-        nextWander = Time.time + Random.Range(3f, 8f);
+        nextWander = GameTimeManager.SimulationTime + Random.Range(3f, 8f);
     }
 
     public bool BeginCheckIn(InteractionProvider provider, InteractionDefinition definition, int price)
@@ -185,7 +185,7 @@ public class SightseeingPassengerAgent : MonoBehaviour
         }
 
         if (state == PassengerState.WalkingToCar && !movement.IsMoving &&
-            Time.time >= nextCarRetry)
+            GameTimeManager.SimulationTime >= nextCarRetry)
             TryReturnRoute();
     }
 
@@ -217,8 +217,8 @@ public class SightseeingPassengerAgent : MonoBehaviour
             return;
         }
 
-        if (Time.time < nextQueueRefresh) return;
-        nextQueueRefresh = Time.time + 0.35f;
+        if (GameTimeManager.SimulationTime < nextQueueRefresh) return;
+        nextQueueRefresh = GameTimeManager.SimulationTime + 0.35f;
         Vector3 queuePosition = checkInQueue.GetQueuePosition(this);
         bool queueSlotChanged =
             !hasRequestedQueuePosition ||
@@ -272,7 +272,7 @@ public class SightseeingPassengerAgent : MonoBehaviour
                 HandleCheckInFailure();
                 yield break;
             }
-            elapsed += Time.deltaTime;
+            elapsed += GameTimeManager.SimulationDeltaTime;
             yield return null;
         }
 
@@ -294,7 +294,7 @@ public class SightseeingPassengerAgent : MonoBehaviour
         state = PassengerState.WaitingInTerminal;
         if (manager != null) manager.HandlePassengerCheckedIn(this, ticketPricePaid);
         if (interactionController != null) interactionController.enabled = true;
-        nextWander = Time.time + Random.Range(3f, 8f);
+        nextWander = GameTimeManager.SimulationTime + Random.Range(3f, 8f);
     }
 
     private void UpdateWaiting()
@@ -302,10 +302,10 @@ public class SightseeingPassengerAgent : MonoBehaviour
         if (movement == null || movement.IsMoving ||
             interactionController == null || !interactionController.enabled ||
             interactionController.DebugActivity != "None" ||
-            Time.time < nextWander || waitingArea == null || pathfinder == null)
+            GameTimeManager.SimulationTime < nextWander || waitingArea == null || pathfinder == null)
             return;
 
-        nextWander = Time.time + Random.Range(8f, 18f);
+        nextWander = GameTimeManager.SimulationTime + Random.Range(8f, 18f);
         if (gridManager == null || gridSurface == null)
         {
             ResolveFoundationReferences();
@@ -522,7 +522,7 @@ public class SightseeingPassengerAgent : MonoBehaviour
         }
         if (!vehicle.IsParked)
         {
-            nextCarRetry = Time.time + 1f;
+            nextCarRetry = GameTimeManager.SimulationTime + 1f;
             return;
         }
 
@@ -537,7 +537,7 @@ public class SightseeingPassengerAgent : MonoBehaviour
         }
 
         carRetries++;
-        nextCarRetry = Time.time + 1f;
+        nextCarRetry = GameTimeManager.SimulationTime + 1f;
         if (carRetries >= 8) CompleteWithoutCar();
     }
 
@@ -573,7 +573,7 @@ public class SightseeingPassengerAgent : MonoBehaviour
     {
         if (state == PassengerState.WalkingToCar)
         {
-            nextCarRetry = Time.time + 1f;
+            nextCarRetry = GameTimeManager.SimulationTime + 1f;
             return;
         }
         if (state == PassengerState.WaitingInTerminal) return;
