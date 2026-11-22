@@ -1089,79 +1089,96 @@ public class AircraftCargoPaxDepartureTaxiController : MonoBehaviour
 
     private void UpdateTaxiMovement()
     {
-        if (movementWaypoints.Count == 0 ||
-            currentWaypointIndex >= movementWaypoints.Count)
+        float remainingTime = GameTimeManager.SimulationDeltaTime;
+        const int maximumWaypointTransitions = 256;
+        int transitions = 0;
+
+        while (remainingTime > 0.0001f &&
+               transitions < maximumWaypointTransitions)
         {
-            HandleMovementRouteCompleted();
-            return;
-        }
-
-        float cruisingSpeedKnots = taxiSpeedKnots;
-
-        if (trafficFollowing != null)
-            PublishPlannedTaxiRoute(
-                currentState == DepartureState.TaxiingToRunwayEntry
-                    ? runwayJoinRoute
-                    : taxiRoute);
-
-        float speedKnots;
-
-        if (trafficFollowing != null)
-        {
-            speedKnots =
-                trafficFollowing.GetTrafficFollowingSpeed(cruisingSpeedKnots);
-        }
-        else
-        {
-            speedKnots = cruisingSpeedKnots;
-
-            AircraftStatus status = GetComponent<AircraftStatus>();
-
-            if (status != null)
-                status.SetCurrentSpeedKnots(speedKnots);
-        }
-
-        float speed = AircraftStatus.KnotsToWorldSpeed(speedKnots);
-
-        Vector3 target = movementWaypoints[currentWaypointIndex];
-        target.y = transform.position.y;
-
-        Vector3 toTarget = target - transform.position;
-
-        if (toTarget.magnitude <= waypointArrivalDistance)
-        {
-            currentWaypointIndex++;
-
-            if (currentWaypointIndex >= movementWaypoints.Count)
+            if (movementWaypoints.Count == 0 ||
+                currentWaypointIndex >= movementWaypoints.Count)
+            {
                 HandleMovementRouteCompleted();
 
-            return;
+                if (movementWaypoints.Count == 0 ||
+                    currentWaypointIndex >= movementWaypoints.Count)
+                    break;
+
+                continue;
+            }
+
+            float cruisingSpeedKnots = taxiSpeedKnots;
+
+            if (trafficFollowing != null)
+                PublishPlannedTaxiRoute(
+                    currentState == DepartureState.TaxiingToRunwayEntry
+                        ? runwayJoinRoute
+                        : taxiRoute);
+
+            float speedKnots;
+            if (trafficFollowing != null)
+            {
+                speedKnots =
+                    trafficFollowing.GetTrafficFollowingSpeed(cruisingSpeedKnots);
+            }
+            else
+            {
+                speedKnots = cruisingSpeedKnots;
+                AircraftStatus status = GetComponent<AircraftStatus>();
+                if (status != null)
+                    status.SetCurrentSpeedKnots(speedKnots);
+            }
+
+            float speed = AircraftStatus.KnotsToWorldSpeed(speedKnots);
+            if (speed <= 0.001f)
+                break;
+
+            Vector3 target = movementWaypoints[currentWaypointIndex];
+            target.y = transform.position.y;
+            Vector3 toTarget = target - transform.position;
+            float distance = toTarget.magnitude;
+
+            if (distance <= waypointArrivalDistance)
+            {
+                currentWaypointIndex++;
+                transitions++;
+                continue;
+            }
+
+            Vector3 direction = toTarget;
+            direction.y = 0f;
+
+            if (direction.sqrMagnitude > 0.0001f)
+            {
+                Quaternion targetRotation =
+                    Quaternion.LookRotation(direction.normalized, Vector3.up) *
+                    Quaternion.Euler(modelRotationOffset);
+
+                float travelTime = Mathf.Min(remainingTime, distance / speed);
+                transform.rotation = Quaternion.RotateTowards(
+                    transform.rotation,
+                    targetRotation,
+                    rotationSpeedDegreesPerSecond * travelTime);
+            }
+
+            float availableDistance = speed * remainingTime;
+            if (availableDistance >= distance)
+            {
+                transform.position = target;
+                remainingTime -= distance / speed;
+                currentWaypointIndex++;
+                transitions++;
+            }
+            else
+            {
+                transform.position = Vector3.MoveTowards(
+                    transform.position,
+                    target,
+                    availableDistance);
+                remainingTime = 0f;
+            }
         }
-
-        Vector3 planarDirection = toTarget;
-        planarDirection.y = 0f;
-
-        if (planarDirection.sqrMagnitude > 0.0001f)
-        {
-            Quaternion rotation =
-                Quaternion.LookRotation(planarDirection.normalized, Vector3.up) *
-                Quaternion.Euler(modelRotationOffset);
-
-            transform.rotation = Quaternion.RotateTowards(
-                transform.rotation,
-                rotation,
-                rotationSpeedDegreesPerSecond * GameTimeManager.SimulationDeltaTime
-            );
-        }
-
-        if (speed <= 0.001f)
-            return;
-
-        transform.position = Vector3.MoveTowards(
-            transform.position,
-            target,
-            speed * GameTimeManager.SimulationDeltaTime
-        );
     }
 
     private void HandleMovementRouteCompleted()
