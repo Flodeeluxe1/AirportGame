@@ -60,7 +60,7 @@ public class AircraftFuelTank : MonoBehaviour
         currentFuelLitres = Mathf.Max(
             0f,
             currentFuelLitres -
-            consumptionLitresPerHour * Time.deltaTime / 3600f);
+            consumptionLitresPerHour * GameTimeManager.SimulationDeltaTime / 3600f);
     }
 
     /// <summary>
