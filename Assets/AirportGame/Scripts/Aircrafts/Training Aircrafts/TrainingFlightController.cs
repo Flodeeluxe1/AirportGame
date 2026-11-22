@@ -378,7 +378,7 @@ public class TrainingFlightController : MonoBehaviour
             transform.rotation = Quaternion.RotateTowards(
                 transform.rotation,
                 targetRotation,
-                30f * Time.deltaTime
+                30f * GameTimeManager.SimulationDeltaTime
             );
         }
 
@@ -387,10 +387,10 @@ public class TrainingFlightController : MonoBehaviour
         transform.position = Vector3.MoveTowards(
             previousPosition,
             target,
-            circuitSpeed * Time.deltaTime
+            circuitSpeed * GameTimeManager.SimulationDeltaTime
         );
 
-        float deltaTime = Time.deltaTime;
+        float deltaTime = GameTimeManager.SimulationDeltaTime;
 
         if (deltaTime > 0f)
         {
@@ -596,7 +596,7 @@ public class TrainingFlightController : MonoBehaviour
         transform.rotation = Quaternion.RotateTowards(
             transform.rotation,
             parkingTurnTargetRotation,
-            parkingTurnSpeed * Time.deltaTime
+            parkingTurnSpeed * GameTimeManager.SimulationDeltaTime
         );
 
         if (Quaternion.Angle(
