@@ -1178,6 +1178,25 @@ public class AirportWorldResetController : MonoBehaviour
                 "The active schedule may be empty.");
         }
 
+        // The manager's startup evaluation may have run before this save was
+        // restored, when the scene still contained the empty new-game airport.
+        // Refresh interest and retry offer generation against the loaded layout.
+        AirlineContractOfferManager contractOfferManager =
+            FindAnyObjectByType<AirlineContractOfferManager>();
+
+        if (contractOfferManager != null)
+        {
+            contractOfferManager.RefreshAfterAirportLoaded();
+        }
+        else
+        {
+            AirlineAirportSnapshotCollector snapshotCollector =
+                FindAnyObjectByType<AirlineAirportSnapshotCollector>();
+
+            if (snapshotCollector != null)
+                snapshotCollector.RefreshAllAirlines();
+        }
+
         Log(
             $"AirportWorldResetController: Restore from slot {slot} finished. " +
             $"Objects: {restoredBuildings}, " +
