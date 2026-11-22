@@ -15,6 +15,7 @@ public class AirlineContractTerms
     public float minimumCargoHandlingThroughputPerHour;
     public int paymentPerCompletedFlight;
     [Range(0f, 1f)] public float missedFlightPaymentReduction;
+    public int missedFlightPenalty;
     public int completionBonus;
 
     public static AirlineContractTerms FromTemplate(
@@ -37,6 +38,7 @@ public class AirlineContractTerms
             paymentPerCompletedFlight = Mathf.RoundToInt(
                 template.PaymentPerCompletedFlight * paymentMultiplier),
             missedFlightPaymentReduction = template.MissedFlightPaymentReduction,
+            missedFlightPenalty = template.MissedFlightPenalty,
             completionBonus = Mathf.RoundToInt(template.CompletionBonus * paymentMultiplier)
         };
 
@@ -98,4 +100,46 @@ public class ActiveAirlineContract
     public AirlineContractTerms agreedTerms;
     public List<AirlineContractFlightObligation> flightObligations =
         new List<AirlineContractFlightObligation>();
+    public long lastFinalizedDay;
+    public List<AirlineContractFlightPerformanceRecord> performanceRecords =
+        new List<AirlineContractFlightPerformanceRecord>();
+    public int onTimeFlights;
+    public int lateFlights;
+    public int missedFlights;
+    public int cancelledFlights;
+    public int operationalFailures;
+    public int totalPaymentsReceived;
+    public int totalPenaltiesPaid;
+    public int unpaidPenaltyAmount;
+    public bool completionBonusPaid;
+}
+
+public enum AirlineContractFlightResult
+{
+    OnTime,
+    Late,
+    Missed,
+    Cancelled,
+    OperationalFailure
+}
+
+[Serializable]
+public class AirlineContractFlightPerformanceRecord
+{
+    public string obligationId;
+    public string flightNumber;
+    public long scheduledDay;
+    public AirlineContractFlightResult result;
+    public long completedAbsoluteGameSecond;
+    public int paymentReceived;
+    public int penaltyCharged;
+    public int penaltyPaid;
+}
+
+[Serializable]
+public class AirlineRelationshipRecord
+{
+    public string airlineId;
+    public string airlineName;
+    [Range(0f, 100f)] public float relationship = 50f;
 }
