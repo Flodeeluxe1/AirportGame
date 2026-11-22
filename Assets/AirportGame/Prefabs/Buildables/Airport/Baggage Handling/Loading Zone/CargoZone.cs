@@ -56,8 +56,8 @@ public class CargoZone : MonoBehaviour
     [Header("Runtime Status")]
     [SerializeField] private int stagedPackageCount;
 
-    private readonly HashSet<CargoPackage> packages =
-        new HashSet<CargoPackage>();
+    private readonly HashSet<CargoPackageData> packages =
+        new HashSet<CargoPackageData>();
 
     [Header("Flight Reservation")]
     [SerializeField] private bool hasFlightReservation;
@@ -204,7 +204,7 @@ public class CargoZone : MonoBehaviour
 
         string requestedOperationId = operationId ?? string.Empty;
 
-        foreach (CargoPackage package in packages)
+        foreach (CargoPackageData package in packages)
         {
             // Only packages physically staged in this zone should reserve
             // it for a flight. In-transit or delivered package references
@@ -260,7 +260,7 @@ public class CargoZone : MonoBehaviour
         NotifyAvailabilityChanged();
     }
 
-    public bool RegisterPackage(CargoPackage package)
+    public bool RegisterPackage(CargoPackageData package)
     {
         if (package == null)
             return false;
@@ -284,7 +284,7 @@ public class CargoZone : MonoBehaviour
         return true;
     }
 
-    public void UnregisterPackage(CargoPackage package)
+    public void UnregisterPackage(CargoPackageData package)
     {
         if (package == null)
             return;
@@ -302,7 +302,7 @@ public class CargoZone : MonoBehaviour
     {
         int count = 0;
 
-        foreach (CargoPackage package in packages)
+        foreach (CargoPackageData package in packages)
         {
             if (package == null ||
                 !package.IsAvailableForCollection ||
@@ -332,10 +332,10 @@ public class CargoZone : MonoBehaviour
 
     public bool TryGetFirstAvailablePackage(
         CargoDirection direction,
-        out CargoPackage firstPackage,
+        out CargoPackageData firstPackage,
         string flightOperationId = null)
     {
-        foreach (CargoPackage package in packages)
+        foreach (CargoPackageData package in packages)
         {
             if (package == null ||
                 !package.IsAvailableForCollection ||
@@ -358,14 +358,14 @@ public class CargoZone : MonoBehaviour
         return false;
     }
 
-    public List<CargoPackage> GetAvailablePackages(
+    public List<CargoPackageData> GetAvailablePackages(
         CargoDirection direction,
         string flightOperationId = null)
     {
-        List<CargoPackage> result =
-            new List<CargoPackage>();
+        List<CargoPackageData> result =
+            new List<CargoPackageData>();
 
-        foreach (CargoPackage package in packages)
+        foreach (CargoPackageData package in packages)
         {
             if (package == null ||
                 !package.IsAvailableForCollection ||
@@ -392,7 +392,7 @@ public class CargoZone : MonoBehaviour
 
         int count = 0;
 
-        foreach (CargoPackage package in packages)
+        foreach (CargoPackageData package in packages)
         {
             if (package.State == CargoPackageState.Staged)
                 count++;
