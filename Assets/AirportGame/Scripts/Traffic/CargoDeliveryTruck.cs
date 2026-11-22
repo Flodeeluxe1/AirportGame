@@ -262,8 +262,8 @@ public class CargoDeliveryTruck : MonoBehaviour
     private bool outgoingRecoveryMode;
     private CargoZone incomingCollectionZone;
 
-    private readonly List<CargoPackage> collectedIncomingPackages =
-        new List<CargoPackage>();
+    private readonly List<CargoPackageData> collectedIncomingPackages =
+        new List<CargoPackageData>();
 
     private Renderer[] truckRenderers;
     private Collider[] truckColliders;
@@ -349,7 +349,7 @@ public class CargoDeliveryTruck : MonoBehaviour
 
         if (!zone.TryGetFirstAvailablePackage(
                 CargoDirection.Incoming,
-                out CargoPackage firstIncomingPackage))
+                out CargoPackageData firstIncomingPackage))
         {
             return false;
         }
@@ -1047,30 +1047,19 @@ public class CargoDeliveryTruck : MonoBehaviour
             ? CargoDirection.Outgoing
             : CargoDirection.Incoming;
 
-        List<CargoPackage> packages =
+        List<CargoPackageData> packages =
             reservedCargoZoneComponent.GetAvailablePackages(
                 collectionDirection,
                 outgoingRecoveryMode ? deliveryOperationId : null);
 
-        foreach (CargoPackage package in packages)
+        foreach (CargoPackageData package in packages)
         {
             if (package == null || !package.TryReserve())
                 continue;
 
             reservedCargoZoneComponent.UnregisterPackage(package);
             package.SetInTransit();
-
-            Renderer[] renderers =
-                package.GetComponentsInChildren<Renderer>(true);
-
-            foreach (Renderer packageRenderer in renderers)
-                packageRenderer.enabled = false;
-
-            Collider[] colliders =
-                package.GetComponentsInChildren<Collider>(true);
-
-            foreach (Collider packageCollider in colliders)
-                packageCollider.enabled = false;
+            package.ReleaseVisual();
 
             collectedIncomingPackages.Add(package);
             debugBoxesUnloaded++;
@@ -1083,7 +1072,7 @@ public class CargoDeliveryTruck : MonoBehaviour
 
     private void ResolveCollectedIncomingPackages(bool delivered)
     {
-        foreach (CargoPackage package in collectedIncomingPackages)
+        foreach (CargoPackageData package in collectedIncomingPackages)
         {
             if (package == null)
                 continue;
@@ -1091,35 +1080,27 @@ public class CargoDeliveryTruck : MonoBehaviour
             if (delivered)
             {
                 package.SetDelivered();
-                Destroy(package.gameObject);
+                package.ReleaseVisual();
                 continue;
             }
 
-            if (reservedCargoZoneComponent == null)
+            if (reservedCargoZoneComponent == null ||
+                reservedCargoZoneComponent.CargoAreaPoint == null)
             {
-                Destroy(package.gameObject);
+                package.SetDelivered();
                 continue;
             }
 
             package.ReturnToZone(reservedCargoZoneComponent);
 
-            if (!reservedCargoZoneComponent.RegisterPackage(package))
+            if (!package.CreateVisualAt(
+                    reservedCargoZoneComponent.CargoAreaPoint.position,
+                    reservedCargoZoneComponent.CargoAreaPoint.rotation) ||
+                !reservedCargoZoneComponent.RegisterPackage(package))
             {
-                Destroy(package.gameObject);
-                continue;
+                package.ReleaseVisual();
+                package.SetDelivered();
             }
-
-            Renderer[] renderers =
-                package.GetComponentsInChildren<Renderer>(true);
-
-            foreach (Renderer packageRenderer in renderers)
-                packageRenderer.enabled = true;
-
-            Collider[] colliders =
-                package.GetComponentsInChildren<Collider>(true);
-
-            foreach (Collider packageCollider in colliders)
-                packageCollider.enabled = true;
         }
 
         collectedIncomingPackages.Clear();
@@ -1213,14 +1194,14 @@ public class CargoDeliveryTruck : MonoBehaviour
 
             if (hasFlightAssignment)
             {
-                CargoPackage package =
-                    cargoBox.GetComponent<CargoPackage>();
+                CargoPackageData package =
+                    cargoBox.GetComponent<CargoPackageData>();
 
                 if (package == null)
                 {
                     LogError(
                         "CargoDeliveryTruck: CargoBox prefab is missing " +
-                        $"CargoPackage. Box {i + 1} is not registered.",
+                        $"CargoPackageData. Box {i + 1} is not registered.",
                         cargoBox);
                 }
                 else
@@ -1233,9 +1214,10 @@ public class CargoDeliveryTruck : MonoBehaviour
                         CargoDirection.Outgoing,
                         deliveryOperationId,
                         reservedCargoZoneComponent);
+                    package.SetVisualPrefab(cargoBoxPrefab);
 
                     bool registered =
-                        reservedCargoZoneComponent.RegisterPackage(package);
+                        reservedCargoZoneComponent.RegisterPackage(package.Data);
 
                     if (!registered)
                     {
