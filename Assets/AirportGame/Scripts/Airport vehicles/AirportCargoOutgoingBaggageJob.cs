@@ -383,6 +383,7 @@ private void CollectAndReservePackages()
 
         if (!vehicle.MoveTo(
             stopPoint.position,
+            stopPoint,
             actualGate.gameObject))
         {
             AbortJob(
