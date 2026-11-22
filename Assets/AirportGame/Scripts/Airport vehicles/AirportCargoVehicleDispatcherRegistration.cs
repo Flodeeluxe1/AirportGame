@@ -166,6 +166,7 @@ public class AirportCargoVehicleDispatcherRegistration : MonoBehaviour
 
         bool routeStarted = vehicle.MoveTo(
             stopPoint.position,
+            stopPoint,
             actualGate.gameObject);
 
         if (!routeStarted)
