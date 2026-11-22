@@ -16,7 +16,7 @@ public class GameTimeUIController : MonoBehaviour
     private Button normalButton;
     private Button doubleButton;
     private Button quadrupleButton;
-    private Button octupleButton;
+    private Button fiveHundredfoldButton;
 
     private string lastDisplayedTime;
 
@@ -71,7 +71,7 @@ public class GameTimeUIController : MonoBehaviour
         quadrupleButton =
             root.Q<Button>("time-4x-button");
 
-        octupleButton =
+        fiveHundredfoldButton =
             root.Q<Button>("time-8x-button");
 
         if (clockLabel == null ||
@@ -79,7 +79,7 @@ public class GameTimeUIController : MonoBehaviour
             normalButton == null ||
             doubleButton == null ||
             quadrupleButton == null ||
-            octupleButton == null)
+            fiveHundredfoldButton == null)
         {
             LogError(
                 "GameTimeUIController: One or more UI elements " +
@@ -94,7 +94,7 @@ public class GameTimeUIController : MonoBehaviour
         normalButton.clicked += OnNormalClicked;
         doubleButton.clicked += OnDoubleClicked;
         quadrupleButton.clicked += OnQuadrupleClicked;
-        octupleButton.clicked += OnOctupleClicked;
+        fiveHundredfoldButton.clicked += OnFiveHundredfoldClicked;
 
         RefreshDisplay();
 
@@ -138,9 +138,9 @@ public class GameTimeUIController : MonoBehaviour
         gameTimeManager.SetSpeed(100);
     }
 
-    private void OnOctupleClicked()
+    private void OnFiveHundredfoldClicked()
     {
-        gameTimeManager.SetSpeed(1000);
+        gameTimeManager.SetSpeed(500);
     }
 
     private void RefreshDisplay()
@@ -166,7 +166,7 @@ public class GameTimeUIController : MonoBehaviour
         SetSelected(normalButton, speed == 1);
         SetSelected(doubleButton, speed == 10);
         SetSelected(quadrupleButton, speed == 100);
-        SetSelected(octupleButton, speed == 1000);
+        SetSelected(fiveHundredfoldButton, speed == 500);
     }
 
     private void SetSelected(
@@ -207,8 +207,8 @@ public class GameTimeUIController : MonoBehaviour
         if (quadrupleButton != null)
             quadrupleButton.clicked -= OnQuadrupleClicked;
 
-        if (octupleButton != null)
-            octupleButton.clicked -= OnOctupleClicked;
+        if (fiveHundredfoldButton != null)
+            fiveHundredfoldButton.clicked -= OnFiveHundredfoldClicked;
     }
 
     private void Log(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.Log(message, context); else Debug.Log(message); }
