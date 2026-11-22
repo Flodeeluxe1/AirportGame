@@ -310,4 +310,6 @@ public class ActiveAirlineContractSaveData
     public bool completionBonusPaid;
     public int renewalCount;
     public bool renewalDeclined;
+    public int renewalBasePaymentPerFlight;
+    public int renewalBaseCompletionBonus;
 }
