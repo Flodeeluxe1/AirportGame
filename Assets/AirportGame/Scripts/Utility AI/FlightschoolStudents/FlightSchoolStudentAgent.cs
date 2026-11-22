@@ -68,8 +68,8 @@ public class FlightSchoolStudentAgent : MonoBehaviour
     private bool walkingToNeedInteraction;
     private bool performingNeedInteraction;
     private bool atSeat;
-    private float nextNeedDecisionTime;
-    private float nextQueuePositionRefresh;
+    private double nextNeedDecisionTime;
+    private double nextQueuePositionRefresh;
     private Vector3 lastQueueDestination;
 
 
@@ -484,7 +484,7 @@ public class FlightSchoolStudentAgent : MonoBehaviour
         if (needRouteFailed)
         {
             CancelNeedInteraction();
-            nextNeedDecisionTime = Time.time + needDecisionInterval;
+            nextNeedDecisionTime = GameTimeManager.SimulationTime + needDecisionInterval;
 
             // A failed need destination should not send the student home.
             // Keep the classroom reservation and return to the chair instead.
@@ -501,7 +501,7 @@ public class FlightSchoolStudentAgent : MonoBehaviour
         else if (performingNeedInteraction)
         {
             CancelNeedInteraction();
-            nextNeedDecisionTime = Time.time + needDecisionInterval;
+            nextNeedDecisionTime = GameTimeManager.SimulationTime + needDecisionInterval;
         }
 
         if (walkingToSeat && !walkingToAircraft)
@@ -539,10 +539,10 @@ public class FlightSchoolStudentAgent : MonoBehaviour
             return;
         }
 
-        if (Time.time < nextNeedDecisionTime)
+        if (GameTimeManager.SimulationTime < nextNeedDecisionTime)
             return;
 
-        nextNeedDecisionTime = Time.time + Mathf.Max(0.1f, needDecisionInterval);
+        nextNeedDecisionTime = GameTimeManager.SimulationTime + Mathf.Max(0.1f, needDecisionInterval);
 
         // While seated, look for a useful interaction. After each interaction,
         // continue with another need if one remains; otherwise return to the chair.
@@ -765,9 +765,9 @@ public class FlightSchoolStudentAgent : MonoBehaviour
             }
 
             if (!movement.IsMoving &&
-                Time.time >= nextQueuePositionRefresh)
+                GameTimeManager.SimulationTime >= nextQueuePositionRefresh)
             {
-                nextQueuePositionRefresh = Time.time + queuePositionRefreshInterval;
+                nextQueuePositionRefresh = GameTimeManager.SimulationTime + queuePositionRefreshInterval;
                 lastQueueDestination = queuedNeedProvider.InteractionPosition;
                 walkingToNeedInteraction = true;
 
@@ -782,10 +782,10 @@ public class FlightSchoolStudentAgent : MonoBehaviour
             return;
         }
 
-        if (Time.time < nextQueuePositionRefresh)
+        if (GameTimeManager.SimulationTime < nextQueuePositionRefresh)
             return;
 
-        nextQueuePositionRefresh = Time.time + queuePositionRefreshInterval;
+        nextQueuePositionRefresh = GameTimeManager.SimulationTime + queuePositionRefreshInterval;
         Vector3 queuePosition = queue.GetQueuePosition(this);
         bool destinationChanged =
             Vector3.Distance(lastQueueDestination, queuePosition) > 0.15f;
@@ -818,7 +818,7 @@ public class FlightSchoolStudentAgent : MonoBehaviour
                 yield break;
             }
 
-            elapsed += Time.deltaTime;
+            elapsed += GameTimeManager.SimulationDeltaTime;
             yield return null;
         }
 
@@ -849,7 +849,7 @@ public class FlightSchoolStudentAgent : MonoBehaviour
         needInteraction = null;
         performingNeedInteraction = false;
         needInteractionRoutine = null;
-        nextNeedDecisionTime = Time.time + needDecisionInterval;
+        nextNeedDecisionTime = GameTimeManager.SimulationTime + needDecisionInterval;
     }
 
     private void PauseNeedDecayForInteraction()
