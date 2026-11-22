@@ -1901,6 +1901,32 @@ public class FlightManagementUIController : MonoBehaviour
         RebuildGateRows();
     }
 
+    public void TransferContractFlights(
+        string previousContractId,
+        string renewedContractId)
+    {
+        if (string.IsNullOrWhiteSpace(previousContractId) ||
+            string.IsNullOrWhiteSpace(renewedContractId))
+            return;
+
+        int transferredCount = 0;
+        foreach (ScheduledFlight scheduled in scheduledFlights)
+        {
+            if (scheduled == null ||
+                scheduled.ContractId != previousContractId)
+                continue;
+
+            scheduled.ContractId = renewedContractId;
+            transferredCount++;
+        }
+
+        if (transferredCount > 0)
+            SaveSchedule();
+
+        RebuildFlightStrips();
+        RebuildGateRows();
+    }
+
     private void SaveSchedule()
     {
         string scheduleFilePath = Path.Combine(
