@@ -27,7 +27,7 @@ public class PilotDepartureController : MonoBehaviour
     private PedestrianMovementController movement;
     private Transform aircraft;
     private Action boardedCallback;
-    private float nextRetryTime;
+    private double nextRetryTime;
 
     public bool IsDeparting => isDeparting;
     public string CurrentStatus => currentStatus;
@@ -57,7 +57,7 @@ public class PilotDepartureController : MonoBehaviour
         if (!isDeparting || movement == null || movement.IsMoving)
             return;
 
-        if (currentWaypoint < route.Count && Time.time >= nextRetryTime)
+        if (currentWaypoint < route.Count && GameTimeManager.SimulationTime >= nextRetryTime)
             MoveToCurrentWaypoint();
     }
 
@@ -87,7 +87,7 @@ public class PilotDepartureController : MonoBehaviour
 
         currentWaypoint = 0;
         totalWaypoints = route.Count;
-        nextRetryTime = Time.time;
+        nextRetryTime = GameTimeManager.SimulationTime;
         MoveToCurrentWaypoint();
         return true;
     }
@@ -211,7 +211,7 @@ public class PilotDepartureController : MonoBehaviour
             return;
         }
 
-        nextRetryTime = Time.time + retryInterval;
+        nextRetryTime = GameTimeManager.SimulationTime + retryInterval;
 
         if (!movement.MoveTo(route[currentWaypoint]))
         {
@@ -237,7 +237,7 @@ public class PilotDepartureController : MonoBehaviour
             return;
         }
 
-        nextRetryTime = Time.time;
+        nextRetryTime = GameTimeManager.SimulationTime;
         MoveToCurrentWaypoint();
     }
 
