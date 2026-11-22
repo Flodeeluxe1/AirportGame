@@ -874,14 +874,7 @@ public class AirportFuelTruckController : MonoBehaviour
 
     private float GetDeltaGameSeconds()
     {
-        float speedMultiplier =
-            gameTimeManager != null
-                ? Mathf.Max(0f, gameTimeManager.CurrentSpeedMultiplier)
-                : 1f;
-
-        return speedMultiplier > 0f
-            ? Time.unscaledDeltaTime * speedMultiplier
-            : 0f;
+        return GameTimeManager.SimulationDeltaTime;
     }
 
     private void LogStatus(string message)
