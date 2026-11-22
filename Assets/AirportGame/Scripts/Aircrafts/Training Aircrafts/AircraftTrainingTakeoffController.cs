@@ -23,7 +23,6 @@ public class AircraftTrainingTakeoffController : MonoBehaviour
     private AircraftRunwayTrafficManager trafficManager;
 
     [SerializeField]
-    private GameTimeManager gameTimeManager;
 
     [SerializeField]
     private GridManager gridManager;
@@ -173,12 +172,6 @@ public class AircraftTrainingTakeoffController : MonoBehaviour
                 FindAnyObjectByType<AircraftRunwayTrafficManager>();
         }
 
-        if (gameTimeManager == null)
-        {
-            gameTimeManager =
-                FindAnyObjectByType<GameTimeManager>();
-        }
-
         if (gridManager == null)
         {
             gridManager =
@@ -194,15 +187,7 @@ public class AircraftTrainingTakeoffController : MonoBehaviour
 
     private float GetSimulationDeltaTime()
     {
-        if (gameTimeManager == null)
-            return Time.unscaledDeltaTime;
-
-        float speed = gameTimeManager.CurrentSpeedMultiplier;
-
-        if (speed <= 0f)
-            return 0f;
-
-        return Time.unscaledDeltaTime * speed;
+        return GameTimeManager.SimulationDeltaTime;
     }
 
 
