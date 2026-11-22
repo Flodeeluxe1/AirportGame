@@ -93,7 +93,7 @@ public class TrafficStuckFailsafe : MonoBehaviour
             trafficVehicle.CurrentState ==
                 TrafficTestVehicle.VehicleState.WaitingForParking)
         {
-            parkingWaitTimer += Time.deltaTime;
+            parkingWaitTimer += GameTimeManager.SimulationDeltaTime;
             debugParkingWaitTime = parkingWaitTimer;
 
             if (parkingWaitTimer >= parkingWaitDestroyTime)
@@ -115,7 +115,7 @@ public class TrafficStuckFailsafe : MonoBehaviour
 
         // Movement is sampled at a configurable interval rather than every frame.
         movementCheckTimer += Time.unscaledDeltaTime;
-        stationaryElapsedSinceSample += Time.deltaTime;
+        stationaryElapsedSinceSample += GameTimeManager.SimulationDeltaTime;
 
         if (movementCheckTimer < Mathf.Max(0.02f, movementCheckInterval))
             return;
