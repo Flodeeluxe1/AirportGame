@@ -1407,25 +1407,67 @@ public class AirportGroundVehicleMovement : MonoBehaviour
             return;
         }
 
-        Vector3 waypoint = movementPath[currentWaypointIndex];
-        Vector3 direction = waypoint - transform.position;
-        direction.y = 0f;
+        float remainingTime = GameTimeManager.SimulationDeltaTime;
+        const int maxWaypointsPerUpdate = 64;
 
-        if (direction.magnitude <= waypointArrivalDistance)
+        for (int step = 0;
+             step < maxWaypointsPerUpdate &&
+             remainingTime > 0.0001f &&
+             currentWaypointIndex < movementPath.Count;
+             step++)
         {
-            currentWaypointIndex++;
-            return;
+            Vector3 waypoint = movementPath[currentWaypointIndex];
+            Vector3 direction = waypoint - transform.position;
+            direction.y = 0f;
+            float distance = direction.magnitude;
+
+            if (distance <= waypointArrivalDistance)
+            {
+                transform.position = new Vector3(
+                    waypoint.x,
+                    movementHeight,
+                    waypoint.z);
+                currentWaypointIndex++;
+                continue;
+            }
+
+            if (movementSpeed <= 0.001f)
+                return;
+
+            float timeToWaypoint = distance / movementSpeed;
+            float segmentTime = Mathf.Min(remainingTime, timeToWaypoint);
+            float travelDistance = movementSpeed * segmentTime;
+
+            Quaternion targetRotation = Quaternion.LookRotation(
+                direction.normalized,
+                Vector3.up);
+
+            transform.rotation = Quaternion.Slerp(
+                transform.rotation,
+                targetRotation,
+                Mathf.Clamp01(rotationSpeed * segmentTime));
+
+            if (segmentTime >= timeToWaypoint)
+            {
+                transform.position = new Vector3(
+                    waypoint.x,
+                    movementHeight,
+                    waypoint.z);
+                currentWaypointIndex++;
+            }
+            else
+            {
+                Vector3 nextPosition =
+                    transform.position + direction.normalized * travelDistance;
+                nextPosition.y = movementHeight;
+                transform.position = nextPosition;
+            }
+
+            remainingTime -= segmentTime;
         }
 
-        FaceDirection(direction);
-
-        Vector3 nextPosition = Vector3.MoveTowards(
-            transform.position,
-            waypoint,
-            movementSpeed * GameTimeManager.SimulationDeltaTime);
-
-        nextPosition.y = movementHeight;
-        transform.position = nextPosition;
+        if (currentWaypointIndex >= movementPath.Count)
+            FinishMovement();
     }
 
     private void FaceDirection(Vector3 direction)
