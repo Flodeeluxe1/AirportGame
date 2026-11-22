@@ -51,6 +51,11 @@ public class AirlineContractPerformanceTracker : MonoBehaviour
     private void Start()
     {
         ResolveReferences();
+        if (gameTimeManager != null)
+        {
+            gameTimeManager.GameTimeAdvanced -= HandleGameTimeAdvanced;
+            gameTimeManager.GameTimeAdvanced += HandleGameTimeAdvanced;
+        }
         SubscribeToManager();
         FinalizeElapsedContractDays();
     }
