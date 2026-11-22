@@ -107,7 +107,7 @@ public class CargoDeliveryTruck : MonoBehaviour
     [Min(0.1f)]
     [SerializeField] private float waitingRetryInterval = 0.75f;
 
-    private float nextWaitingRetryTime;
+    private double nextWaitingRetryTime;
 
     private Vector3 vanStopAlignmentPosition;
     private Vector3 vanStopPreEntryPosition;
@@ -532,7 +532,7 @@ public class CargoDeliveryTruck : MonoBehaviour
 
         SetTruckVisible(false);
         nextWaitingRetryTime =
-            Time.unscaledTime + Mathf.Max(0.1f, waitingRetryInterval);
+            GameTimeManager.SimulationTime + Mathf.Max(0.1f, waitingRetryInterval);
 
         if (!waitingLogShown)
         {
@@ -550,11 +550,11 @@ public class CargoDeliveryTruck : MonoBehaviour
 
     private void TryStartWaitingTruck()
     {
-        if (Time.unscaledTime < nextWaitingRetryTime)
+        if (GameTimeManager.SimulationTime < nextWaitingRetryTime)
             return;
 
         nextWaitingRetryTime =
-            Time.unscaledTime + Mathf.Max(0.1f, waitingRetryInterval);
+            GameTimeManager.SimulationTime + Mathf.Max(0.1f, waitingRetryInterval);
 
         if (!TryReserveCargoZone(
                 incomingCollectionMode ? incomingCollectionZone : null))
