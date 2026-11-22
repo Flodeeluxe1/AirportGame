@@ -47,9 +47,9 @@ public class FlightSchoolInstructorController : MonoBehaviour
     private FlightSchoolStudentAgent lastVisitedStudent;
     private bool currentVisitIsWelcome;
     private bool movingToRight;
-    private float nextActionTime;
-    private float nextStudentVisitTime;
-    private float nextDemonstrationTime;
+    private double nextActionTime;
+    private double nextStudentVisitTime;
+    private double nextDemonstrationTime;
     private long conversationEndGameSecond;
     private bool initialized;
     private bool subscribedToGameTime;
@@ -81,7 +81,7 @@ public class FlightSchoolInstructorController : MonoBehaviour
         SubscribeToGameTime();
         initialized = true;
         state = InstructorState.BoardPause;
-        nextActionTime = Time.time + 1f;
+        nextActionTime = GameTimeManager.SimulationTime + 1f;
         ScheduleNextStudentVisit();
         ScheduleNextDemonstration();
         MoveToBoardPoint(0);
@@ -128,7 +128,7 @@ public class FlightSchoolInstructorController : MonoBehaviour
         }
 
         if (!initialized || movement == null || movement.IsMoving ||
-            Time.time < nextActionTime)
+            GameTimeManager.SimulationTime < nextActionTime)
         {
             return;
         }
@@ -142,13 +142,13 @@ public class FlightSchoolInstructorController : MonoBehaviour
                 return;
             }
 
-            if (Time.time >= nextStudentVisitTime &&
+            if (GameTimeManager.SimulationTime >= nextStudentVisitTime &&
                 TryChooseStudentToVisit())
             {
                 return;
             }
 
-            if (Time.time >= nextDemonstrationTime)
+            if (GameTimeManager.SimulationTime >= nextDemonstrationTime)
             {
                 BeginDemonstration();
                 return;
@@ -271,7 +271,7 @@ public class FlightSchoolInstructorController : MonoBehaviour
         if (!movement.TryMoveToNearby(target, target))
         {
             movingToRight = !movingToRight;
-            nextActionTime = Time.time + 2f;
+            nextActionTime = GameTimeManager.SimulationTime + 2f;
             state = InstructorState.BoardPause;
         }
     }
@@ -295,7 +295,7 @@ public class FlightSchoolInstructorController : MonoBehaviour
                 FaceWallBoard();
                 state = InstructorState.BoardPause;
                 currentActivity = "Explaining at the wallboard";
-                nextActionTime = Time.time +
+                nextActionTime = GameTimeManager.SimulationTime +
                     Random.Range(boardPauseMinimum, boardPauseMaximum);
                 movingToRight = !movingToRight;
                 break;
@@ -317,7 +317,7 @@ public class FlightSchoolInstructorController : MonoBehaviour
                 FaceWallBoard();
                 state = InstructorState.DemonstrationPause;
                 currentActivity = "Demonstrating at the wallboard";
-                nextActionTime = Time.time + Random.Range(15f, 26f);
+                nextActionTime = GameTimeManager.SimulationTime + Random.Range(15f, 26f);
                 break;
         }
     }
@@ -340,7 +340,7 @@ public class FlightSchoolInstructorController : MonoBehaviour
 
         state = InstructorState.BoardPause;
         currentActivity = "Returning to the wallboard";
-        nextActionTime = Time.time + 1f;
+        nextActionTime = GameTimeManager.SimulationTime + 1f;
     }
 
     private void HandleGameTimeAdvanced(long previousSecond, long currentSecond)
@@ -386,13 +386,13 @@ public class FlightSchoolInstructorController : MonoBehaviour
 
     private void ScheduleNextStudentVisit()
     {
-        nextStudentVisitTime = Time.time +
+        nextStudentVisitTime = GameTimeManager.SimulationTime +
             Random.Range(studentVisitIntervalMinimum, studentVisitIntervalMaximum);
     }
 
     private void ScheduleNextDemonstration()
     {
-        nextDemonstrationTime = Time.time +
+        nextDemonstrationTime = GameTimeManager.SimulationTime +
             Random.Range(demonstrationIntervalMinimum, demonstrationIntervalMaximum);
     }
 }
