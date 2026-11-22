@@ -1,188 +1,244 @@
-using System;
-using System.Text;
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// Shared multi-ray traffic sensing and speed control.
-/// Vehicle controllers provide their own collider filtering and movement.
+/// Route-aware traffic spacing. Vehicles only follow another vehicle when
+/// both routes share the same directed road segment ahead of the follower.
+/// No physics queries or collider sensing are used.
 /// </summary>
 [DisallowMultipleComponent]
 public sealed class TrafficFollowing : MonoBehaviour
 {
-    [Header("Sensor")]
-    [SerializeField] private LayerMask trafficLayer;
-    [Min(0.1f)] [SerializeField] private float detectionDistance = 3f;
-    [Min(0.01f)] [SerializeField] private float safeFollowingDistance = 0.7f;
-    [SerializeField] private float rayOriginHeight = 0.15f;
-    [SerializeField] private float rayOriginForwardOffset = 0.3f;
-    [Tooltip("How often angled traffic sensors refresh; the forward sensor remains per-frame.")]
-    [Min(0.02f)] [SerializeField] private float sideSensorInterval = 0.1f;
-    [SerializeField] private bool captureRaycastDebugInfo;
+    [Header("Route Following")]
+    [Min(0.1f)]
+    [SerializeField] private float desiredFollowingDistance = 2.5f;
+    [Min(0.1f)]
+    [SerializeField] private float routeMatchTolerance = 1.25f;
 
     [Header("Speed Control")]
     [Min(0f)] [SerializeField] private float acceleration = 4f;
     [Min(0f)] [SerializeField] private float braking = 8f;
 
-    public string LastRayHitCollider { get; private set; } = "None";
-    public string LastRayDirection { get; private set; } = "None";
+    private static readonly HashSet<TrafficFollowing> ActiveVehicles =
+        new HashSet<TrafficFollowing>();
+
+    private IReadOnlyList<Vector2Int> currentRoute;
+    private RoadNetwork roadNetwork;
+    private GridManager gridManager;
+
+    public string LastRayHitCollider => "None";
+    public string LastRayDirection => "Route";
     public float LastRayDistance { get; private set; }
-    public string RaycastSummary { get; private set; } = "Not tested";
+    public string RaycastSummary => "Route-based following; no raycasts.";
 
-    [Header("Debug - Raycast Information")]
-    [SerializeField, TextArea(5, 12)]
-    private string debugRaycastSummary = "Not tested";
+    private void OnEnable()
+    {
+        ActiveVehicles.Add(this);
+    }
 
-    private static readonly float[] Angles = { -60f, -30f, 0f, 30f, 60f };
-    private static readonly string[] Names = { "Left 60", "Left 30", "Forward", "Right 30", "Right 60" };
-    private float sideSensorTimer;
-    private bool sideSensorsInitialized;
-    private RaycastHit cachedSideBlockingHit;
-    private bool cachedSideBlocking;
-    private int cachedSideDirectionIndex = -1;
+    private void OnDisable()
+    {
+        ActiveVehicles.Remove(this);
+        currentRoute = null;
+    }
 
     public float BrakeToStop(float currentSpeed)
     {
-        return Mathf.MoveTowards(currentSpeed, 0f, braking * Time.deltaTime);
+        return Mathf.MoveTowards(
+            currentSpeed,
+            0f,
+            braking * GameTimeManager.SimulationDeltaTime);
     }
 
     public float GetFollowingSpeed(
         float desiredSpeed,
         float currentSpeed,
-        Func<Collider, bool> shouldBlock,
-        bool skipRaycasts,
-        out RaycastHit blockingHit)
+        IReadOnlyList<Vector2Int> route,
+        RoadNetwork network,
+        GridManager grid,
+        bool skipFollowing,
+        out float followingDistance)
     {
-        blockingHit = default;
-        LastRayHitCollider = "None";
-        LastRayDirection = "None";
+        currentRoute = route;
+        roadNetwork = network;
+        gridManager = grid;
+        followingDistance = float.PositiveInfinity;
         LastRayDistance = 0f;
 
-        if (skipRaycasts)
-        {
-            sideSensorsInitialized = false;
-            RaycastSummary = "Traffic raycasts skipped: intersection reservation held.";
-            if (captureRaycastDebugInfo) debugRaycastSummary = RaycastSummary;
-            return Mathf.MoveTowards(currentSpeed, desiredSpeed, acceleration * Time.deltaTime);
-        }
+        float targetSpeed = Mathf.Max(0f, desiredSpeed);
 
-        Vector3 origin = transform.position +
-                         Vector3.up * rayOriginHeight +
-                         transform.forward * rayOriginForwardOffset;
-        float closestDistance = float.MaxValue;
-        bool found = false;
-        StringBuilder summary = captureRaycastDebugInfo ? new StringBuilder(160) : null;
-
-        // Keep the forward sensor immediate for safe braking.
-        if (Physics.Raycast(origin, transform.forward, out RaycastHit forwardHit,
-                detectionDistance, trafficLayer, QueryTriggerInteraction.Ignore))
+        if (!skipFollowing &&
+            route != null &&
+            route.Count >= 2 &&
+            roadNetwork != null &&
+            gridManager != null &&
+            TryGetRouteProgress(route, transform.position, transform.forward,
+                out float ownProgress, out _))
         {
-            LastRayHitCollider = forwardHit.collider.name;
-            LastRayDirection = Names[2];
-            LastRayDistance = forwardHit.distance;
-            bool blocks = shouldBlock != null && shouldBlock(forwardHit.collider);
-            if (summary != null)
-                summary.Append(Names[2]).Append(": ").Append(forwardHit.collider.name)
-                    .Append(" (").Append(forwardHit.distance.ToString("F2"))
-                    .Append("m)").Append(blocks ? " — blocking\n" : " — ignored\n");
-            if (blocks)
+            foreach (TrafficFollowing other in ActiveVehicles)
             {
-                closestDistance = forwardHit.distance;
-                blockingHit = forwardHit;
-                found = true;
-            }
-        }
-        else if (summary != null) summary.Append(Names[2]).Append(": no hit\n");
-
-        // Refresh angled sensors less often, retaining the latest blocking result.
-        sideSensorTimer += Time.unscaledDeltaTime;
-        if (!sideSensorsInitialized || sideSensorTimer >= Mathf.Max(0.02f, sideSensorInterval))
-        {
-            sideSensorTimer = 0f;
-            sideSensorsInitialized = true;
-            cachedSideBlocking = false;
-            cachedSideBlockingHit = default;
-            cachedSideDirectionIndex = -1;
-            for (int i = 0; i < Angles.Length; i++)
-            {
-                if (i == 2) continue;
-                Vector3 direction = Quaternion.Euler(0f, Angles[i], 0f) * transform.forward;
-                if (!Physics.Raycast(origin, direction, out RaycastHit hit,
-                        detectionDistance, trafficLayer, QueryTriggerInteraction.Ignore))
-                {
-                    if (summary != null) summary.Append(Names[i]).Append(": no hit\n");
+                if (other == null || other == this ||
+                    !other.isActiveAndEnabled ||
+                    !other.gameObject.activeInHierarchy ||
+                    other.currentRoute == null ||
+                    other.currentRoute.Count < 2)
                     continue;
-                }
 
-                bool blocks = shouldBlock != null && shouldBlock(hit.collider);
-                if (summary != null)
-                    summary.Append(Names[i]).Append(": ").Append(hit.collider.name)
-                        .Append(" (").Append(hit.distance.ToString("F2"))
-                        .Append("m)").Append(blocks ? " — blocking\n" : " — ignored\n");
-                if (blocks && (!cachedSideBlocking || hit.distance < cachedSideBlockingHit.distance))
-                {
-                    cachedSideBlocking = true;
-                    cachedSideBlockingHit = hit;
-                    cachedSideDirectionIndex = i;
-                }
+                if (!TryGetLeaderProgressOnRoute(
+                        other, route, out float leaderProgress))
+                    continue;
+
+                float gap = leaderProgress - ownProgress;
+                if (gap <= 0f || gap >= followingDistance)
+                    continue;
+
+                followingDistance = gap;
             }
-        }
 
-        if (cachedSideBlocking && cachedSideBlockingHit.collider != null &&
-            cachedSideBlockingHit.distance < closestDistance)
-        {
-            closestDistance = cachedSideBlockingHit.distance;
-            blockingHit = cachedSideBlockingHit;
-            found = true;
-            LastRayHitCollider = cachedSideBlockingHit.collider.name;
-            LastRayDirection = cachedSideDirectionIndex >= 0 ? Names[cachedSideDirectionIndex] : "Angled";
-            LastRayDistance = cachedSideBlockingHit.distance;
-        }
-
-        if (summary != null)
-        {
-            RaycastSummary = summary.Length == 0 ? "No raycast results." : summary.ToString();
-            debugRaycastSummary = RaycastSummary;
-        }
-        else
-        {
-            RaycastSummary = "Debug capture disabled";
-        }
-
-        float targetSpeed = desiredSpeed;
-        if (found)
-        {
-            float safeDistance = Mathf.Max(0.01f, safeFollowingDistance);
-            float sensorDistance = Mathf.Max(detectionDistance, safeDistance + 0.01f);
-            float normalizedDistance = Mathf.InverseLerp(safeDistance, sensorDistance, closestDistance);
-            targetSpeed = Mathf.Lerp(0f, desiredSpeed, normalizedDistance);
+            if (!float.IsPositiveInfinity(followingDistance))
+            {
+                LastRayDistance = followingDistance;
+                float safeDistance = Mathf.Max(0.1f, desiredFollowingDistance);
+                float releaseDistance = safeDistance + Mathf.Max(1f, desiredSpeed * 0.75f);
+                float spacingFactor = Mathf.InverseLerp(
+                    safeDistance, releaseDistance, followingDistance);
+                targetSpeed *= spacingFactor;
+            }
         }
 
         float rate = targetSpeed < currentSpeed ? braking : acceleration;
-        return Mathf.MoveTowards(currentSpeed, targetSpeed, rate * Time.deltaTime);
+        return Mathf.MoveTowards(
+            currentSpeed,
+            targetSpeed,
+            rate * GameTimeManager.SimulationDeltaTime);
     }
 
-    private void OnDrawGizmos()
+    private bool TryGetLeaderProgressOnRoute(
+        TrafficFollowing leader,
+        IReadOnlyList<Vector2Int> followerRoute,
+        out float leaderProgress)
     {
-        Vector3 origin = transform.position +
-                         Vector3.up * rayOriginHeight +
-                         transform.forward * rayOriginForwardOffset;
+        leaderProgress = 0f;
+        if (leader == null || leader.currentRoute == null)
+            return false;
 
-        for (int i = 0; i < Angles.Length; i++)
+        float bestDistanceSqr = float.PositiveInfinity;
+        bool found = false;
+        float cumulativeDistance = 0f;
+
+        for (int i = 0; i < followerRoute.Count - 1; i++)
         {
-            Vector3 direction = Quaternion.Euler(0f, Angles[i], 0f) * transform.forward;
-            float length = detectionDistance;
-            Color color = i == 2 ? Color.green : Color.yellow;
+            Vector3 a = GetCellPosition(followerRoute[i]);
+            Vector3 b = GetCellPosition(followerRoute[i + 1]);
+            Vector3 segment = b - a;
+            segment.y = 0f;
+            float length = segment.magnitude;
+            if (length <= 0.001f)
+                continue;
 
-            if (Physics.Raycast(origin, direction, out RaycastHit hit,
-                    detectionDistance, trafficLayer, QueryTriggerInteraction.Ignore))
+            if (!ContainsDirectedSegment(leader.currentRoute,
+                    followerRoute[i], followerRoute[i + 1]))
             {
-                length = hit.distance;
-                color = Color.red;
+                cumulativeDistance += length;
+                continue;
             }
 
-            Gizmos.color = color;
-            Gizmos.DrawLine(origin, origin + direction.normalized * length);
-            Gizmos.DrawWireSphere(origin + direction.normalized * length, 0.06f);
+            Vector3 toLeader = leader.transform.position - a;
+            toLeader.y = 0f;
+            float t = Mathf.Clamp01(Vector3.Dot(toLeader, segment) /
+                                    (length * length));
+            Vector3 closest = a + segment * t;
+            Vector3 offset = leader.transform.position - closest;
+            offset.y = 0f;
+            float distanceSqr = offset.sqrMagnitude;
+
+            Vector3 direction = segment / length;
+            float headingAgreement = Vector3.Dot(
+                leader.transform.forward.normalized, direction);
+
+            if (headingAgreement >= 0.35f &&
+                distanceSqr < bestDistanceSqr)
+            {
+                bestDistanceSqr = distanceSqr;
+                leaderProgress = cumulativeDistance + t * length;
+                found = true;
+            }
+
+            cumulativeDistance += length;
         }
+
+        return found &&
+               bestDistanceSqr <= routeMatchTolerance * routeMatchTolerance;
+    }
+
+    private bool TryGetRouteProgress(
+        IReadOnlyList<Vector2Int> route,
+        Vector3 position,
+        Vector3 forward,
+        out float progress,
+        out float distanceToRoute)
+    {
+        progress = 0f;
+        distanceToRoute = float.PositiveInfinity;
+        float bestDistanceSqr = float.PositiveInfinity;
+        float cumulativeDistance = 0f;
+        bool found = false;
+
+        for (int i = 0; i < route.Count - 1; i++)
+        {
+            Vector3 a = GetCellPosition(route[i]);
+            Vector3 b = GetCellPosition(route[i + 1]);
+            Vector3 segment = b - a;
+            segment.y = 0f;
+            float length = segment.magnitude;
+            if (length <= 0.001f)
+                continue;
+
+            Vector3 toPosition = position - a;
+            toPosition.y = 0f;
+            float t = Mathf.Clamp01(Vector3.Dot(toPosition, segment) /
+                                    (length * length));
+            Vector3 closest = a + segment * t;
+            Vector3 offset = position - closest;
+            offset.y = 0f;
+            float distanceSqr = offset.sqrMagnitude;
+            float headingAgreement = Vector3.Dot(
+                forward.normalized, segment / length);
+
+            if (headingAgreement >= -0.25f &&
+                distanceSqr < bestDistanceSqr)
+            {
+                bestDistanceSqr = distanceSqr;
+                progress = cumulativeDistance + t * length;
+                found = true;
+            }
+
+            cumulativeDistance += length;
+        }
+
+        distanceToRoute = Mathf.Sqrt(bestDistanceSqr);
+        return found && bestDistanceSqr <= routeMatchTolerance * routeMatchTolerance;
+    }
+
+    private Vector3 GetCellPosition(Vector2Int cell)
+    {
+        Vector3 position = roadNetwork.GetRoadCenterWorldPosition(
+            cell, gridManager);
+        position.y = 0f;
+        return position;
+    }
+
+    private static bool ContainsDirectedSegment(
+        IReadOnlyList<Vector2Int> route,
+        Vector2Int from,
+        Vector2Int to)
+    {
+        for (int i = 0; i < route.Count - 1; i++)
+        {
+            if (route[i] == from && route[i + 1] == to)
+                return true;
+        }
+
+        return false;
     }
 }
