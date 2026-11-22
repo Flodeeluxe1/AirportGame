@@ -169,6 +169,16 @@ public class GuidedCargoTrailerFollower : MonoBehaviour
             return;
         }
 
+        // Once the complete trailer chain has settled behind the tug,
+        // there is no movement work to perform. This is especially important
+        // at high simulation speeds, where otherwise the bounded catch-up
+        // loop would run hundreds of times every frame while parked.
+        if (IsTrailerChainSettled())
+        {
+            pendingSimulationTime = 0f;
+            return;
+        }
+
         // Keep trailer motion independent of Unity's capped timeScale.
         // Bounded substeps preserve gradual following and rotation at high
         // speeds without allowing an unbounded catch-up loop.
@@ -189,6 +199,63 @@ public class GuidedCargoTrailerFollower : MonoBehaviour
             UpdateTrailerChain(step);
             steps++;
         }
+    }
+
+    private bool IsTrailerChainSettled()
+    {
+        const float positionToleranceSqr = 0.0004f;
+        const float rotationToleranceDegrees = 0.5f;
+
+        for (int i = 0; i < trailers.Count; i++)
+        {
+            Transform currentTrailer = trailers[i];
+
+            if (currentTrailer == null)
+                continue;
+
+            Transform objectInFront = i == 0
+                ? tugHitchPoint
+                : trailers[i - 1];
+
+            if (objectInFront == null)
+                continue;
+
+            Vector3 directionToFront =
+                objectInFront.position - currentTrailer.position;
+
+            directionToFront.y = 0f;
+
+            if (directionToFront.sqrMagnitude < 0.0001f)
+                continue;
+
+            directionToFront.Normalize();
+
+            float spacing = i == 0
+                ? hitchToTrailerDistance
+                : trailerToTrailerDistance;
+
+            Vector3 targetPosition =
+                objectInFront.position - directionToFront * spacing;
+
+            targetPosition.y = trailerHeights[i];
+
+            if ((currentTrailer.position - targetPosition).sqrMagnitude >
+                positionToleranceSqr)
+            {
+                return false;
+            }
+
+            Quaternion targetRotation =
+                Quaternion.LookRotation(directionToFront, Vector3.up);
+
+            if (Quaternion.Angle(currentTrailer.rotation, targetRotation) >
+                rotationToleranceDegrees)
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private void UpdateTrailerChain(float deltaTime)
