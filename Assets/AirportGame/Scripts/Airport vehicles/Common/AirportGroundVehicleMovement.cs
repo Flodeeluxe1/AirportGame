@@ -67,6 +67,29 @@ public class AirportGroundVehicleMovement : MonoBehaviour
     private readonly List<Vector3> movementPath =
         new List<Vector3>();
 
+    // Reused A* workspace, following the pedestrian pathfinder's allocation-
+    // conscious implementation. Searches run sequentially on Unity's main thread.
+    private readonly List<VehicleOpenNode> pathOpenSet =
+        new List<VehicleOpenNode>(256);
+    private readonly Dictionary<Vector2Int, Vector2Int> pathCameFrom =
+        new Dictionary<Vector2Int, Vector2Int>(256);
+    private readonly Dictionary<Vector2Int, int> pathGScore =
+        new Dictionary<Vector2Int, int>(256);
+    private readonly HashSet<Vector2Int> pathClosedSet =
+        new HashSet<Vector2Int>();
+
+    private static readonly Vector2Int[] PathNeighborOffsets =
+    {
+        Vector2Int.up,
+        Vector2Int.right,
+        Vector2Int.down,
+        Vector2Int.left,
+        new Vector2Int(1, 1),
+        new Vector2Int(1, -1),
+        new Vector2Int(-1, -1),
+        new Vector2Int(-1, 1)
+    };
+
     private Vector3 destination;
     private Vector3 lastRequestedDestination;
 
@@ -434,263 +457,313 @@ public class AirportGroundVehicleMovement : MonoBehaviour
         Vector2Int start,
         Vector2Int target)
     {
-    List<Vector2Int> empty = new List<Vector2Int>();
+        if (start == target)
+            return new List<Vector2Int> { start };
 
-    if (start == target)
-        return new List<Vector2Int> { start };
+        bool targetObstacle = gridSurface.IsObstacle(target);
+        bool targetHomeCell = IsHomeAreaCell(target);
+        bool targetDestinationCell = IsCurrentDestinationGateCell(target);
 
-    bool targetObstacle = gridSurface.IsObstacle(target);
-    bool targetHomeCell = IsHomeAreaCell(target);
-    bool targetDestinationCell = IsCurrentDestinationGateCell(target);
+        if (logToConsole)
+        {
+            bool targetOccupied = gridOccupancy.IsOccupied(target);
+            bool targetOccupiedByDestination =
+                currentDestinationGate != null &&
+                gridOccupancy.IsOccupiedBy(target, currentDestinationGate);
+            bool targetObstacleOwnedByDestination =
+                currentDestinationGate != null &&
+                gridSurface.IsObstacleOwnedBy(target, currentDestinationGate);
+            bool targetSurfaceOwnedByDestination =
+                currentDestinationGate != null &&
+                gridSurface.IsSurfaceOwner(target, currentDestinationGate);
 
-    bool targetOccupied = gridOccupancy.IsOccupied(target);
-    bool targetOccupiedByDestination =
-        currentDestinationGate != null &&
-        gridOccupancy.IsOccupiedBy(target, currentDestinationGate);
+            Log(
+                $"{name}: PATHFINDING TARGET DIAGNOSTICS\\n" +
+                $"Start: {start}, Target: {target}\\n" +
+                $"Destination object: {(currentDestinationGate != null ? currentDestinationGate.name : "None")}\\n" +
+                $"Destination object ID: {(currentDestinationGate != null ? currentDestinationGate.GetEntityId().ToString() : "None")}\\n" +
+                $"Target surface: {gridSurface.GetSurface(target)}\\n" +
+                $"Target occupied: {targetOccupied}\\n" +
+                $"Target occupied by destination: {targetOccupiedByDestination}\\n" +
+                $"Target obstacle: {targetObstacle}\\n" +
+                $"Target obstacle owned by destination: {targetObstacleOwnedByDestination}\\n" +
+                $"Target surface owned by destination: {targetSurfaceOwnedByDestination}\\n" +
+                $"Target is home cell: {targetHomeCell}\\n" +
+                $"Target is permitted destination cell: {targetDestinationCell}",
+                this);
+        }
 
-    bool targetObstacleOwnedByDestination =
-        currentDestinationGate != null &&
-        gridSurface.IsObstacleOwnedBy(target, currentDestinationGate);
+        if (targetObstacle && !targetHomeCell && !targetDestinationCell)
+        {
+            LogWarning(
+                $"{name}: TARGET REJECTED because it is an obstacle " +
+                "and is not owned by the permitted destination object.",
+                this);
+            return new List<Vector2Int>();
+        }
 
-    bool targetSurfaceOwnedByDestination =
-        currentDestinationGate != null &&
-        gridSurface.IsSurfaceOwner(target, currentDestinationGate);
-
-    Log(
-        $"{name}: PATHFINDING TARGET DIAGNOSTICS\n" +
-        $"Start: {start}, Target: {target}\n" +
-        $"Destination object: {(currentDestinationGate != null ? currentDestinationGate.name : "None")}\n" +
-        $"Destination object ID: {(currentDestinationGate != null ? currentDestinationGate.GetEntityId().ToString() : "None")}\n" +
-        $"Target surface: {gridSurface.GetSurface(target)}\n" +
-        $"Target occupied: {targetOccupied}\n" +
-        $"Target occupied by destination: {targetOccupiedByDestination}\n" +
-        $"Target obstacle: {targetObstacle}\n" +
-        $"Target obstacle owned by destination: {targetObstacleOwnedByDestination}\n" +
-        $"Target surface owned by destination: {targetSurfaceOwnedByDestination}\n" +
-        $"Target is home cell: {targetHomeCell}\n" +
-        $"Target is permitted destination cell: {targetDestinationCell}",
-        this);
-
-    if (targetObstacle &&
-        !targetHomeCell &&
-        !targetDestinationCell)
-    {
-        LogWarning(
-            $"{name}: TARGET REJECTED because it is an obstacle " +
-            "and is not owned by the permitted destination object.",
-            this);
-
-        return empty;
-    }
-
-    List<Vector2Int> openSet = new List<Vector2Int> { start };
-    HashSet<Vector2Int> closedSet = new HashSet<Vector2Int>();
-
-    Dictionary<Vector2Int, Vector2Int> cameFrom =
-        new Dictionary<Vector2Int, Vector2Int>();
-
-    Dictionary<Vector2Int, int> gScore =
-        new Dictionary<Vector2Int, int>();
-
-    gScore[start] = 0;
-
-    int rejectedOutOfBounds = 0;
-    int rejectedFoundation = 0;
-    int rejectedClearance = 0;
-    int rejectedOccupied = 0;
-    int rejectedObstacle = 0;
-
-    while (openSet.Count > 0)
-    {
-        int bestIndex = 0;
+        pathOpenSet.Clear();
+        pathCameFrom.Clear();
+        pathGScore.Clear();
+        pathClosedSet.Clear();
 
         int minimumMovementCost = GetMinimumMovementCost();
+        int insertionOrder = 0;
+        pathGScore[start] = 0;
+        EnqueuePathNode(new VehicleOpenNode(
+            start,
+            0,
+            OctileDistance(start, target) * minimumMovementCost,
+            insertionOrder++));
 
-        for (int i = 1; i < openSet.Count; i++)
+        int rejectedOutOfBounds = 0;
+        int rejectedFoundation = 0;
+        int rejectedClearance = 0;
+        int rejectedOccupied = 0;
+        int rejectedObstacle = 0;
+
+        while (pathOpenSet.Count > 0)
         {
-            float currentScore =
-                gScore[openSet[i]] +
-                OctileDistance(openSet[i], target) *
-                minimumMovementCost;
+            VehicleOpenNode currentNode = DequeuePathNode();
+            Vector2Int current = currentNode.Position;
 
-            float bestScore =
-                gScore[openSet[bestIndex]] +
-                OctileDistance(openSet[bestIndex], target) *
-                minimumMovementCost;
-
-            if (currentScore < bestScore)
-                bestIndex = i;
-        }
-
-        Vector2Int current = openSet[bestIndex];
-        openSet.RemoveAt(bestIndex);
+            // Improved routes add a new heap entry. Ignore older entries whose
+            // cost is no longer the best known cost for this cell.
+            if (!pathGScore.TryGetValue(current, out int currentBestG) ||
+                currentNode.G != currentBestG ||
+                !pathClosedSet.Add(current))
+            {
+                continue;
+            }
 
             if (current == target)
+                return ReconstructPath(pathCameFrom, start, target);
+
+            for (int i = 0; i < PathNeighborOffsets.Length; i++)
             {
-                List<Vector2Int> foundPath =
-                    ReconstructPath(cameFrom, start, target);
+                Vector2Int neighbor = current + PathNeighborOffsets[i];
+
+                if (!gridManager.IsInsideGrid(neighbor))
+                {
+                    rejectedOutOfBounds++;
+                    continue;
+                }
+
+                if (pathClosedSet.Contains(neighbor))
+                    continue;
+
+                bool isHomeCell = IsHomeAreaCell(neighbor);
+                bool isDestinationGateCell =
+                    IsCurrentDestinationGateCell(neighbor);
+
+                int deltaX = Mathf.Abs(neighbor.x - current.x);
+                int deltaY = Mathf.Abs(neighbor.y - current.y);
+                bool isDiagonal = deltaX == 1 && deltaY == 1;
+
+                // Preserve the vehicle-specific corner and clearance rules.
+                if (isDiagonal)
+                {
+                    Vector2Int horizontalSideCell =
+                        current + new Vector2Int(neighbor.x - current.x, 0);
+                    Vector2Int verticalSideCell =
+                        current + new Vector2Int(0, neighbor.y - current.y);
+
+                    if (IsBlockedForDiagonal(horizontalSideCell, start, target) ||
+                        IsBlockedForDiagonal(verticalSideCell, start, target))
+                    {
+                        rejectedObstacle++;
+                        continue;
+                    }
+                }
+
+                if (neighbor != start &&
+                    neighbor != target &&
+                    !isHomeCell &&
+                    !isDestinationGateCell)
+                {
+                    if (gridSurface.GetSurface(neighbor) == BuildSurface.Foundation)
+                    {
+                        rejectedFoundation++;
+                        continue;
+                    }
+
+                    if (IsWithinFoundationClearance(neighbor) ||
+                        IsWithinRunwayClearance(neighbor))
+                    {
+                        rejectedClearance++;
+                        continue;
+                    }
+
+                    if (gridOccupancy.IsOccupied(neighbor))
+                    {
+                        rejectedOccupied++;
+                        continue;
+                    }
+
+                    if (gridSurface.IsObstacle(neighbor))
+                    {
+                        rejectedObstacle++;
+                        continue;
+                    }
+                }
+
+                int stepCost = GetMovementCost(neighbor);
+                if (isDiagonal)
+                    stepCost = Mathf.CeilToInt(stepCost * 1.41421356f);
+
+                int tentativeScore = currentBestG + stepCost;
+
+                if (pathGScore.TryGetValue(neighbor, out int existingScore) &&
+                    tentativeScore >= existingScore)
+                {
+                    continue;
+                }
+
+                pathCameFrom[neighbor] = current;
+                pathGScore[neighbor] = tentativeScore;
+
+                EnqueuePathNode(new VehicleOpenNode(
+                    neighbor,
+                    tentativeScore,
+                    OctileDistance(neighbor, target) * minimumMovementCost,
+                    insertionOrder++));
+            }
+        }
+
+        if (logToConsole)
+        {
+            LogWarning(
+                $"{name}: PATHFINDING FAILED\\n" +
+                $"Start: {start}, Target: {target}\\n" +
+                $"Expanded cells: {pathClosedSet.Count}\\n" +
+                $"Rejected out of bounds: {rejectedOutOfBounds}\\n" +
+                $"Rejected foundation: {rejectedFoundation}\\n" +
+                $"Rejected foundation clearance: {rejectedClearance}\\n" +
+                $"Rejected occupied: {rejectedOccupied}\\n" +
+                $"Rejected obstacles: {rejectedObstacle}\\n" +
+                $"Remaining open cells: {pathOpenSet.Count}",
+                this);
+
+            Vector2Int[] targetNeighbors =
+            {
+                target + Vector2Int.up,
+                target + Vector2Int.right,
+                target + Vector2Int.down,
+                target + Vector2Int.left,
+                new Vector2Int(target.x + 1, target.y + 1),
+                new Vector2Int(target.x + 1, target.y - 1),
+                new Vector2Int(target.x - 1, target.y - 1),
+                new Vector2Int(target.x - 1, target.y + 1)
+            };
+
+            foreach (Vector2Int neighbor in targetNeighbors)
+            {
+                if (!gridManager.IsInsideGrid(neighbor))
+                {
+                    Log($"{name}: Target neighbor {neighbor}: OUTSIDE GRID.", this);
+                    continue;
+                }
 
                 Log(
-                    $"{name}: PATHFINDING SUCCEEDED. " +
-                    $"Path cells: {foundPath.Count}, " +
-                    $"Expanded cells: {closedSet.Count}.",
+                    $"{name}: Target neighbor {neighbor}: " +
+                    $"Surface={gridSurface.GetSurface(neighbor)}, " +
+                    $"Occupied={gridOccupancy.IsOccupied(neighbor)}, " +
+                    $"FoundationClearance={IsWithinFoundationClearance(neighbor)}, " +
+                    $"Obstacle={gridSurface.IsObstacle(neighbor)}, " +
+                    $"Home={IsHomeAreaCell(neighbor)}, " +
+                    $"Destination={IsCurrentDestinationGateCell(neighbor)}",
                     this);
-
-                return foundPath;
             }
+        }
 
-            if (!closedSet.Add(current))
-            continue;
+        return new List<Vector2Int>();
+    }
 
-        Vector2Int[] neighbors =
+    private struct VehicleOpenNode
+    {
+        public Vector2Int Position;
+        public int G;
+        public float H;
+        public float F => G + H;
+        public int Order;
+
+        public VehicleOpenNode(
+            Vector2Int position,
+            int g,
+            float h,
+            int order)
         {
-            current + Vector2Int.up,
-            current + Vector2Int.right,
-            current + Vector2Int.down,
-            current + Vector2Int.left,
-            current + new Vector2Int(1, 1),
-            current + new Vector2Int(1, -1),
-            current + new Vector2Int(-1, -1),
-            current + new Vector2Int(-1, 1)
-        };
-
-        foreach (Vector2Int neighbor in neighbors)
-        {
-            if (!gridManager.IsInsideGrid(neighbor))
-            {
-                rejectedOutOfBounds++;
-                continue;
-            }
-
-            if (closedSet.Contains(neighbor))
-                continue;
-
-            bool isHomeCell = IsHomeAreaCell(neighbor);
-            bool isDestinationGateCell =
-                IsCurrentDestinationGateCell(neighbor);
-
-            int deltaX = Mathf.Abs(neighbor.x - current.x);
-            int deltaY = Mathf.Abs(neighbor.y - current.y);
-            bool isDiagonal = deltaX == 1 && deltaY == 1;
-
-            // Do not allow diagonal movement to cut through the corner
-            // of a blocked cell or clearance zone.
-            if (isDiagonal)
-            {
-                Vector2Int horizontalSideCell =
-                    current + new Vector2Int(neighbor.x - current.x, 0);
-                Vector2Int verticalSideCell =
-                    current + new Vector2Int(0, neighbor.y - current.y);
-
-                if (IsBlockedForDiagonal(horizontalSideCell, start, target) ||
-                    IsBlockedForDiagonal(verticalSideCell, start, target))
-                {
-                    rejectedObstacle++;
-                    continue;
-                }
-            }
-
-            if (neighbor != start &&
-                neighbor != target &&
-                !isHomeCell &&
-                !isDestinationGateCell)
-            {
-                if (gridSurface.GetSurface(neighbor) ==
-                    BuildSurface.Foundation)
-                {
-                    rejectedFoundation++;
-                    continue;
-                }
-
-                if (IsWithinFoundationClearance(neighbor) ||
-                    IsWithinRunwayClearance(neighbor))
-                {
-                    rejectedClearance++;
-                    continue;
-                }
-
-                if (gridOccupancy.IsOccupied(neighbor))
-                {
-                    rejectedOccupied++;
-                    continue;
-                }
-
-                if (gridSurface.IsObstacle(neighbor))
-                {
-                    rejectedObstacle++;
-                    continue;
-                }
-            }
-
-            int stepCost = GetMovementCost(neighbor);
-            if (isDiagonal)
-                stepCost = Mathf.CeilToInt(stepCost * 1.41421356f);
-
-            int tentativeScore = gScore[current] + stepCost;
-
-            if (gScore.TryGetValue(
-                    neighbor,
-                    out int existingScore) &&
-                tentativeScore >= existingScore)
-            {
-                continue;
-            }
-
-            cameFrom[neighbor] = current;
-            gScore[neighbor] = tentativeScore;
-
-            if (!openSet.Contains(neighbor))
-                openSet.Add(neighbor);
+            Position = position;
+            G = g;
+            H = h;
+            Order = order;
         }
     }
 
-    LogWarning(
-        $"{name}: PATHFINDING FAILED\n" +
-        $"Start: {start}, Target: {target}\n" +
-        $"Expanded cells: {closedSet.Count}\n" +
-        $"Rejected out of bounds: {rejectedOutOfBounds}\n" +
-        $"Rejected foundation: {rejectedFoundation}\n" +
-        $"Rejected foundation clearance: {rejectedClearance}\n" +
-        $"Rejected occupied: {rejectedOccupied}\n" +
-        $"Rejected obstacles: {rejectedObstacle}\n" +
-        $"Remaining open cells: {openSet.Count}",
-        this);
-
-    Vector2Int[] targetNeighbors =
+    private void EnqueuePathNode(VehicleOpenNode node)
     {
-        target + Vector2Int.up,
-        target + Vector2Int.right,
-        target + Vector2Int.down,
-        target + Vector2Int.left,
-        target + new Vector2Int(1, 1),
-        target + new Vector2Int(1, -1),
-        target + new Vector2Int(-1, -1),
-        target + new Vector2Int(-1, 1)
-    };
+        pathOpenSet.Add(node);
+        int index = pathOpenSet.Count - 1;
 
-    foreach (Vector2Int neighbor in targetNeighbors)
-    {
-        if (!gridManager.IsInsideGrid(neighbor))
+        while (index > 0)
         {
-            Log(
-                $"{name}: Target neighbor {neighbor}: OUTSIDE GRID.",
-                this);
-            continue;
+            int parent = (index - 1) / 2;
+            if (!PathNodeComesBefore(node, pathOpenSet[parent]))
+                break;
+
+            pathOpenSet[index] = pathOpenSet[parent];
+            index = parent;
         }
 
-        Log(
-            $"{name}: Target neighbor {neighbor}: " +
-            $"Surface={gridSurface.GetSurface(neighbor)}, " +
-            $"Occupied={gridOccupancy.IsOccupied(neighbor)}, " +
-            $"FoundationClearance={IsWithinFoundationClearance(neighbor)}, " +
-            $"Obstacle={gridSurface.IsObstacle(neighbor)}, " +
-            $"Home={IsHomeAreaCell(neighbor)}, " +
-            $"Destination={IsCurrentDestinationGateCell(neighbor)}",
-            this);
+        pathOpenSet[index] = node;
     }
 
-    return empty;
-}
+    private VehicleOpenNode DequeuePathNode()
+    {
+        VehicleOpenNode result = pathOpenSet[0];
+        int lastIndex = pathOpenSet.Count - 1;
+        VehicleOpenNode last = pathOpenSet[lastIndex];
+        pathOpenSet.RemoveAt(lastIndex);
+
+        if (pathOpenSet.Count == 0)
+            return result;
+
+        int index = 0;
+        while (true)
+        {
+            int left = index * 2 + 1;
+            if (left >= pathOpenSet.Count)
+                break;
+
+            int right = left + 1;
+            int bestChild =
+                right < pathOpenSet.Count &&
+                PathNodeComesBefore(pathOpenSet[right], pathOpenSet[left])
+                    ? right
+                    : left;
+
+            if (!PathNodeComesBefore(pathOpenSet[bestChild], last))
+                break;
+
+            pathOpenSet[index] = pathOpenSet[bestChild];
+            index = bestChild;
+        }
+
+        pathOpenSet[index] = last;
+        return result;
+    }
+
+    private static bool PathNodeComesBefore(
+        VehicleOpenNode a,
+        VehicleOpenNode b)
+    {
+        if (a.F != b.F)
+            return a.F < b.F;
+
+        // Match the old list-based A* tie behaviour: retain insertion order
+        // for equal estimated total costs.
+        return a.Order < b.Order;
+    }
 
     private bool IsWithinFoundationClearance(Vector2Int cell)
     {
