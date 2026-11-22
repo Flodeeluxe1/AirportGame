@@ -139,19 +139,6 @@ public class AircraftSSLandingController : MonoBehaviour
         alignmentPoint = Vector3.zero;
         flareDecisionMade = false;
         rolloutElapsed = 0f;
-        rolloutStartPosition = transform.position;
-        rolloutStartSpeed = currentSpeed;
-        rolloutIntegratedTime = 0f;
-        Vector3 touchdownRunwayEnd =
-            runwayCenter + runwayDirection * (runwayLength * 0.5f);
-        float runwayRemainingAtTouchdown = Vector3.Dot(
-            touchdownRunwayEnd - rolloutStartPosition,
-            runwayDirection);
-        Log(
-            $"SIGHTSEEING ROLLOUT START | Aircraft: {name} | " +
-            $"Runway: {debugSelectedRunway} | Speed: {AircraftStatus.WorldSpeedToKnots(currentSpeed):F1} knots | " +
-            $"Runway remaining: {runwayRemainingAtTouchdown:F2} | Runway length: {runwayLength:F2}",
-            this);
         return InitializeLanding(incomingSpeedKnots);
     }
 
@@ -497,6 +484,19 @@ public class AircraftSSLandingController : MonoBehaviour
         transform.position = touchdownPoint;
         currentSpeed = KnotsToWorldSpeed(touchdownSpeedKnots);
         rolloutElapsed = 0f;
+        rolloutStartPosition = transform.position;
+        rolloutStartSpeed = currentSpeed;
+        rolloutIntegratedTime = 0f;
+        Vector3 touchdownRunwayEnd =
+            runwayCenter + runwayDirection * (runwayLength * 0.5f);
+        float runwayRemainingAtTouchdown = Vector3.Dot(
+            touchdownRunwayEnd - rolloutStartPosition,
+            runwayDirection);
+        Log(
+            $"SIGHTSEEING ROLLOUT START | Aircraft: {name} | " +
+            $"Runway: {debugSelectedRunway} | Speed: {AircraftStatus.WorldSpeedToKnots(currentSpeed):F1} knots | " +
+            $"Runway remaining: {runwayRemainingAtTouchdown:F2} | Runway length: {runwayLength:F2}",
+            this);
 
         SetFlightOrientation(0f, noseRaiseDegrees);
         state = LandingState.Rollout;
