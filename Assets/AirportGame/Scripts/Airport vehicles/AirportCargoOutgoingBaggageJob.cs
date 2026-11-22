@@ -493,16 +493,7 @@ private void CollectAndReservePackages()
 
     private void UpdateTimedLoadingSequence()
     {
-        float speedMultiplier =
-            gameTimeManager != null
-                ? Mathf.Max(0f, gameTimeManager.CurrentSpeedMultiplier)
-                : 1f;
-
-        if (speedMultiplier <= 0f)
-            return;
-
-        phaseElapsedGameSeconds +=
-            Time.unscaledDeltaTime * speedMultiplier;
+        phaseElapsedGameSeconds += GameTimeManager.SimulationDeltaTime;
 
         // Use a loop so a large game-time step can advance the sequence
         // without losing elapsed time between phases.
