@@ -64,8 +64,6 @@ public class AirlineContractTemplate : ScriptableObject
     [Header("Payment")]
     [Min(0)]
     [SerializeField] private int paymentPerCompletedFlight = 500;
-    [Range(0f, 1f)]
-    [SerializeField] private float missedFlightPaymentReduction = 0.5f;
     [Tooltip("Additional cash penalty charged for each missed, cancelled, or operationally failed flight. The flight payment is also not earned.")]
     [Min(0)]
     [SerializeField] private int missedFlightPenalty = 250;
@@ -103,7 +101,6 @@ public class AirlineContractTemplate : ScriptableObject
     public float MinimumCargoStorageCapacity => minimumCargoStorageCapacity;
     public float MinimumCargoHandlingThroughputPerHour => minimumCargoHandlingThroughputPerHour;
     public int PaymentPerCompletedFlight => paymentPerCompletedFlight;
-    public float MissedFlightPaymentReduction => missedFlightPaymentReduction;
     public int MissedFlightPenalty => missedFlightPenalty;
     public int CompletionBonus => completionBonus;
     public float MinimumAirlineInterest => minimumAirlineInterest;
