@@ -17,12 +17,12 @@ public class AirlineManagementUIController : MonoBehaviour
     [SerializeField] private AirlineAirportSnapshotCollector snapshotCollector;
     [SerializeField] private GameTimeManager gameTimeManager;
 
-    private static readonly Color WindowColor = new Color(27, 32, 39, 250);
-    private static readonly Color CardColor = new Color(39, 47, 57, 255);
-    private static readonly Color MutedTextColor = new Color(174, 186, 199, 255);
-    private static readonly Color AccentColor = new Color(43, 91, 128, 255);
-    private static readonly Color GreenColor = new Color(65, 165, 112, 255);
-    private static readonly Color AmberColor = new Color(205, 151, 65, 255);
+    private static readonly Color WindowColor = (Color)new Color32(27, 32, 39, 250);
+    private static readonly Color CardColor = (Color)new Color32(39, 47, 57, 255);
+    private static readonly Color MutedTextColor = (Color)new Color32(174, 186, 199, 255);
+    private static readonly Color AccentColor = (Color)new Color32(43, 91, 128, 255);
+    private static readonly Color GreenColor = (Color)new Color32(65, 165, 112, 255);
+    private static readonly Color AmberColor = (Color)new Color32(205, 151, 65, 255);
 
     private VisualElement root;
     private VisualElement window;
@@ -507,7 +507,7 @@ public class AirlineManagementUIController : MonoBehaviour
 
         VisualElement progressTrack = new VisualElement();
         progressTrack.style.height = 7;
-        progressTrack.style.backgroundColor = new Color(58, 67, 78, 255);
+        progressTrack.style.backgroundColor = (Color)new Color32(58, 67, 78, 255);
         SetRadius(progressTrack, 4);
         VisualElement progress = new VisualElement();
         progress.style.height = 7;
@@ -625,7 +625,7 @@ public class AirlineManagementUIController : MonoBehaviour
         VisualElement track = new VisualElement();
         track.style.height = 4;
         track.style.marginTop = 2;
-        track.style.backgroundColor = new Color(58, 67, 78, 255);
+        track.style.backgroundColor = (Color)new Color32(58, 67, 78, 255);
         SetRadius(track, 2);
         VisualElement fill = new VisualElement();
         fill.style.height = 4;
@@ -669,7 +669,7 @@ public class AirlineManagementUIController : MonoBehaviour
         Label title = new Label(heading);
         title.style.fontSize = 13;
         title.style.unityFontStyleAndWeight = FontStyle.Bold;
-        title.style.color = new Color(215, 222, 231, 255);
+        title.style.color = (Color)new Color32(215, 222, 231, 255);
         title.style.marginTop = 3;
         title.style.marginBottom = 2;
         content.Add(title);
@@ -767,7 +767,7 @@ public class AirlineManagementUIController : MonoBehaviour
         inset.style.paddingTop = 6;
         inset.style.paddingBottom = 6;
         inset.style.marginTop = 6;
-        inset.style.backgroundColor = new Color(31, 38, 47, 255);
+        inset.style.backgroundColor = (Color)new Color32(31, 38, 47, 255);
         SetRadius(inset, 4);
         return inset;
     }
@@ -776,7 +776,7 @@ public class AirlineManagementUIController : MonoBehaviour
     {
         label.style.fontSize = 9;
         label.style.unityFontStyleAndWeight = FontStyle.Bold;
-        label.style.color = new Color(215, 222, 231, 255);
+        label.style.color = (Color)new Color32(215, 222, 231, 255);
         label.style.marginBottom = 4;
     }
 
@@ -801,6 +801,6 @@ public class AirlineManagementUIController : MonoBehaviour
             return GreenColor;
         if (score >= 40f)
             return AmberColor;
-        return new Color(205, 91, 82, 255);
+        return (Color)new Color32(205, 91, 82, 255);
     }
 }
