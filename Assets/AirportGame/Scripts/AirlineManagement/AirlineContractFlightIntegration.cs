@@ -85,13 +85,7 @@ public class AirlineContractFlightIntegration : MonoBehaviour
         if (contractManager == null || flightCatalog == null)
             return;
 
-        foreach (ActiveAirlineContract contract in contractManager.ActiveContracts)
-        {
-            if (contract == null || string.IsNullOrWhiteSpace(contract.contractId))
-                continue;
-
-            flightCatalog.RemoveContractFlights(contract.contractId);
-        }
+        flightCatalog.RemoveAllContractFlights();
 
         if (flightManagementUI != null)
             flightManagementUI.RefreshAvailableFlights();
@@ -99,6 +93,12 @@ public class AirlineContractFlightIntegration : MonoBehaviour
 
     private void HandleContractsRestored()
     {
+        if (flightCatalog == null)
+            ResolveReferences();
+
+        if (flightCatalog != null)
+            flightCatalog.RemoveAllContractFlights();
+
         RegisterExistingContracts();
 
         if (flightManagementUI == null)
