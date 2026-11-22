@@ -189,7 +189,7 @@ public class AircraftTrainingDepartureTaxiController : MonoBehaviour
 
         currentState = DepartureState.WaitingForRunway;
 
-        retryTimer -= Time.deltaTime;
+        retryTimer -= GameTimeManager.SimulationDeltaTime;
         if (retryTimer > 0f)
             return;
 
@@ -867,7 +867,7 @@ public class AircraftTrainingDepartureTaxiController : MonoBehaviour
         if (selectedRunway == null || trafficManager == null)
             return;
 
-        retryTimer -= Time.deltaTime;
+        retryTimer -= GameTimeManager.SimulationDeltaTime;
         if (retryTimer > 0f)
             return;
 
@@ -1050,7 +1050,7 @@ public class AircraftTrainingDepartureTaxiController : MonoBehaviour
         transform.rotation = Quaternion.RotateTowards(
             transform.rotation,
             runwayLineUpRotation,
-            rotationSpeedDegreesPerSecond * Time.deltaTime);
+            rotationSpeedDegreesPerSecond * GameTimeManager.SimulationDeltaTime);
 
         if (Quaternion.Angle(transform.rotation, runwayLineUpRotation) > 0.5f)
             return;
@@ -1161,7 +1161,7 @@ public class AircraftTrainingDepartureTaxiController : MonoBehaviour
             transform.rotation = Quaternion.RotateTowards(
                 transform.rotation,
                 targetRotation,
-                rotationSpeedDegreesPerSecond * Time.deltaTime);
+                rotationSpeedDegreesPerSecond * GameTimeManager.SimulationDeltaTime);
         }
 
         if (speed <= 0.001f)
@@ -1170,7 +1170,7 @@ public class AircraftTrainingDepartureTaxiController : MonoBehaviour
         transform.position = Vector3.MoveTowards(
             transform.position,
             target,
-            speed * Time.deltaTime);
+            speed * GameTimeManager.SimulationDeltaTime);
     }
 
     private void HandleMovementRouteCompleted()
