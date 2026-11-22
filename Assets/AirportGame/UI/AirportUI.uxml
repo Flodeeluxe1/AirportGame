@@ -99,7 +99,7 @@
             class="time-speed-button"/>
 
         <ui:Button
-            text="1000X"
+            text="500X"
             name="time-8x-button"
             class="time-speed-button"/>
 
