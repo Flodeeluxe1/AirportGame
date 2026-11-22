@@ -114,11 +114,13 @@ public class AirlineManagementUIController : MonoBehaviour
             contractManager.ContractAccepted -= HandleContractChanged;
             contractManager.ContractCompleted -= HandleContractChanged;
             contractManager.ContractsRestored -= HandleContractsRestored;
+            contractManager.ContractRenewalPreferenceChanged -= HandleRenewalPreferenceChanged;
             contractManager.OfferGenerated += HandleOfferChanged;
             contractManager.OfferExpired += HandleOfferExpired;
             contractManager.ContractAccepted += HandleContractChanged;
             contractManager.ContractCompleted += HandleContractChanged;
             contractManager.ContractsRestored += HandleContractsRestored;
+            contractManager.ContractRenewalPreferenceChanged += HandleRenewalPreferenceChanged;
         }
 
         if (snapshotCollector != null)
@@ -144,6 +146,7 @@ public class AirlineManagementUIController : MonoBehaviour
             contractManager.ContractAccepted -= HandleContractChanged;
             contractManager.ContractCompleted -= HandleContractChanged;
             contractManager.ContractsRestored -= HandleContractsRestored;
+            contractManager.ContractRenewalPreferenceChanged -= HandleRenewalPreferenceChanged;
         }
         if (snapshotCollector != null)
             snapshotCollector.InterestUpdated -= HandleInterestUpdated;
@@ -158,6 +161,7 @@ public class AirlineManagementUIController : MonoBehaviour
     private void HandleOfferExpired(AirlineContractOffer offer) => RefreshIfOpen();
     private void HandleContractChanged(ActiveAirlineContract contract) => RefreshIfOpen();
     private void HandleContractsRestored() => RefreshIfOpen();
+    private void HandleRenewalPreferenceChanged(ActiveAirlineContract contract) => RefreshIfOpen();
     private void HandleInterestUpdated(AirlineDefinition airline, AirlineInterestResult result) => RefreshIfOpen();
     private void HandlePerformanceUpdated(ActiveAirlineContract contract) => RefreshIfOpen();
     private void HandleRelationshipUpdated(AirlineDefinition airline, float relationship) => RefreshIfOpen();
@@ -566,6 +570,31 @@ public class AirlineManagementUIController : MonoBehaviour
         }
 
         AddDescription(card, "Schedule each recurring obligation once in Flight Management. The timetable repeats it on each active contract day.");
+
+        AddDescription(card,
+            "Automatic renewal is attempted at expiry when airline relationship is at least 50, " +
+            "at least 75% of flights were completed, airport requirements are still met, " +
+            "and no penalties remain unpaid.");
+
+        if (contract.renewalDeclined)
+        {
+            AddDetailLine(card, "Automatic renewal", "Declined");
+        }
+        else
+        {
+            AddDetailLine(card, "Automatic renewal", "Enabled");
+            Button declineRenewal = new Button(() =>
+            {
+                if (contractManager != null &&
+                    contractManager.DeclineAutomaticRenewal(contract.contractId))
+                    RefreshWindow();
+            }) { text = "Decline automatic renewal" };
+            declineRenewal.style.height = 34;
+            declineRenewal.style.marginTop = 7;
+            declineRenewal.style.backgroundColor = AmberColor;
+            declineRenewal.style.color = Color.white;
+            card.Add(declineRenewal);
+        }
         return card;
     }
 
