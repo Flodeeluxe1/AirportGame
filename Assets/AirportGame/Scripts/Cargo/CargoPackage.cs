@@ -105,6 +105,18 @@ public class CargoPackage : MonoBehaviour
         SyncSerializedFields();
     }
 
+    /// <summary>
+    /// Detaches this pooled visual from its previous cargo record.
+    /// Called only by CargoPackageData immediately before returning it to the pool.
+    /// </summary>
+    internal void UnbindDataForPool()
+    {
+        if (data != null)
+            data.DetachVisual(this);
+
+        data = null;
+    }
+
     public void Initialize(
         string id,
         CargoDirection cargoDirection,
