@@ -958,7 +958,8 @@ public class AircraftCargoPaxLandingTaxiController : MonoBehaviour
             return;
         }
 
-        MoveTowardWaypoint(runwayExitPoint);
+        float remainingTime = GameTimeManager.SimulationDeltaTime;
+        MoveTowardWaypoint(runwayExitPoint, ref remainingTime);
     }
 
     private void UpdateTaxiwayJoin()
@@ -977,12 +978,18 @@ public class AircraftCargoPaxLandingTaxiController : MonoBehaviour
             return;
         }
 
-        MoveTowardWaypoint(taxiwayJoinPoint);
+        float remainingTime = GameTimeManager.SimulationDeltaTime;
+        MoveTowardWaypoint(taxiwayJoinPoint, ref remainingTime);
     }
 
     private void UpdateTaxiwayRoute()
     {
-        while (currentWaypointIndex < taxiMovementPath.Count)
+        float remainingTime = GameTimeManager.SimulationDeltaTime;
+        const int maximumWaypointTransitions = 256;
+        int transitions = 0;
+
+        while (currentWaypointIndex < taxiMovementPath.Count &&
+               transitions < maximumWaypointTransitions)
         {
             Vector3 waypoint = taxiMovementPath[currentWaypointIndex];
 
@@ -991,15 +998,29 @@ public class AircraftCargoPaxLandingTaxiController : MonoBehaviour
             {
                 currentWaypointIndex++;
                 debugCurrentWaypoint = currentWaypointIndex;
+                transitions++;
                 continue;
             }
 
-            MoveTowardWaypoint(waypoint);
-            return;
+            MoveTowardWaypoint(waypoint, ref remainingTime);
+
+            if (HorizontalDistance(transform.position, waypoint) >
+                taxiPathPointTolerance)
+                return;
+
+            currentWaypointIndex++;
+            debugCurrentWaypoint = currentWaypointIndex;
+            transitions++;
+
+            if (remainingTime <= 0.0001f)
+                return;
         }
 
-        SetOperationalState(TaxiPhase.ApproachingGate);
-        debugStatus = $"Taxiway route complete. Approaching {assignedGate.DisplayName}.";
+        if (currentWaypointIndex >= taxiMovementPath.Count)
+        {
+            SetOperationalState(TaxiPhase.ApproachingGate);
+            debugStatus = $"Taxiway route complete. Approaching {assignedGate.DisplayName}.";
+        }
     }
 
     private void UpdateFinalGateApproach()
@@ -1014,39 +1035,45 @@ public class AircraftCargoPaxLandingTaxiController : MonoBehaviour
             return;
         }
 
-        MoveTowardWaypoint(gateTarget);
+        float remainingTime = GameTimeManager.SimulationDeltaTime;
+        MoveTowardWaypoint(gateTarget, ref remainingTime);
     }
 
-    private void MoveTowardWaypoint(Vector3 target)
+    private void MoveTowardWaypoint(Vector3 target, ref float remainingTime)
     {
         Vector3 movement = target - transform.position;
         movement.y = 0f;
 
-        if (movement.sqrMagnitude > 0.0001f)
-            FaceMovementDirection(movement);
-
         if (trafficFollowing != null)
             PublishPlannedTaxiRoute(taxiRoute);
 
-        float taxiSpeedKnots = this.taxiSpeedKnots;
-
+        float speedKnots = this.taxiSpeedKnots;
         if (trafficFollowing != null)
         {
-            taxiSpeedKnots =
-                trafficFollowing.GetTrafficFollowingSpeed(taxiSpeedKnots);
+            speedKnots =
+                trafficFollowing.GetTrafficFollowingSpeed(speedKnots);
         }
         else if (aircraftStatus != null)
         {
-            aircraftStatus.SetCurrentSpeedKnots(taxiSpeedKnots);
+            aircraftStatus.SetCurrentSpeedKnots(speedKnots);
         }
 
-        float taxiSpeed =
-            AircraftStatus.KnotsToWorldSpeed(taxiSpeedKnots);
+        float taxiSpeed = AircraftStatus.KnotsToWorldSpeed(speedKnots);
+        if (taxiSpeed <= 0.001f || remainingTime <= 0.0001f)
+            return;
+
+        float distance = movement.magnitude;
+        float travelTime = Mathf.Min(remainingTime, distance / taxiSpeed);
+
+        if (movement.sqrMagnitude > 0.0001f)
+            FaceMovementDirection(movement);
 
         transform.position = Vector3.MoveTowards(
             transform.position,
             target,
-            taxiSpeed * GameTimeManager.SimulationDeltaTime);
+            taxiSpeed * travelTime);
+
+        remainingTime = Mathf.Max(0f, remainingTime - travelTime);
     }
 
     private void FaceMovementDirection(Vector3 movement)
