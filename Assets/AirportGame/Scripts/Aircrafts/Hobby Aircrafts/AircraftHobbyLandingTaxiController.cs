@@ -865,9 +865,12 @@ public class AircraftHobbyLandingTaxiController : MonoBehaviour
 
         float speedKnots = taxiSpeedKnots;
 
+        AircraftTaxiTrafficFollowing trafficFollowing =
+            GetComponent<AircraftTaxiTrafficFollowing>();
+
         if (trafficFollowing != null)
         {
-            PublishPlannedTaxiRoute(route);
+            trafficFollowing.SetPlannedTaxiRoute(route);
             speedKnots =
                 trafficFollowing.GetTrafficFollowingSpeed(taxiSpeedKnots);
         }
