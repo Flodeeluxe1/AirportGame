@@ -1004,7 +1004,7 @@ public class AircraftSSLandingTaxiController : MonoBehaviour
         transform.rotation = Quaternion.RotateTowards(
             transform.rotation,
             targetRotation,
-            Mathf.Max(1f, parkingRotationSpeed) * Time.deltaTime);
+            Mathf.Max(1f, parkingRotationSpeed) * GameTimeManager.SimulationDeltaTime);
 
         if (Quaternion.Angle(transform.rotation, targetRotation) <= 0.5f)
         {
@@ -1037,7 +1037,7 @@ public class AircraftSSLandingTaxiController : MonoBehaviour
             transform.rotation = Quaternion.Slerp(
                 transform.rotation,
                 targetRotation,
-                rotationSpeed * Time.deltaTime);
+                rotationSpeed * GameTimeManager.SimulationDeltaTime);
         }
 
         float speedKnots = taxiSpeedKnots;
@@ -1061,7 +1061,7 @@ public class AircraftSSLandingTaxiController : MonoBehaviour
         transform.position = Vector3.MoveTowards(
             transform.position,
             target,
-            speed * Time.deltaTime);
+            speed * GameTimeManager.SimulationDeltaTime);
 
         return HorizontalDistance(transform.position, target) <= arrivalDistance;
     }
