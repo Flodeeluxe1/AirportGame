@@ -1185,20 +1185,6 @@ public class AirportWorldResetController : MonoBehaviour
         economyManager.RestoreBalanceFromSave(data.balance);
         economyManager.RestoreTransactionsFromSave(data.financialTransactions);
 
-        // Refresh the gate registry against the restored airport and then
-        // replace the active schedule with this slot's saved schedule.
-        bool scheduleRestored =
-            flightManagementUIController.LoadScheduleForAirportSave(
-                data.flightSchedule);
-
-        if (!scheduleRestored)
-        {
-            LogError(
-                $"AirportWorldResetController: Airport slot {slot} was " +
-                "restored, but its flight schedule could not be loaded. " +
-                "The active schedule may be empty.");
-        }
-
         // The manager's startup evaluation may have run before this save was
         // restored, when the scene still contained the empty new-game airport.
         // Refresh interest and retry offer generation against the loaded layout.
@@ -1235,6 +1221,21 @@ public class AirportWorldResetController : MonoBehaviour
             if (savedPerformanceTracker != null)
                 savedPerformanceTracker.RestoreRelationshipsFromSave(
                     data.airlineManagement.relationships);
+        }
+
+
+        // Refresh the gate registry against the restored airport and then
+        // replace the active schedule with this slot's saved schedule.
+        bool scheduleRestored =
+            flightManagementUIController.LoadScheduleForAirportSave(
+                data.flightSchedule);
+
+        if (!scheduleRestored)
+        {
+            LogError(
+                $"AirportWorldResetController: Airport slot {slot} was " +
+                "restored, but its flight schedule could not be loaded. " +
+                "The active schedule may be empty.");
         }
 
         Log(
