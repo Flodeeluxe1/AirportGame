@@ -417,6 +417,13 @@ public static class AirportSaveFileStore
                 data.schemaVersion = 8;
             }
 
+            if (data.schemaVersion == 8 && CurrentSchemaVersion >= 9)
+            {
+                // Version 9 adds automatic-renewal preferences and renewal progression.
+                // Existing contracts default to no previous renewals and renewal enabled.
+                data.schemaVersion = 9;
+            }
+
             if (data.schemaVersion != CurrentSchemaVersion)
             {
                 error =
