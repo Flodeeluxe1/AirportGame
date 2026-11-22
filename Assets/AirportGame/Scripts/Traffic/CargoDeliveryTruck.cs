@@ -431,7 +431,7 @@ public class CargoDeliveryTruck : MonoBehaviour
                 break;
 
             case TruckState.Unloading:
-                unloadingTimer -= Time.deltaTime;
+                unloadingTimer -= GameTimeManager.SimulationDeltaTime;
                 currentSpeed = 0f;
 
                 if (unloadingTimer <= 0f)
@@ -1017,7 +1017,7 @@ public class CargoDeliveryTruck : MonoBehaviour
         transform.rotation = Quaternion.RotateTowards(
             transform.rotation,
             targetRotation,
-            rotationSpeed * 100f * Time.deltaTime);
+            rotationSpeed * 100f * GameTimeManager.SimulationDeltaTime);
 
         return Quaternion.Angle(
             transform.rotation,
@@ -1996,13 +1996,13 @@ public class CargoDeliveryTruck : MonoBehaviour
             transform.rotation = Quaternion.Slerp(
                 transform.rotation,
                 targetRotation,
-                rotationSpeed * Time.deltaTime);
+                rotationSpeed * GameTimeManager.SimulationDeltaTime);
         }
 
         transform.position = Vector3.MoveTowards(
             transform.position,
             targetPosition,
-            Mathf.Max(0f, speed) * Time.deltaTime);
+            Mathf.Max(0f, speed) * GameTimeManager.SimulationDeltaTime);
 
         return Vector3.Distance(
             transform.position,
