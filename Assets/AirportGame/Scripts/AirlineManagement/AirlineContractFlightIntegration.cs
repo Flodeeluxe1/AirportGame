@@ -78,6 +78,25 @@ public class AirlineContractFlightIntegration : MonoBehaviour
             RegisterContractFlights(contract);
     }
 
+    public void ResetContractFlightsForNewGame()
+    {
+        ResolveReferences();
+
+        if (contractManager == null || flightCatalog == null)
+            return;
+
+        foreach (ActiveAirlineContract contract in contractManager.ActiveContracts)
+        {
+            if (contract == null || string.IsNullOrWhiteSpace(contract.contractId))
+                continue;
+
+            flightCatalog.RemoveContractFlights(contract.contractId);
+        }
+
+        if (flightManagementUI != null)
+            flightManagementUI.RefreshAvailableFlights();
+    }
+
     private void HandleContractsRestored()
     {
         RegisterExistingContracts();
