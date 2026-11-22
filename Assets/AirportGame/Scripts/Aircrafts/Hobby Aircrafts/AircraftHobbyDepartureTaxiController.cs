@@ -188,7 +188,7 @@ public class AircraftHobbyDepartureTaxiController : MonoBehaviour
 
         currentState = DepartureState.WaitingForRunway;
 
-        retryTimer -= Time.deltaTime;
+        retryTimer -= GameTimeManager.SimulationDeltaTime;
 
         if (retryTimer > 0f)
             return;
@@ -583,7 +583,7 @@ public class AircraftHobbyDepartureTaxiController : MonoBehaviour
         if (selectedRunway == null || trafficManager == null)
             return;
 
-        retryTimer -= Time.deltaTime;
+        retryTimer -= GameTimeManager.SimulationDeltaTime;
 
         if (retryTimer > 0f)
             return;
@@ -843,7 +843,7 @@ public class AircraftHobbyDepartureTaxiController : MonoBehaviour
         transform.rotation = Quaternion.RotateTowards(
             transform.rotation,
             runwayLineUpRotation,
-            rotationSpeedDegreesPerSecond * Time.deltaTime
+            rotationSpeedDegreesPerSecond * GameTimeManager.SimulationDeltaTime
         );
 
         if (Quaternion.Angle(
@@ -1357,7 +1357,7 @@ public class AircraftHobbyDepartureTaxiController : MonoBehaviour
             transform.rotation = Quaternion.RotateTowards(
                 transform.rotation,
                 rotation,
-                rotationSpeedDegreesPerSecond * Time.deltaTime
+                rotationSpeedDegreesPerSecond * GameTimeManager.SimulationDeltaTime
             );
         }
 
@@ -1367,7 +1367,7 @@ public class AircraftHobbyDepartureTaxiController : MonoBehaviour
         transform.position = Vector3.MoveTowards(
             transform.position,
             target,
-            speed * Time.deltaTime
+            speed * GameTimeManager.SimulationDeltaTime
         );
     }
 
