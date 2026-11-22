@@ -504,17 +504,19 @@ public class AirportGroundVehicleMovement : MonoBehaviour
     {
         int bestIndex = 0;
 
+        int minimumMovementCost = GetMinimumMovementCost();
+
         for (int i = 1; i < openSet.Count; i++)
         {
-            int currentScore =
+            float currentScore =
                 gScore[openSet[i]] +
-                ManhattanDistance(openSet[i], target) *
-                tarmacMovementCost;
+                OctileDistance(openSet[i], target) *
+                minimumMovementCost;
 
-            int bestScore =
+            float bestScore =
                 gScore[openSet[bestIndex]] +
-                ManhattanDistance(openSet[bestIndex], target) *
-                tarmacMovementCost;
+                OctileDistance(openSet[bestIndex], target) *
+                minimumMovementCost;
 
             if (currentScore < bestScore)
                 bestIndex = i;
@@ -545,7 +547,11 @@ public class AirportGroundVehicleMovement : MonoBehaviour
             current + Vector2Int.up,
             current + Vector2Int.right,
             current + Vector2Int.down,
-            current + Vector2Int.left
+            current + Vector2Int.left,
+            current + new Vector2Int(1, 1),
+            current + new Vector2Int(1, -1),
+            current + new Vector2Int(-1, -1),
+            current + new Vector2Int(-1, 1)
         };
 
         foreach (Vector2Int neighbor in neighbors)
@@ -562,6 +568,27 @@ public class AirportGroundVehicleMovement : MonoBehaviour
             bool isHomeCell = IsHomeAreaCell(neighbor);
             bool isDestinationGateCell =
                 IsCurrentDestinationGateCell(neighbor);
+
+            int deltaX = Mathf.Abs(neighbor.x - current.x);
+            int deltaY = Mathf.Abs(neighbor.y - current.y);
+            bool isDiagonal = deltaX == 1 && deltaY == 1;
+
+            // Do not allow diagonal movement to cut through the corner
+            // of a blocked cell or clearance zone.
+            if (isDiagonal)
+            {
+                Vector2Int horizontalSideCell =
+                    current + new Vector2Int(neighbor.x - current.x, 0);
+                Vector2Int verticalSideCell =
+                    current + new Vector2Int(0, neighbor.y - current.y);
+
+                if (IsBlockedForDiagonal(horizontalSideCell, start, target) ||
+                    IsBlockedForDiagonal(verticalSideCell, start, target))
+                {
+                    rejectedObstacle++;
+                    continue;
+                }
+            }
 
             if (neighbor != start &&
                 neighbor != target &&
@@ -596,6 +623,9 @@ public class AirportGroundVehicleMovement : MonoBehaviour
             }
 
             int stepCost = GetMovementCost(neighbor);
+            if (isDiagonal)
+                stepCost = Mathf.CeilToInt(stepCost * 1.41421356f);
+
             int tentativeScore = gScore[current] + stepCost;
 
             if (gScore.TryGetValue(
@@ -631,7 +661,11 @@ public class AirportGroundVehicleMovement : MonoBehaviour
         target + Vector2Int.up,
         target + Vector2Int.right,
         target + Vector2Int.down,
-        target + Vector2Int.left
+        target + Vector2Int.left,
+        target + new Vector2Int(1, 1),
+        target + new Vector2Int(1, -1),
+        target + new Vector2Int(-1, -1),
+        target + new Vector2Int(-1, 1)
     };
 
     foreach (Vector2Int neighbor in targetNeighbors)
@@ -799,9 +833,47 @@ public class AirportGroundVehicleMovement : MonoBehaviour
         return path;
     }
 
-    private int ManhattanDistance(Vector2Int a, Vector2Int b)
+    private float OctileDistance(Vector2Int a, Vector2Int b)
     {
-        return Mathf.Abs(a.x - b.x) + Mathf.Abs(a.y - b.y);
+        int dx = Mathf.Abs(a.x - b.x);
+        int dy = Mathf.Abs(a.y - b.y);
+        int diagonalSteps = Mathf.Min(dx, dy);
+        int straightSteps = Mathf.Max(dx, dy) - diagonalSteps;
+
+        return diagonalSteps * 1.41421356f + straightSteps;
+    }
+
+    private int GetMinimumMovementCost()
+    {
+        return Mathf.Min(
+            grassMovementCost,
+            foundationMovementCost,
+            tarmacMovementCost,
+            taxiwayMovementCost,
+            runwayMovementCost,
+            pedestrianTarmacMovementCost,
+            roadMovementCost);
+    }
+
+    private bool IsBlockedForDiagonal(
+        Vector2Int cell,
+        Vector2Int start,
+        Vector2Int target)
+    {
+        if (!gridManager.IsInsideGrid(cell) ||
+            cell == start ||
+            cell == target ||
+            IsHomeAreaCell(cell) ||
+            IsCurrentDestinationGateCell(cell))
+        {
+            return false;
+        }
+
+        return gridSurface.GetSurface(cell) == BuildSurface.Foundation ||
+               IsWithinFoundationClearance(cell) ||
+               IsWithinRunwayClearance(cell) ||
+               gridOccupancy.IsOccupied(cell) ||
+               gridSurface.IsObstacle(cell);
     }
 
     private static float HorizontalDistance(Vector3 a, Vector3 b)
