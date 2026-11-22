@@ -277,6 +277,7 @@ public class AirlineContractOfferManager : MonoBehaviour
             airline = offer.airline,
             sourceTemplate = offer.template,
             startDay = gameTimeManager.CurrentDay,
+            lastFinalizedDay = gameTimeManager.CurrentDay - 1,
             endDay = gameTimeManager.CurrentDay + offer.terms.durationDays - 1,
             status = AirlineContractStatus.Active,
             agreedTerms = offer.terms
