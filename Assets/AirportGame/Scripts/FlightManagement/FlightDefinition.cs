@@ -26,6 +26,8 @@ public class FlightDefinition
     public FlightTimeWindow TimeWindow { get; }
     public Color StripColor { get; }
     public FlightOperationType OperationType { get; }
+    public string ContractId { get; }
+    public string ObligationId { get; }
 
     public string OperationLabel
     {
@@ -53,15 +55,19 @@ public class FlightDefinition
         FlightTimeWindow timeWindow,
         Color stripColor,
         FlightOperationType operationType =
-            FlightOperationType.CargoOnly)
+            FlightOperationType.CargoOnly,
+        string contractId = null,
+        string obligationId = null)
     {
         FlightNumber = flightNumber;
         AirlineName = airlineName;
-        TurnaroundMinutes = 60;
+        TurnaroundMinutes = turnaroundMinutes;
         RequiredGateSize = requiredGateSize;
         TimeWindow = timeWindow;
         StripColor = stripColor;
         OperationType = operationType;
+        ContractId = contractId;
+        ObligationId = obligationId;
     }
 
     public static void GetWindowBounds(
