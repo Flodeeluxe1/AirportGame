@@ -127,7 +127,7 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
 
         if (state == FuelDepartureState.WaitingForFuelStation)
         {
-            decisionRetryTimer -= Time.deltaTime;
+            decisionRetryTimer -= GameTimeManager.SimulationDeltaTime;
             if (decisionRetryTimer <= 0f)
             {
                 decisionMade = false;
@@ -660,7 +660,7 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
             transform.rotation = Quaternion.RotateTowards(
                 transform.rotation,
                 targetRotation,
-                rotationSpeedDegreesPerSecond * Time.deltaTime);
+                rotationSpeedDegreesPerSecond * GameTimeManager.SimulationDeltaTime);
         }
 
         float speed = AircraftStatus.KnotsToWorldSpeed(speedKnots);
@@ -669,7 +669,7 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
             transform.position = Vector3.MoveTowards(
                 transform.position,
                 target,
-                speed * Time.deltaTime);
+                speed * GameTimeManager.SimulationDeltaTime);
         }
     }
 
@@ -712,7 +712,7 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
         transform.rotation = Quaternion.RotateTowards(
             transform.rotation,
             targetRotation,
-            rotationSpeedDegreesPerSecond * Time.deltaTime);
+            rotationSpeedDegreesPerSecond * GameTimeManager.SimulationDeltaTime);
 
         if (Quaternion.Angle(transform.rotation, targetRotation) <= 0.5f)
         {
