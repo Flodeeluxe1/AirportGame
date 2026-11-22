@@ -1,5 +1,6 @@
 #if UNITY_EDITOR
 using UnityEditor;
+using UnityEditor.SceneManagement;
 using UnityEngine;
 
 public static class CreateNorthstarCargoAirlineAsset
@@ -51,9 +52,48 @@ public static class CreateNorthstarCargoAirlineAsset
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
 
+        AttachAirlineToOpenScene(airline);
+
         Selection.activeObject = airline;
         EditorGUIUtility.PingObject(airline);
         Debug.Log("Created Northstar Cargo airline definition at " + AssetPath);
+    }
+
+    private static void AttachAirlineToOpenScene(AirlineDefinition airline)
+    {
+        AirlineAirportSnapshotCollector collector =
+            Object.FindAnyObjectByType<AirlineAirportSnapshotCollector>();
+
+        if (collector == null)
+        {
+            GameObject systemObject = new GameObject("Airline Management System");
+            Undo.RegisterCreatedObjectUndo(systemObject, "Create Airline Management System");
+            collector = systemObject.AddComponent<AirlineAirportSnapshotCollector>();
+        }
+
+        SerializedObject serializedCollector = new SerializedObject(collector);
+        SerializedProperty airlineList =
+            serializedCollector.FindProperty("airlines");
+
+        bool alreadyAssigned = false;
+        for (int i = 0; i < airlineList.arraySize; i++)
+        {
+            if (airlineList.GetArrayElementAtIndex(i).objectReferenceValue == airline)
+            {
+                alreadyAssigned = true;
+                break;
+            }
+        }
+
+        if (!alreadyAssigned)
+        {
+            int index = airlineList.arraySize;
+            airlineList.InsertArrayElementAtIndex(index);
+            airlineList.GetArrayElementAtIndex(index).objectReferenceValue = airline;
+            serializedCollector.ApplyModifiedProperties();
+        }
+
+        EditorSceneManager.MarkSceneDirty(collector.gameObject.scene);
     }
 
     private static void EnsureFolder(string parent, string folderName)
