@@ -1885,6 +1885,21 @@ public class FlightManagementUIController : MonoBehaviour
             RebuildFlightStrips();
     }
 
+    public void RemoveContractFlights(string contractId)
+    {
+        if (string.IsNullOrWhiteSpace(contractId))
+            return;
+
+        int removedCount = scheduledFlights.RemoveAll(scheduled =>
+            scheduled != null && scheduled.ContractId == contractId);
+
+        if (removedCount > 0)
+            SaveSchedule();
+
+        RebuildFlightStrips();
+        RebuildGateRows();
+    }
+
     private void SaveSchedule()
     {
         string scheduleFilePath = Path.Combine(
