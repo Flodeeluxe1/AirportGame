@@ -175,14 +175,18 @@ public class GuidedCargoTrailerFollower : MonoBehaviour
         const float maximumSimulationStep = 0.1f;
         const int maximumStepsPerFrame = 192;
 
-        pendingSimulationTime += GameTimeManager.SimulationDeltaTime;
+        SimulationMovementUtility.AccumulateTime(
+            ref pendingSimulationTime,
+            GameTimeManager.SimulationDeltaTime);
 
         int steps = 0;
-        while (pendingSimulationTime > 0f && steps < maximumStepsPerFrame)
+        while (steps < maximumStepsPerFrame &&
+               SimulationMovementUtility.TryConsumeStep(
+                   ref pendingSimulationTime,
+                   maximumSimulationStep,
+                   out float step))
         {
-            float step = Mathf.Min(pendingSimulationTime, maximumSimulationStep);
             UpdateTrailerChain(step);
-            pendingSimulationTime = Mathf.Max(0f, pendingSimulationTime - step);
             steps++;
         }
     }
