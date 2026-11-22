@@ -317,6 +317,14 @@ public class AircraftSSLandingTaxiController : MonoBehaviour
                 runwayEnd - aircraftPosition,
                 landingDirection);
 
+        float runwayRemainingAtTaxiHandoff = remainingRunwayDistance;
+        Log(
+            $"SIGHTSEEING TAXI HANDOFF | Aircraft: {name} | " +
+            $"Position: ({aircraftPosition.x:F2}, {aircraftPosition.z:F2}) | " +
+            $"Runway remaining: {runwayRemainingAtTaxiHandoff:F2} | " +
+            $"Landing complete: {landingController.IsLandingComplete}",
+            this);
+
         
         if (remainingRunwayDistance <= 0f)
         {
