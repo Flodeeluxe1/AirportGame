@@ -110,6 +110,23 @@ public class AirlineContractOfferManager : MonoBehaviour
         GenerateOffers(currentDay);
     }
 
+    /// <summary>
+    /// Rebuilds airport interest and checks for offers after a save has
+    /// finished restoring its buildings, gates, runways, and equipment.
+    /// This deliberately bypasses the normal two-day evaluation interval:
+    /// the previous evaluation may have run against the empty startup airport.
+    /// </summary>
+    public void RefreshAfterAirportLoaded()
+    {
+        ResolveReferences();
+
+        if (snapshotCollector == null || gameTimeManager == null)
+            return;
+
+        snapshotCollector.RefreshAllAirlines();
+        GenerateOffers(gameTimeManager.CurrentDay);
+    }
+
     [ContextMenu("Generate Contract Offers Now")]
     public void GenerateOffersNow()
     {
