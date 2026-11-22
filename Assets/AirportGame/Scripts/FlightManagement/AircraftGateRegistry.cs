@@ -35,6 +35,11 @@ public class AircraftGateRegistry : MonoBehaviour
             isDirty = true;
     }
 
+    public void InvalidateCache()
+    {
+        isDirty = true;
+    }
+
     public void RefreshGates()
     {
         if (!isDirty)
