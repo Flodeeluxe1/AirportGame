@@ -3,6 +3,8 @@ using UnityEngine;
 
 public class AircraftHobbyLandingController : MonoBehaviour
 {
+    private float movementStepDeltaTime;
+
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
 
@@ -194,39 +196,59 @@ public class AircraftHobbyLandingController : MonoBehaviour
 
     private void Update()
     {
-        switch (state)
+        float remainingSimulationTime =
+            GameTimeManager.SimulationDeltaTime;
+
+        const float maximumSubstep = 0.25f;
+        const int maximumSubstepsPerFrame = 512;
+        int substeps = 0;
+
+        while (remainingSimulationTime > 0.0001f &&
+               substeps < maximumSubstepsPerFrame)
         {
-            case LandingState.Aligning:
-                UpdateAlignment();
+            if (state != LandingState.Aligning &&
+                state != LandingState.FinalApproach &&
+                state != LandingState.Flare &&
+                state != LandingState.Rollout &&
+                state != LandingState.GoAround)
                 break;
 
-            case LandingState.FinalApproach:
-                UpdateFinalApproach();
-                break;
+            movementStepDeltaTime =
+                Mathf.Min(remainingSimulationTime, maximumSubstep);
 
-            case LandingState.Flare:
-                UpdateFlare();
-                break;
+            switch (state)
+            {
+                case LandingState.Aligning:
+                    UpdateAlignment();
+                    break;
 
-            case LandingState.Rollout:
-                UpdateRollout();
-                break;
+                case LandingState.FinalApproach:
+                    UpdateFinalApproach();
+                    break;
 
-            case LandingState.GoAround:
-                UpdateGoAround();
-                break;
+                case LandingState.Flare:
+                    UpdateFlare();
+                    break;
+
+                case LandingState.Rollout:
+                    UpdateRollout();
+                    break;
+
+                case LandingState.GoAround:
+                    UpdateGoAround();
+                    break;
+            }
+
+            remainingSimulationTime -= movementStepDeltaTime;
+            substeps++;
         }
 
         AircraftStatus status = GetComponent<AircraftStatus>();
 
         if (status != null)
         {
-            AircraftHobbyLandingTaxiController taxiController =
-                GetComponent<AircraftHobbyLandingTaxiController>();
+            var taxiController = GetComponent<AircraftHobbyLandingTaxiController>();
 
-            // The landing controller owns speed only during active
-            // landing phases. The taxi controller takes over once
-            // it starts moving the aircraft after landing.
             bool landingOwnsSpeed =
                 IsLandingTrafficActive &&
                 (taxiController == null || !taxiController.IsTaxiing);
@@ -243,25 +265,14 @@ public class AircraftHobbyLandingController : MonoBehaviour
         }
 
         if (trafficManager == null)
-        {
-            trafficManager =
-                FindAnyObjectByType<AircraftRunwayTrafficManager>();
-        }
+            trafficManager = FindAnyObjectByType<AircraftRunwayTrafficManager>();
 
         if (trafficManager != null)
         {
             if (selectedRunway != null)
-            {
-                trafficManager.UpdateLandingTraffic(
-                    this,
-                    selectedRunway,
-                    IsLandingTrafficActive
-                );
-            }
+                trafficManager.UpdateLandingTraffic(this, selectedRunway, IsLandingTrafficActive);
             else
-            {
                 trafficManager.UnregisterLandingTraffic(this);
-            }
         }
 
         UpdateDebugInformation();
@@ -595,7 +606,7 @@ public class AircraftHobbyLandingController : MonoBehaviour
             Vector3.MoveTowards(
                 transform.position,
                 alignmentPoint,
-                currentSpeed * GameTimeManager.SimulationDeltaTime
+                currentSpeed * movementStepDeltaTime
             );
     }
 
@@ -622,7 +633,7 @@ public class AircraftHobbyLandingController : MonoBehaviour
                     approachSpeedKnots
                 ),
                 speedChangeRate *
-                GameTimeManager.SimulationDeltaTime
+                movementStepDeltaTime
             );
 
         float availableDistance =
@@ -631,7 +642,7 @@ public class AircraftHobbyLandingController : MonoBehaviour
 
         float step =
             Mathf.Min(
-                currentSpeed * GameTimeManager.SimulationDeltaTime,
+                currentSpeed * movementStepDeltaTime,
                 availableDistance
             );
 
@@ -790,12 +801,12 @@ public class AircraftHobbyLandingController : MonoBehaviour
                     touchdownSpeedKnots
                 ),
                 speedChangeRate *
-                GameTimeManager.SimulationDeltaTime
+                movementStepDeltaTime
             );
 
         float step =
             Mathf.Min(
-                currentSpeed * GameTimeManager.SimulationDeltaTime,
+                currentSpeed * movementStepDeltaTime,
                 remainingDistance
             );
 
@@ -892,7 +903,7 @@ public class AircraftHobbyLandingController : MonoBehaviour
 
         // Integrate only until taxi speed is reached. A large simulation
         // delta must not move the aircraft for unused time after rollout.
-        float rolloutDeltaTime = GameTimeManager.SimulationDeltaTime;
+        float rolloutDeltaTime = movementStepDeltaTime;
         float timeToTargetSpeed =
             Mathf.Max(0f, currentSpeed - targetSpeed) /
             rolloutDeceleration;
@@ -1061,7 +1072,7 @@ public class AircraftHobbyLandingController : MonoBehaviour
 
         float horizontalStep =
             currentSpeed *
-            GameTimeManager.SimulationDeltaTime;
+            movementStepDeltaTime;
 
         float verticalStep =
             horizontalStep *
