@@ -129,7 +129,6 @@ public static class SetupNorthstarCargoContractOffers
         serialized.FindProperty("minimumCargoStorageCapacity").floatValue = 100f;
         serialized.FindProperty("minimumCargoHandlingThroughputPerHour").floatValue = 10f;
         serialized.FindProperty("paymentPerCompletedFlight").intValue = 500;
-        serialized.FindProperty("missedFlightPaymentReduction").floatValue = 0.5f;
         serialized.FindProperty("missedFlightPenalty").intValue = 250;
         serialized.FindProperty("completionBonus").intValue = 1500;
         serialized.FindProperty("minimumAirlineInterest").floatValue = 20f;
