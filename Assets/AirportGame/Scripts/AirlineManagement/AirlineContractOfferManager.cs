@@ -204,7 +204,9 @@ public class AirlineContractOfferManager : MonoBehaviour
                 unpaidPenaltyAmount = contract.unpaidPenaltyAmount,
                 completionBonusPaid = contract.completionBonusPaid,
                 renewalCount = contract.renewalCount,
-                renewalDeclined = contract.renewalDeclined
+                renewalDeclined = contract.renewalDeclined,
+                renewalBasePaymentPerFlight = contract.renewalBasePaymentPerFlight,
+                renewalBaseCompletionBonus = contract.renewalBaseCompletionBonus
             };
 
             if (contract.flightObligations != null)
@@ -309,7 +311,9 @@ public class AirlineContractOfferManager : MonoBehaviour
                 unpaidPenaltyAmount = saved.unpaidPenaltyAmount,
                 completionBonusPaid = saved.completionBonusPaid,
                 renewalCount = saved.renewalCount,
-                renewalDeclined = saved.renewalDeclined
+                renewalDeclined = saved.renewalDeclined,
+                renewalBasePaymentPerFlight = saved.renewalBasePaymentPerFlight,
+                renewalBaseCompletionBonus = saved.renewalBaseCompletionBonus
             };
 
             contract.flightObligations.AddRange(saved.flightObligations);
@@ -492,7 +496,9 @@ public class AirlineContractOfferManager : MonoBehaviour
             lastFinalizedDay = gameTimeManager.CurrentDay - 1,
             endDay = gameTimeManager.CurrentDay + offer.terms.durationDays - 1,
             status = AirlineContractStatus.Active,
-            agreedTerms = offer.terms
+            agreedTerms = offer.terms,
+            renewalBasePaymentPerFlight = offer.terms.paymentPerCompletedFlight,
+            renewalBaseCompletionBonus = offer.terms.completionBonus
         };
 
         contract.flightObligations = BuildFlightObligations(
@@ -616,8 +622,10 @@ public class AirlineContractOfferManager : MonoBehaviour
 
     private void TryAutomaticallyRenew(ActiveAirlineContract previousContract)
     {
+        ResolveReferences();
         if (previousContract == null || previousContract.renewalDeclined ||
             previousContract.airline == null || previousContract.sourceTemplate == null ||
+            previousContract.agreedTerms == null ||
             performanceTracker == null || snapshotCollector == null)
             return;
 
@@ -651,14 +659,20 @@ public class AirlineContractOfferManager : MonoBehaviour
 
         AirlineContractTerms renewedTerms = CopyTerms(previousContract.agreedTerms);
         int nextRenewalCount = previousContract.renewalCount + 1;
+        int basePayment = previousContract.renewalBasePaymentPerFlight > 0
+            ? previousContract.renewalBasePaymentPerFlight
+            : previousContract.agreedTerms.paymentPerCompletedFlight;
+        int baseBonus = previousContract.renewalBaseCompletionBonus > 0
+            ? previousContract.renewalBaseCompletionBonus
+            : previousContract.agreedTerms.completionBonus;
         float paymentMultiplier = 1f + Mathf.Min(
             nextRenewalCount * paymentIncreasePerRenewal,
             maximumRenewalPaymentIncrease);
 
-        renewedTerms.paymentPerCompletedFlight = Mathf.RoundToInt(
-            renewedTerms.paymentPerCompletedFlight * paymentMultiplier);
-        renewedTerms.completionBonus = Mathf.RoundToInt(
-            renewedTerms.completionBonus * paymentMultiplier);
+        renewedTerms.paymentPerCompletedFlight =
+            Mathf.RoundToInt(basePayment * paymentMultiplier);
+        renewedTerms.completionBonus =
+            Mathf.RoundToInt(baseBonus * paymentMultiplier);
 
         ActiveAirlineContract renewedContract = new ActiveAirlineContract
         {
@@ -671,7 +685,9 @@ public class AirlineContractOfferManager : MonoBehaviour
             endDay = previousContract.endDay + Mathf.Max(1, renewedTerms.durationDays),
             status = AirlineContractStatus.Active,
             agreedTerms = renewedTerms,
-            renewalCount = nextRenewalCount
+            renewalCount = nextRenewalCount,
+            renewalBasePaymentPerFlight = basePayment,
+            renewalBaseCompletionBonus = baseBonus
         };
 
         renewedContract.flightObligations = BuildFlightObligations(
