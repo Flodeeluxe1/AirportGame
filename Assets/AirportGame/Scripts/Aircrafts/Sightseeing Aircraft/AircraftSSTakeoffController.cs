@@ -576,10 +576,10 @@ public class AircraftSSTakeoffController : MonoBehaviour
         if (!sightseeingCruiseActive || gameTimeManager == null)
             return;
 
-        // Time.deltaTime follows GameTimeManager's time scale, so the
+        // GameTimeManager.SimulationDeltaTime follows GameTimeManager's time scale, so the
         // orbit stays smooth while still advancing in in-game time.
         cruiseAngleDegrees +=
-            Time.deltaTime / 60f * cruiseOrbitDegreesPerGameMinute;
+            GameTimeManager.SimulationDeltaTime / 60f * cruiseOrbitDegreesPerGameMinute;
 
         float angle = cruiseAngleDegrees * Mathf.Deg2Rad;
         Vector3 orbitPosition = cruiseCenter + new Vector3(
@@ -595,7 +595,7 @@ public class AircraftSSTakeoffController : MonoBehaviour
             Quaternion target = Quaternion.LookRotation(tangent, Vector3.up) *
                                 Quaternion.Euler(modelRotationOffset);
             transform.rotation = Quaternion.Slerp(
-                transform.rotation, target, rotationRateDegreesPerSecond * Time.deltaTime);
+                transform.rotation, target, rotationRateDegreesPerSecond * GameTimeManager.SimulationDeltaTime);
         }
     }
 
