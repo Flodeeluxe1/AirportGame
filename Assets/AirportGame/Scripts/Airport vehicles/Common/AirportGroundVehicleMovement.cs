@@ -112,6 +112,7 @@ public class AirportGroundVehicleMovement : MonoBehaviour
     private Vector2Int pathStart;
     private Vector2Int pathTarget;
     private int pathInsertionOrder;
+    private int pathMinimumMovementCost;
     private int rejectedOutOfBounds;
     private int rejectedFoundation;
     private int rejectedClearance;
@@ -312,7 +313,6 @@ public class AirportGroundVehicleMovement : MonoBehaviour
 
         BeginPathSearch(startCell, targetCell);
         return isCalculatingPath || movementStatus == "Following smoothed grid route" || movementStatus == "Arrived";
-        return true;
     }
 
     private bool HasRequiredReferences()
@@ -465,12 +465,12 @@ public class AirportGroundVehicleMovement : MonoBehaviour
         rejectedObstacle = 0;
         pathInsertionOrder = 0;
 
-        int minimumMovementCost = GetMinimumMovementCost();
+        pathMinimumMovementCost = GetMinimumMovementCost();
         pathGScore[start] = 0;
         EnqueuePathNode(new VehicleOpenNode(
             start,
             0,
-            OctileDistance(start, target) * minimumMovementCost,
+            OctileDistance(start, target) * pathMinimumMovementCost,
             pathInsertionOrder++));
 
         isMoving = false;
@@ -591,7 +591,7 @@ public class AirportGroundVehicleMovement : MonoBehaviour
                 EnqueuePathNode(new VehicleOpenNode(
                     neighbor,
                     tentativeScore,
-                    OctileDistance(neighbor, pathTarget) * GetMinimumMovementCost(),
+                    OctileDistance(neighbor, pathTarget) * pathMinimumMovementCost,
                     pathInsertionOrder++));
             }
         }
