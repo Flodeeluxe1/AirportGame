@@ -180,15 +180,7 @@ public class AircraftHobbyTakeoffController : MonoBehaviour
 
     private float GetSimulationDeltaTime()
     {
-        if (gameTimeManager == null)
-            return Time.unscaledDeltaTime;
-
-        float speed = gameTimeManager.CurrentSpeedMultiplier;
-
-        if (speed <= 0f)
-            return 0f;
-
-        return Time.unscaledDeltaTime * speed;
+        return GameTimeManager.SimulationDeltaTime;
     }
 
     private bool BeginTakeoff()
