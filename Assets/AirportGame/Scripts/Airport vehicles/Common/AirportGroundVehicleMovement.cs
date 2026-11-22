@@ -1422,7 +1422,7 @@ public class AirportGroundVehicleMovement : MonoBehaviour
         Vector3 nextPosition = Vector3.MoveTowards(
             transform.position,
             waypoint,
-            movementSpeed * Time.deltaTime);
+            movementSpeed * GameTimeManager.SimulationDeltaTime);
 
         nextPosition.y = movementHeight;
         transform.position = nextPosition;
@@ -1442,7 +1442,7 @@ public class AirportGroundVehicleMovement : MonoBehaviour
         transform.rotation = Quaternion.RotateTowards(
             transform.rotation,
             targetRotation,
-            rotationSpeed * 100f * Time.deltaTime);
+            rotationSpeed * 100f * GameTimeManager.SimulationDeltaTime);
     }
 
     private void FinishMovement()
