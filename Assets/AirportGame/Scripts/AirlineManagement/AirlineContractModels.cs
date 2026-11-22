@@ -110,6 +110,8 @@ public class ActiveAirlineContract
     public int totalPenaltiesPaid;
     public int unpaidPenaltyAmount;
     public bool completionBonusPaid;
+    public int renewalCount;
+    public bool renewalDeclined;
 }
 
 public enum AirlineContractFlightResult
