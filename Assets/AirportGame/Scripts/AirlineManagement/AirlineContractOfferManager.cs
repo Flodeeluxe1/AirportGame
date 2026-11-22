@@ -37,6 +37,7 @@ public class AirlineContractOfferManager : MonoBehaviour
     public event Action<ActiveAirlineContract> ContractAccepted;
     public event Action<ActiveAirlineContract> ContractCompleted;
     public event Action<string> OfferDeclined;
+    public event Action ContractsRestored;
 
     public IReadOnlyList<AirlineContractOffer> PendingOffers => pendingOffers;
     public IReadOnlyList<ActiveAirlineContract> ActiveContracts => activeContracts;
@@ -135,6 +136,191 @@ public class AirlineContractOfferManager : MonoBehaviour
             return;
 
         GenerateOffers(gameTimeManager.CurrentDay);
+    }
+
+
+    public AirlineManagementSaveData GetSaveData()
+    {
+        AirlineManagementSaveData data = new AirlineManagementSaveData
+        {
+            lastEvaluatedPeriod = lastEvaluatedPeriod
+        };
+
+        foreach (AirlineContractOffer offer in pendingOffers)
+        {
+            if (offer == null || offer.airline == null || offer.template == null)
+                continue;
+
+            data.pendingOffers.Add(new AirlineContractOfferSaveData
+            {
+                offerId = offer.offerId,
+                airlineId = offer.airline.AirlineId,
+                templateId = offer.template.TemplateId,
+                airlineInterest = offer.airlineInterest,
+                offeredOnDay = offer.offeredOnDay,
+                expiresOnDay = offer.expiresOnDay,
+                terms = offer.terms
+            });
+        }
+
+        foreach (ActiveAirlineContract contract in activeContracts)
+        {
+            if (contract == null || contract.airline == null || contract.agreedTerms == null)
+                continue;
+
+            ActiveAirlineContractSaveData saved = new ActiveAirlineContractSaveData
+            {
+                contractId = contract.contractId,
+                sourceOfferId = contract.sourceOfferId,
+                airlineId = contract.airline.AirlineId,
+                templateId = contract.sourceTemplate != null
+                    ? contract.sourceTemplate.TemplateId : "",
+                startDay = contract.startDay,
+                endDay = contract.endDay,
+                status = contract.status,
+                agreedTerms = contract.agreedTerms,
+                lastFinalizedDay = contract.lastFinalizedDay,
+                onTimeFlights = contract.onTimeFlights,
+                lateFlights = contract.lateFlights,
+                missedFlights = contract.missedFlights,
+                cancelledFlights = contract.cancelledFlights,
+                operationalFailures = contract.operationalFailures,
+                totalPaymentsReceived = contract.totalPaymentsReceived,
+                totalPenaltiesPaid = contract.totalPenaltiesPaid,
+                unpaidPenaltyAmount = contract.unpaidPenaltyAmount,
+                completionBonusPaid = contract.completionBonusPaid
+            };
+
+            if (contract.flightObligations != null)
+                saved.flightObligations.AddRange(contract.flightObligations);
+            if (contract.performanceRecords != null)
+                saved.performanceRecords.AddRange(contract.performanceRecords);
+
+            data.activeContracts.Add(saved);
+        }
+
+        return data;
+    }
+
+    public void RestoreFromSave(AirlineManagementSaveData data)
+    {
+        if (data == null)
+            return;
+
+        data.EnsureCollections();
+        ResolveReferences();
+
+        pendingOffers.Clear();
+        activeContracts.Clear();
+        lastEvaluatedPeriod = data.lastEvaluatedPeriod;
+
+        IReadOnlyList<AirlineDefinition> configuredAirlines =
+            airlines.Count > 0 ? airlines :
+            snapshotCollector != null ? snapshotCollector.ConfiguredAirlines :
+            new List<AirlineDefinition>();
+
+        foreach (AirlineContractOfferSaveData saved in data.pendingOffers)
+        {
+            if (saved == null || saved.terms == null)
+                continue;
+
+            AirlineDefinition airline = FindConfiguredAirline(
+                configuredAirlines, saved.airlineId);
+            AirlineContractTemplate template = FindTemplate(
+                airline, saved.templateId);
+
+            if (airline == null || template == null)
+            {
+                Debug.LogWarning(
+                    "AirlineContractOfferManager: Skipped a saved offer because " +
+                    "its airline or contract template could not be resolved.", this);
+                continue;
+            }
+
+            pendingOffers.Add(new AirlineContractOffer
+            {
+                offerId = saved.offerId,
+                airline = airline,
+                template = template,
+                airlineInterest = saved.airlineInterest,
+                offeredOnDay = saved.offeredOnDay,
+                expiresOnDay = saved.expiresOnDay,
+                terms = saved.terms
+            });
+        }
+
+        foreach (ActiveAirlineContractSaveData saved in data.activeContracts)
+        {
+            if (saved == null || saved.agreedTerms == null)
+                continue;
+
+            AirlineDefinition airline = FindConfiguredAirline(
+                configuredAirlines, saved.airlineId);
+            if (airline == null)
+            {
+                Debug.LogWarning(
+                    "AirlineContractOfferManager: Skipped saved contract '" +
+                    saved.contractId + "' because its airline definition could not be resolved.", this);
+                continue;
+            }
+
+            ActiveAirlineContract contract = new ActiveAirlineContract
+            {
+                contractId = saved.contractId,
+                sourceOfferId = saved.sourceOfferId,
+                airline = airline,
+                sourceTemplate = FindTemplate(airline, saved.templateId),
+                startDay = saved.startDay,
+                endDay = saved.endDay,
+                status = saved.status,
+                agreedTerms = saved.agreedTerms,
+                lastFinalizedDay = saved.lastFinalizedDay,
+                onTimeFlights = saved.onTimeFlights,
+                lateFlights = saved.lateFlights,
+                missedFlights = saved.missedFlights,
+                cancelledFlights = saved.cancelledFlights,
+                operationalFailures = saved.operationalFailures,
+                totalPaymentsReceived = saved.totalPaymentsReceived,
+                totalPenaltiesPaid = saved.totalPenaltiesPaid,
+                unpaidPenaltyAmount = saved.unpaidPenaltyAmount,
+                completionBonusPaid = saved.completionBonusPaid
+            };
+
+            contract.flightObligations.AddRange(saved.flightObligations);
+            contract.performanceRecords.AddRange(saved.performanceRecords);
+            activeContracts.Add(contract);
+        }
+
+        ContractsRestored?.Invoke();
+    }
+
+    private static AirlineDefinition FindConfiguredAirline(
+        IReadOnlyList<AirlineDefinition> configuredAirlines,
+        string airlineId)
+    {
+        if (configuredAirlines == null || string.IsNullOrWhiteSpace(airlineId))
+            return null;
+
+        foreach (AirlineDefinition airline in configuredAirlines)
+            if (airline != null && airline.AirlineId == airlineId)
+                return airline;
+
+        return null;
+    }
+
+    private static AirlineContractTemplate FindTemplate(
+        AirlineDefinition airline,
+        string templateId)
+    {
+        if (airline == null || airline.ContractTemplates == null ||
+            string.IsNullOrWhiteSpace(templateId))
+            return null;
+
+        foreach (AirlineContractTemplate template in airline.ContractTemplates)
+            if (template != null && template.TemplateId == templateId)
+                return template;
+
+        return null;
     }
 
     private void GenerateOffers(long currentDay)
