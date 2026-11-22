@@ -15,11 +15,13 @@ public class GameTimeManager : MonoBehaviour
     /// Elapsed simulation seconds for this rendered frame.
     /// This API allows gameplay systems to migrate away from Unity's global time scale.
     /// </summary>
-    // Compatibility mode: while Unity's legacy timeScale still drives game speed,
-    // preserve its scaled delta (including Unity's maximumDeltaTime clamp).
-    // Once movement uses bounded simulation substeps, this can switch to the
-    // independent game-clock accumulator without changing gameplay call sites.
-    public static float SimulationDeltaTime => Time.deltaTime;
+    // Gameplay simulation time is independent of Unity's global time scale.
+    // Migrated systems receive the full selected game-speed delta, even when
+    // Unity's own timeScale is capped for legacy systems and physics.
+    public static float SimulationDeltaTime =>
+        instance != null
+            ? Time.unscaledDeltaTime * instance.currentSpeedMultiplier
+            : Time.deltaTime;
 
     /// <summary>
     /// Monotonic in-game time in seconds since day one, independent of rendered frames.
@@ -166,12 +168,16 @@ public class GameTimeManager : MonoBehaviour
         int previousMultiplier = currentSpeedMultiplier;
         currentSpeedMultiplier = multiplier;
 
-        Time.timeScale = multiplier;
+        // Unity Editor limits Time.timeScale to 100. Keep Unity's legacy
+        // systems and physics at no more than that; migrated gameplay systems
+        // use SimulationDeltaTime and continue at the selected 1000x speed.
+        int unityTimeScale = Mathf.Min(multiplier, 100);
+        Time.timeScale = unityTimeScale;
 
         if (multiplier > 0)
         {
             Time.fixedDeltaTime =
-                baseFixedDeltaTime * multiplier;
+                baseFixedDeltaTime * unityTimeScale;
         }
 
         if (previousMultiplier != multiplier)
