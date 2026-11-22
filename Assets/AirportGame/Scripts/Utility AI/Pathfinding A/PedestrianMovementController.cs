@@ -725,7 +725,10 @@ public class PedestrianMovementController : MonoBehaviour
         // Time.timeScale. Larger substeps reduce pathfinder/avoidance work at
         // high speeds while still checking each short movement segment.
         const float maximumSimulationStep = 0.2f;
-        const int maximumMovementStepsPerFrame = 96;
+        // At 1000x, a slower rendered frame can represent substantially more
+        // than 19.2 game seconds. Allow enough bounded work to keep pedestrian
+        // movement caught up at typical low frame rates without unbounded loops.
+        const int maximumMovementStepsPerFrame = 512;
 
         SimulationMovementUtility.AccumulateTime(
             ref pendingMovementTime,
