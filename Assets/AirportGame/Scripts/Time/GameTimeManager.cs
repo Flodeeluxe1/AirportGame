@@ -15,10 +15,11 @@ public class GameTimeManager : MonoBehaviour
     /// Elapsed simulation seconds for this rendered frame.
     /// This API allows gameplay systems to migrate away from Unity's global time scale.
     /// </summary>
-    public static float SimulationDeltaTime =>
-        instance != null
-            ? Time.unscaledDeltaTime * instance.currentSpeedMultiplier
-            : Time.deltaTime;
+    // Compatibility mode: while Unity's legacy timeScale still drives game speed,
+    // preserve its scaled delta (including Unity's maximumDeltaTime clamp).
+    // Once movement uses bounded simulation substeps, this can switch to the
+    // independent game-clock accumulator without changing gameplay call sites.
+    public static float SimulationDeltaTime => Time.deltaTime;
 
     /// <summary>
     /// Monotonic in-game time in seconds since day one, independent of rendered frames.
