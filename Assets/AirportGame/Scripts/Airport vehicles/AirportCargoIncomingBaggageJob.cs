@@ -230,17 +230,8 @@ public class AirportCargoIncomingBaggageJob : MonoBehaviour
             return;
         }
 
-        float speedMultiplier =
-            gameTimeManager != null
-                ? Mathf.Max(0f, gameTimeManager.CurrentSpeedMultiplier)
-                : 1f;
-
-        // These waits use in-game seconds and pause when game speed is zero.
-        if (speedMultiplier <= 0f)
-            return;
-
-        float deltaGameSeconds =
-            Time.unscaledDeltaTime * speedMultiplier;
+        // These waits use the central in-game clock and pause at zero speed.
+        float deltaGameSeconds = GameTimeManager.SimulationDeltaTime;
 
         switch (state)
         {
