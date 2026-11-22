@@ -478,7 +478,7 @@ public class AircraftCargoPaxLandingController : MonoBehaviour
         transform.position = Vector3.MoveTowards(
             transform.position,
             alignmentPoint,
-            currentSpeed * Time.deltaTime
+            currentSpeed * GameTimeManager.SimulationDeltaTime
         );
     }
 
@@ -496,14 +496,14 @@ public class AircraftCargoPaxLandingController : MonoBehaviour
         currentSpeed = Mathf.MoveTowards(
             currentSpeed,
             AircraftStatus.KnotsToWorldSpeed(approachSpeedKnots),
-            speedChangeRate * Time.deltaTime
+            speedChangeRate * GameTimeManager.SimulationDeltaTime
         );
 
         float availableDistance =
             remainingDistance - flareDistance;
 
         float step = Mathf.Min(
-            currentSpeed * Time.deltaTime,
+            currentSpeed * GameTimeManager.SimulationDeltaTime,
             availableDistance
         );
 
@@ -633,11 +633,11 @@ public class AircraftCargoPaxLandingController : MonoBehaviour
         currentSpeed = Mathf.MoveTowards(
             currentSpeed,
             AircraftStatus.KnotsToWorldSpeed(touchdownSpeedKnots),
-            speedChangeRate * Time.deltaTime
+            speedChangeRate * GameTimeManager.SimulationDeltaTime
         );
 
         float step = Mathf.Min(
-            currentSpeed * Time.deltaTime,
+            currentSpeed * GameTimeManager.SimulationDeltaTime,
             remainingDistance
         );
 
@@ -706,20 +706,20 @@ public class AircraftCargoPaxLandingController : MonoBehaviour
         currentSpeed = Mathf.MoveTowards(
             currentSpeed,
             targetSpeed,
-            rolloutDeceleration * Time.deltaTime
+            rolloutDeceleration * GameTimeManager.SimulationDeltaTime
         );
 
         float averageSpeed =
             (previousSpeed + currentSpeed) * 0.5f;
 
         transform.position +=
-            runwayDirection * averageSpeed * Time.deltaTime;
+            runwayDirection * averageSpeed * GameTimeManager.SimulationDeltaTime;
 
         Vector3 position = transform.position;
         position.y = runwaySurfaceY;
         transform.position = position;
 
-        rolloutElapsed += Time.deltaTime;
+        rolloutElapsed += GameTimeManager.SimulationDeltaTime;
 
         float noseLoweringProgress =
             Mathf.Clamp01(
@@ -798,7 +798,7 @@ public class AircraftCargoPaxLandingController : MonoBehaviour
             Mathf.Tan(climbAngle * Mathf.Deg2Rad);
 
         float horizontalStep =
-            currentSpeed * Time.deltaTime;
+            currentSpeed * GameTimeManager.SimulationDeltaTime;
 
         float verticalStep =
             horizontalStep * climbTangent;
@@ -893,7 +893,7 @@ public class AircraftCargoPaxLandingController : MonoBehaviour
         transform.rotation = Quaternion.Slerp(
             transform.rotation,
             targetRotation,
-            rotationSpeed * Time.deltaTime
+            rotationSpeed * GameTimeManager.SimulationDeltaTime
         );
     }
 
@@ -921,7 +921,7 @@ public class AircraftCargoPaxLandingController : MonoBehaviour
         transform.rotation = Quaternion.Slerp(
             transform.rotation,
             rotation,
-            rotationSpeed * Time.deltaTime
+            rotationSpeed * GameTimeManager.SimulationDeltaTime
         );
     }
 
