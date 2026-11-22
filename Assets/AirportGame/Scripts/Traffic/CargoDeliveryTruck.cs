@@ -1436,19 +1436,74 @@ public class CargoDeliveryTruck : MonoBehaviour
             return;
         }
 
-        Vector3 targetPosition =
-            smoothedMovementWaypoints[currentSmoothedWaypointIndex];
-
         float trafficAwareSpeed = GetTrafficFollowingSpeed();
+        float remainingTime = GameTimeManager.SimulationDeltaTime;
+        const int maxWaypointsPerUpdate = 64;
 
-        MoveToPoint(targetPosition, trafficAwareSpeed);
-
-        if (Vector3.Distance(
-                transform.position,
-                targetPosition) <= 0.03f)
+        for (int step = 0;
+             step < maxWaypointsPerUpdate &&
+             remainingTime > 0.0001f &&
+             currentSmoothedWaypointIndex < smoothedMovementWaypoints.Count;
+             step++)
         {
-            transform.position = targetPosition;
-            currentSmoothedWaypointIndex++;
+            // Preserve intersection reservations across large movement steps.
+            if (HandleIntersectionControl())
+                return;
+
+            Vector3 targetPosition =
+                smoothedMovementWaypoints[currentSmoothedWaypointIndex];
+
+            Vector3 offset = targetPosition - transform.position;
+            offset.y = 0f;
+            float distance = offset.magnitude;
+
+            if (distance <= 0.03f)
+            {
+                transform.position = targetPosition;
+                currentSmoothedWaypointIndex++;
+                continue;
+            }
+
+            if (trafficAwareSpeed <= 0.001f)
+            {
+                currentSpeed = 0f;
+                return;
+            }
+
+            float timeToTarget = distance / trafficAwareSpeed;
+            float segmentTime = Mathf.Min(remainingTime, timeToTarget);
+            float travelDistance = trafficAwareSpeed * segmentTime;
+
+            Quaternion targetRotation = Quaternion.LookRotation(
+                offset.normalized,
+                Vector3.up);
+
+            transform.rotation = Quaternion.Slerp(
+                transform.rotation,
+                targetRotation,
+                Mathf.Clamp01(rotationSpeed * segmentTime));
+
+            if (segmentTime >= timeToTarget)
+            {
+                transform.position = targetPosition;
+                currentSmoothedWaypointIndex++;
+            }
+            else
+            {
+                transform.position += offset.normalized * travelDistance;
+            }
+
+            remainingTime -= segmentTime;
+        }
+
+        if (currentSmoothedWaypointIndex >= smoothedMovementWaypoints.Count)
+        {
+            currentSpeed = 0f;
+
+            if (stateAfterPath == TruckState.DrivingToVanStop)
+                BeginVanStopEntry();
+            else
+                SetState(stateAfterPath);
         }
     }
 
