@@ -381,7 +381,7 @@ public class TrafficTestVehicle : MonoBehaviour
 
         ParkingSpace bestFutureSpace = null;
         Vector2Int bestFutureApproach = Vector2Int.zero;
-        float bestAvailableTime = float.MaxValue;
+        double bestAvailableTime = double.MaxValue;
         int bestFuturePathLength = int.MaxValue;
 
         foreach (ParkingSpace candidate in parkingSpaces)
@@ -396,7 +396,7 @@ public class TrafficTestVehicle : MonoBehaviour
                 continue;
             }
 
-            float availableTime =
+            double availableTime =
                 candidate.GetEstimatedAvailableTime(parkingDuration);
 
             foreach (Vector2Int approachCell in approachCells)
@@ -435,9 +435,9 @@ public class TrafficTestVehicle : MonoBehaviour
         parkingSpace = bestFutureSpace;
         parkingApproachCell = bestFutureApproach;
 
-        float waitTime = Mathf.Max(
-            0f,
-            bestAvailableTime - Time.time);
+        double waitTime = System.Math.Max(
+            0d,
+            bestAvailableTime - GameTimeManager.SimulationTime);
 
         Log(
             $"TRAFFIC WAITING PARKING SELECTED | " +
@@ -824,7 +824,7 @@ public class TrafficTestVehicle : MonoBehaviour
         if (holdAtParking)
             return;
 
-        parkingTimer -= Time.deltaTime;
+        parkingTimer -= GameTimeManager.SimulationDeltaTime;
 
         if (parkingTimer > 0f)
             return;
@@ -899,7 +899,7 @@ public class TrafficTestVehicle : MonoBehaviour
         transform.rotation = Quaternion.RotateTowards(
             transform.rotation,
             targetRotation,
-            rotationSpeed * 100f * Time.deltaTime);
+            rotationSpeed * 100f * GameTimeManager.SimulationDeltaTime);
 
         return Quaternion.Angle(
             transform.rotation,
@@ -1626,14 +1626,14 @@ private bool ShouldDetectVehicle(TrafficTestVehicle vehicle)
                 Quaternion.Slerp(
                     transform.rotation,
                     targetRotation,
-                    rotationSpeed * Time.deltaTime);
+                    rotationSpeed * GameTimeManager.SimulationDeltaTime);
         }
 
         transform.position =
             Vector3.MoveTowards(
                 transform.position,
                 targetPosition,
-                Mathf.Max(0f, movementSpeed) * Time.deltaTime);
+                Mathf.Max(0f, movementSpeed) * GameTimeManager.SimulationDeltaTime);
     }
 
     private void LogPath(string title)
