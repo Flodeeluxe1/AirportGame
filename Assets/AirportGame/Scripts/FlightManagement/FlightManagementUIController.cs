@@ -46,6 +46,8 @@ public class FlightManagementUIController : MonoBehaviour
         public string flightNumber;
         public string gateStableId;
         public int startMinute;
+        public string contractId;
+        public string obligationId;
     }
 
     // Must match the JSON format expected by ScheduledAircraftSpawner.
@@ -62,6 +64,8 @@ public class FlightManagementUIController : MonoBehaviour
         public FlightDefinition Definition;
         public string GateStableId;
         public int StartMinute;
+        public string ContractId;
+        public string ObligationId;
     }
 
     private readonly List<ScheduledFlight> scheduledFlights =
@@ -195,7 +199,9 @@ public class FlightManagementUIController : MonoBehaviour
             {
                 flightNumber = scheduled.Definition.FlightNumber,
                 gateStableId = scheduled.GateStableId,
-                startMinute = scheduled.StartMinute
+                startMinute = scheduled.StartMinute,
+                contractId = scheduled.ContractId,
+                obligationId = scheduled.ObligationId
             });
         }
 
@@ -321,7 +327,11 @@ public class FlightManagementUIController : MonoBehaviour
                 {
                     Definition = flight,
                     GateStableId = gate.StableId,
-                    StartMinute = saved.startMinute
+                    StartMinute = saved.startMinute,
+                    ContractId = string.IsNullOrWhiteSpace(saved.contractId)
+                        ? flight.ContractId : saved.contractId,
+                    ObligationId = string.IsNullOrWhiteSpace(saved.obligationId)
+                        ? flight.ObligationId : saved.obligationId
                 });
 
                 restoredCount++;
@@ -360,7 +370,9 @@ public class FlightManagementUIController : MonoBehaviour
                 {
                     flightNumber = scheduled.Definition.FlightNumber,
                     gateStableId = scheduled.GateStableId,
-                    startMinute = scheduled.StartMinute
+                    startMinute = scheduled.StartMinute,
+                    contractId = scheduled.ContractId,
+                    obligationId = scheduled.ObligationId
                 });
             }
 
@@ -1662,7 +1674,9 @@ public class FlightManagementUIController : MonoBehaviour
             {
                 Definition = flight,
                 GateStableId = gate.StableId,
-                StartMinute = startMinute
+                StartMinute = startMinute,
+                ContractId = flight.ContractId,
+                ObligationId = flight.ObligationId
             };
 
             scheduledFlights.Add(existing);
@@ -1865,6 +1879,12 @@ public class FlightManagementUIController : MonoBehaviour
     }
 
 
+    public void RefreshAvailableFlights()
+    {
+        if (flightStripScroll != null)
+            RebuildFlightStrips();
+    }
+
     private void SaveSchedule()
     {
         string scheduleFilePath = Path.Combine(
@@ -1885,7 +1905,9 @@ public class FlightManagementUIController : MonoBehaviour
                 {
                     flightNumber = scheduled.Definition.FlightNumber,
                     gateStableId = scheduled.GateStableId,
-                    startMinute = scheduled.StartMinute
+                    startMinute = scheduled.StartMinute,
+                    contractId = scheduled.ContractId,
+                    obligationId = scheduled.ObligationId
                 });
             }
 
