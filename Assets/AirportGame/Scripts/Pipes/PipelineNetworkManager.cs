@@ -143,7 +143,7 @@ public sealed class PipelineNetworkManager : MonoBehaviour
 
     private void Update()
     {
-        automaticRefillCheckTimer -= Time.deltaTime;
+        automaticRefillCheckTimer -= GameTimeManager.SimulationDeltaTime;
         if (automaticRefillCheckTimer <= 0f)
         {
             automaticRefillCheckTimer =
