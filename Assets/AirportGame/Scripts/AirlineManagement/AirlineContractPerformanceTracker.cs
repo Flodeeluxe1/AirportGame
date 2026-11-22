@@ -373,6 +373,14 @@ public class AirlineContractPerformanceTracker : MonoBehaviour
     }
 
 
+    public void ResetForNewGame()
+    {
+        if (relationships == null)
+            relationships = new List<AirlineRelationshipRecord>();
+        else
+            relationships.Clear();
+    }
+
     public List<AirlineRelationshipRecord> GetRelationshipsForSave()
     {
         List<AirlineRelationshipRecord> saved =
