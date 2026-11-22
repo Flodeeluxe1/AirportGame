@@ -97,7 +97,7 @@ public class FlightSchoolStudentManager : MonoBehaviour
         new Dictionary<Vector2Int, FlightSchoolInstructorController>();
     private readonly HashSet<Vector2Int> cohortSpawningRooms =
         new HashSet<Vector2Int>();
-    private float nextInstructorSpawnCheckTime;
+    private double nextInstructorSpawnCheckTime;
 
     private long nextRoomCheckGameSecond;
     private bool subscribedToLessons;
@@ -1050,13 +1050,13 @@ public class FlightSchoolStudentManager : MonoBehaviour
         if (instructorPrefab == null || studentPrefab == null || studentCarPrefab == null ||
             currentSeconds < openingSeconds - instructorSpawnLeadMinutes * 60 ||
             currentSeconds >= openingSeconds ||
-            Time.unscaledTime < nextInstructorSpawnCheckTime)
+            GameTimeManager.SimulationTime < nextInstructorSpawnCheckTime)
         {
             return;
         }
 
         nextInstructorSpawnCheckTime =
-            Time.unscaledTime + Mathf.Max(0.25f, instructorSpawnCheckInterval);
+            GameTimeManager.SimulationTime + Mathf.Max(0.25f, instructorSpawnCheckInterval);
 
         if (gridManager == null || pedestrianPathfinder == null)
             return;
