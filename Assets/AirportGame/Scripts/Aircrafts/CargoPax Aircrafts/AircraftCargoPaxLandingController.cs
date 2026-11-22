@@ -129,6 +129,9 @@ public class AircraftCargoPaxLandingController : MonoBehaviour
     private float runwayLength;
     private float runwaySurfaceY;
     private float currentSpeed;
+    private Vector3 rolloutStartPosition;
+    private float rolloutStartSpeed;
+    private float rolloutIntegratedTime;
     private float rolloutElapsed;
 
     private bool flareDecisionMade;
@@ -167,6 +170,19 @@ public class AircraftCargoPaxLandingController : MonoBehaviour
         PublishCurrentSpeed();
 
         rolloutElapsed = 0f;
+        rolloutStartPosition = transform.position;
+        rolloutStartSpeed = currentSpeed;
+        rolloutIntegratedTime = 0f;
+        Vector3 touchdownRunwayEnd =
+            runwayCenter + runwayDirection * (runwayLength * 0.5f);
+        float runwayRemainingAtTouchdown = Vector3.Dot(
+            touchdownRunwayEnd - rolloutStartPosition,
+            runwayDirection);
+        Log(
+            $"CARGOPAX ROLLOUT START | Aircraft: {name} | " +
+            $"Runway: {debugSelectedRunway} | Speed: {AircraftStatus.WorldSpeedToKnots(currentSpeed):F1} knots | " +
+            $"Runway remaining: {runwayRemainingAtTouchdown:F2} | Runway length: {runwayLength:F2}",
+            this);
         flareDecisionMade = false;
 
         SetOperationalState(LandingState.Aligning);
@@ -725,6 +741,7 @@ public class AircraftCargoPaxLandingController : MonoBehaviour
         transform.position = position;
 
         rolloutElapsed += movementTime;
+        rolloutIntegratedTime += movementTime;
 
         float noseLoweringProgress =
             Mathf.Clamp01(
@@ -740,6 +757,22 @@ public class AircraftCargoPaxLandingController : MonoBehaviour
             return;
 
         currentSpeed = targetSpeed;
+        Vector3 rolloutRunwayEnd =
+            runwayCenter + runwayDirection * (runwayLength * 0.5f);
+        float runwayRemainingAtCompletion = Vector3.Dot(
+            rolloutRunwayEnd - transform.position,
+            runwayDirection);
+        float rolloutDistance = Vector3.Dot(
+            transform.position - rolloutStartPosition,
+            runwayDirection);
+        Log(
+            $"CARGOPAX ROLLOUT COMPLETE | Aircraft: {name} | " +
+            $"Runway: {debugSelectedRunway} | Start speed: {AircraftStatus.WorldSpeedToKnots(rolloutStartSpeed):F1} knots | " +
+            $"Target speed: {rolloutTargetSpeedKnots:F1} knots | Distance: {rolloutDistance:F2} | " +
+            $"Integrated time: {rolloutIntegratedTime:F2}s | Frame delta: {rolloutDeltaTime:F2}s | " +
+            $"Runway remaining: {runwayRemainingAtCompletion:F2}",
+            this);
+
 
         // Publish the exact rollout speed before handing over to taxi.
         PublishCurrentSpeed();
