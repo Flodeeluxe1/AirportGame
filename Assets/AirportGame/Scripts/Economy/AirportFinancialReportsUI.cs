@@ -602,6 +602,7 @@ public class AirportFinancialReportsUI : MonoBehaviour
             case AirportFinancialCategory.PassengerRevenue: return "Passenger revenue";
             case AirportFinancialCategory.SightseeingFlights: return "Sightseeing flights";
             case AirportFinancialCategory.FlightSchool: return "Flight school";
+            case AirportFinancialCategory.AirlineContracts: return "Airline contracts";
             default: return "Other";
         }
     }
