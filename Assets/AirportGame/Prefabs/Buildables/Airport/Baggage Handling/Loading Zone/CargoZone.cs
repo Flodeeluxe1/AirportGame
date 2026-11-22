@@ -58,11 +58,11 @@ public class CargoZone : MonoBehaviour
     [Header("Airline Cargo Capacity")]
     [Tooltip("Maximum number of cargo packages this zone can store at one time.")]
     [Min(0)]
-    [SerializeField] private int storageCapacityPackages;
+    [SerializeField] private int storageCapacityPackages = 100;
 
     [Tooltip("Number of cargo packages this zone can process per game hour.")]
     [Min(0f)]
-    [SerializeField] private float handlingThroughputPackagesPerHour;
+    [SerializeField] private float handlingThroughputPackagesPerHour = 10f;
 
     public int StorageCapacityPackages => Mathf.Max(0, storageCapacityPackages);
     public float HandlingThroughputPackagesPerHour =>
