@@ -20,7 +20,7 @@ public class FlightSchoolStudentGroupConversationController : MonoBehaviour
         new List<FlightSchoolStudentGroupConversationController>(16);
     private static readonly List<Vector2Int> FreeMeetingCells = new List<Vector2Int>(128);
     private static readonly List<Vector3> FreeMeetingTargets = new List<Vector3>(128);
-    private static readonly Dictionary<Vector2Int, float> NextRoomSearchTime =
+    private static readonly Dictionary<Vector2Int, double> NextRoomSearchTime =
         new Dictionary<Vector2Int, float>();
     private static readonly HashSet<Vector2Int> ReservedMeetingCells =
         new HashSet<Vector2Int>();
@@ -69,7 +69,7 @@ public class FlightSchoolStudentGroupConversationController : MonoBehaviour
     private readonly List<Member> members = new List<Member>(5);
     private readonly List<Vector3> selectedTargets = new List<Vector3>(5);
     private readonly List<Vector2Int> selectedCells = new List<Vector2Int>(5);
-    private float nextSearchTime;
+    private double nextSearchTime;
     private float travelElapsed;
     private long conversationStartGameSecond;
     private int conversationDurationGameSeconds;
@@ -91,7 +91,7 @@ public class FlightSchoolStudentGroupConversationController : MonoBehaviour
         if (!ActiveControllers.Contains(this))
             ActiveControllers.Add(this);
 
-        nextSearchTime = Time.time + Random.Range(0f, searchInterval);
+        nextSearchTime = GameTimeManager.SimulationTime + Random.Range(0f, searchInterval);
         ResolveGameTimeManager();
     }
 
@@ -141,7 +141,7 @@ public class FlightSchoolStudentGroupConversationController : MonoBehaviour
 
         ResolveGameTimeManager();
         initialized = true;
-        nextSearchTime = Time.time + Random.Range(0f, searchInterval);
+        nextSearchTime = GameTimeManager.SimulationTime + Random.Range(0f, searchInterval);
     }
 
     private void ResolveSceneReferences()
@@ -179,7 +179,7 @@ public class FlightSchoolStudentGroupConversationController : MonoBehaviour
 
         if (state == GroupState.Travelling)
         {
-            travelElapsed += Time.deltaTime;
+            travelElapsed += GameTimeManager.SimulationDeltaTime;
             if (travelElapsed >= travelTimeout)
                 CancelGroup("A student could not reach the meeting point");
             return;
@@ -191,10 +191,10 @@ public class FlightSchoolStudentGroupConversationController : MonoBehaviour
             return;
         }
 
-        if (Time.time < nextSearchTime)
+        if (GameTimeManager.SimulationTime < nextSearchTime)
             return;
 
-        nextSearchTime = Time.time + searchInterval;
+        nextSearchTime = GameTimeManager.SimulationTime + searchInterval;
         TryStartGroup();
     }
 
@@ -216,11 +216,11 @@ public class FlightSchoolStudentGroupConversationController : MonoBehaviour
         if (!CanJoin() || roomDetection == null || gridManager == null || pathfinder == null)
             return;
 
-        if (NextRoomSearchTime.TryGetValue(classroomAnchor, out float nextRoomSearch) &&
-            Time.time < nextRoomSearch)
+        if (NextRoomSearchTime.TryGetValue(classroomAnchor, out double nextRoomSearch) &&
+            GameTimeManager.SimulationTime < nextRoomSearch)
             return;
 
-        NextRoomSearchTime[classroomAnchor] = Time.time + searchInterval;
+        NextRoomSearchTime[classroomAnchor] = GameTimeManager.SimulationTime + searchInterval;
 
         // All students in one classroom share this search, rather than each
         // independently scanning the same room and allocating their own lists.
@@ -512,7 +512,7 @@ public class FlightSchoolStudentGroupConversationController : MonoBehaviour
 
             Quaternion target = Quaternion.LookRotation(direction.normalized, Vector3.up);
             controller.transform.rotation = Quaternion.RotateTowards(
-                controller.transform.rotation, target, facingRotationSpeed * Time.deltaTime);
+                controller.transform.rotation, target, facingRotationSpeed * GameTimeManager.SimulationDeltaTime);
         }
     }
 
@@ -580,7 +580,7 @@ public class FlightSchoolStudentGroupConversationController : MonoBehaviour
             controller.isLeader = false;
             controller.currentGroupSize = 0;
             controller.currentStatus = status;
-            controller.nextSearchTime = Time.time + controller.searchInterval;
+            controller.nextSearchTime = GameTimeManager.SimulationTime + controller.searchInterval;
 
             if (controller.movement != null && controller.movement.IsMoving)
                 controller.movement.Stop();
@@ -599,7 +599,7 @@ public class FlightSchoolStudentGroupConversationController : MonoBehaviour
         travelElapsed = 0f;
         conversationStartGameSecond = 0;
         conversationDurationGameSeconds = 0;
-        nextSearchTime = Time.time + searchInterval;
+        nextSearchTime = GameTimeManager.SimulationTime + searchInterval;
     }
 
     private void ReleaseReservedCells()
