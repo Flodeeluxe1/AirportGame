@@ -180,19 +180,6 @@ public class AircraftHobbyLandingController : MonoBehaviour
         currentSpeed = KnotsToWorldSpeed(approachSpeedKnots);
 
         rolloutElapsed = 0f;
-        rolloutStartPosition = transform.position;
-        rolloutStartSpeed = currentSpeed;
-        rolloutIntegratedTime = 0f;
-        Vector3 touchdownRunwayEnd =
-            runwayCenter + runwayDirection * (runwayLength * 0.5f);
-        float runwayRemainingAtTouchdown = Vector3.Dot(
-            touchdownRunwayEnd - rolloutStartPosition,
-            runwayDirection);
-        Log(
-            $"HOBBY ROLLOUT START | Aircraft: {name} | " +
-            $"Runway: {debugSelectedRunway} | Speed: {AircraftStatus.WorldSpeedToKnots(currentSpeed):F1} knots | " +
-            $"Runway remaining: {runwayRemainingAtTouchdown:F2} | Runway length: {runwayLength:F2}",
-            this);
         flareDecisionMade = false;
 
         state = LandingState.Aligning;
@@ -869,6 +856,19 @@ public class AircraftHobbyLandingController : MonoBehaviour
             );
 
         rolloutElapsed = 0f;
+        rolloutStartPosition = transform.position;
+        rolloutStartSpeed = currentSpeed;
+        rolloutIntegratedTime = 0f;
+        Vector3 touchdownRunwayEnd =
+            runwayCenter + runwayDirection * (runwayLength * 0.5f);
+        float runwayRemainingAtTouchdown = Vector3.Dot(
+            touchdownRunwayEnd - rolloutStartPosition,
+            runwayDirection);
+        Log(
+            $"HOBBY ROLLOUT START | Aircraft: {name} | " +
+            $"Runway: {debugSelectedRunway} | Speed: {AircraftStatus.WorldSpeedToKnots(currentSpeed):F1} knots | " +
+            $"Runway remaining: {runwayRemainingAtTouchdown:F2} | Runway length: {runwayLength:F2}",
+            this);
 
         SetFlightOrientation(
             0f,
