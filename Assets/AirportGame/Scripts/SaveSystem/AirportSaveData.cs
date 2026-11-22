@@ -6,7 +6,7 @@ using UnityEngine;
 [Serializable]
 public class AirportSaveData
 {
-    public const int CurrentSchemaVersion = 8;
+    public const int CurrentSchemaVersion = 9;
 
     public int schemaVersion = CurrentSchemaVersion;
     public string saveName = "";
@@ -308,4 +308,6 @@ public class ActiveAirlineContractSaveData
     public int totalPenaltiesPaid;
     public int unpaidPenaltyAmount;
     public bool completionBonusPaid;
+    public int renewalCount;
+    public bool renewalDeclined;
 }
