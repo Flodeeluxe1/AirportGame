@@ -370,13 +370,13 @@ public class AircraftSSLandingController : MonoBehaviour
         currentSpeed = Mathf.MoveTowards(
             currentSpeed,
             KnotsToWorldSpeed(approachSpeedKnots),
-            speedChangeRate * Time.deltaTime);
+            speedChangeRate * GameTimeManager.SimulationDeltaTime);
 
         FaceMovementDirection(movement);
         transform.position = Vector3.MoveTowards(
             transform.position,
             alignmentPoint,
-            currentSpeed * Time.deltaTime);
+            currentSpeed * GameTimeManager.SimulationDeltaTime);
     }
 
     private void UpdateFinalApproach()
@@ -393,10 +393,10 @@ public class AircraftSSLandingController : MonoBehaviour
         currentSpeed = Mathf.MoveTowards(
             currentSpeed,
             KnotsToWorldSpeed(approachSpeedKnots),
-            speedChangeRate * Time.deltaTime);
+            speedChangeRate * GameTimeManager.SimulationDeltaTime);
 
         float step = Mathf.Min(
-            currentSpeed * Time.deltaTime,
+            currentSpeed * GameTimeManager.SimulationDeltaTime,
             remaining - flareDistance);
 
         transform.position += runwayDirection * step;
@@ -454,10 +454,10 @@ public class AircraftSSLandingController : MonoBehaviour
         currentSpeed = Mathf.MoveTowards(
             currentSpeed,
             KnotsToWorldSpeed(touchdownSpeedKnots),
-            speedChangeRate * Time.deltaTime);
+            speedChangeRate * GameTimeManager.SimulationDeltaTime);
 
         transform.position += runwayDirection *
-            Mathf.Min(currentSpeed * Time.deltaTime, remaining);
+            Mathf.Min(currentSpeed * GameTimeManager.SimulationDeltaTime, remaining);
 
         remaining = Mathf.Max(0f, GetDistanceToThreshold());
 
@@ -496,16 +496,16 @@ public class AircraftSSLandingController : MonoBehaviour
         currentSpeed = Mathf.MoveTowards(
             currentSpeed,
             targetSpeed,
-            rolloutDeceleration * Time.deltaTime);
+            rolloutDeceleration * GameTimeManager.SimulationDeltaTime);
 
         float averageSpeed = (previousSpeed + currentSpeed) * 0.5f;
-        transform.position += runwayDirection * averageSpeed * Time.deltaTime;
+        transform.position += runwayDirection * averageSpeed * GameTimeManager.SimulationDeltaTime;
 
         Vector3 position = transform.position;
         position.y = runwaySurfaceY;
         transform.position = position;
 
-        rolloutElapsed += Time.deltaTime;
+        rolloutElapsed += GameTimeManager.SimulationDeltaTime;
 
         float lowering = Mathf.Clamp01(
             rolloutElapsed / noseLoweringDuration);
@@ -553,7 +553,7 @@ public class AircraftSSLandingController : MonoBehaviour
 
         float climbAngle = Mathf.Clamp(goAroundNoseUpDegrees, 1f, 45f);
         float tangent = Mathf.Tan(climbAngle * Mathf.Deg2Rad);
-        float horizontalStep = currentSpeed * Time.deltaTime;
+        float horizontalStep = currentSpeed * GameTimeManager.SimulationDeltaTime;
         float verticalStep = horizontalStep * tangent;
 
         if (verticalStep >= remainingAltitude)
@@ -635,7 +635,7 @@ public class AircraftSSLandingController : MonoBehaviour
         transform.rotation = Quaternion.Slerp(
             transform.rotation,
             target,
-            rotationSpeed * Time.deltaTime);
+            rotationSpeed * GameTimeManager.SimulationDeltaTime);
     }
 
     private void SetFlightOrientation(float noseDownDegrees, float noseUpDegrees)
@@ -652,7 +652,7 @@ public class AircraftSSLandingController : MonoBehaviour
         transform.rotation = Quaternion.Slerp(
             transform.rotation,
             rotation,
-            rotationSpeed * Time.deltaTime);
+            rotationSpeed * GameTimeManager.SimulationDeltaTime);
     }
 
     private string HeadingName(Vector3 direction)
