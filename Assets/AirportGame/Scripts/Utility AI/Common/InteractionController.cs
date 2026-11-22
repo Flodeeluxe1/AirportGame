@@ -91,8 +91,8 @@ public class InteractionController : MonoBehaviour
     private InteractionProvider queuedProvider;
     private InteractionDefinition queuedInteraction;
     private Coroutine interactionRoutine;
-    private float nextDecisionTime;
-    private float nextQueuePositionRefresh;
+    private double nextDecisionTime;
+    private double nextQueuePositionRefresh;
     private Vector3 lastQueueDestination;
     private readonly List<UtilityNeeds.NeedType> replenishingNeeds =
         new List<UtilityNeeds.NeedType>();
@@ -261,10 +261,10 @@ public class InteractionController : MonoBehaviour
         if (reservedInteraction != null || movement.IsMoving)
             return;
 
-        if (Time.time < nextDecisionTime)
+        if (GameTimeManager.SimulationTime < nextDecisionTime)
             return;
 
-        nextDecisionTime = Time.time + decisionInterval;
+        nextDecisionTime = GameTimeManager.SimulationTime + decisionInterval;
         TryStartSelectedInteraction();
     }
 
@@ -604,9 +604,9 @@ public class InteractionController : MonoBehaviour
 
             if (!movement.IsMoving &&
                 !movement.IsAtInteractionApproach(queuedProvider) &&
-                Time.time >= nextQueuePositionRefresh)
+                GameTimeManager.SimulationTime >= nextQueuePositionRefresh)
             {
-                nextQueuePositionRefresh = Time.time + queuePositionRefreshInterval;
+                nextQueuePositionRefresh = GameTimeManager.SimulationTime + queuePositionRefreshInterval;
                 lastQueueDestination = queuedProvider.InteractionPosition;
 
                 if (!movement.MoveTo(queuedProvider))
@@ -621,10 +621,10 @@ public class InteractionController : MonoBehaviour
         reservedProvider = null;
         reservedInteraction = null;
 
-        if (Time.time < nextQueuePositionRefresh)
+        if (GameTimeManager.SimulationTime < nextQueuePositionRefresh)
             return;
 
-        nextQueuePositionRefresh = Time.time + queuePositionRefreshInterval;
+        nextQueuePositionRefresh = GameTimeManager.SimulationTime + queuePositionRefreshInterval;
         Vector3 queuePosition = queue.GetQueuePosition(this);
 
         bool destinationChanged =
@@ -706,7 +706,7 @@ public class InteractionController : MonoBehaviour
                 yield break;
             }
 
-            elapsed += Time.deltaTime;
+            elapsed += GameTimeManager.SimulationDeltaTime;
             yield return null;
         }
 
@@ -757,7 +757,7 @@ public class InteractionController : MonoBehaviour
             ReleaseCurrentReservation();
         }
 
-        nextDecisionTime = Time.time + decisionInterval;
+        nextDecisionTime = GameTimeManager.SimulationTime + decisionInterval;
     }
 
     private void PauseInteractionNeedDecay()
@@ -826,7 +826,7 @@ public class InteractionController : MonoBehaviour
         reservedInteraction = null;
         currentInteractionName = string.Empty;
         currentStatus = reason;
-        nextDecisionTime = Time.time + decisionInterval;
+        nextDecisionTime = GameTimeManager.SimulationTime + decisionInterval;
     }
 
     private void CancelCurrentInteraction(string reason)
@@ -844,7 +844,7 @@ public class InteractionController : MonoBehaviour
 
         ReleaseCurrentReservation();
         currentStatus = reason;
-        nextDecisionTime = Time.time + decisionInterval;
+        nextDecisionTime = GameTimeManager.SimulationTime + decisionInterval;
     }
 
     private void ReleaseCurrentReservation()
