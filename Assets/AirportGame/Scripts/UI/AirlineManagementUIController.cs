@@ -113,10 +113,12 @@ public class AirlineManagementUIController : MonoBehaviour
             contractManager.OfferExpired -= HandleOfferExpired;
             contractManager.ContractAccepted -= HandleContractChanged;
             contractManager.ContractCompleted -= HandleContractChanged;
+            contractManager.ContractsRestored -= HandleContractsRestored;
             contractManager.OfferGenerated += HandleOfferChanged;
             contractManager.OfferExpired += HandleOfferExpired;
             contractManager.ContractAccepted += HandleContractChanged;
             contractManager.ContractCompleted += HandleContractChanged;
+            contractManager.ContractsRestored += HandleContractsRestored;
         }
 
         if (snapshotCollector != null)
@@ -141,6 +143,7 @@ public class AirlineManagementUIController : MonoBehaviour
             contractManager.OfferExpired -= HandleOfferExpired;
             contractManager.ContractAccepted -= HandleContractChanged;
             contractManager.ContractCompleted -= HandleContractChanged;
+            contractManager.ContractsRestored -= HandleContractsRestored;
         }
         if (snapshotCollector != null)
             snapshotCollector.InterestUpdated -= HandleInterestUpdated;
@@ -154,6 +157,7 @@ public class AirlineManagementUIController : MonoBehaviour
     private void HandleOfferChanged(AirlineContractOffer offer) => RefreshIfOpen();
     private void HandleOfferExpired(AirlineContractOffer offer) => RefreshIfOpen();
     private void HandleContractChanged(ActiveAirlineContract contract) => RefreshIfOpen();
+    private void HandleContractsRestored() => RefreshIfOpen();
     private void HandleInterestUpdated(AirlineDefinition airline, AirlineInterestResult result) => RefreshIfOpen();
     private void HandlePerformanceUpdated(ActiveAirlineContract contract) => RefreshIfOpen();
     private void HandleRelationshipUpdated(AirlineDefinition airline, float relationship) => RefreshIfOpen();
