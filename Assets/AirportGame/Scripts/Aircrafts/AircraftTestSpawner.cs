@@ -41,7 +41,7 @@ public class AircraftTestSpawner : MonoBehaviour
             return;
         }
 
-        spawnTimer -= Time.deltaTime;
+        spawnTimer -= GameTimeManager.SimulationDeltaTime;
 
         if (spawnTimer > 0f)
             return;
