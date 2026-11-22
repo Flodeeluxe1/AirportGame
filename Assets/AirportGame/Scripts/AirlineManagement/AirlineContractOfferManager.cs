@@ -205,6 +205,7 @@ public class AirlineContractOfferManager : MonoBehaviour
                 completionBonusPaid = contract.completionBonusPaid,
                 renewalCount = contract.renewalCount,
                 renewalDeclined = contract.renewalDeclined,
+                renewedByContractId = contract.renewedByContractId,
                 renewalBasePaymentPerFlight = contract.renewalBasePaymentPerFlight,
                 renewalBaseCompletionBonus = contract.renewalBaseCompletionBonus
             };
@@ -312,6 +313,7 @@ public class AirlineContractOfferManager : MonoBehaviour
                 completionBonusPaid = saved.completionBonusPaid,
                 renewalCount = saved.renewalCount,
                 renewalDeclined = saved.renewalDeclined,
+                renewedByContractId = saved.renewedByContractId,
                 renewalBasePaymentPerFlight = saved.renewalBasePaymentPerFlight,
                 renewalBaseCompletionBonus = saved.renewalBaseCompletionBonus
             };
@@ -601,9 +603,11 @@ public class AirlineContractOfferManager : MonoBehaviour
         if (gameTimeManager == null)
             return;
 
-        // Use an index loop because a successful contract may append its
-        // automatically renewed agreement to this same collection.
-        for (int i = 0; i < activeContracts.Count; i++)
+        // Only process contracts that existed when this update began. This
+        // prevents large time jumps from immediately renewing a new agreement
+        // several times in one pass.
+        int contractsAtStart = activeContracts.Count;
+        for (int i = 0; i < contractsAtStart; i++)
         {
             ActiveAirlineContract contract = activeContracts[i];
             if (contract == null ||
@@ -614,27 +618,44 @@ public class AirlineContractOfferManager : MonoBehaviour
             }
 
             contract.status = AirlineContractStatus.Completed;
+
+            ResolveReferences();
+            if (performanceTracker != null)
+                performanceTracker.FinalizeContractForCompletion(contract);
+
+            ActiveAirlineContract renewedContract =
+                TryAutomaticallyRenew(contract);
+
+            if (renewedContract != null)
+                contract.renewedByContractId = renewedContract.contractId;
+
             ContractCompleted?.Invoke(contract);
-            TryAutomaticallyRenew(contract);
+
+            if (renewedContract != null)
+            {
+                activeContracts.Add(renewedContract);
+                ContractAccepted?.Invoke(renewedContract);
+                ContractRenewed?.Invoke(contract, renewedContract);
+            }
         }
     }
 
-
-    private void TryAutomaticallyRenew(ActiveAirlineContract previousContract)
+    private ActiveAirlineContract TryAutomaticallyRenew(
+        ActiveAirlineContract previousContract)
     {
         ResolveReferences();
         if (previousContract == null || previousContract.renewalDeclined ||
             previousContract.airline == null || previousContract.sourceTemplate == null ||
             previousContract.agreedTerms == null ||
             performanceTracker == null || snapshotCollector == null)
-            return;
+            return null;
 
         if (HasActiveContract(previousContract.airline))
-            return;
+            return null;
 
         float relationship = performanceTracker.GetRelationshipScore(previousContract.airline);
         if (relationship < minimumRenewalRelationship)
-            return;
+            return null;
 
         int expectedFlights = previousContract.flightObligations != null
             ? previousContract.flightObligations.Count *
@@ -647,7 +668,7 @@ public class AirlineContractOfferManager : MonoBehaviour
 
         if (completionRate < minimumRenewalCompletionRate ||
             previousContract.unpaidPenaltyAmount > 0)
-            return;
+            return null;
 
         AirlineInterestResult interest;
         if (!snapshotCollector.TryGetInterest(previousContract.airline, out interest))
@@ -655,7 +676,7 @@ public class AirlineContractOfferManager : MonoBehaviour
 
         if (interest.totalInterest < previousContract.sourceTemplate.MinimumAirlineInterest ||
             !MeetsTemplateRequirements(previousContract.airline, previousContract.sourceTemplate))
-            return;
+            return null;
 
         AirlineContractTerms renewedTerms = CopyTerms(previousContract.agreedTerms);
         int nextRenewalCount = previousContract.renewalCount + 1;
@@ -690,12 +711,27 @@ public class AirlineContractOfferManager : MonoBehaviour
             renewalBaseCompletionBonus = baseBonus
         };
 
-        renewedContract.flightObligations = BuildFlightObligations(
-            renewedContract.contractId, renewedTerms);
+        // Keep the same flight numbers and obligation IDs so an existing
+        // timetable can continue seamlessly under the renewed contract ID.
+        if (previousContract.flightObligations != null)
+        {
+            foreach (AirlineContractFlightObligation obligation in previousContract.flightObligations)
+            {
+                if (obligation == null)
+                    continue;
 
-        activeContracts.Add(renewedContract);
-        ContractAccepted?.Invoke(renewedContract);
-        ContractRenewed?.Invoke(previousContract, renewedContract);
+                renewedContract.flightObligations.Add(
+                    new AirlineContractFlightObligation
+                    {
+                        obligationId = obligation.obligationId,
+                        flightNumber = obligation.flightNumber,
+                        window = obligation.window,
+                        slotIndex = obligation.slotIndex
+                    });
+            }
+        }
+
+        return renewedContract;
     }
 
     private static AirlineContractTerms CopyTerms(AirlineContractTerms source)
