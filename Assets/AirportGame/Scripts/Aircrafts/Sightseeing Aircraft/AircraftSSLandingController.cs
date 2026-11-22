@@ -487,15 +487,25 @@ public class AircraftSSLandingController : MonoBehaviour
         rolloutStartPosition = transform.position;
         rolloutStartSpeed = currentSpeed;
         rolloutIntegratedTime = 0f;
-        Vector3 touchdownRunwayEnd =
-            runwayCenter + runwayDirection * (runwayLength * 0.5f);
-        float runwayRemainingAtTouchdown = Vector3.Dot(
-            touchdownRunwayEnd - rolloutStartPosition,
-            runwayDirection);
+        float runwayRemainingAtTouchdown = -1f;
+        float diagnosticRunwayLength = -1f;
+        if (selectedRunway != null &&
+            selectedRunway.TryGetGeometry(
+                out Vector3 diagnosticRunwayCenter,
+                out Vector3 diagnosticRunwayAxis,
+                out diagnosticRunwayLength,
+                out float diagnosticRunwaySurfaceY))
+        {
+            Vector3 touchdownRunwayEnd =
+                diagnosticRunwayCenter + runwayDirection * (diagnosticRunwayLength * 0.5f);
+            runwayRemainingAtTouchdown = Vector3.Dot(
+                touchdownRunwayEnd - rolloutStartPosition,
+                runwayDirection);
+        }
         Log(
             $"SIGHTSEEING ROLLOUT START | Aircraft: {name} | " +
             $"Runway: {debugSelectedRunway} | Speed: {AircraftStatus.WorldSpeedToKnots(currentSpeed):F1} knots | " +
-            $"Runway remaining: {runwayRemainingAtTouchdown:F2} | Runway length: {runwayLength:F2}",
+            $"Runway remaining: {runwayRemainingAtTouchdown:F2} | Runway length: {diagnosticRunwayLength:F2}",
             this);
 
         SetFlightOrientation(0f, noseRaiseDegrees);
@@ -543,11 +553,21 @@ public class AircraftSSLandingController : MonoBehaviour
             return;
 
         currentSpeed = targetSpeed;
-        Vector3 rolloutRunwayEnd =
-            runwayCenter + runwayDirection * (runwayLength * 0.5f);
-        float runwayRemainingAtCompletion = Vector3.Dot(
-            rolloutRunwayEnd - transform.position,
-            runwayDirection);
+        float runwayRemainingAtCompletion = -1f;
+        float diagnosticRunwayLengthAtCompletion = -1f;
+        if (selectedRunway != null &&
+            selectedRunway.TryGetGeometry(
+                out Vector3 diagnosticRunwayCenterAtCompletion,
+                out Vector3 diagnosticRunwayAxisAtCompletion,
+                out diagnosticRunwayLengthAtCompletion,
+                out float diagnosticRunwaySurfaceYAtCompletion))
+        {
+            Vector3 rolloutRunwayEnd =
+                diagnosticRunwayCenterAtCompletion + runwayDirection * (diagnosticRunwayLengthAtCompletion * 0.5f);
+            runwayRemainingAtCompletion = Vector3.Dot(
+                rolloutRunwayEnd - transform.position,
+                runwayDirection);
+        }
         float rolloutDistance = Vector3.Dot(
             transform.position - rolloutStartPosition,
             runwayDirection);
@@ -556,7 +576,7 @@ public class AircraftSSLandingController : MonoBehaviour
             $"Runway: {debugSelectedRunway} | Start speed: {AircraftStatus.WorldSpeedToKnots(rolloutStartSpeed):F1} knots | " +
             $"Target speed: {rolloutTargetSpeedKnots:F1} knots | Distance: {rolloutDistance:F2} | " +
             $"Integrated time: {rolloutIntegratedTime:F2}s | Frame delta: {rolloutDeltaTime:F2}s | " +
-            $"Runway remaining: {runwayRemainingAtCompletion:F2}",
+            $"Runway remaining: {runwayRemainingAtCompletion:F2} | Runway length: {diagnosticRunwayLengthAtCompletion:F2}",
             this);
 
 
