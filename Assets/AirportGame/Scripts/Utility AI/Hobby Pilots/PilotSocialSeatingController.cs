@@ -76,7 +76,7 @@ public class PilotSocialSeatingController : MonoBehaviour
     private SeatingState state;
     private bool isLeader;
     private bool hasArrived;
-    private float nextSearchTime;
+    private double nextSearchTime;
     private float travelElapsed;
     private long socializingStartGameSecond;
 
@@ -109,7 +109,7 @@ public class PilotSocialSeatingController : MonoBehaviour
         }
 
         ResolveGameTimeManager();
-        nextSearchTime = Time.time + UnityEngine.Random.Range(0f, searchInterval);
+        nextSearchTime = GameTimeManager.SimulationTime + UnityEngine.Random.Range(0f, searchInterval);
     }
 
     private void OnDisable()
@@ -160,7 +160,7 @@ public class PilotSocialSeatingController : MonoBehaviour
 
         if (state == SeatingState.Travelling)
         {
-            travelElapsed += Time.deltaTime;
+            travelElapsed += GameTimeManager.SimulationDeltaTime;
             if (travelElapsed >= travelTimeout)
                 CancelSocializing("Could not reach reserved seats");
 
@@ -173,10 +173,10 @@ public class PilotSocialSeatingController : MonoBehaviour
             return;
         }
 
-        if (Time.time < nextSearchTime)
+        if (GameTimeManager.SimulationTime < nextSearchTime)
             return;
 
-        nextSearchTime = Time.time + searchInterval;
+        nextSearchTime = GameTimeManager.SimulationTime + searchInterval;
         TryFindSeatingPartner();
     }
 
@@ -607,7 +607,7 @@ public class PilotSocialSeatingController : MonoBehaviour
         transform.rotation = Quaternion.RotateTowards(
             transform.rotation,
             targetRotation,
-            facingRotationSpeed * Time.deltaTime);
+            facingRotationSpeed * GameTimeManager.SimulationDeltaTime);
     }
 
     private void CompleteSocializing()
@@ -700,7 +700,7 @@ public class PilotSocialSeatingController : MonoBehaviour
         socializingStartGameSecond = 0;
         currentPartnerName = string.Empty;
         currentStatus = status;
-        nextSearchTime = Time.time + searchInterval;
+        nextSearchTime = GameTimeManager.SimulationTime + searchInterval;
     }
 
     private void OnValidate()
