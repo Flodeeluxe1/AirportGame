@@ -1151,7 +1151,10 @@ public class AirportGroundVehicleMovement : MonoBehaviour
             incoming.Normalize();
             outgoing.Normalize();
 
-            if (Mathf.Abs(Vector3.Dot(incoming, outgoing)) < 0.1f)
+            // Smooth every meaningful change in travel direction, including
+            // diagonal-to-straight and diagonal-to-diagonal transitions.
+            // A dot product near 1 indicates an almost-straight segment.
+            if (Vector3.Dot(incoming, outgoing) < 0.995f)
                 corners.Add(i);
         }
 
