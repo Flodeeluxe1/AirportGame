@@ -409,6 +409,14 @@ public static class AirportSaveFileStore
                 data.schemaVersion = 7;
             }
 
+            if (data.schemaVersion == 7 && CurrentSchemaVersion >= 8)
+            {
+                // Version 8 adds airline offers, active contract performance,
+                // and relationship persistence. Older saves start without
+                // airline-management state and retain normal startup behaviour.
+                data.schemaVersion = 8;
+            }
+
             if (data.schemaVersion != CurrentSchemaVersion)
             {
                 error =
