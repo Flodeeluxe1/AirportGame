@@ -55,7 +55,7 @@ public class ParkingSpace : MonoBehaviour
     private readonly List<GameObject> waitingVehicles =
         new List<GameObject>();
 
-    private float occupiedUntil;
+    private double occupiedUntil;
 
     private void Update()
     {
@@ -178,8 +178,8 @@ public class ParkingSpace : MonoBehaviour
         parkedVehicle = vehicle;
 
         occupiedUntil = holdUntilReleased
-            ? float.PositiveInfinity
-            : Time.time + Mathf.Max(0f, parkingDuration);
+            ? double.PositiveInfinity
+            : GameTimeManager.SimulationTime + Mathf.Max(0f, parkingDuration);
 
         RefreshDebugQueueStatus(
             $"PARKED: {vehicle.name}.");
@@ -235,16 +235,16 @@ public class ParkingSpace : MonoBehaviour
         }
     }
 
-    public float GetEstimatedAvailableTime(
+    public double GetEstimatedAvailableTime(
         float parkingDuration)
     {
         CleanWaitingVehicles();
 
-        float availableTime = Time.time;
+        double availableTime = GameTimeManager.SimulationTime;
 
         if (parkedVehicle != null)
         {
-            availableTime = Mathf.Max(
+            availableTime = System.Math.Max(
                 availableTime,
                 occupiedUntil);
         }
@@ -331,7 +331,7 @@ public class ParkingSpace : MonoBehaviour
 
         float estimatedWait = Mathf.Max(
             0f,
-            GetEstimatedAvailableTime(5f) - Time.time);
+            GetEstimatedAvailableTime(5f) - GameTimeManager.SimulationTime);
 
         debugQueueStatus =
             $"{reason}\n" +
@@ -377,7 +377,7 @@ public class ParkingSpace : MonoBehaviour
             $"Reserved: {IsReserved} | " +
             $"Queue Count: {waitingVehicles.Count} | " +
             $"Estimated Available In: " +
-            $"{Mathf.Max(0f, GetEstimatedAvailableTime(5f) - Time.time):F1}s\n" +
+            $"{Mathf.Max(0f, GetEstimatedAvailableTime(5f) - GameTimeManager.SimulationTime):F1}s\n" +
             debugQueueStatus,
             this);
     }
