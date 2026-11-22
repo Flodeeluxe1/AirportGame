@@ -843,7 +843,7 @@ public class AircraftHobbyLandingTaxiController : MonoBehaviour
             transform.rotation = Quaternion.Slerp(
                 transform.rotation,
                 targetRotation,
-                rotationSpeed * Time.deltaTime
+                rotationSpeed * GameTimeManager.SimulationDeltaTime
             );
         }
 
@@ -871,7 +871,7 @@ public class AircraftHobbyLandingTaxiController : MonoBehaviour
         transform.position = Vector3.MoveTowards(
             transform.position,
             target,
-            speed * Time.deltaTime
+            speed * GameTimeManager.SimulationDeltaTime
         );
 
         return HorizontalDistance(transform.position, target) <= arrivalDistance;
