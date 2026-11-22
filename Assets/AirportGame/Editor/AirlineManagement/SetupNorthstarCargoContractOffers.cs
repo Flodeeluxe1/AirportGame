@@ -70,6 +70,15 @@ public static class SetupNorthstarCargoContractOffers
                 collector.gameObject);
         }
 
+        AirlineContractPerformanceTracker performanceTracker =
+            collector.GetComponent<AirlineContractPerformanceTracker>();
+
+        if (performanceTracker == null)
+        {
+            performanceTracker = Undo.AddComponent<AirlineContractPerformanceTracker>(
+                collector.gameObject);
+        }
+
         // Keep the player-facing Airline Management button with the other
         // management buttons on the shared airport UI GameObject.
         FinanceManagementUIController financeUI =
@@ -121,6 +130,7 @@ public static class SetupNorthstarCargoContractOffers
         serialized.FindProperty("minimumCargoHandlingThroughputPerHour").floatValue = 10f;
         serialized.FindProperty("paymentPerCompletedFlight").intValue = 500;
         serialized.FindProperty("missedFlightPaymentReduction").floatValue = 0.5f;
+        serialized.FindProperty("missedFlightPenalty").intValue = 250;
         serialized.FindProperty("completionBonus").intValue = 1500;
         serialized.FindProperty("minimumAirlineInterest").floatValue = 20f;
 
