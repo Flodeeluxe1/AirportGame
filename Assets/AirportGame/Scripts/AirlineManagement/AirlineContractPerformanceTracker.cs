@@ -106,7 +106,7 @@ public class AirlineContractPerformanceTracker : MonoBehaviour
         }
     }
 
-    private void HandleContractCompleted(ActiveAirlineContract contract)
+    public void FinalizeContractForCompletion(ActiveAirlineContract contract)
     {
         if (contract == null)
             return;
@@ -114,6 +114,11 @@ public class AirlineContractPerformanceTracker : MonoBehaviour
         FinalizeThroughDay(contract, contract.endDay);
         AwardCompletionBonusIfEligible(contract);
         PerformanceUpdated?.Invoke(contract);
+    }
+
+    private void HandleContractCompleted(ActiveAirlineContract contract)
+    {
+        FinalizeContractForCompletion(contract);
     }
 
     private void FinalizeThroughDay(ActiveAirlineContract contract, long targetDay)
