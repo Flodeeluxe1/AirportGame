@@ -874,25 +874,24 @@ public class AircraftHobbyLandingController : MonoBehaviour
                 rolloutTargetSpeedKnots
             );
 
-        float previousSpeed =
-            currentSpeed;
+        // Integrate only until taxi speed is reached. A large simulation
+        // delta must not move the aircraft for unused time after rollout.
+        float rolloutDeltaTime = GameTimeManager.SimulationDeltaTime;
+        float timeToTargetSpeed =
+            Mathf.Max(0f, currentSpeed - targetSpeed) /
+            rolloutDeceleration;
+        float movementTime =
+            Mathf.Min(rolloutDeltaTime, timeToTargetSpeed);
 
-        currentSpeed =
-            Mathf.MoveTowards(
-                currentSpeed,
-                targetSpeed,
-                rolloutDeceleration *
-                GameTimeManager.SimulationDeltaTime
-            );
+        float previousSpeed = currentSpeed;
+        currentSpeed = Mathf.MoveTowards(
+            currentSpeed,
+            targetSpeed,
+            rolloutDeceleration * movementTime
+        );
 
-        float averageSpeed =
-            (previousSpeed + currentSpeed) *
-            0.5f;
-
-        transform.position +=
-            runwayDirection *
-            averageSpeed *
-            GameTimeManager.SimulationDeltaTime;
+        float averageSpeed = (previousSpeed + currentSpeed) * 0.5f;
+        transform.position += runwayDirection * averageSpeed * movementTime;
 
         Vector3 position =
             transform.position;
@@ -903,8 +902,7 @@ public class AircraftHobbyLandingController : MonoBehaviour
         transform.position =
             position;
 
-        rolloutElapsed +=
-            GameTimeManager.SimulationDeltaTime;
+        rolloutElapsed += movementTime;
 
         float noseLoweringProgress =
             Mathf.Clamp01(
