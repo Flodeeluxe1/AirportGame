@@ -184,7 +184,7 @@ public class AircraftCargoPaxDepartureTaxiController : MonoBehaviour
         }
 
         SetOperationalState(DepartureState.WaitingForRunway);
-        retryTimer -= Time.deltaTime;
+        retryTimer -= GameTimeManager.SimulationDeltaTime;
 
         if (retryTimer > 0f)
             return;
@@ -482,7 +482,7 @@ public class AircraftCargoPaxDepartureTaxiController : MonoBehaviour
         if (selectedRunway == null || trafficManager == null)
             return;
 
-        retryTimer -= Time.deltaTime;
+        retryTimer -= GameTimeManager.SimulationDeltaTime;
 
         if (retryTimer > 0f)
             return;
@@ -694,7 +694,7 @@ public class AircraftCargoPaxDepartureTaxiController : MonoBehaviour
         transform.rotation = Quaternion.RotateTowards(
             transform.rotation,
             runwayLineUpRotation,
-            rotationSpeedDegreesPerSecond * Time.deltaTime
+            rotationSpeedDegreesPerSecond * GameTimeManager.SimulationDeltaTime
         );
 
         if (Quaternion.Angle(transform.rotation, runwayLineUpRotation) > 0.5f)
@@ -1150,7 +1150,7 @@ public class AircraftCargoPaxDepartureTaxiController : MonoBehaviour
             transform.rotation = Quaternion.RotateTowards(
                 transform.rotation,
                 rotation,
-                rotationSpeedDegreesPerSecond * Time.deltaTime
+                rotationSpeedDegreesPerSecond * GameTimeManager.SimulationDeltaTime
             );
         }
 
@@ -1160,7 +1160,7 @@ public class AircraftCargoPaxDepartureTaxiController : MonoBehaviour
         transform.position = Vector3.MoveTowards(
             transform.position,
             target,
-            speed * Time.deltaTime
+            speed * GameTimeManager.SimulationDeltaTime
         );
     }
 
