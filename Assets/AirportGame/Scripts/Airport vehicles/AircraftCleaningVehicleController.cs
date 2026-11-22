@@ -269,14 +269,7 @@ public class AircraftCleaningVehicleController : MonoBehaviour
 
     private void UpdateTimedPhase(float durationSeconds, CleaningState nextState)
     {
-        float multiplier = gameTimeManager != null
-            ? Mathf.Max(0f, gameTimeManager.CurrentSpeedMultiplier)
-            : 1f;
-
-        if (multiplier <= 0f)
-            return;
-
-        phaseElapsedGameSeconds += Time.unscaledDeltaTime * multiplier;
+        phaseElapsedGameSeconds += GameTimeManager.SimulationDeltaTime;
 
         if (phaseElapsedGameSeconds < durationSeconds)
             return;
@@ -291,14 +284,7 @@ public class AircraftCleaningVehicleController : MonoBehaviour
 
     private void UpdateLeavingAircraft()
     {
-        float multiplier = gameTimeManager != null
-            ? Mathf.Max(0f, gameTimeManager.CurrentSpeedMultiplier)
-            : 1f;
-
-        if (multiplier <= 0f)
-            return;
-
-        phaseElapsedGameSeconds += Time.unscaledDeltaTime * multiplier;
+        phaseElapsedGameSeconds += GameTimeManager.SimulationDeltaTime;
 
         if (phaseElapsedGameSeconds < LeavingSeconds)
             return;
