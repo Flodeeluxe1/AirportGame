@@ -26,6 +26,6 @@ MonoBehaviour:
   minimumCargoStorageCapacity: 100
   minimumCargoHandlingThroughputPerHour: 10
   paymentPerCompletedFlight: 500
-  missedFlightPaymentReduction: 0.5
+  missedFlightPenalty: 250
   completionBonus: 1500
   minimumAirlineInterest: 20
