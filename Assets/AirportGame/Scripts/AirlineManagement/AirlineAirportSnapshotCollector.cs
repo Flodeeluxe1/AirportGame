@@ -98,6 +98,11 @@ public class AirlineAirportSnapshotCollector : MonoBehaviour
 
     private void HandleBuildingChanged(PlacedBuilding building)
     {
+        // Invalidate explicitly before collecting. Event subscription order is
+        // not guaranteed, so the registry may not have handled this event yet.
+        if (gateRegistry != null)
+            gateRegistry.InvalidateCache();
+
         // Building placement/removal can affect gates, runways, and cargo zones.
         RefreshAllAirlines();
     }
@@ -290,7 +295,8 @@ public class AirlineAirportSnapshotCollector : MonoBehaviour
 
         foreach (CargoZone zone in CargoZone.RegisteredZones)
         {
-            if (zone == null)
+            // Only count zones attached to an actual placed building.
+            if (zone == null || zone.Building == null)
                 continue;
 
             storageCapacity += zone.StorageCapacityPackages;
