@@ -181,6 +181,9 @@ public class AirlineContractOfferManager : MonoBehaviour
             if (!snapshotCollector.TryGetInterest(airline, out interestResult))
                 interestResult = snapshotCollector.RefreshInterest(airline);
 
+            if (airline.ContractTemplates == null)
+                continue;
+
             foreach (AirlineContractTemplate template in airline.ContractTemplates)
             {
                 if (template == null ||
