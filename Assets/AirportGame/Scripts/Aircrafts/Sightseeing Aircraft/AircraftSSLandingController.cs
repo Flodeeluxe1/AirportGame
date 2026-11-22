@@ -491,6 +491,7 @@ public class AircraftSSLandingController : MonoBehaviour
         float diagnosticRunwayLength = -1f;
         if (selectedRunway != null &&
             selectedRunway.TryGetGeometry(
+                gridManager,
                 out Vector3 diagnosticRunwayCenter,
                 out Vector3 diagnosticRunwayAxis,
                 out diagnosticRunwayLength,
@@ -557,6 +558,7 @@ public class AircraftSSLandingController : MonoBehaviour
         float diagnosticRunwayLengthAtCompletion = -1f;
         if (selectedRunway != null &&
             selectedRunway.TryGetGeometry(
+                gridManager,
                 out Vector3 diagnosticRunwayCenterAtCompletion,
                 out Vector3 diagnosticRunwayAxisAtCompletion,
                 out diagnosticRunwayLengthAtCompletion,
