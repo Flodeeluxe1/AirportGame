@@ -37,7 +37,7 @@ public class SightseeingPassengerAgent : MonoBehaviour
     private Collider[] colliders;
     private bool reservationHeld;
     private bool needsPaused;
-    private float nextQueueRefresh;
+    private double nextQueueRefresh;
     private Vector3 lastRequestedQueuePosition;
     private bool hasRequestedQueuePosition;
     private double nextWander;
