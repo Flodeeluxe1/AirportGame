@@ -55,6 +55,12 @@ public class GameTimeManager : MonoBehaviour
     [SerializeField] private long currentDay = 1;
 
     private double gameSeconds;
+    private SimulationEventScheduler eventScheduler;
+
+    /// <summary>
+    /// Central queue for simulation-time events. Events only advance while game time advances.
+    /// </summary>
+    public SimulationEventScheduler EventScheduler => eventScheduler;
     private float baseFixedDeltaTime;
 
     public event Action<long, long> GameTimeAdvanced;
@@ -84,6 +90,7 @@ public class GameTimeManager : MonoBehaviour
     private void Awake()
     {
         instance = this;
+        eventScheduler = new SimulationEventScheduler();
 
         baseFixedDeltaTime =
             Time.fixedDeltaTime;
@@ -124,6 +131,9 @@ public class GameTimeManager : MonoBehaviour
             totalGameSeconds % SecondsPerDay;
 
         NotifyGameTimeAdvanced(previousAbsoluteSecond);
+
+        if (eventScheduler != null)
+            eventScheduler.ProcessDueEvents(GetAbsoluteGameSecondsPrecise());
     }
 
     private long GetAbsoluteGameSecond()
@@ -252,6 +262,12 @@ public class GameTimeManager : MonoBehaviour
 
     private void OnDestroy()
     {
+        if (eventScheduler != null)
+        {
+            eventScheduler.Clear();
+            eventScheduler = null;
+        }
+
         if (instance == this)
             instance = null;
 
