@@ -72,18 +72,11 @@ public class CargoDeliveryTruck : MonoBehaviour
     /// </summary>
     public bool AlignColliderBottomToGround(float groundY)
     {
-        BoxCollider boxCollider = GetComponentInChildren<BoxCollider>();
-
-        if (boxCollider == null || !boxCollider.enabled)
-            return false;
-
-        float colliderBottom = boxCollider.bounds.min.y;
-        transform.position += Vector3.up * (groundY - colliderBottom);
-
-        // Movement waypoints position the root at groundY + heightOffset.
-        // Preserve the newly calculated root-to-ground distance while driving.
-        heightOffset = transform.position.y - groundY;
-        return true;
+        return VehicleGroundAlignmentUtility.AlignColliderBottomToGround(
+            transform,
+            ref heightOffset,
+            groundY
+        );
     }
 
     [Header("Road Turn Smoothing")]
