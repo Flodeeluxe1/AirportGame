@@ -19,13 +19,15 @@ public class CargoPackage : MonoBehaviour
 {
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
+
+    // Retained as serialized backing fields for compatibility with existing
+    // prefabs and scene objects. CargoPackageData is the runtime data owner.
     [Header("Package Identity")]
     [SerializeField] private string packageId;
 
     [Header("Cargo Classification")]
     [SerializeField] private CargoDirection direction;
-    [SerializeField]
-    private CargoPackageState state =
+    [SerializeField] private CargoPackageState state =
         CargoPackageState.Staged;
 
     [Header("Flight Assignment")]
@@ -38,19 +40,59 @@ public class CargoPackage : MonoBehaviour
     [Header("Current Location")]
     [SerializeField] private CargoZone currentZone;
 
-    public string PackageId => packageId;
+    private CargoPackageData data;
 
-    public CargoDirection Direction => direction;
+    public CargoPackageData Data
+    {
+        get
+        {
+            EnsureData();
+            return data;
+        }
+    }
 
-    public CargoPackageState State => state;
+    public string PackageId => Data.PackageId;
+    public CargoDirection Direction => Data.Direction;
+    public CargoPackageState State => Data.State;
+    public string FlightOperationId => Data.FlightOperationId;
+    public CargoZone CurrentZone => Data.CurrentZone;
+    public bool IsAvailableForCollection => Data.IsAvailableForCollection;
 
-    public string FlightOperationId => flightOperationId;
+    private void Awake()
+    {
+        EnsureData();
+    }
 
-    public CargoZone CurrentZone => currentZone;
+    private void EnsureData()
+    {
+        if (data != null)
+            return;
 
-    public bool IsAvailableForCollection =>
-        state == CargoPackageState.Staged &&
-        currentZone != null;
+        data = new CargoPackageData(
+            packageId,
+            direction,
+            state,
+            flightOperationId,
+            currentZone);
+    }
+
+    /// <summary>
+    /// Rebinds a visual component to an existing cargo record.
+    /// The record remains valid independently of this GameObject.
+    /// </summary>
+    public void BindData(CargoPackageData packageData)
+    {
+        if (packageData == null)
+        {
+            LogError(
+                $"{nameof(CargoPackage)} on {name}: Cannot bind missing cargo data.",
+                this);
+            return;
+        }
+
+        data = packageData;
+        SyncSerializedFields();
+    }
 
     public void Initialize(
         string id,
@@ -79,72 +121,100 @@ public class CargoPackage : MonoBehaviour
             return;
         }
 
-        packageId = id;
-        direction = cargoDirection;
-        flightOperationId = assignedFlightOperationId ?? string.Empty;
-
-        currentZone = startingZone;
-        state = CargoPackageState.Staged;
+        EnsureData();
+        data.Initialize(
+            id,
+            cargoDirection,
+            CargoPackageState.Staged,
+            assignedFlightOperationId,
+            startingZone);
+        SyncSerializedFields();
     }
 
     public bool IsForFlight(string operationId)
     {
-        return direction == CargoDirection.Outgoing &&
-               !string.IsNullOrWhiteSpace(operationId) &&
-               flightOperationId == operationId;
+        return Data.IsForFlight(operationId);
     }
 
     public bool TryReserve()
     {
-        if (state != CargoPackageState.Staged ||
-            currentZone == null)
-        {
-            return false;
-        }
-
-        state = CargoPackageState.Reserved;
-        return true;
+        bool reserved = Data.TryReserve();
+        SyncSerializedFields();
+        return reserved;
     }
 
     public void SetInTransit()
     {
-        if (state != CargoPackageState.Reserved)
+        if (!Data.SetInTransit())
         {
             LogWarning(
                 $"{name}: Cannot move cargo into transit " +
                 "unless it has been reserved.",
-                this
-            );
+                this);
             return;
         }
 
-        state = CargoPackageState.InTransit;
-        currentZone = null;
+        SyncSerializedFields();
     }
 
     public void SetDelivered()
     {
-        state = CargoPackageState.Delivered;
-        currentZone = null;
+        Data.SetDelivered();
+        SyncSerializedFields();
     }
 
     public void ReturnToZone(CargoZone zone)
     {
-        if (zone == null)
+        if (!Data.ReturnToZone(zone))
         {
             LogError(
                 $"{name}: Cannot return cargo to a missing zone.",
-                this
-            );
+                this);
             return;
         }
 
-        currentZone = zone;
-        state = CargoPackageState.Staged;
+        SyncSerializedFields();
     }
 
-    private void Log(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.Log(message, context); else Debug.Log(message); }
-    private void LogWarning(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogWarning(message, context); else Debug.LogWarning(message); }
-    private void LogError(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogError(message, context); else Debug.LogError(message); }
-    private void LogException(System.Exception exception, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.LogException(exception, context); else Debug.LogException(exception); }
+    private void SyncSerializedFields()
+    {
+        if (data == null)
+            return;
+
+        packageId = data.PackageId;
+        direction = data.Direction;
+        state = data.State;
+        flightOperationId = data.FlightOperationId;
+        currentZone = data.CurrentZone;
+    }
+
+    private void Log(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.Log(message, context);
+        else Debug.Log(message);
+    }
+
+    private void LogWarning(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.LogWarning(message, context);
+        else Debug.LogWarning(message);
+    }
+
+    private void LogError(object message, UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.LogError(message, context);
+        else Debug.LogError(message);
+    }
+
+    private void LogException(
+        System.Exception exception,
+        UnityEngine.Object context = null)
+    {
+        if (!logToConsole) return;
+        if (context != null) Debug.LogException(exception, context);
+        else Debug.LogException(exception);
+    }
 }
