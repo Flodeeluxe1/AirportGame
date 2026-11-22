@@ -4,6 +4,35 @@ using UnityEngine;
 
 public class GameTimeManager : MonoBehaviour
 {
+    private static GameTimeManager instance;
+
+    /// <summary>
+    /// The active game-time controller, if one exists.
+    /// </summary>
+    public static GameTimeManager Instance => instance;
+
+    /// <summary>
+    /// Elapsed simulation seconds for this rendered frame.
+    /// This API allows gameplay systems to migrate away from Unity's global time scale.
+    /// </summary>
+    public static float SimulationDeltaTime =>
+        instance != null
+            ? Time.unscaledDeltaTime * instance.currentSpeedMultiplier
+            : Time.deltaTime;
+
+    /// <summary>
+    /// Monotonic in-game time in seconds since day one, independent of rendered frames.
+    /// Use double precision for timers that can span many game days.
+    /// </summary>
+    public static double SimulationTime =>
+        instance != null
+            ? instance.GetAbsoluteGameSecondsPrecise()
+            : Time.time;
+
+    /// <summary>
+    /// Real elapsed seconds for this rendered frame, unaffected by game speed or pause.
+    /// </summary>
+    public static float RealDeltaTime => Time.unscaledDeltaTime;
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
     private const double SecondsPerDay = 86400.0;
@@ -51,6 +80,8 @@ public class GameTimeManager : MonoBehaviour
 
     private void Awake()
     {
+        instance = this;
+
         baseFixedDeltaTime =
             Time.fixedDeltaTime;
 
@@ -96,6 +127,11 @@ public class GameTimeManager : MonoBehaviour
     {
         return (currentDay - 1) * (long)SecondsPerDay +
                (long)System.Math.Floor(gameSeconds);
+    }
+
+    private double GetAbsoluteGameSecondsPrecise()
+    {
+        return (currentDay - 1) * SecondsPerDay + gameSeconds;
     }
 
     private void NotifyGameTimeAdvanced(long previousAbsoluteSecond)
@@ -209,6 +245,9 @@ public class GameTimeManager : MonoBehaviour
 
     private void OnDestroy()
     {
+        if (instance == this)
+            instance = null;
+
         Time.timeScale = 1f;
 
         if (baseFixedDeltaTime > 0f)
