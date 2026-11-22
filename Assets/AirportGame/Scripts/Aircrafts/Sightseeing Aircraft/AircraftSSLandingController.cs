@@ -492,20 +492,29 @@ public class AircraftSSLandingController : MonoBehaviour
     {
         float targetSpeed = KnotsToWorldSpeed(rolloutTargetSpeedKnots);
 
+        // Integrate only until taxi speed is reached. A large simulation
+        // delta must not move the aircraft for unused time after rollout.
+        float rolloutDeltaTime = GameTimeManager.SimulationDeltaTime;
+        float timeToTargetSpeed =
+            Mathf.Max(0f, currentSpeed - targetSpeed) /
+            rolloutDeceleration;
+        float movementTime =
+            Mathf.Min(rolloutDeltaTime, timeToTargetSpeed);
+
         float previousSpeed = currentSpeed;
         currentSpeed = Mathf.MoveTowards(
             currentSpeed,
             targetSpeed,
-            rolloutDeceleration * GameTimeManager.SimulationDeltaTime);
+            rolloutDeceleration * movementTime);
 
         float averageSpeed = (previousSpeed + currentSpeed) * 0.5f;
-        transform.position += runwayDirection * averageSpeed * GameTimeManager.SimulationDeltaTime;
+        transform.position += runwayDirection * averageSpeed * movementTime;
 
         Vector3 position = transform.position;
         position.y = runwaySurfaceY;
         transform.position = position;
 
-        rolloutElapsed += GameTimeManager.SimulationDeltaTime;
+        rolloutElapsed += movementTime;
 
         float lowering = Mathf.Clamp01(
             rolloutElapsed / noseLoweringDuration);
