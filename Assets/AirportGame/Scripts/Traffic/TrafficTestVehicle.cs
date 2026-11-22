@@ -1437,35 +1437,28 @@ public class TrafficTestVehicle : MonoBehaviour
 
     private float GetTrafficFollowingSpeed()
     {
-        bool skipRaycasts =
+        bool skipFollowing =
             hasIntersectionReservation &&
             intersectionManager != null &&
             intersectionManager.HasReservation(reservedIntersection, this);
 
         float result = trafficFollowing.GetFollowingSpeed(
-            speed, currentSpeed, ShouldBlockTrafficCollider, skipRaycasts,
-            out RaycastHit hit);
+            speed,
+            currentSpeed,
+            path,
+            roadNetwork,
+            gridManager,
+            skipFollowing,
+            out float followingDistance);
 
-        if (hit.collider != null)
-        {
-            debugBlockingCollider = hit.collider.name;
-            debugBlockingDistance = hit.distance;
-            TrafficTestVehicle blockingVehicle = hit.collider.GetComponentInParent<TrafficTestVehicle>();
-            CargoDeliveryTruck blockingTruck = hit.collider.GetComponentInParent<CargoDeliveryTruck>();
-            debugBlockingVehicleState = blockingVehicle != null
-                ? blockingVehicle.CurrentState.ToString()
-                : blockingTruck != null ? blockingTruck.CurrentState.ToString() : "Other";
-            debugTrafficDecision = $"Braking for {debugBlockingCollider}";
-        }
-        else
-        {
-            debugBlockingCollider = "None";
-            debugBlockingVehicleState = "None";
-            debugBlockingDistance = 0f;
-            debugTrafficDecision = skipRaycasts
-                ? "Continuing through reserved intersection"
-                : "No blocking vehicle detected";
-        }
+        debugBlockingCollider = "None";
+        debugBlockingVehicleState = "None";
+        debugBlockingDistance = float.IsPositiveInfinity(followingDistance)
+            ? 0f
+            : followingDistance;
+        debugTrafficDecision = float.IsPositiveInfinity(followingDistance)
+            ? "No vehicle on the same route ahead"
+            : $"Maintaining route gap: {followingDistance:F2}m";
 
         currentSpeed = result;
         return currentSpeed;
