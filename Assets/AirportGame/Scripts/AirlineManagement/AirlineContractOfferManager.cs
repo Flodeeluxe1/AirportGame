@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -29,6 +30,7 @@ public class AirlineContractOfferManager : MonoBehaviour
         new List<ActiveAirlineContract>();
 
     private long lastEvaluatedPeriod = -1;
+    private bool initializationComplete;
 
     public event Action<AirlineContractOffer> OfferGenerated;
     public event Action<AirlineContractOffer> OfferExpired;
@@ -45,7 +47,16 @@ public class AirlineContractOfferManager : MonoBehaviour
         if (gameTimeManager != null)
             gameTimeManager.GameTimeAdvanced += HandleGameTimeAdvanced;
 
-        // The first evaluation happens when the manager becomes active.
+        // Let the airport snapshot collector finish its initial scene refresh first.
+        StartCoroutine(InitializeAfterAirportSystems());
+    }
+
+    private IEnumerator InitializeAfterAirportSystems()
+    {
+        yield return null;
+        yield return null;
+        ResolveReferences();
+        initializationComplete = true;
         EvaluateForCurrentDay();
     }
 
@@ -66,6 +77,9 @@ public class AirlineContractOfferManager : MonoBehaviour
 
     private void HandleGameTimeAdvanced(long previousAbsoluteSecond, long currentAbsoluteSecond)
     {
+        if (!initializationComplete)
+            return;
+
         if (gameTimeManager == null)
             ResolveReferences();
 
@@ -226,7 +240,7 @@ public class AirlineContractOfferManager : MonoBehaviour
         if (offer == null)
             return false;
 
-        if (gameTimeManager.CurrentDay > offer.expiresOnDay ||
+        if (gameTimeManager.CurrentDay >= offer.expiresOnDay ||
             offer.airline == null ||
             HasActiveContract(offer.airline))
         {
@@ -278,7 +292,7 @@ public class AirlineContractOfferManager : MonoBehaviour
             AirlineContractOffer offer = pendingOffers[i];
             if (offer == null)
                 pendingOffers.RemoveAt(i);
-            else if (gameTimeManager.CurrentDay > offer.expiresOnDay)
+            else if (gameTimeManager.CurrentDay >= offer.expiresOnDay)
                 RemoveOfferAsExpired(offer);
         }
     }
