@@ -39,8 +39,8 @@ public class AirportCargoVehicleController : MonoBehaviour
     [Header("Runtime Status")]
     [SerializeField] private int carriedPackageCount;
 
-    private readonly List<CargoPackage> carriedPackages =
-        new List<CargoPackage>();
+    private readonly List<CargoPackageData> carriedPackages =
+        new List<CargoPackageData>();
 
     private bool testCollectionAttempted;
     private Vector3 lastHomeTarget;
@@ -64,7 +64,7 @@ public class AirportCargoVehicleController : MonoBehaviour
     public int AvailableCargoCapacity =>
         Mathf.Max(0, MaximumCargoCapacity - carriedPackages.Count);
 
-    public IReadOnlyList<CargoPackage> CarriedPackages =>
+    public IReadOnlyList<CargoPackageData> CarriedPackages =>
         carriedPackages;
 
     private void Awake()
@@ -493,14 +493,14 @@ public class AirportCargoVehicleController : MonoBehaviour
             return 0;
         }
 
-        List<CargoPackage> availablePackages =
+        List<CargoPackageData> availablePackages =
             zone.GetAvailablePackages(
                 CargoDirection.Outgoing,
                 flightOperationId);
 
         int collected = 0;
 
-        foreach (CargoPackage package in availablePackages)
+        foreach (CargoPackageData package in availablePackages)
         {
             if (collected >= freeCapacity)
                 break;
@@ -510,7 +510,7 @@ public class AirportCargoVehicleController : MonoBehaviour
 
             zone.UnregisterPackage(package);
             package.SetInTransit();
-            HidePackageVisual(package);
+            package.ReleaseVisual();
             carriedPackages.Add(package);
             collected++;
         }
@@ -526,21 +526,6 @@ public class AirportCargoVehicleController : MonoBehaviour
         return collected;
     }
 
-    private void HidePackageVisual(CargoPackage package)
-    {
-        Renderer[] renderers =
-            package.GetComponentsInChildren<Renderer>(true);
-
-        foreach (Renderer packageRenderer in renderers)
-            packageRenderer.enabled = false;
-
-        Collider[] colliders =
-            package.GetComponentsInChildren<Collider>(true);
-
-        foreach (Collider packageCollider in colliders)
-            packageCollider.enabled = false;
-    }
-
     private void RefreshCarriedPackageCount()
     {
         carriedPackages.RemoveAll(package => package == null);
@@ -552,7 +537,7 @@ public class AirportCargoVehicleController : MonoBehaviour
     // ---------------------------------------------------------------------
 
     public bool ResolveCarriedPackage(
-        CargoPackage package,
+        CargoPackageData package,
         bool delivered,
         CargoZone returnZone = null)
     {
@@ -562,30 +547,36 @@ public class AirportCargoVehicleController : MonoBehaviour
         if (delivered)
         {
             package.SetDelivered();
+            package.ReleaseVisual();
             carriedPackages.Remove(package);
-            Destroy(package.gameObject);
         }
         else
         {
-            if (returnZone == null)
+            if (returnZone == null ||
+                returnZone.CargoAreaPoint == null)
+            {
                 return false;
+            }
 
             package.ReturnToZone(returnZone);
 
-            if (!returnZone.RegisterPackage(package))
+            if (!package.CreateVisualAt(
+                    returnZone.CargoAreaPoint.position,
+                    returnZone.CargoAreaPoint.rotation))
+            {
+                LogWarning(
+                    $"{name}: Could not recreate the visual for cargo " +
+                    $"package '{package.PackageId}' when returning it to " +
+                    $"zone '{returnZone.name}'.",
+                    this);
                 return false;
+            }
 
-            Renderer[] renderers =
-                package.GetComponentsInChildren<Renderer>(true);
-
-            foreach (Renderer packageRenderer in renderers)
-                packageRenderer.enabled = true;
-
-            Collider[] colliders =
-                package.GetComponentsInChildren<Collider>(true);
-
-            foreach (Collider packageCollider in colliders)
-                packageCollider.enabled = true;
+            if (!returnZone.RegisterPackage(package))
+            {
+                package.ReleaseVisual();
+                return false;
+            }
 
             carriedPackages.Remove(package);
         }
