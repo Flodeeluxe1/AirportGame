@@ -1194,14 +1194,14 @@ public class CargoDeliveryTruck : MonoBehaviour
 
             if (hasFlightAssignment)
             {
-                CargoPackageData package =
-                    cargoBox.GetComponent<CargoPackageData>();
+                CargoPackage package =
+                    cargoBox.GetComponent<CargoPackage>();
 
                 if (package == null)
                 {
                     LogError(
                         "CargoDeliveryTruck: CargoBox prefab is missing " +
-                        $"CargoPackageData. Box {i + 1} is not registered.",
+                        $"CargoPackage. Box {i + 1} is not registered.",
                         cargoBox);
                 }
                 else
