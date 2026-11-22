@@ -24,7 +24,7 @@ public class EnvironmentScoreMonitor : MonoBehaviour
 
     private Vector3 lastSampledPosition;
     private int lastEnvironmentVersion = -1;
-    private float lastSmoothingTime;
+    private double lastSmoothingTime;
     private bool hasSample;
 
     public event Action<float, float> ScoreUpdated;
@@ -75,7 +75,7 @@ public class EnvironmentScoreMonitor : MonoBehaviour
             lastEnvironmentVersion = environmentVersion;
         }
 
-        float now = Time.unscaledTime;
+        double now = GameTimeManager.SimulationTime;
         if (!hasSample)
         {
             smoothedEnvironmentScore = rawEnvironmentScore;
@@ -83,7 +83,7 @@ public class EnvironmentScoreMonitor : MonoBehaviour
         }
         else
         {
-            float elapsed = Mathf.Max(0f, now - lastSmoothingTime);
+            float elapsed = (float)System.Math.Max(0.0, now - lastSmoothingTime);
             float timeConstant = Mathf.Max(0.01f, smoothingTime);
             float alpha = 1f - Mathf.Exp(-elapsed / timeConstant);
             smoothedEnvironmentScore +=
