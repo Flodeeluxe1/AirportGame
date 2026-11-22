@@ -128,6 +128,12 @@ public class AirlineAirportSnapshotCollector : MonoBehaviour
     [ContextMenu("Refresh Airline Interest")]
     public void RefreshAllAirlines()
     {
+        ResolveReferences();
+
+        // A loaded airport may have replaced the gates since the last snapshot.
+        if (gateRegistry != null)
+            gateRegistry.InvalidateCache();
+
         results.Clear();
         interestResults.Clear();
 
