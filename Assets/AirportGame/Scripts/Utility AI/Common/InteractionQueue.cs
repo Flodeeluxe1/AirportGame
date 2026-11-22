@@ -28,7 +28,7 @@ public class InteractionQueue : MonoBehaviour
     private readonly List<QueueEntry> entries = new List<QueueEntry>();
     private InteractionProvider provider;
     private QueueEntry activeEntry;
-    private float activeStartTime;
+    private double activeStartTime;
     private float activeEstimatedTotalTime;
     private bool queuePositionResolved;
 
@@ -196,7 +196,7 @@ public class InteractionQueue : MonoBehaviour
 
         if (activeEntry != null)
         {
-            float elapsed = Mathf.Max(0f, Time.time - activeStartTime);
+            float elapsed = (float)System.Math.Max(0.0, GameTimeManager.SimulationTime - activeStartTime);
             waitTime += Mathf.Max(0f, activeEstimatedTotalTime - elapsed);
         }
 
@@ -268,7 +268,7 @@ public class InteractionQueue : MonoBehaviour
         }
 
         activeEntry = next;
-        activeStartTime = Time.time;
+        activeStartTime = GameTimeManager.SimulationTime;
 
         PedestrianMovementController movement =
             next.Agent.GetComponent<PedestrianMovementController>();
