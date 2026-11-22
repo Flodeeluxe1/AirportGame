@@ -15,6 +15,7 @@ public class ScheduledAircraftSpawner : MonoBehaviour
     [SerializeField] private TestFlightCatalog flightCatalog;
     [SerializeField] private GameTimeManager gameTimeManager;
     [SerializeField] private AirportManagementController airportManagementController;
+    [SerializeField] private AirlineContractOfferManager contractManager;
 
     [Header("Spawn Queue")]
     [Tooltip("Minimum game-time interval between aircraft spawns, in seconds.")]
@@ -49,6 +50,7 @@ public class ScheduledAircraftSpawner : MonoBehaviour
         public string flightNumber;
         public string gateStableId;
         public int startMinute;
+        public string contractId;
     }
 
     private class ScheduledSpawn
@@ -57,6 +59,7 @@ public class ScheduledAircraftSpawner : MonoBehaviour
         public string GateStableId;
         public int StartMinute;
         public int TriggerMinute;
+        public string ContractId;
     }
 
     private class QueuedAircraftSpawn
@@ -120,6 +123,9 @@ public class ScheduledAircraftSpawner : MonoBehaviour
 
         if (gameTimeManager == null)
             gameTimeManager = FindAnyObjectByType<GameTimeManager>();
+
+        if (contractManager == null)
+            contractManager = FindAnyObjectByType<AirlineContractOfferManager>();
 
         if (aircraftPrefab == null)
         {
@@ -300,6 +306,20 @@ public class ScheduledAircraftSpawner : MonoBehaviour
             scheduled.StartMinute < MinutesBeforeScheduledTime
                 ? triggerDayIndex + 1
                 : triggerDayIndex;
+
+        if (!string.IsNullOrWhiteSpace(scheduled.ContractId))
+        {
+            if (contractManager == null)
+                contractManager = FindAnyObjectByType<AirlineContractOfferManager>();
+
+            if (contractManager == null ||
+                !contractManager.IsContractActiveOnDay(
+                    scheduled.ContractId,
+                    scheduledDayIndex + 1))
+            {
+                return;
+            }
+        }
 
         string operationId =
             $"{scheduledDayIndex}:{scheduled.Definition.FlightNumber}";
@@ -709,7 +729,8 @@ public class ScheduledAircraftSpawner : MonoBehaviour
                         Definition = definition,
                         GateStableId = saved.gateStableId,
                         StartMinute = saved.startMinute,
-                        TriggerMinute = triggerMinute
+                        TriggerMinute = triggerMinute,
+                        ContractId = saved.contractId
                     });
                 }
             }
