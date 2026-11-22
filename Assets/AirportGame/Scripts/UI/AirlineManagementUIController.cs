@@ -549,6 +549,7 @@ public class AirlineManagementUIController : MonoBehaviour
             metrics.style.flexDirection = FlexDirection.Row;
             metrics.style.flexWrap = Wrap.Wrap;
             AddMetric(metrics, "DAILY FLIGHTS", GetFlightsPerDay(contract.agreedTerms).ToString());
+            AddMetric(metrics, "RENEWALS", contract.renewalCount.ToString());
             AddMetric(metrics, "PAYMENT / FLIGHT", contract.agreedTerms.paymentPerCompletedFlight.ToString("N0") + " €");
             AddMetric(metrics, "TURNAROUND", contract.agreedTerms.turnaroundMinutes + " min");
             AddMetric(metrics, "ON TIME", contract.onTimeFlights.ToString());
