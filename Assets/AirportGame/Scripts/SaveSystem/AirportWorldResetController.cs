@@ -354,6 +354,27 @@ public class AirportWorldResetController : MonoBehaviour
                 : new List<FloorFinishCellSaveData>()
         };
 
+        AirlineContractOfferManager airlineContractManager =
+            FindAnyObjectByType<AirlineContractOfferManager>();
+        AirlineContractPerformanceTracker airlinePerformanceTracker =
+            FindAnyObjectByType<AirlineContractPerformanceTracker>();
+
+        if (airlineContractManager != null)
+        {
+            data.airlineManagement = airlineContractManager.GetSaveData();
+            data.hasAirlineManagementData = true;
+        }
+
+        if (airlinePerformanceTracker != null)
+        {
+            if (data.airlineManagement == null)
+                data.airlineManagement = new AirlineManagementSaveData();
+
+            data.airlineManagement.relationships =
+                airlinePerformanceTracker.GetRelationshipsForSave();
+            data.hasAirlineManagementData = true;
+        }
+
         PlacedBuilding[] buildings =
             FindObjectsByType<PlacedBuilding>(
                 FindObjectsInactive.Include);
@@ -1195,6 +1216,25 @@ public class AirportWorldResetController : MonoBehaviour
 
             if (snapshotCollector != null)
                 snapshotCollector.RefreshAllAirlines();
+        }
+
+        if (data.hasAirlineManagementData)
+        {
+            AirlineContractOfferManager savedContractManager =
+                FindAnyObjectByType<AirlineContractOfferManager>();
+            AirlineContractPerformanceTracker savedPerformanceTracker =
+                FindAnyObjectByType<AirlineContractPerformanceTracker>();
+
+            if (savedContractManager != null)
+                savedContractManager.RestoreFromSave(data.airlineManagement);
+            else
+                LogWarning(
+                    "Save contains airline contract state, but " +
+                    "AirlineContractOfferManager was not found.");
+
+            if (savedPerformanceTracker != null)
+                savedPerformanceTracker.RestoreRelationshipsFromSave(
+                    data.airlineManagement.relationships);
         }
 
         Log(
