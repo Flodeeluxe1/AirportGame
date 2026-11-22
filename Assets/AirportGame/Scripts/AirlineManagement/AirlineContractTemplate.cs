@@ -66,6 +66,9 @@ public class AirlineContractTemplate : ScriptableObject
     [SerializeField] private int paymentPerCompletedFlight = 500;
     [Range(0f, 1f)]
     [SerializeField] private float missedFlightPaymentReduction = 0.5f;
+    [Tooltip("Additional cash penalty charged for each missed, cancelled, or operationally failed flight. The flight payment is also not earned.")]
+    [Min(0)]
+    [SerializeField] private int missedFlightPenalty = 250;
     [Min(0)]
     [SerializeField] private int completionBonus;
 
@@ -101,6 +104,7 @@ public class AirlineContractTemplate : ScriptableObject
     public float MinimumCargoHandlingThroughputPerHour => minimumCargoHandlingThroughputPerHour;
     public int PaymentPerCompletedFlight => paymentPerCompletedFlight;
     public float MissedFlightPaymentReduction => missedFlightPaymentReduction;
+    public int MissedFlightPenalty => missedFlightPenalty;
     public int CompletionBonus => completionBonus;
     public float MinimumAirlineInterest => minimumAirlineInterest;
 
@@ -119,6 +123,7 @@ public class AirlineContractTemplate : ScriptableObject
         minimumCargoHandlingThroughputPerHour =
             Mathf.Max(0f, minimumCargoHandlingThroughputPerHour);
         paymentPerCompletedFlight = Mathf.Max(0, paymentPerCompletedFlight);
+        missedFlightPenalty = Mathf.Max(0, missedFlightPenalty);
         completionBonus = Mathf.Max(0, completionBonus);
 
         if (flightWindows == null)
