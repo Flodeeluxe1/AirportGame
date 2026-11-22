@@ -373,6 +373,40 @@ public class ScheduledAircraftSpawner : MonoBehaviour
 
     private void ProcessSpawnQueue()
     {
+        // A contract flight can remain queued while the spawn interval is
+        // running. Discard it if its contract day has ended before spawning.
+        while (spawnQueue.Count > 0)
+        {
+            QueuedAircraftSpawn queued = spawnQueue.Peek();
+            if (queued == null)
+            {
+                spawnQueue.Dequeue();
+                continue;
+            }
+
+            string contractId = queued.Scheduled != null
+                ? queued.Scheduled.ContractId
+                : null;
+
+            if (string.IsNullOrWhiteSpace(contractId))
+                break;
+
+            if (contractManager == null)
+                contractManager = FindAnyObjectByType<AirlineContractOfferManager>();
+
+            if (contractManager != null &&
+                contractManager.IsContractActiveOnDay(
+                    contractId,
+                    queued.ScheduledDayIndex + 1))
+            {
+                break;
+            }
+
+            spawnQueue.Dequeue();
+            queuedOperationIds.Remove(queued.OperationId);
+            spawnedOperationIds.Add(queued.OperationId);
+        }
+
         if (spawnQueue.Count == 0)
             return;
 
