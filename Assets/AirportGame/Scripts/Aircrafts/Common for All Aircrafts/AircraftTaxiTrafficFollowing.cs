@@ -255,12 +255,12 @@ public class AircraftTaxiTrafficFollowing : MonoBehaviour
                     runwayEntrySpeed = Mathf.MoveTowards(
                         currentSpeedKnots,
                         0f,
-                        brakingRateKnots * Time.deltaTime);
+                        brakingRateKnots * GameTimeManager.SimulationDeltaTime);
                 }
             }
 
             if (!hasATCClearance &&
-                Time.deltaTime > 0.0001f &&
+                GameTimeManager.SimulationDeltaTime > 0.0001f &&
                 ATCGroundTrafficManager.Instance != null &&
                 ATCGroundTrafficManager.Instance.TryGetTaxiHoldPosition(
                     this,
@@ -271,7 +271,7 @@ public class AircraftTaxiTrafficFollowing : MonoBehaviour
                 float distanceToHold = Vector3.Distance(
                     transform.position,
                     runwayHoldPosition);
-                float maximumWorldSpeed = distanceToHold / Time.deltaTime;
+                float maximumWorldSpeed = distanceToHold / GameTimeManager.SimulationDeltaTime;
 
                 runwayEntrySpeed = Mathf.Min(
                     runwayEntrySpeed,
@@ -371,7 +371,7 @@ public class AircraftTaxiTrafficFollowing : MonoBehaviour
         currentSpeedKnots = Mathf.MoveTowards(
             currentSpeedKnots,
             targetSpeedKnots,
-            adjustmentRateKnots * Time.deltaTime
+            adjustmentRateKnots * GameTimeManager.SimulationDeltaTime
         );
 
         currentSpeedKnots = Mathf.Clamp(
@@ -383,7 +383,7 @@ public class AircraftTaxiTrafficFollowing : MonoBehaviour
         // A denied ATC clearance is a physical boundary, not just a
         // requested speed reduction. Limit this frame's travel so a large
         // time step cannot carry the aircraft past its holding position.
-        if (Time.deltaTime > 0.0001f &&
+        if (GameTimeManager.SimulationDeltaTime > 0.0001f &&
             ATCGroundTrafficManager.Instance != null &&
             ATCGroundTrafficManager.Instance.TryGetTaxiHoldPosition(
                 this,
@@ -394,7 +394,7 @@ public class AircraftTaxiTrafficFollowing : MonoBehaviour
             float distanceToHold = Vector3.Distance(
                 transform.position,
                 holdPosition);
-            float maximumWorldSpeed = distanceToHold / Time.deltaTime;
+            float maximumWorldSpeed = distanceToHold / GameTimeManager.SimulationDeltaTime;
             float maximumKnots =
                 maximumWorldSpeed /
                 AircraftStatus.WorldUnitsPerSecondPerKnot;
