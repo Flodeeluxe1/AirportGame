@@ -329,8 +329,8 @@ public class ParkingSpace : MonoBehaviour
                 ? parkedVehicle.name
                 : "None";
 
-        float estimatedWait = Mathf.Max(
-            0f,
+        double estimatedWait = System.Math.Max(
+            0d,
             GetEstimatedAvailableTime(5f) - GameTimeManager.SimulationTime);
 
         debugQueueStatus =
