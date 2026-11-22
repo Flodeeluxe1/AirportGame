@@ -22,6 +22,7 @@ public class CargoZone : MonoBehaviour
     }
 
     public static event Action<CargoZone> AvailabilityChanged;
+    public static event Action CapacityChanged;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void ResetStaticState()
@@ -29,6 +30,7 @@ public class CargoZone : MonoBehaviour
         registeredZones.Clear();
         registryInitialized = false;
         AvailabilityChanged = null;
+        CapacityChanged = null;
     }
 
     private static void EnsureRegistryInitialized()
@@ -52,6 +54,19 @@ public class CargoZone : MonoBehaviour
     [SerializeField] private Transform vanStopPoint;
     [SerializeField] private Transform cargoAreaPoint;
     [SerializeField] private Transform airportVehicleStopPoint;
+
+    [Header("Airline Cargo Capacity")]
+    [Tooltip("Maximum number of cargo packages this zone can store at one time.")]
+    [Min(0)]
+    [SerializeField] private int storageCapacityPackages;
+
+    [Tooltip("Number of cargo packages this zone can process per game hour.")]
+    [Min(0f)]
+    [SerializeField] private float handlingThroughputPackagesPerHour;
+
+    public int StorageCapacityPackages => Mathf.Max(0, storageCapacityPackages);
+    public float HandlingThroughputPackagesPerHour =>
+        Mathf.Max(0f, handlingThroughputPackagesPerHour);
 
     [Header("Runtime Status")]
     [SerializeField] private int stagedPackageCount;
@@ -92,13 +107,19 @@ public class CargoZone : MonoBehaviour
         registryInitialized = true;
 
         if (registeredZones.Add(this))
+        {
             NotifyAvailabilityChanged();
+            CapacityChanged?.Invoke();
+        }
     }
 
     private void OnDisable()
     {
         if (registeredZones.Remove(this))
+        {
             NotifyAvailabilityChanged();
+            CapacityChanged?.Invoke();
+        }
     }
 
     private void Awake()
@@ -110,6 +131,11 @@ public class CargoZone : MonoBehaviour
     private void OnValidate()
     {
         FindZonePoints();
+        storageCapacityPackages = Mathf.Max(0, storageCapacityPackages);
+        handlingThroughputPackagesPerHour =
+            Mathf.Max(0f, handlingThroughputPackagesPerHour);
+        NotifyAvailabilityChanged();
+        CapacityChanged?.Invoke();
     }
 
     private void FindZonePoints()

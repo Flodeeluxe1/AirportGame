@@ -18,7 +18,7 @@ public class AirlineAirportSnapshot
 
     [Header("Runways")]
     [Min(0f)]
-    public float longestSuitableRunwayLengthMeters;
+    public float longestRunwayLengthMeters;
 
     [Header("Cargo Capacity")]
     [Min(0f)]

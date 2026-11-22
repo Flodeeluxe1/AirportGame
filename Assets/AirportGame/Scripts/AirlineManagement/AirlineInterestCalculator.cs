@@ -24,7 +24,7 @@ public static class AirlineInterestCalculator
             airline.DesiredSuitableGateCount);
 
         float runwayScore = CalculateCapacityScore(
-            airport.longestSuitableRunwayLengthMeters,
+            airport.longestRunwayLengthMeters,
             airline.MinimumRunwayLengthMeters);
 
         float storageScore = CalculateCapacityScore(
@@ -37,7 +37,13 @@ public static class AirlineInterestCalculator
 
         // Storage space and handling throughput are equally important parts
         // of the cargo-handling factor.
-        float cargoScore = (storageScore + throughputScore) * 0.5f;
+        // Cargo infrastructure is irrelevant to a passenger-only airline.
+        // A passenger-specific handling factor can replace this neutral score
+        // when passenger terminal capacity is represented by the airport.
+        float cargoScore =
+            airline.OperationType == AirlineOperationType.Passenger
+                ? 100f
+                : (storageScore + throughputScore) * 0.5f;
 
         float nightScore = Mathf.Clamp(
             airport.nightOperationsScore,
