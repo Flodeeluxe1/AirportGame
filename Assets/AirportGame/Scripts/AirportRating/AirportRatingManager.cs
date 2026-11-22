@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+using System;\nusing System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -47,6 +47,8 @@ public class AirportRatingManager : MonoBehaviour
     public float RawAirportRating => rawAirportRating;
     public float AirportRating => airportRating;
 
+    public event Action<float> AirportRatingChanged;
+
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void ResetStatics()
     {
@@ -92,7 +94,11 @@ public class AirportRatingManager : MonoBehaviour
 
         float smoothingTime = Mathf.Max(0.01f, ratingSmoothingTimeSeconds);
         float alpha = 1f - Mathf.Exp(-elapsedGameSeconds / smoothingTime);
+        float previousRating = airportRating;
         airportRating = Mathf.Lerp(airportRating, rawAirportRating, alpha);
+
+        if (!Mathf.Approximately(previousRating, airportRating))
+            AirportRatingChanged?.Invoke(airportRating);
     }
 
     public static AirportRatingManager RegisterVisitor(AirportVisitorExperience visitor)
