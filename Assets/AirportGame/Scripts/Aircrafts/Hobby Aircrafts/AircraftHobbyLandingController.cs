@@ -592,7 +592,7 @@ public class AircraftHobbyLandingController : MonoBehaviour
             Vector3.MoveTowards(
                 transform.position,
                 alignmentPoint,
-                currentSpeed * Time.deltaTime
+                currentSpeed * GameTimeManager.SimulationDeltaTime
             );
     }
 
@@ -619,7 +619,7 @@ public class AircraftHobbyLandingController : MonoBehaviour
                     approachSpeedKnots
                 ),
                 speedChangeRate *
-                Time.deltaTime
+                GameTimeManager.SimulationDeltaTime
             );
 
         float availableDistance =
@@ -628,7 +628,7 @@ public class AircraftHobbyLandingController : MonoBehaviour
 
         float step =
             Mathf.Min(
-                currentSpeed * Time.deltaTime,
+                currentSpeed * GameTimeManager.SimulationDeltaTime,
                 availableDistance
             );
 
@@ -787,12 +787,12 @@ public class AircraftHobbyLandingController : MonoBehaviour
                     touchdownSpeedKnots
                 ),
                 speedChangeRate *
-                Time.deltaTime
+                GameTimeManager.SimulationDeltaTime
             );
 
         float step =
             Mathf.Min(
-                currentSpeed * Time.deltaTime,
+                currentSpeed * GameTimeManager.SimulationDeltaTime,
                 remainingDistance
             );
 
@@ -882,7 +882,7 @@ public class AircraftHobbyLandingController : MonoBehaviour
                 currentSpeed,
                 targetSpeed,
                 rolloutDeceleration *
-                Time.deltaTime
+                GameTimeManager.SimulationDeltaTime
             );
 
         float averageSpeed =
@@ -892,7 +892,7 @@ public class AircraftHobbyLandingController : MonoBehaviour
         transform.position +=
             runwayDirection *
             averageSpeed *
-            Time.deltaTime;
+            GameTimeManager.SimulationDeltaTime;
 
         Vector3 position =
             transform.position;
@@ -904,7 +904,7 @@ public class AircraftHobbyLandingController : MonoBehaviour
             position;
 
         rolloutElapsed +=
-            Time.deltaTime;
+            GameTimeManager.SimulationDeltaTime;
 
         float noseLoweringProgress =
             Mathf.Clamp01(
@@ -1030,7 +1030,7 @@ public class AircraftHobbyLandingController : MonoBehaviour
 
         float horizontalStep =
             currentSpeed *
-            Time.deltaTime;
+            GameTimeManager.SimulationDeltaTime;
 
         float verticalStep =
             horizontalStep *
@@ -1163,7 +1163,7 @@ public class AircraftHobbyLandingController : MonoBehaviour
                 transform.rotation,
                 targetRotation,
                 rotationSpeed *
-                Time.deltaTime
+                GameTimeManager.SimulationDeltaTime
             );
     }
 
@@ -1202,7 +1202,7 @@ public class AircraftHobbyLandingController : MonoBehaviour
                 transform.rotation,
                 rotation,
                 rotationSpeed *
-                Time.deltaTime
+                GameTimeManager.SimulationDeltaTime
             );
     }
 
