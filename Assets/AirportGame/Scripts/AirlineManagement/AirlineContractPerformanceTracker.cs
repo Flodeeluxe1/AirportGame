@@ -372,6 +372,53 @@ public class AirlineContractPerformanceTracker : MonoBehaviour
         return record != null ? record.relationship : startingRelationship;
     }
 
+
+    public List<AirlineRelationshipRecord> GetRelationshipsForSave()
+    {
+        List<AirlineRelationshipRecord> saved =
+            new List<AirlineRelationshipRecord>();
+
+        if (relationships == null)
+            return saved;
+
+        foreach (AirlineRelationshipRecord record in relationships)
+        {
+            if (record == null)
+                continue;
+
+            saved.Add(new AirlineRelationshipRecord
+            {
+                airlineId = record.airlineId,
+                airlineName = record.airlineName,
+                relationship = record.relationship
+            });
+        }
+
+        return saved;
+    }
+
+    public void RestoreRelationshipsFromSave(
+        List<AirlineRelationshipRecord> savedRelationships)
+    {
+        relationships = new List<AirlineRelationshipRecord>();
+
+        if (savedRelationships == null)
+            return;
+
+        foreach (AirlineRelationshipRecord record in savedRelationships)
+        {
+            if (record == null || string.IsNullOrWhiteSpace(record.airlineId))
+                continue;
+
+            relationships.Add(new AirlineRelationshipRecord
+            {
+                airlineId = record.airlineId,
+                airlineName = record.airlineName,
+                relationship = Mathf.Clamp(record.relationship, 0f, 100f)
+            });
+        }
+    }
+
     private void LogWarning(string message)
     {
         Debug.LogWarning("AirlineContractPerformanceTracker: " + message, this);
