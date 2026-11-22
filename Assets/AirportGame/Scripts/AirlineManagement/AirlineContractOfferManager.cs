@@ -125,6 +125,8 @@ public class AirlineContractOfferManager : MonoBehaviour
             return;
 
         snapshotCollector.RefreshAllAirlines();
+        lastEvaluatedPeriod =
+            (gameTimeManager.CurrentDay - 1) / EvaluationIntervalDays;
         GenerateOffers(gameTimeManager.CurrentDay);
     }
 
