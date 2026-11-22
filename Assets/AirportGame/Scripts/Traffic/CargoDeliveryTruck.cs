@@ -1462,30 +1462,20 @@ public class CargoDeliveryTruck : MonoBehaviour
         float result = trafficFollowing.GetFollowingSpeed(
             movementSpeed,
             currentSpeed,
-            ShouldBlockTrafficCollider,
+            currentPath,
+            roadNetwork,
+            gridManager,
             false,
-            out RaycastHit hit);
+            out float followingDistance);
 
-        if (hit.collider != null)
-        {
-            debugBlockingCollider = hit.collider.name;
-            debugBlockingDistance = hit.distance;
-
-            Component blocker = GetVehicleComponent(hit.collider);
-            debugBlockingVehicleState = blocker != null
-                ? GetVehicleStateLabel(blocker)
-                : "Unknown";
-
-            debugTrafficDecision =
-                $"Braking for {debugBlockingCollider}";
-        }
-        else
-        {
-            debugBlockingCollider = "None";
-            debugBlockingVehicleState = "None";
-            debugBlockingDistance = 0f;
-            debugTrafficDecision = "No blocking vehicle detected";
-        }
+        debugBlockingCollider = "None";
+        debugBlockingVehicleState = "None";
+        debugBlockingDistance = float.IsPositiveInfinity(followingDistance)
+            ? 0f
+            : followingDistance;
+        debugTrafficDecision = float.IsPositiveInfinity(followingDistance)
+            ? "No vehicle on the same route ahead"
+            : $"Maintaining route gap: {followingDistance:F2}m";
 
         currentSpeed = result;
         return currentSpeed;
