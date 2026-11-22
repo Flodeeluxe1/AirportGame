@@ -29,9 +29,11 @@ public class AirportGroundVehicleMovement : MonoBehaviour
     [Min(1)]
     [SerializeField] private int roadMovementCost = 5;
 
-    [Header("Foundation Clearance")]
+    [Header("Clearance")]
     [Range(0, 3)]
     [SerializeField] private int foundationClearance = 1;
+    [Range(0, 3)]
+    [SerializeField] private int runwayClearance = 1;
 
     [Header("Movement")]
     [Min(0.1f)]
@@ -571,7 +573,8 @@ public class AirportGroundVehicleMovement : MonoBehaviour
                     continue;
                 }
 
-                if (IsWithinFoundationClearance(neighbor))
+                if (IsWithinFoundationClearance(neighbor) ||
+                    IsWithinRunwayClearance(neighbor))
                 {
                     rejectedClearance++;
                     continue;
@@ -684,6 +687,46 @@ public class AirportGroundVehicleMovement : MonoBehaviour
 
                 if (gridSurface.GetSurface(checkedCell) ==
                     BuildSurface.Foundation)
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private bool IsWithinRunwayClearance(Vector2Int cell)
+    {
+        if (runwayClearance <= 0)
+            return false;
+
+        for (int x = -runwayClearance;
+             x <= runwayClearance;
+             x++)
+        {
+            for (int y = -runwayClearance;
+                 y <= runwayClearance;
+                 y++)
+            {
+                if (x == 0 && y == 0)
+                    continue;
+
+                Vector2Int checkedCell = new Vector2Int(
+                    cell.x + x,
+                    cell.y + y);
+
+                if (!gridManager.IsInsideGrid(checkedCell))
+                    continue;
+
+                if (IsHomeAreaCell(checkedCell) ||
+                    IsCurrentDestinationGateCell(checkedCell))
+                {
+                    continue;
+                }
+
+                if (gridSurface.GetSurface(checkedCell) ==
+                    BuildSurface.Runway)
                 {
                     return true;
                 }
