@@ -305,7 +305,7 @@ public class GarbageCollectorController : MonoBehaviour
 
         float amountThisFrame = Mathf.Min(
             collectionRemaining,
-            collectionRatePerSecond * Time.deltaTime);
+            collectionRatePerSecond * GameTimeManager.SimulationDeltaTime);
 
         float collected = currentDisposal.CollectWaste(amountThisFrame);
         currentWasteLoad += collected;
@@ -519,14 +519,14 @@ public class GarbageCollectorController : MonoBehaviour
             transform.rotation = Quaternion.Slerp(
                 transform.rotation,
                 targetRotation,
-                rotationSpeed * Time.deltaTime);
+                rotationSpeed * GameTimeManager.SimulationDeltaTime);
         }
 
         Vector3 flatTarget = new Vector3(target.x, transform.position.y, target.z);
         transform.position = Vector3.MoveTowards(
             transform.position,
             flatTarget,
-            Mathf.Max(0f, speed) * Time.deltaTime);
+            Mathf.Max(0f, speed) * GameTimeManager.SimulationDeltaTime);
     }
 
     private void FaceStopPoint()
