@@ -1473,6 +1473,7 @@ public class FlightManagementUIController : MonoBehaviour
         {
             if (existing != null && scheduledFlights.Remove(existing))
             {
+                RecordContractScheduleCancellation(existing);
                 SaveSchedule();
 
                 RebuildFlightStrips();
@@ -1946,6 +1947,25 @@ public class FlightManagementUIController : MonoBehaviour
     }
 
 
+    private void RecordContractScheduleCancellation(ScheduledFlight scheduled)
+    {
+        if (scheduled == null ||
+            string.IsNullOrWhiteSpace(scheduled.ContractId) ||
+            string.IsNullOrWhiteSpace(scheduled.ObligationId))
+            return;
+
+        AirlineContractPerformanceTracker tracker =
+            FindAnyObjectByType<AirlineContractPerformanceTracker>();
+
+        if (tracker != null && gameTimeManager != null)
+        {
+            tracker.RecordCancelledFlight(
+                scheduled.ContractId,
+                scheduled.ObligationId,
+                gameTimeManager.CurrentDay);
+        }
+    }
+
     public void CancelScheduledFlightsForGate(string gateStableId)
     {
         if (string.IsNullOrWhiteSpace(gateStableId))
@@ -1974,7 +1994,10 @@ public class FlightManagementUIController : MonoBehaviour
             return;
 
         foreach (ScheduledFlight scheduled in cancelledFlights)
+        {
+            RecordContractScheduleCancellation(scheduled);
             scheduledFlights.Remove(scheduled);
+        }
 
         // Return the cancelled flights to Available Flights.
         RebuildFlightStrips();
