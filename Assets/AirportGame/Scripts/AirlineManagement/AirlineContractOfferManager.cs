@@ -18,6 +18,13 @@ public class AirlineContractOfferManager : MonoBehaviour
     [Header("Systems")]
     [SerializeField] private AirlineAirportSnapshotCollector snapshotCollector;
     [SerializeField] private GameTimeManager gameTimeManager;
+    [SerializeField] private AirlineContractPerformanceTracker performanceTracker;
+
+    [Header("Automatic Renewal")]
+    [SerializeField, Range(0f, 100f)] private float minimumRenewalRelationship = 50f;
+    [SerializeField, Range(0f, 1f)] private float minimumRenewalCompletionRate = 0.75f;
+    [SerializeField, Range(0f, 0.1f)] private float paymentIncreasePerRenewal = 0.02f;
+    [SerializeField, Range(0f, 0.5f)] private float maximumRenewalPaymentIncrease = 0.10f;
 
     [Header("Airlines")]
     [SerializeField] private List<AirlineDefinition> airlines =
@@ -36,6 +43,8 @@ public class AirlineContractOfferManager : MonoBehaviour
     public event Action<AirlineContractOffer> OfferExpired;
     public event Action<ActiveAirlineContract> ContractAccepted;
     public event Action<ActiveAirlineContract> ContractCompleted;
+    public event Action<ActiveAirlineContract, ActiveAirlineContract> ContractRenewed;
+    public event Action<ActiveAirlineContract> ContractRenewalPreferenceChanged;
     public event Action<string> OfferDeclined;
     public event Action ContractsRestored;
 
@@ -75,6 +84,9 @@ public class AirlineContractOfferManager : MonoBehaviour
 
         if (gameTimeManager == null)
             gameTimeManager = FindAnyObjectByType<GameTimeManager>();
+
+        if (performanceTracker == null)
+            performanceTracker = FindAnyObjectByType<AirlineContractPerformanceTracker>();
     }
 
     private void HandleGameTimeAdvanced(long previousAbsoluteSecond, long currentAbsoluteSecond)
@@ -190,7 +202,9 @@ public class AirlineContractOfferManager : MonoBehaviour
                 totalPaymentsReceived = contract.totalPaymentsReceived,
                 totalPenaltiesPaid = contract.totalPenaltiesPaid,
                 unpaidPenaltyAmount = contract.unpaidPenaltyAmount,
-                completionBonusPaid = contract.completionBonusPaid
+                completionBonusPaid = contract.completionBonusPaid,
+                renewalCount = contract.renewalCount,
+                renewalDeclined = contract.renewalDeclined
             };
 
             if (contract.flightObligations != null)
@@ -293,7 +307,9 @@ public class AirlineContractOfferManager : MonoBehaviour
                 totalPaymentsReceived = saved.totalPaymentsReceived,
                 totalPenaltiesPaid = saved.totalPenaltiesPaid,
                 unpaidPenaltyAmount = saved.unpaidPenaltyAmount,
-                completionBonusPaid = saved.completionBonusPaid
+                completionBonusPaid = saved.completionBonusPaid,
+                renewalCount = saved.renewalCount,
+                renewalDeclined = saved.renewalDeclined
             };
 
             contract.flightObligations.AddRange(saved.flightObligations);
@@ -556,13 +572,34 @@ public class AirlineContractOfferManager : MonoBehaviour
         return true;
     }
 
+
+    public bool DeclineAutomaticRenewal(string contractId)
+    {
+        if (string.IsNullOrWhiteSpace(contractId))
+            return false;
+
+        ActiveAirlineContract contract = activeContracts.Find(item =>
+            item != null && item.contractId == contractId &&
+            item.status == AirlineContractStatus.Active);
+
+        if (contract == null || contract.renewalDeclined)
+            return false;
+
+        contract.renewalDeclined = true;
+        ContractRenewalPreferenceChanged?.Invoke(contract);
+        return true;
+    }
+
     private void CompleteExpiredContracts()
     {
         if (gameTimeManager == null)
             return;
 
-        foreach (ActiveAirlineContract contract in activeContracts)
+        // Use an index loop because a successful contract may append its
+        // automatically renewed agreement to this same collection.
+        for (int i = 0; i < activeContracts.Count; i++)
         {
+            ActiveAirlineContract contract = activeContracts[i];
             if (contract == null ||
                 contract.status != AirlineContractStatus.Active ||
                 gameTimeManager.CurrentDay <= contract.endDay)
@@ -572,7 +609,114 @@ public class AirlineContractOfferManager : MonoBehaviour
 
             contract.status = AirlineContractStatus.Completed;
             ContractCompleted?.Invoke(contract);
+            TryAutomaticallyRenew(contract);
         }
+    }
+
+
+    private void TryAutomaticallyRenew(ActiveAirlineContract previousContract)
+    {
+        if (previousContract == null || previousContract.renewalDeclined ||
+            previousContract.airline == null || previousContract.sourceTemplate == null ||
+            performanceTracker == null || snapshotCollector == null)
+            return;
+
+        if (HasActiveContract(previousContract.airline))
+            return;
+
+        float relationship = performanceTracker.GetRelationshipScore(previousContract.airline);
+        if (relationship < minimumRenewalRelationship)
+            return;
+
+        int expectedFlights = previousContract.flightObligations != null
+            ? previousContract.flightObligations.Count *
+              Mathf.Max(1, previousContract.agreedTerms.durationDays)
+            : 0;
+        int completedFlights = previousContract.onTimeFlights + previousContract.lateFlights;
+        float completionRate = expectedFlights > 0
+            ? (float)completedFlights / expectedFlights
+            : 0f;
+
+        if (completionRate < minimumRenewalCompletionRate ||
+            previousContract.unpaidPenaltyAmount > 0)
+            return;
+
+        AirlineInterestResult interest;
+        if (!snapshotCollector.TryGetInterest(previousContract.airline, out interest))
+            interest = snapshotCollector.RefreshInterest(previousContract.airline);
+
+        if (interest.totalInterest < previousContract.sourceTemplate.MinimumAirlineInterest ||
+            !MeetsTemplateRequirements(previousContract.airline, previousContract.sourceTemplate))
+            return;
+
+        AirlineContractTerms renewedTerms = CopyTerms(previousContract.agreedTerms);
+        int nextRenewalCount = previousContract.renewalCount + 1;
+        float paymentMultiplier = 1f + Mathf.Min(
+            nextRenewalCount * paymentIncreasePerRenewal,
+            maximumRenewalPaymentIncrease);
+
+        renewedTerms.paymentPerCompletedFlight = Mathf.RoundToInt(
+            renewedTerms.paymentPerCompletedFlight * paymentMultiplier);
+        renewedTerms.completionBonus = Mathf.RoundToInt(
+            renewedTerms.completionBonus * paymentMultiplier);
+
+        ActiveAirlineContract renewedContract = new ActiveAirlineContract
+        {
+            contractId = Guid.NewGuid().ToString("N"),
+            sourceOfferId = "renewal:" + previousContract.contractId,
+            airline = previousContract.airline,
+            sourceTemplate = previousContract.sourceTemplate,
+            startDay = previousContract.endDay + 1,
+            lastFinalizedDay = previousContract.endDay,
+            endDay = previousContract.endDay + Mathf.Max(1, renewedTerms.durationDays),
+            status = AirlineContractStatus.Active,
+            agreedTerms = renewedTerms,
+            renewalCount = nextRenewalCount
+        };
+
+        renewedContract.flightObligations = BuildFlightObligations(
+            renewedContract.contractId, renewedTerms);
+
+        activeContracts.Add(renewedContract);
+        ContractAccepted?.Invoke(renewedContract);
+        ContractRenewed?.Invoke(previousContract, renewedContract);
+    }
+
+    private static AirlineContractTerms CopyTerms(AirlineContractTerms source)
+    {
+        if (source == null)
+            return null;
+
+        AirlineContractTerms copy = new AirlineContractTerms
+        {
+            durationDays = source.durationDays,
+            turnaroundMinutes = source.turnaroundMinutes,
+            minimumGateSize = source.minimumGateSize,
+            minimumRunwayLengthMeters = source.minimumRunwayLengthMeters,
+            minimumCargoStorageCapacity = source.minimumCargoStorageCapacity,
+            minimumCargoHandlingThroughputPerHour =
+                source.minimumCargoHandlingThroughputPerHour,
+            paymentPerCompletedFlight = source.paymentPerCompletedFlight,
+            missedFlightPenalty = source.missedFlightPenalty,
+            completionBonus = source.completionBonus
+        };
+
+        if (source.flightWindows != null)
+        {
+            foreach (AirlineContractFlightWindowRequirement requirement in source.flightWindows)
+            {
+                if (requirement == null)
+                    continue;
+
+                copy.flightWindows.Add(new AirlineContractFlightWindowRequirement
+                {
+                    window = requirement.window,
+                    flightsPerDay = requirement.flightsPerDay
+                });
+            }
+        }
+
+        return copy;
     }
 
     private void ExpireOldOffers()
