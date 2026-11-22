@@ -9,6 +9,8 @@ public class AircraftGateRegistry : MonoBehaviour
     private readonly List<AircraftGate> gates =
         new List<AircraftGate>();
 
+    private bool isDirty = true;
+
     public IReadOnlyList<AircraftGate> Gates => gates;
 
     private void Awake()
@@ -16,8 +18,28 @@ public class AircraftGateRegistry : MonoBehaviour
         RefreshGates();
     }
 
+    private void OnEnable()
+    {
+        PlacedBuilding.BuildingChanged += HandleBuildingChanged;
+        isDirty = true;
+    }
+
+    private void OnDisable()
+    {
+        PlacedBuilding.BuildingChanged -= HandleBuildingChanged;
+    }
+
+    private void HandleBuildingChanged(PlacedBuilding building)
+    {
+        if (building == null || building.GetComponent<AircraftGate>() != null)
+            isDirty = true;
+    }
+
     public void RefreshGates()
     {
+        if (!isDirty)
+            return;
+
         gates.Clear();
 
         AircraftGate[] foundGates =
@@ -44,6 +66,8 @@ public class AircraftGateRegistry : MonoBehaviour
                 b.StableId
             )
         );
+
+        isDirty = false;
     }
 
     public List<AircraftGate> GetCompatibleGates(
@@ -85,6 +109,7 @@ public class AircraftGateRegistry : MonoBehaviour
     [ContextMenu("Refresh And Debug Built Gates")]
     private void DebugBuiltGates()
     {
+        isDirty = true;
         RefreshGates();
 
         Log(
