@@ -96,6 +96,8 @@ public sealed class PipelineNetworkManager : MonoBehaviour
     private bool hasStarted;
     private Coroutine topologyRebuildRoutine;
     private float automaticRefillCheckTimer;
+    private long automaticRefillEventId;
+    private bool automaticRefillUsesScheduler;
 
     private List<PipelineNetworkSaveData> pendingSavedInventories;
     private bool hasPendingSavedInventories;
@@ -114,7 +116,10 @@ public sealed class PipelineNetworkManager : MonoBehaviour
         FuelConnector.ConnectorUnregistered += HandleConnectorChanged;
 
         if (hasStarted)
+        {
             QueueTopologyRebuild();
+            ScheduleAutomaticRefillCheck();
+        }
     }
 
     private void Start()
@@ -123,10 +128,12 @@ public sealed class PipelineNetworkManager : MonoBehaviour
         SubscribeToPipelineRuleManager();
         hasStarted = true;
         RebuildNetworks();
+        ScheduleAutomaticRefillCheck();
     }
 
     private void OnDisable()
     {
+        CancelAutomaticRefillCheck();
         if (subscribedPipelineRuleManager != null)
             subscribedPipelineRuleManager.PipeTopologyChanged -= HandlePipeTopologyChanged;
 
@@ -143,13 +150,69 @@ public sealed class PipelineNetworkManager : MonoBehaviour
 
     private void Update()
     {
+        // Keep the legacy frame-timer fallback for scenes without a GameTimeManager.
+        // Normal gameplay uses the central scheduler instead.
+        if (automaticRefillUsesScheduler)
+            return;
+
         automaticRefillCheckTimer -= GameTimeManager.SimulationDeltaTime;
         if (automaticRefillCheckTimer <= 0f)
         {
-            automaticRefillCheckTimer =
-                Mathf.Max(0.1f, automaticRefillCheckInterval);
+            automaticRefillCheckTimer = GetAutomaticRefillCheckInterval();
             CheckAutomaticRefillRequests();
         }
+    }
+
+    private float GetAutomaticRefillCheckInterval()
+    {
+        return Mathf.Max(0.1f, automaticRefillCheckInterval);
+    }
+
+    private void ScheduleAutomaticRefillCheck()
+    {
+        SimulationEventScheduler scheduler =
+            GameTimeManager.Instance != null
+                ? GameTimeManager.Instance.EventScheduler
+                : null;
+
+        if (scheduler == null)
+        {
+            automaticRefillUsesScheduler = false;
+            automaticRefillCheckTimer = GetAutomaticRefillCheckInterval();
+            return;
+        }
+
+        automaticRefillUsesScheduler = true;
+        if (automaticRefillEventId != 0)
+            scheduler.Cancel(automaticRefillEventId);
+
+        automaticRefillEventId = scheduler.ScheduleAfter(
+            GetAutomaticRefillCheckInterval(),
+            HandleAutomaticRefillCheck);
+    }
+
+    private void CancelAutomaticRefillCheck()
+    {
+        if (automaticRefillEventId != 0 &&
+            GameTimeManager.Instance != null &&
+            GameTimeManager.Instance.EventScheduler != null)
+        {
+            GameTimeManager.Instance.EventScheduler.Cancel(automaticRefillEventId);
+        }
+
+        automaticRefillEventId = 0;
+        automaticRefillUsesScheduler = false;
+    }
+
+    private void HandleAutomaticRefillCheck()
+    {
+        automaticRefillEventId = 0;
+
+        if (!isActiveAndEnabled)
+            return;
+
+        CheckAutomaticRefillRequests();
+        ScheduleAutomaticRefillCheck();
     }
 
     private void HandlePipeTopologyChanged()
