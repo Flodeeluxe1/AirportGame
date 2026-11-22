@@ -71,6 +71,10 @@ public class AirlineDefinition : ScriptableObject
     [Min(0f)]
     [SerializeField] private float desiredCargoHandlingThroughputPerHour = 10f;
 
+    [Header("Contract Templates")]
+    [SerializeField] private List<AirlineContractTemplate> contractTemplates =
+        new List<AirlineContractTemplate>();
+
     [Header("Other Preferences")]
     [Range(0f, 100f)]
     [SerializeField] private float minimumPreferredAirportReputation = 50f;
@@ -95,6 +99,7 @@ public class AirlineDefinition : ScriptableObject
     public float MinimumPreferredAirportReputation =>
         minimumPreferredAirportReputation;
     public float PriceSensitivity => priceSensitivity;
+    public IReadOnlyList<AirlineContractTemplate> ContractTemplates => contractTemplates;
 
     private void OnValidate()
     {
@@ -118,5 +123,8 @@ public class AirlineDefinition : ScriptableObject
 
         if (interestWeights == null)
             interestWeights = new AirlineInterestWeights();
+
+        if (contractTemplates == null)
+            contractTemplates = new List<AirlineContractTemplate>();
     }
 }
