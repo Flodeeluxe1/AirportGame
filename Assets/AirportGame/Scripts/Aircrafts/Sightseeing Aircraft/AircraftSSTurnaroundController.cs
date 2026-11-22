@@ -141,7 +141,7 @@ public class AircraftSSTurnaroundController : MonoBehaviour
 
         // The boarding countdown starts only after every assigned passenger
         // has physically reached the aircraft and been hidden on board.
-        boardingTimeRemaining -= Time.deltaTime;
+        boardingTimeRemaining -= GameTimeManager.SimulationDeltaTime;
 
         if (boardingTimeRemaining <= 0f)
             CompleteBoarding();
