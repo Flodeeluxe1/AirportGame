@@ -53,6 +53,19 @@ public class CargoZone : MonoBehaviour
     [SerializeField] private Transform cargoAreaPoint;
     [SerializeField] private Transform airportVehicleStopPoint;
 
+    [Header("Airline Cargo Capacity")]
+    [Tooltip("Maximum number of cargo packages this zone can store at one time.")]
+    [Min(0)]
+    [SerializeField] private int storageCapacityPackages;
+
+    [Tooltip("Number of cargo packages this zone can process per game hour.")]
+    [Min(0f)]
+    [SerializeField] private float handlingThroughputPackagesPerHour;
+
+    public int StorageCapacityPackages => Mathf.Max(0, storageCapacityPackages);
+    public float HandlingThroughputPackagesPerHour =>
+        Mathf.Max(0f, handlingThroughputPackagesPerHour);
+
     [Header("Runtime Status")]
     [SerializeField] private int stagedPackageCount;
 
@@ -110,6 +123,10 @@ public class CargoZone : MonoBehaviour
     private void OnValidate()
     {
         FindZonePoints();
+        storageCapacityPackages = Mathf.Max(0, storageCapacityPackages);
+        handlingThroughputPackagesPerHour =
+            Mathf.Max(0f, handlingThroughputPackagesPerHour);
+        NotifyAvailabilityChanged();
     }
 
     private void FindZonePoints()
