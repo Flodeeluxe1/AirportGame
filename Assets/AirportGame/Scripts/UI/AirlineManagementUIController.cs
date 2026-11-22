@@ -16,6 +16,7 @@ public class AirlineManagementUIController : MonoBehaviour
     [SerializeField] private AirlineContractOfferManager contractManager;
     [SerializeField] private AirlineAirportSnapshotCollector snapshotCollector;
     [SerializeField] private GameTimeManager gameTimeManager;
+    [SerializeField] private AirlineContractPerformanceTracker performanceTracker;
 
     private static readonly Color WindowColor = (Color)new Color32(27, 32, 39, 250);
     private static readonly Color CardColor = (Color)new Color32(39, 47, 57, 255);
@@ -100,6 +101,8 @@ public class AirlineManagementUIController : MonoBehaviour
             snapshotCollector = FindAnyObjectByType<AirlineAirportSnapshotCollector>();
         if (gameTimeManager == null)
             gameTimeManager = FindAnyObjectByType<GameTimeManager>();
+        if (performanceTracker == null)
+            performanceTracker = FindAnyObjectByType<AirlineContractPerformanceTracker>();
     }
 
     private void Subscribe()
@@ -121,6 +124,13 @@ public class AirlineManagementUIController : MonoBehaviour
             snapshotCollector.InterestUpdated -= HandleInterestUpdated;
             snapshotCollector.InterestUpdated += HandleInterestUpdated;
         }
+        if (performanceTracker != null)
+        {
+            performanceTracker.PerformanceUpdated -= HandlePerformanceUpdated;
+            performanceTracker.RelationshipUpdated -= HandleRelationshipUpdated;
+            performanceTracker.PerformanceUpdated += HandlePerformanceUpdated;
+            performanceTracker.RelationshipUpdated += HandleRelationshipUpdated;
+        }
     }
 
     private void Unsubscribe()
@@ -134,12 +144,19 @@ public class AirlineManagementUIController : MonoBehaviour
         }
         if (snapshotCollector != null)
             snapshotCollector.InterestUpdated -= HandleInterestUpdated;
+        if (performanceTracker != null)
+        {
+            performanceTracker.PerformanceUpdated -= HandlePerformanceUpdated;
+            performanceTracker.RelationshipUpdated -= HandleRelationshipUpdated;
+        }
     }
 
     private void HandleOfferChanged(AirlineContractOffer offer) => RefreshIfOpen();
     private void HandleOfferExpired(AirlineContractOffer offer) => RefreshIfOpen();
     private void HandleContractChanged(ActiveAirlineContract contract) => RefreshIfOpen();
     private void HandleInterestUpdated(AirlineDefinition airline, AirlineInterestResult result) => RefreshIfOpen();
+    private void HandlePerformanceUpdated(ActiveAirlineContract contract) => RefreshIfOpen();
+    private void HandleRelationshipUpdated(AirlineDefinition airline, float relationship) => RefreshIfOpen();
 
     private void RefreshIfOpen()
     {
@@ -405,7 +422,8 @@ public class AirlineManagementUIController : MonoBehaviour
             AddDetailLine(detail, "Cargo storage", terms.minimumCargoStorageCapacity.ToString("0.#") + " packages");
             AddDetailLine(detail, "Handling throughput", terms.minimumCargoHandlingThroughputPerHour.ToString("0.#") + " packages/hour");
         }
-        AddDetailLine(detail, "Missed-flight reduction", (terms.missedFlightPaymentReduction * 100f).ToString("0") + "%");
+        AddDetailLine(detail, "Payment if missed", "0 € (not earned)");
+        AddDetailLine(detail, "Additional missed-flight penalty", terms.missedFlightPenalty.ToString("N0") + " € / flight");
         AddDetailLine(detail, "Completion bonus", terms.completionBonus.ToString("N0") + " €");
         card.Add(detail);
 
@@ -525,6 +543,10 @@ public class AirlineManagementUIController : MonoBehaviour
             AddMetric(metrics, "DAILY FLIGHTS", GetFlightsPerDay(contract.agreedTerms).ToString());
             AddMetric(metrics, "PAYMENT / FLIGHT", contract.agreedTerms.paymentPerCompletedFlight.ToString("N0") + " €");
             AddMetric(metrics, "TURNAROUND", contract.agreedTerms.turnaroundMinutes + " min");
+            AddMetric(metrics, "COMPLETED", (contract.onTimeFlights + contract.lateFlights).ToString());
+            AddMetric(metrics, "MISSED / CANCELLED", (contract.missedFlights + contract.cancelledFlights + contract.operationalFailures).ToString());
+            AddMetric(metrics, "PAYMENTS RECEIVED", contract.totalPaymentsReceived.ToString("N0") + " €");
+            AddMetric(metrics, "PENALTIES PAID", contract.totalPenaltiesPaid.ToString("N0") + " €");
             card.Add(metrics);
 
             VisualElement requirements = CreateInset();
@@ -600,7 +622,10 @@ public class AirlineManagementUIController : MonoBehaviour
             AddInterestFactor(card, "Night operations", result.nightOperations);
             AddInterestFactor(card, "Airport reputation", result.airportReputation);
             AddInterestFactor(card, "Previous contract performance", result.previousContractPerformance);
-            AddDescription(card, "Relationship satisfaction is tracked separately and will be added with contract performance.");
+            float relationship = performanceTracker != null
+                ? performanceTracker.GetRelationshipScore(airline)
+                : 50f;
+            AddDetailLine(card, "Airline relationship", relationship.ToString("0") + " / 100");
             content.Add(card);
         }
     }
