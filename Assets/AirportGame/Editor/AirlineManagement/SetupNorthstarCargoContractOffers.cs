@@ -125,7 +125,7 @@ public static class SetupNorthstarCargoContractOffers
         serialized.FindProperty("turnaroundMinutes").intValue = 60;
         serialized.FindProperty("minimumGateSize").enumValueIndex =
             (int)AircraftGateSize.Grass;
-        serialized.FindProperty("minimumRunwayLengthMeters").floatValue = 100f;
+        serialized.FindProperty("minimumRunwayLengthMeters").floatValue = 70f;
         serialized.FindProperty("minimumCargoStorageCapacity").floatValue = 100f;
         serialized.FindProperty("minimumCargoHandlingThroughputPerHour").floatValue = 10f;
         serialized.FindProperty("paymentPerCompletedFlight").intValue = 500;
