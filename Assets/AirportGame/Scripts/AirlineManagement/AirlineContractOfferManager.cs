@@ -263,10 +263,65 @@ public class AirlineContractOfferManager : MonoBehaviour
             agreedTerms = offer.terms
         };
 
+        contract.flightObligations = BuildFlightObligations(
+            contract.contractId,
+            offer.terms);
+
         pendingOffers.Remove(offer);
         activeContracts.Add(contract);
         ContractAccepted?.Invoke(contract);
         return true;
+    }
+
+    private static List<AirlineContractFlightObligation> BuildFlightObligations(
+        string contractId,
+        AirlineContractTerms terms)
+    {
+        List<AirlineContractFlightObligation> obligations =
+            new List<AirlineContractFlightObligation>();
+
+        if (terms == null || terms.flightWindows == null)
+            return obligations;
+
+        int slotIndex = 0;
+        string contractCode = contractId.Length > 8
+            ? contractId.Substring(0, 8).ToUpperInvariant()
+            : contractId.ToUpperInvariant();
+
+        foreach (AirlineContractFlightWindowRequirement requirement in terms.flightWindows)
+        {
+            if (requirement == null)
+                continue;
+
+            for (int i = 0; i < requirement.flightsPerDay; i++)
+            {
+                slotIndex++;
+                obligations.Add(new AirlineContractFlightObligation
+                {
+                    obligationId = Guid.NewGuid().ToString("N"),
+                    flightNumber = $"CT{contractCode}{slotIndex:00}",
+                    window = requirement.window,
+                    slotIndex = slotIndex
+                });
+            }
+        }
+
+        return obligations;
+    }
+
+    public bool IsContractActiveOnDay(string contractId, long day)
+    {
+        if (string.IsNullOrWhiteSpace(contractId))
+            return false;
+
+        ActiveAirlineContract contract = activeContracts.Find(item =>
+            item != null &&
+            item.contractId == contractId &&
+            item.status == AirlineContractStatus.Active);
+
+        return contract != null &&
+               day >= contract.startDay &&
+               day <= contract.endDay;
     }
 
     public bool DeclineOffer(string offerId)
