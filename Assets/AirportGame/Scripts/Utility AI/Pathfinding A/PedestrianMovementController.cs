@@ -89,6 +89,7 @@ public class PedestrianMovementController : MonoBehaviour
     private float lastWalkableHeight;
     private float individualSpeedMultiplier = 1f;
     private float currentSpeed;
+    private float pendingMovementTime;
     private Vector3 currentAvoidanceOffset;
     private Collider[] alignmentColliders;
     private Renderer[] alignmentRenderers;
@@ -377,7 +378,7 @@ public class PedestrianMovementController : MonoBehaviour
             return false;
 
         bool expired =
-            Time.time - entry.CachedAt > TravelEstimateCacheLifetime;
+            Time.unscaledTime - entry.CachedAt > TravelEstimateCacheLifetime;
         bool pedestrianMoved =
             HorizontalDistance(transform.position, entry.StartPosition) >=
             TravelEstimateStartMovementThreshold;
@@ -409,7 +410,7 @@ public class PedestrianMovementController : MonoBehaviour
 
         cache[key] = new TravelEstimateCacheEntry
         {
-            CachedAt = Time.time,
+            CachedAt = Time.unscaledTime,
             StartPosition = startPosition,
             TargetPosition = targetPosition,
             TravelTime = travelTime
@@ -645,6 +646,7 @@ public class PedestrianMovementController : MonoBehaviour
         List<Vector3> calculatedPath)
     {
         destination = worldDestination;
+        pendingMovementTime = 0f;
         movementHeight = transform.position.y;
         lastWalkableHeight = movementHeight;
         destination.y = movementHeight;
@@ -719,21 +721,33 @@ public class PedestrianMovementController : MonoBehaviour
 
     private void UpdateMovement()
     {
-        // Time.deltaTime follows the game speed multiplier. At high speeds a
-        // single rendered frame can represent a large amount of game time, so
-        // simulate that elapsed time in small steps to avoid large position
-        // jumps and missed collision/path checks.
-        const float maximumSimulationStep = 0.05f;
-        float remainingGameTime = Time.deltaTime;
+        // Accumulate the full game-time delta independently of Unity's capped
+        // Time.timeScale. Larger substeps reduce pathfinder/avoidance work at
+        // high speeds while still checking each short movement segment.
+        const float maximumSimulationStep = 0.2f;
+        const int maximumMovementStepsPerFrame = 96;
 
-        while (remainingGameTime > 0f && isMoving)
+        pendingMovementTime += GameTimeManager.SimulationDeltaTime;
+
+        int movementSteps = 0;
+        while (pendingMovementTime > 0f &&
+               isMoving &&
+               movementSteps < maximumMovementStepsPerFrame)
         {
-            float step = Mathf.Min(remainingGameTime, maximumSimulationStep);
+            float step = Mathf.Min(
+                pendingMovementTime,
+                maximumSimulationStep);
 
             if (!UpdateMovementStep(step))
+            {
+                // Do not bank time while blocked; otherwise the pedestrian
+                // could make a large catch-up move when the route clears.
+                pendingMovementTime = 0f;
                 return;
+            }
 
-            remainingGameTime -= step;
+            pendingMovementTime = Mathf.Max(0f, pendingMovementTime - step);
+            movementSteps++;
 
             SkipReachedWaypoints();
 
@@ -924,6 +938,7 @@ public class PedestrianMovementController : MonoBehaviour
     private void CompleteMovement()
     {
         isMoving = false;
+        pendingMovementTime = 0f;
         currentSpeed = 0f;
         currentAvoidanceOffset = Vector3.zero;
         currentWaypointIndex = movementPath.Count;
@@ -934,6 +949,7 @@ public class PedestrianMovementController : MonoBehaviour
     private void StopInternal(string status)
     {
         isMoving = false;
+        pendingMovementTime = 0f;
         currentSpeed = 0f;
         currentAvoidanceOffset = Vector3.zero;
         movementPath.Clear();
