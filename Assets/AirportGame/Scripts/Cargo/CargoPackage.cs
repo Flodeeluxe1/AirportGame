@@ -80,6 +80,7 @@ public class CargoPackage : MonoBehaviour
             state,
             flightOperationId,
             currentZone);
+        data.AttachVisual(this);
     }
 
     /// <summary>
