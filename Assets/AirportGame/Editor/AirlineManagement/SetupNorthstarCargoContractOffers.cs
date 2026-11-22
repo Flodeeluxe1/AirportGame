@@ -70,7 +70,30 @@ public static class SetupNorthstarCargoContractOffers
                 collector.gameObject);
         }
 
+        // Keep the player-facing Airline Management button with the other
+        // management buttons on the shared airport UI GameObject.
+        FinanceManagementUIController financeUI =
+            Object.FindAnyObjectByType<FinanceManagementUIController>();
+
+        if (financeUI == null)
+        {
+            Debug.LogError(
+                "FinanceManagementUIController was not found. The Airline Management " +
+                "backend is configured, but its player-facing button could not be added.");
+            return;
+        }
+
+        AirlineManagementUIController airlineUI =
+            financeUI.GetComponent<AirlineManagementUIController>();
+
+        if (airlineUI == null)
+        {
+            airlineUI = Undo.AddComponent<AirlineManagementUIController>(
+                financeUI.gameObject);
+        }
+
         EditorSceneManager.MarkSceneDirty(collector.gameObject.scene);
+        EditorSceneManager.MarkSceneDirty(financeUI.gameObject.scene);
         AssetDatabase.SaveAssets();
 
         Selection.activeObject = template;
@@ -78,7 +101,8 @@ public static class SetupNorthstarCargoContractOffers
 
         Debug.Log(
             "Northstar Cargo contract template assigned. AirlineContractOfferManager " +
-            "and AirlineContractFlightIntegration are configured on the Airline Management System.");
+            "and AirlineContractFlightIntegration are configured, and the Airline Management UI " +
+            "has been added beside the existing Finance button.");
     }
 
     private static void ConfigureTemplate(AirlineContractTemplate template)
