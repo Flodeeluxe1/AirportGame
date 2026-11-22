@@ -78,6 +78,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dafffa24c164ed247a8eb1c683945404, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HobbyAircraftIdentityInitializer
+  logToConsole: 0
   flightNumber: VFR101
 --- !u!114 &-5828195141393434414
 MonoBehaviour:
@@ -91,6 +92,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: db4052f87d2eb79448f793591e583f1d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AircraftFlightIdentity
+  logToConsole: 0
   flightNumber: 
   plannedGateStableId: 
   actualGateStableId: 
@@ -133,6 +135,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0d67c402bd390654888b128ce40c910d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AircraftHobbyLandingController
+  logToConsole: 1
   gridManager: {fileID: 0}
   weather: {fileID: 0}
   approachDistance: 60
@@ -174,6 +177,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 443cf1a01839a0743b71ae075c2d02f9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AircraftHobbyLandingTaxiController
+  logToConsole: 1
   landingController: {fileID: 0}
   gridManager: {fileID: 0}
   taxiwayNetwork: {fileID: 0}
@@ -208,6 +212,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 55525b5280edd2940967179e57e81867, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AircraftHobbyVisitController
+  logToConsole: 0
   minimumStayMinutes: 45
   maximumStayMinutes: 120
   parkingSpotReleaseDistance: 2
@@ -234,6 +239,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 35f1eb85ae355924487a69c477ce76c5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AircraftHobbyDepartureTaxiController
+  logToConsole: 0
   gridManager: {fileID: 0}
   weather: {fileID: 0}
   trafficManager: {fileID: 0}
@@ -281,6 +287,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c47087dc9db968e418dc8d18308a8ce2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AircraftHobbyTakeoffController
+  logToConsole: 0
   departureController: {fileID: 0}
   trafficManager: {fileID: 0}
   gameTimeManager: {fileID: 0}
@@ -315,6 +322,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e4f0fded1e400a14e8046655719557e9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AircraftTaxiTrafficFollowing
+  logToConsole: 0
   trafficLayer:
     serializedVersion: 2
     m_Bits: 128
@@ -346,6 +354,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8c4f2a7e1b6d49c3a5f0e2d7b9c61483, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AircraftHobbyFuelDepartureController
+  logToConsole: 0
   mandatoryRefuellingBelowFuelPercentage: 0.4
   logFuelDecision: 0
   taxiSpeedKnots: 12
@@ -372,6 +381,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 109a25440e7fdd44b871e7d3a13cef3f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AircraftAirportFees
+  logToConsole: 0
   landingFee: 20
   parkingFee: 5
   parkingIntervalMinutes: 10

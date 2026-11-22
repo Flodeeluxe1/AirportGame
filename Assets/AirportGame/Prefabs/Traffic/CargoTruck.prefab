@@ -113,7 +113,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9b6ed311bcd02ec49b2c076a0da7c2a4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CargoDeliveryTruck
-  logToConsole: 1
+  logToConsole: 0
   roadNetwork: {fileID: 0}
   gridManager: {fileID: 0}
   intersectionManager: {fileID: 0}
@@ -159,18 +159,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d4a1c9e8b7f64a2d9c3e5f1a8b6d0c42, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TrafficFollowing
-  trafficLayer:
-    serializedVersion: 2
-    m_Bits: 128
-  detectionDistance: 5
-  safeFollowingDistance: 3
-  rayOriginHeight: 0.15
-  rayOriginForwardOffset: 1.62
-  sideSensorInterval: 0.1
-  captureRaycastDebugInfo: 0
+  desiredFollowingDistance: 2.5
+  routeMatchTolerance: 1.25
   acceleration: 4
   braking: 8
-  debugRaycastSummary: Not tested
 --- !u!1 &8806304708130241379
 GameObject:
   m_ObjectHideFlags: 0
