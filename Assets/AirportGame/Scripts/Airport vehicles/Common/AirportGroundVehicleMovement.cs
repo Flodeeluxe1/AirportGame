@@ -478,17 +478,17 @@ public class AirportGroundVehicleMovement : MonoBehaviour
                 gridSurface.IsSurfaceOwner(target, currentDestinationGate);
 
             Log(
-                $"{name}: PATHFINDING TARGET DIAGNOSTICS\\n" +
-                $"Start: {start}, Target: {target}\\n" +
-                $"Destination object: {(currentDestinationGate != null ? currentDestinationGate.name : "None")}\\n" +
-                $"Destination object ID: {(currentDestinationGate != null ? currentDestinationGate.GetEntityId().ToString() : "None")}\\n" +
-                $"Target surface: {gridSurface.GetSurface(target)}\\n" +
-                $"Target occupied: {targetOccupied}\\n" +
-                $"Target occupied by destination: {targetOccupiedByDestination}\\n" +
-                $"Target obstacle: {targetObstacle}\\n" +
-                $"Target obstacle owned by destination: {targetObstacleOwnedByDestination}\\n" +
-                $"Target surface owned by destination: {targetSurfaceOwnedByDestination}\\n" +
-                $"Target is home cell: {targetHomeCell}\\n" +
+                $"{name}: PATHFINDING TARGET DIAGNOSTICS\n" +
+                $"Start: {start}, Target: {target}\n" +
+                $"Destination object: {(currentDestinationGate != null ? currentDestinationGate.name : "None")}\n" +
+                $"Destination object ID: {(currentDestinationGate != null ? currentDestinationGate.GetEntityId().ToString() : "None")}\n" +
+                $"Target surface: {gridSurface.GetSurface(target)}\n" +
+                $"Target occupied: {targetOccupied}\n" +
+                $"Target occupied by destination: {targetOccupiedByDestination}\n" +
+                $"Target obstacle: {targetObstacle}\n" +
+                $"Target obstacle owned by destination: {targetObstacleOwnedByDestination}\n" +
+                $"Target surface owned by destination: {targetSurfaceOwnedByDestination}\n" +
+                $"Target is home cell: {targetHomeCell}\n" +
                 $"Target is permitted destination cell: {targetDestinationCell}",
                 this);
         }
@@ -633,14 +633,14 @@ public class AirportGroundVehicleMovement : MonoBehaviour
         if (logToConsole)
         {
             LogWarning(
-                $"{name}: PATHFINDING FAILED\\n" +
-                $"Start: {start}, Target: {target}\\n" +
-                $"Expanded cells: {pathClosedSet.Count}\\n" +
-                $"Rejected out of bounds: {rejectedOutOfBounds}\\n" +
-                $"Rejected foundation: {rejectedFoundation}\\n" +
-                $"Rejected foundation clearance: {rejectedClearance}\\n" +
-                $"Rejected occupied: {rejectedOccupied}\\n" +
-                $"Rejected obstacles: {rejectedObstacle}\\n" +
+                $"{name}: PATHFINDING FAILED\n" +
+                $"Start: {start}, Target: {target}\n" +
+                $"Expanded cells: {pathClosedSet.Count}\n" +
+                $"Rejected out of bounds: {rejectedOutOfBounds}\n" +
+                $"Rejected foundation: {rejectedFoundation}\n" +
+                $"Rejected foundation clearance: {rejectedClearance}\n" +
+                $"Rejected occupied: {rejectedOccupied}\n" +
+                $"Rejected obstacles: {rejectedObstacle}\n" +
                 $"Remaining open cells: {pathOpenSet.Count}",
                 this);
 
