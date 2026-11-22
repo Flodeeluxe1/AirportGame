@@ -58,7 +58,7 @@ public class PilotSocialInteractionController : MonoBehaviour
     private SocialState state;
     private bool isConversationLeader;
     private bool hasArrived;
-    private float nextSearchTime;
+    private double nextSearchTime;
     private float travelElapsed;
     private long conversationStartGameSecond;
 
@@ -87,7 +87,7 @@ public class PilotSocialInteractionController : MonoBehaviour
 
         ResolveGameTimeManager();
 
-        nextSearchTime = Time.time + Random.Range(0f, searchInterval);
+        nextSearchTime = GameTimeManager.SimulationTime + Random.Range(0f, searchInterval);
     }
 
     private void OnDisable()
@@ -120,7 +120,7 @@ public class PilotSocialInteractionController : MonoBehaviour
         switch (state)
         {
             case SocialState.Travelling:
-                travelElapsed += Time.deltaTime;
+                travelElapsed += GameTimeManager.SimulationDeltaTime;
 
                 if (travelElapsed >= travelTimeout)
                     CancelConversation("Could not reach conversation position");
@@ -133,10 +133,10 @@ public class PilotSocialInteractionController : MonoBehaviour
                 return;
         }
 
-        if (Time.time < nextSearchTime)
+        if (GameTimeManager.SimulationTime < nextSearchTime)
             return;
 
-        nextSearchTime = Time.time + searchInterval;
+        nextSearchTime = GameTimeManager.SimulationTime + searchInterval;
         TryFindConversationPartner();
     }
 
@@ -388,7 +388,7 @@ public class PilotSocialInteractionController : MonoBehaviour
         transform.rotation = Quaternion.RotateTowards(
             transform.rotation,
             targetRotation,
-            facingRotationSpeed * Time.deltaTime);
+            facingRotationSpeed * GameTimeManager.SimulationDeltaTime);
     }
 
     private void CompleteConversation()
@@ -449,7 +449,7 @@ public class PilotSocialInteractionController : MonoBehaviour
         conversationStartGameSecond = 0;
         currentPartnerName = string.Empty;
         currentStatus = status;
-        nextSearchTime = Time.time + searchInterval;
+        nextSearchTime = GameTimeManager.SimulationTime + searchInterval;
     }
 
     private void OnValidate()
