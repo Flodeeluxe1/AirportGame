@@ -85,7 +85,7 @@ public class PilotWanderingController : MonoBehaviour
     private Vector3 wanderingDestination;
     private long nextWanderGameSecond;
     private long waitUntilGameSecond;
-    private float nextEligibilityCheckTime;
+    private double nextEligibilityCheckTime;
 
     public string CurrentStatus => currentStatus;
 
@@ -164,10 +164,10 @@ public class PilotWanderingController : MonoBehaviour
             return;
         }
 
-        if (Time.time < nextEligibilityCheckTime)
+        if (GameTimeManager.SimulationTime < nextEligibilityCheckTime)
             return;
 
-        nextEligibilityCheckTime = Time.time + 1f;
+        nextEligibilityCheckTime = GameTimeManager.SimulationTime + 1f;
 
         if (interactionController.HasSuitableAvailableInteraction())
         {
