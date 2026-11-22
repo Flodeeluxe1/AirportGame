@@ -53,6 +53,7 @@ public class GuidedCargoTrailerFollower : MonoBehaviour
         new List<float>();
 
     private bool hasExplicitTrailerSet;
+    private float pendingSimulationTime;
 
     public int AttachedTrailerCount =>
         trailers.FindAll(item => item != null).Count;
@@ -74,6 +75,7 @@ public class GuidedCargoTrailerFollower : MonoBehaviour
         hasExplicitTrailerSet = true;
         trailers.Clear();
         trailerHeights.Clear();
+        pendingSimulationTime = 0f;
 
         if (trailerTransforms == null)
             return;
@@ -122,6 +124,7 @@ public class GuidedCargoTrailerFollower : MonoBehaviour
     {
         trailers.Clear();
         trailerHeights.Clear();
+        pendingSimulationTime = 0f;
 
         isInitialized = false;
 
@@ -166,6 +169,26 @@ public class GuidedCargoTrailerFollower : MonoBehaviour
             return;
         }
 
+        // Keep trailer motion independent of Unity's capped timeScale.
+        // Bounded substeps preserve gradual following and rotation at high
+        // speeds without allowing an unbounded catch-up loop.
+        const float maximumSimulationStep = 0.1f;
+        const int maximumStepsPerFrame = 192;
+
+        pendingSimulationTime += GameTimeManager.SimulationDeltaTime;
+
+        int steps = 0;
+        while (pendingSimulationTime > 0f && steps < maximumStepsPerFrame)
+        {
+            float step = Mathf.Min(pendingSimulationTime, maximumSimulationStep);
+            UpdateTrailerChain(step);
+            pendingSimulationTime = Mathf.Max(0f, pendingSimulationTime - step);
+            steps++;
+        }
+    }
+
+    private void UpdateTrailerChain(float deltaTime)
+    {
         for (int i = 0; i < trailers.Count; i++)
         {
             Transform currentTrailer = trailers[i];
@@ -204,16 +227,17 @@ public class GuidedCargoTrailerFollower : MonoBehaviour
             currentTrailer.position = Vector3.MoveTowards(
                 currentTrailer.position,
                 targetPosition,
-                followSpeed * Time.deltaTime
+                followSpeed * deltaTime
             );
 
             Quaternion targetRotation =
                 Quaternion.LookRotation(directionToFront, Vector3.up);
 
+            float rotationLerp = 1f - Mathf.Exp(-rotationSpeed * deltaTime);
             currentTrailer.rotation = Quaternion.Slerp(
                 currentTrailer.rotation,
                 targetRotation,
-                rotationSpeed * Time.deltaTime
+                rotationLerp
             );
         }
     }
