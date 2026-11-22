@@ -234,7 +234,9 @@ public class GarbageCollectorController : MonoBehaviour
         float followingSpeed = trafficFollowing.GetFollowingSpeed(
             movementSpeed,
             currentSpeed,
-            ShouldBlockTrafficCollider,
+            route,
+            roadNetwork,
+            gridManager,
             hasIntersectionReservation,
             out _);
 
