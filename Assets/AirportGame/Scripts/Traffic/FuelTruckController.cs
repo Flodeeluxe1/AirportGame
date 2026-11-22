@@ -362,14 +362,14 @@ public class FuelTruckController : MonoBehaviour
             transform.rotation = Quaternion.Slerp(
                 transform.rotation,
                 targetRotation,
-                rotationSpeed * Time.deltaTime);
+                rotationSpeed * GameTimeManager.SimulationDeltaTime);
         }
 
         Vector3 flatTarget = new Vector3(target.x, transform.position.y, target.z);
         transform.position = Vector3.MoveTowards(
             transform.position,
             flatTarget,
-            speed * Time.deltaTime);
+            speed * GameTimeManager.SimulationDeltaTime);
     }
 
     private void FaceStopPoint()
@@ -398,7 +398,7 @@ public class FuelTruckController : MonoBehaviour
         transform.rotation = Quaternion.RotateTowards(
             transform.rotation,
             targetRotation,
-            rotationSpeed * 90f * Time.deltaTime);
+            rotationSpeed * 90f * GameTimeManager.SimulationDeltaTime);
 
         return Quaternion.Angle(transform.rotation, targetRotation) <= 1f;
     }
@@ -574,7 +574,7 @@ public class FuelTruckController : MonoBehaviour
         float remaining = deliveryLitres - deliveryLitresOffloaded;
         float amountThisFrame = Mathf.Min(
             remaining,
-            offloadRateLitresPerMinute * Time.deltaTime / 60f);
+            offloadRateLitresPerMinute * GameTimeManager.SimulationDeltaTime / 60f);
 
         float acceptedThisFrame = 0f;
 
