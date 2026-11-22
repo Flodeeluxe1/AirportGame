@@ -131,15 +131,11 @@ public class TrafficTestVehicle : MonoBehaviour
     /// </summary>
     public bool AlignColliderBottomToGround(float groundY)
     {
-        BoxCollider boxCollider = GetComponentInChildren<BoxCollider>();
-
-        if (boxCollider == null || !boxCollider.enabled)
-            return false;
-
-        float colliderBottom = boxCollider.bounds.min.y;
-        transform.position += Vector3.up * (groundY - colliderBottom);
-        heightOffset = transform.position.y - groundY;
-        return true;
+        return VehicleGroundAlignmentUtility.AlignColliderBottomToGround(
+            transform,
+            ref heightOffset,
+            groundY
+        );
     }
 
     public void InitializeRoute(
