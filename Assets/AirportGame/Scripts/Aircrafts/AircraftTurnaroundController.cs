@@ -425,7 +425,7 @@ public class AircraftTurnaroundController : MonoBehaviour
         if (fueling.Status == AircraftTurnaroundTaskStatus.InProgress &&
             externalFuelingControlled)
         {
-            fuelTruckRequestRetryTimer -= Time.unscaledDeltaTime;
+            fuelTruckRequestRetryTimer -= GameTimeManager.SimulationDeltaTime;
             if (fuelTruckRequestRetryTimer <= 0f)
                 RequestExternalFuelServiceIfAvailable();
         }
@@ -433,14 +433,14 @@ public class AircraftTurnaroundController : MonoBehaviour
         if (cleaning.Status == AircraftTurnaroundTaskStatus.InProgress &&
             externalCleaningControlled)
         {
-            cleaningVehicleRequestRetryTimer -= Time.unscaledDeltaTime;
+            cleaningVehicleRequestRetryTimer -= GameTimeManager.SimulationDeltaTime;
             if (cleaningVehicleRequestRetryTimer <= 0f)
                 RequestExternalCleaningServiceIfAvailable();
         }
 
         if (NeedsExternalBaggageService())
         {
-            baggageVehicleRequestRetryTimer -= Time.unscaledDeltaTime;
+            baggageVehicleRequestRetryTimer -= GameTimeManager.SimulationDeltaTime;
             if (baggageVehicleRequestRetryTimer <= 0f)
                 RequestExternalBaggageServiceIfAvailable();
         }
@@ -449,15 +449,10 @@ public class AircraftTurnaroundController : MonoBehaviour
             baggageVehicleRequestRetryTimer = 0f;
         }
 
-        float speedMultiplier =
-            gameTimeManager != null
-                ? Mathf.Max(0f, gameTimeManager.CurrentSpeedMultiplier)
-                : 1f;
+        float deltaGameSeconds = GameTimeManager.SimulationDeltaTime;
 
-        if (speedMultiplier > 0f)
+        if (deltaGameSeconds > 0f)
         {
-            float deltaGameSeconds =
-                Time.unscaledDeltaTime * speedMultiplier;
 
             bool tickDeboarding =
                 deboarding.Status == AircraftTurnaroundTaskStatus.InProgress;
