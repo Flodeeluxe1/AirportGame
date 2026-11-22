@@ -29,16 +29,16 @@ public class HobbyAircraftTrafficSpawner : MonoBehaviour
     [SerializeField] private int demandCheckIntervalMinutes = 15;
 
     [Header("Test Flight Mode")]
-    [Tooltip("When enabled, attempts to spawn a test aircraft at a fixed real-time interval.")]
+    [Tooltip("When enabled, attempts to spawn a test aircraft at a fixed game-time interval.")]
     [SerializeField] private bool testFlightMode = false;
 
-    [Tooltip("Seconds between test aircraft spawn attempts. Uses real time, not game time.")]
+    [Tooltip("Game-time seconds between test aircraft spawn attempts.")]
     [Min(1f)]
     [SerializeField] private float testSpawnIntervalSeconds = 10f;
 
     public GameObject HobbyAircraftPrefab => hobbyAircraftPrefab;
 
-    private float nextTestSpawnTime;
+    private double nextTestSpawnTime;
 
     [Header("Daily Demand")]
     [Tooltip("Expected daily visitors before parking capacity is added.")]
@@ -168,7 +168,7 @@ public class HobbyAircraftTrafficSpawner : MonoBehaviour
         initialized = true;
 
         previousTestFlightMode = testFlightMode;
-        nextTestSpawnTime = Time.unscaledTime + Mathf.Max(1f, testSpawnIntervalSeconds);
+        nextTestSpawnTime = GameTimeManager.SimulationTime + Mathf.Max(1f, testSpawnIntervalSeconds);
 
         debugStatus = testFlightMode
             ? "Test flight mode enabled; waiting for first test spawn"
@@ -195,7 +195,7 @@ public class HobbyAircraftTrafficSpawner : MonoBehaviour
             if (testFlightMode)
             {
                 nextTestSpawnTime =
-                    Time.unscaledTime + Mathf.Max(1f, testSpawnIntervalSeconds);
+                    GameTimeManager.SimulationTime + Mathf.Max(1f, testSpawnIntervalSeconds);
 
                 debugStatus = "Test flight mode enabled";
                 Log("Hobby test flight mode enabled.", this);
@@ -218,13 +218,13 @@ public class HobbyAircraftTrafficSpawner : MonoBehaviour
 
     private void UpdateTestFlightSpawning()
     {
-        if (Time.unscaledTime < nextTestSpawnTime)
+        if (GameTimeManager.SimulationTime < nextTestSpawnTime)
             return;
 
-        // Schedule the next attempt from now. This avoids a burst of
-        // aircraft if the game temporarily pauses or a frame takes too long.
+        // Schedule the next attempt from the current game time. This avoids a
+        // burst of aircraft after a large simulation-time step.
         nextTestSpawnTime =
-            Time.unscaledTime + Mathf.Max(1f, testSpawnIntervalSeconds);
+            GameTimeManager.SimulationTime + Mathf.Max(1f, testSpawnIntervalSeconds);
 
         bool spawned = TrySpawnVisitor(ignoreDemandRoll: true);
 
