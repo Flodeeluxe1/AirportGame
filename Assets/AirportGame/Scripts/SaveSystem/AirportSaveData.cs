@@ -6,7 +6,7 @@ using UnityEngine;
 [Serializable]
 public class AirportSaveData
 {
-    public const int CurrentSchemaVersion = 7;
+    public const int CurrentSchemaVersion = 8;
 
     public int schemaVersion = CurrentSchemaVersion;
     public string saveName = "";
@@ -44,6 +44,10 @@ public class AirportSaveData
 
     public List<FlightScheduleSaveData> flightSchedule =
         new List<FlightScheduleSaveData>();
+
+    public bool hasAirlineManagementData;
+    public AirlineManagementSaveData airlineManagement =
+        new AirlineManagementSaveData();
 
     public List<RoomPurposeAssignmentSaveData> roomPurposeAssignments =
         new List<RoomPurposeAssignmentSaveData>();
@@ -91,6 +95,11 @@ public class AirportSaveData
 
         if (flightSchedule == null)
             flightSchedule = new List<FlightScheduleSaveData>();
+
+        if (airlineManagement == null)
+            airlineManagement = new AirlineManagementSaveData();
+
+        airlineManagement.EnsureCollections();
 
         if (roomPurposeAssignments == null)
             roomPurposeAssignments = new List<RoomPurposeAssignmentSaveData>();
@@ -217,4 +226,86 @@ public class PipelineNetworkSaveData
     public List<Vector2Int> pipeCells = new List<Vector2Int>();
     public List<Vector2Int> connectorCells = new List<Vector2Int>();
     public float currentFuelLitres;
+}
+
+
+[Serializable]
+public class AirlineManagementSaveData
+{
+    public long lastEvaluatedPeriod = -1;
+    public List<AirlineContractOfferSaveData> pendingOffers =
+        new List<AirlineContractOfferSaveData>();
+    public List<ActiveAirlineContractSaveData> activeContracts =
+        new List<ActiveAirlineContractSaveData>();
+    public List<AirlineRelationshipRecord> relationships =
+        new List<AirlineRelationshipRecord>();
+
+    public void EnsureCollections()
+    {
+        if (pendingOffers == null)
+            pendingOffers = new List<AirlineContractOfferSaveData>();
+        if (activeContracts == null)
+            activeContracts = new List<ActiveAirlineContractSaveData>();
+        if (relationships == null)
+            relationships = new List<AirlineRelationshipRecord>();
+
+        foreach (ActiveAirlineContractSaveData contract in activeContracts)
+        {
+            if (contract == null)
+                continue;
+            if (contract.flightObligations == null)
+                contract.flightObligations = new List<AirlineContractFlightObligation>();
+            if (contract.performanceRecords == null)
+                contract.performanceRecords = new List<AirlineContractFlightPerformanceRecord>();
+            if (contract.agreedTerms != null && contract.agreedTerms.flightWindows == null)
+                contract.agreedTerms.flightWindows =
+                    new List<AirlineContractFlightWindowRequirement>();
+        }
+
+        foreach (AirlineContractOfferSaveData offer in pendingOffers)
+        {
+            if (offer != null && offer.terms != null && offer.terms.flightWindows == null)
+                offer.terms.flightWindows =
+                    new List<AirlineContractFlightWindowRequirement>();
+        }
+    }
+}
+
+[Serializable]
+public class AirlineContractOfferSaveData
+{
+    public string offerId = "";
+    public string airlineId = "";
+    public string templateId = "";
+    public float airlineInterest;
+    public long offeredOnDay;
+    public long expiresOnDay;
+    public AirlineContractTerms terms;
+}
+
+[Serializable]
+public class ActiveAirlineContractSaveData
+{
+    public string contractId = "";
+    public string sourceOfferId = "";
+    public string airlineId = "";
+    public string templateId = "";
+    public long startDay;
+    public long endDay;
+    public AirlineContractStatus status;
+    public AirlineContractTerms agreedTerms;
+    public List<AirlineContractFlightObligation> flightObligations =
+        new List<AirlineContractFlightObligation>();
+    public long lastFinalizedDay;
+    public List<AirlineContractFlightPerformanceRecord> performanceRecords =
+        new List<AirlineContractFlightPerformanceRecord>();
+    public int onTimeFlights;
+    public int lateFlights;
+    public int missedFlights;
+    public int cancelledFlights;
+    public int operationalFailures;
+    public int totalPaymentsReceived;
+    public int totalPenaltiesPaid;
+    public int unpaidPenaltyAmount;
+    public bool completionBonusPaid;
 }
