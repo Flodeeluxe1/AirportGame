@@ -217,7 +217,7 @@ public class AirportGroundVehicleMovement : MonoBehaviour
     }
 
     /// <summary>
-    /// Normal movement with an optional final facing direction.
+    /// Starts route calculation with an optional final facing direction.\n    /// Returns true when the request is accepted; completion is asynchronous.
     /// </summary>
     public bool MoveTo(
         Vector3 worldDestination,
@@ -312,7 +312,7 @@ public class AirportGroundVehicleMovement : MonoBehaviour
         }
 
         BeginPathSearch(startCell, targetCell);
-        return isCalculatingPath || movementStatus == "Following smoothed grid route" || movementStatus == "Arrived";
+        return !movementStatus.StartsWith("Failed:");
     }
 
     private bool HasRequiredReferences()
@@ -432,17 +432,17 @@ public class AirportGroundVehicleMovement : MonoBehaviour
                 gridSurface.IsSurfaceOwner(target, currentDestinationGate);
 
             Log(
-                $"{name}: PATHFINDING TARGET DIAGNOSTICS\\n" +
-                $"Start: {start}, Target: {target}\\n" +
-                $"Destination object: {(currentDestinationGate != null ? currentDestinationGate.name : "None")}\\n" +
-                $"Destination object ID: {(currentDestinationGate != null ? currentDestinationGate.GetEntityId().ToString() : "None")}\\n" +
-                $"Target surface: {gridSurface.GetSurface(target)}\\n" +
-                $"Target occupied: {targetOccupied}\\n" +
-                $"Target occupied by destination: {targetOccupiedByDestination}\\n" +
-                $"Target obstacle: {targetObstacle}\\n" +
-                $"Target obstacle owned by destination: {targetObstacleOwnedByDestination}\\n" +
-                $"Target surface owned by destination: {targetSurfaceOwnedByDestination}\\n" +
-                $"Target is home cell: {targetHomeCell}\\n" +
+                $"{name}: PATHFINDING TARGET DIAGNOSTICS\n" +
+                $"Start: {start}, Target: {target}\n" +
+                $"Destination object: {(currentDestinationGate != null ? currentDestinationGate.name : "None")}\n" +
+                $"Destination object ID: {(currentDestinationGate != null ? currentDestinationGate.GetEntityId().ToString() : "None")}\n" +
+                $"Target surface: {gridSurface.GetSurface(target)}\n" +
+                $"Target occupied: {targetOccupied}\n" +
+                $"Target occupied by destination: {targetOccupiedByDestination}\n" +
+                $"Target obstacle: {targetObstacle}\n" +
+                $"Target obstacle owned by destination: {targetObstacleOwnedByDestination}\n" +
+                $"Target surface owned by destination: {targetSurfaceOwnedByDestination}\n" +
+                $"Target is home cell: {targetHomeCell}\n" +
                 $"Target is permitted destination cell: {targetDestinationCell}",
                 this);
         }
@@ -607,7 +607,7 @@ public class AirportGroundVehicleMovement : MonoBehaviour
                 $"occupied: {rejectedOccupied}; obstacles: {rejectedObstacle}.";
 
             if (logToConsole)
-                LogWarning($"{name}: PATHFINDING FAILED\\n{diagnostic}", this);
+                LogWarning($"{name}: PATHFINDING FAILED\n{diagnostic}", this);
 
             Fail(diagnostic);
         }
