@@ -2,6 +2,8 @@ using UnityEngine;
 
 public class AircraftCargoPaxLandingController : MonoBehaviour
 {
+    private float movementStepDeltaTime;
+
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
 
@@ -196,58 +198,83 @@ public class AircraftCargoPaxLandingController : MonoBehaviour
 
     private void Update()
     {
-        switch (state)
+        float remainingSimulationTime =
+            GameTimeManager.SimulationDeltaTime;
+
+        const float maximumSubstep = 0.25f;
+        const int maximumSubstepsPerFrame = 512;
+        int substeps = 0;
+
+        while (remainingSimulationTime > 0.0001f &&
+               substeps < maximumSubstepsPerFrame)
         {
-            case LandingState.Aligning:
-                UpdateAlignment();
+            if (state != LandingState.Aligning &&
+                state != LandingState.FinalApproach &&
+                state != LandingState.Flare &&
+                state != LandingState.Rollout &&
+                state != LandingState.GoAround)
                 break;
 
-            case LandingState.FinalApproach:
-                UpdateFinalApproach();
-                break;
+            movementStepDeltaTime =
+                Mathf.Min(remainingSimulationTime, maximumSubstep);
 
-            case LandingState.Flare:
-                UpdateFlare();
-                break;
+            switch (state)
+            {
+                case LandingState.Aligning:
+                    UpdateAlignment();
+                    break;
 
-            case LandingState.Rollout:
-                UpdateRollout();
-                break;
+                case LandingState.FinalApproach:
+                    UpdateFinalApproach();
+                    break;
 
-            case LandingState.GoAround:
-                UpdateGoAround();
-                break;
+                case LandingState.Flare:
+                    UpdateFlare();
+                    break;
+
+                case LandingState.Rollout:
+                    UpdateRollout();
+                    break;
+
+                case LandingState.GoAround:
+                    UpdateGoAround();
+                    break;
+            }
+
+            remainingSimulationTime -= movementStepDeltaTime;
+            substeps++;
         }
 
-        // The taxi controller owns speed after landing is complete.
-        if (!IsLandingComplete)
-            PublishCurrentSpeed();
+        AircraftStatus status = GetComponent<AircraftStatus>();
 
-        if (aircraftStatus != null && IsLandingComplete)
+        if (status != null)
         {
-            aircraftStatus.MarkLandingComplete();
+            var taxiController = GetComponent<AircraftCargoPaxLandingTaxiController>();
+
+            bool landingOwnsSpeed =
+                IsLandingTrafficActive &&
+                (taxiController == null || !taxiController.IsTaxiing);
+
+            if (landingOwnsSpeed)
+            {
+                status.SetCurrentSpeedKnots(
+                    AircraftStatus.WorldSpeedToKnots(currentSpeed)
+                );
+            }
+
+            if (IsLandingComplete)
+                status.MarkLandingComplete();
         }
 
         if (trafficManager == null)
-        {
-            trafficManager =
-                FindAnyObjectByType<AircraftRunwayTrafficManager>();
-        }
+            trafficManager = FindAnyObjectByType<AircraftRunwayTrafficManager>();
 
         if (trafficManager != null)
         {
             if (selectedRunway != null)
-            {
-                trafficManager.UpdateLandingTraffic(
-                    this,
-                    selectedRunway,
-                    IsLandingTrafficActive
-                );
-            }
+                trafficManager.UpdateLandingTraffic(this, selectedRunway, IsLandingTrafficActive);
             else
-            {
                 trafficManager.UnregisterLandingTraffic(this);
-            }
         }
 
         UpdateDebugInformation();
@@ -481,7 +508,7 @@ public class AircraftCargoPaxLandingController : MonoBehaviour
         transform.position = Vector3.MoveTowards(
             transform.position,
             alignmentPoint,
-            currentSpeed * GameTimeManager.SimulationDeltaTime
+            currentSpeed * movementStepDeltaTime
         );
     }
 
@@ -499,14 +526,14 @@ public class AircraftCargoPaxLandingController : MonoBehaviour
         currentSpeed = Mathf.MoveTowards(
             currentSpeed,
             AircraftStatus.KnotsToWorldSpeed(approachSpeedKnots),
-            speedChangeRate * GameTimeManager.SimulationDeltaTime
+            speedChangeRate * movementStepDeltaTime
         );
 
         float availableDistance =
             remainingDistance - flareDistance;
 
         float step = Mathf.Min(
-            currentSpeed * GameTimeManager.SimulationDeltaTime,
+            currentSpeed * movementStepDeltaTime,
             availableDistance
         );
 
@@ -636,11 +663,11 @@ public class AircraftCargoPaxLandingController : MonoBehaviour
         currentSpeed = Mathf.MoveTowards(
             currentSpeed,
             AircraftStatus.KnotsToWorldSpeed(touchdownSpeedKnots),
-            speedChangeRate * GameTimeManager.SimulationDeltaTime
+            speedChangeRate * movementStepDeltaTime
         );
 
         float step = Mathf.Min(
-            currentSpeed * GameTimeManager.SimulationDeltaTime,
+            currentSpeed * movementStepDeltaTime,
             remainingDistance
         );
 
@@ -719,7 +746,7 @@ public class AircraftCargoPaxLandingController : MonoBehaviour
 
         // Integrate only until taxi speed is reached. A large simulation
         // delta must not move the aircraft for unused time after rollout.
-        float rolloutDeltaTime = GameTimeManager.SimulationDeltaTime;
+        float rolloutDeltaTime = movementStepDeltaTime;
         float timeToTargetSpeed =
             Mathf.Max(0f, currentSpeed - targetSpeed) /
             rolloutDeceleration;
@@ -836,7 +863,7 @@ public class AircraftCargoPaxLandingController : MonoBehaviour
             Mathf.Tan(climbAngle * Mathf.Deg2Rad);
 
         float horizontalStep =
-            currentSpeed * GameTimeManager.SimulationDeltaTime;
+            currentSpeed * movementStepDeltaTime;
 
         float verticalStep =
             horizontalStep * climbTangent;
