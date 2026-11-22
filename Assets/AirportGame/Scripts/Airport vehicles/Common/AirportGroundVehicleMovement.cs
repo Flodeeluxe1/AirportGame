@@ -35,6 +35,10 @@ public class AirportGroundVehicleMovement : MonoBehaviour
     [Range(1, 5)]
     [SerializeField] private int runwayClearance = 1;
 
+    [Header("Pathfinding")]
+    [Min(1)]
+    [SerializeField] private int maxPathNodesPerFrame = 200;
+
     [Header("Movement")]
     [Min(0.1f)]
     [SerializeField] private float movementSpeed = 3f;
@@ -104,9 +108,19 @@ public class AirportGroundVehicleMovement : MonoBehaviour
     private Transform homeSpawnPoint;
 
     private bool hasLastRequestedDestination;
+    private bool isCalculatingPath;
+    private Vector2Int pathStart;
+    private Vector2Int pathTarget;
+    private int pathInsertionOrder;
+    private int rejectedOutOfBounds;
+    private int rejectedFoundation;
+    private int rejectedClearance;
+    private int rejectedOccupied;
+    private int rejectedObstacle;
     private float movementHeight;
 
-    public bool IsMoving => isMoving;
+    public bool IsMoving => isMoving || isCalculatingPath;
+    public bool IsCalculatingPath => isCalculatingPath;
     public string MovementStatus => movementStatus;
     public int RouteCellCount => routeCellCount;
     public int CurrentWaypointIndex => currentWaypointIndex;
@@ -186,7 +200,9 @@ public class AirportGroundVehicleMovement : MonoBehaviour
 
     private void Update()
     {
-        if (isMoving)
+        if (isCalculatingPath)
+            ProcessPathSearchFrame();
+        else if (isMoving)
             UpdateMovement();
     }
 
@@ -262,6 +278,7 @@ public class AirportGroundVehicleMovement : MonoBehaviour
         hasLastRequestedDestination = true;
 
         isMoving = false;
+        isCalculatingPath = false;
         movementPath.Clear();
         currentWaypointIndex = 0;
         routeCellCount = 0;
@@ -293,75 +310,8 @@ public class AirportGroundVehicleMovement : MonoBehaviour
             currentSourceGate = sourceGate;
         }
 
-        List<Vector2Int> cells =
-            FindShortestGridPath(startCell, targetCell);
-
-        if (cells.Count == 0)
-        {
-            Fail(
-                $"No route found from {startCell} to {targetCell}. " +
-                "Check foundation clearance, occupied cells and grid bounds.");
-            return false;
-        }
-
-        routeCellCount = cells.Count;
-
-        List<Vector3> cellPositions = new List<Vector3>();
-
-        foreach (Vector2Int cell in cells)
-        {
-            Vector3 point = gridManager.GridToWorldCenter(cell);
-            point.y = movementHeight;
-            cellPositions.Add(point);
-        }
-
-        BuildSmoothedMovementPath(cellPositions);
-
-        destination = worldDestination;
-        destination.y = movementHeight;
-
-        if (movementPath.Count == 0 ||
-            HorizontalDistance(
-                movementPath[movementPath.Count - 1],
-                destination) > 0.02f)
-        {
-            movementPath.Add(destination);
-        }
-
-        BuildFinalParkingCurve();
-
-        currentWaypointIndex = 0;
-
-        while (currentWaypointIndex < movementPath.Count &&
-               HorizontalDistance(
-                   transform.position,
-                   movementPath[currentWaypointIndex]) <=
-               waypointArrivalDistance)
-        {
-            currentWaypointIndex++;
-        }
-
-        isMoving = currentWaypointIndex < movementPath.Count;
-
-        movementStatus = isMoving
-            ? "Following smoothed grid route"
-            : "Arrived";
-
-        Log(
-            $"{name}: Weighted route calculated. " +
-            $"Grid cells: {routeCellCount}, " +
-            $"waypoints: {movementPath.Count}, " +
-            $"grass cost: {grassMovementCost}, " +
-            $"foundation cost: {foundationMovementCost}, " +
-            $"tarmac cost: {tarmacMovementCost}, " +
-            $"taxiway cost: {taxiwayMovementCost}, " +
-            $"runway cost: {runwayMovementCost}, " +
-            $"pedestrian tarmac cost: {pedestrianTarmacMovementCost}, " +
-            $"road cost: {roadMovementCost}, " +
-            $"foundation clearance: {foundationClearance}, " +
-            $"parking turn distance: {parkingTurnDistanceInCells} cells.",
-            this);
-
+        BeginPathSearch(startCell, targetCell);
+        return isCalculatingPath || movementStatus == "Following smoothed grid route" || movementStatus == "Arrived";
         return true;
     }
 
@@ -385,10 +335,10 @@ public class AirportGroundVehicleMovement : MonoBehaviour
             return false;
         }
 
-        if (isMoving)
+        if (isMoving || isCalculatingPath)
         {
             LogWarning(
-                $"{name}: Cannot recalculate while the vehicle is moving. " +
+                $"{name}: Cannot recalculate while the vehicle is moving or calculating a route. " +
                 "Stop the vehicle first.",
                 this);
             return false;
@@ -453,12 +403,16 @@ public class AirportGroundVehicleMovement : MonoBehaviour
     // A* pathfinding
     // ---------------------------------------------------------------------
 
-    private List<Vector2Int> FindShortestGridPath(
-        Vector2Int start,
-        Vector2Int target)
+    private void BeginPathSearch(Vector2Int start, Vector2Int target)
     {
+        pathStart = start;
+        pathTarget = target;
+
         if (start == target)
-            return new List<Vector2Int> { start };
+        {
+            CompletePathSearch(new List<Vector2Int> { start });
+            return;
+        }
 
         bool targetObstacle = gridSurface.IsObstacle(target);
         bool targetHomeCell = IsHomeAreaCell(target);
@@ -478,28 +432,25 @@ public class AirportGroundVehicleMovement : MonoBehaviour
                 gridSurface.IsSurfaceOwner(target, currentDestinationGate);
 
             Log(
-                $"{name}: PATHFINDING TARGET DIAGNOSTICS\n" +
-                $"Start: {start}, Target: {target}\n" +
-                $"Destination object: {(currentDestinationGate != null ? currentDestinationGate.name : "None")}\n" +
-                $"Destination object ID: {(currentDestinationGate != null ? currentDestinationGate.GetEntityId().ToString() : "None")}\n" +
-                $"Target surface: {gridSurface.GetSurface(target)}\n" +
-                $"Target occupied: {targetOccupied}\n" +
-                $"Target occupied by destination: {targetOccupiedByDestination}\n" +
-                $"Target obstacle: {targetObstacle}\n" +
-                $"Target obstacle owned by destination: {targetObstacleOwnedByDestination}\n" +
-                $"Target surface owned by destination: {targetSurfaceOwnedByDestination}\n" +
-                $"Target is home cell: {targetHomeCell}\n" +
+                $"{name}: PATHFINDING TARGET DIAGNOSTICS\\n" +
+                $"Start: {start}, Target: {target}\\n" +
+                $"Destination object: {(currentDestinationGate != null ? currentDestinationGate.name : "None")}\\n" +
+                $"Destination object ID: {(currentDestinationGate != null ? currentDestinationGate.GetEntityId().ToString() : "None")}\\n" +
+                $"Target surface: {gridSurface.GetSurface(target)}\\n" +
+                $"Target occupied: {targetOccupied}\\n" +
+                $"Target occupied by destination: {targetOccupiedByDestination}\\n" +
+                $"Target obstacle: {targetObstacle}\\n" +
+                $"Target obstacle owned by destination: {targetObstacleOwnedByDestination}\\n" +
+                $"Target surface owned by destination: {targetSurfaceOwnedByDestination}\\n" +
+                $"Target is home cell: {targetHomeCell}\\n" +
                 $"Target is permitted destination cell: {targetDestinationCell}",
                 this);
         }
 
         if (targetObstacle && !targetHomeCell && !targetDestinationCell)
         {
-            LogWarning(
-                $"{name}: TARGET REJECTED because it is an obstacle " +
-                "and is not owned by the permitted destination object.",
-                this);
-            return new List<Vector2Int>();
+            Fail("No route: target is an obstacle not owned by the permitted destination.");
+            return;
         }
 
         pathOpenSet.Clear();
@@ -507,24 +458,36 @@ public class AirportGroundVehicleMovement : MonoBehaviour
         pathGScore.Clear();
         pathClosedSet.Clear();
 
+        rejectedOutOfBounds = 0;
+        rejectedFoundation = 0;
+        rejectedClearance = 0;
+        rejectedOccupied = 0;
+        rejectedObstacle = 0;
+        pathInsertionOrder = 0;
+
         int minimumMovementCost = GetMinimumMovementCost();
-        int insertionOrder = 0;
         pathGScore[start] = 0;
         EnqueuePathNode(new VehicleOpenNode(
             start,
             0,
             OctileDistance(start, target) * minimumMovementCost,
-            insertionOrder++));
+            pathInsertionOrder++));
 
-        int rejectedOutOfBounds = 0;
-        int rejectedFoundation = 0;
-        int rejectedClearance = 0;
-        int rejectedOccupied = 0;
-        int rejectedObstacle = 0;
+        isMoving = false;
+        isCalculatingPath = true;
+        movementStatus = "Calculating route";
+    }
 
-        while (pathOpenSet.Count > 0)
+    private void ProcessPathSearchFrame()
+    {
+        int nodesProcessed = 0;
+        int frameNodeLimit = Mathf.Max(1, maxPathNodesPerFrame);
+
+        while (pathOpenSet.Count > 0 && nodesProcessed < frameNodeLimit)
         {
             VehicleOpenNode currentNode = DequeuePathNode();
+            nodesProcessed++;
+
             Vector2Int current = currentNode.Position;
 
             // Improved routes add a new heap entry. Ignore older entries whose
@@ -536,8 +499,12 @@ public class AirportGroundVehicleMovement : MonoBehaviour
                 continue;
             }
 
-            if (current == target)
-                return ReconstructPath(pathCameFrom, start, target);
+            if (current == pathTarget)
+            {
+                CompletePathSearch(
+                    ReconstructPath(pathCameFrom, pathStart, pathTarget));
+                return;
+            }
 
             for (int i = 0; i < PathNeighborOffsets.Length; i++)
             {
@@ -560,7 +527,6 @@ public class AirportGroundVehicleMovement : MonoBehaviour
                 int deltaY = Mathf.Abs(neighbor.y - current.y);
                 bool isDiagonal = deltaX == 1 && deltaY == 1;
 
-                // Preserve the vehicle-specific corner and clearance rules.
                 if (isDiagonal)
                 {
                     Vector2Int horizontalSideCell =
@@ -568,16 +534,16 @@ public class AirportGroundVehicleMovement : MonoBehaviour
                     Vector2Int verticalSideCell =
                         current + new Vector2Int(0, neighbor.y - current.y);
 
-                    if (IsBlockedForDiagonal(horizontalSideCell, start, target) ||
-                        IsBlockedForDiagonal(verticalSideCell, start, target))
+                    if (IsBlockedForDiagonal(horizontalSideCell, pathStart, pathTarget) ||
+                        IsBlockedForDiagonal(verticalSideCell, pathStart, pathTarget))
                     {
                         rejectedObstacle++;
                         continue;
                     }
                 }
 
-                if (neighbor != start &&
-                    neighbor != target &&
+                if (neighbor != pathStart &&
+                    neighbor != pathTarget &&
                     !isHomeCell &&
                     !isDestinationGateCell)
                 {
@@ -625,58 +591,95 @@ public class AirportGroundVehicleMovement : MonoBehaviour
                 EnqueuePathNode(new VehicleOpenNode(
                     neighbor,
                     tentativeScore,
-                    OctileDistance(neighbor, target) * minimumMovementCost,
-                    insertionOrder++));
+                    OctileDistance(neighbor, pathTarget) * GetMinimumMovementCost(),
+                    pathInsertionOrder++));
             }
         }
 
-        if (logToConsole)
+        if (pathOpenSet.Count == 0)
         {
-            LogWarning(
-                $"{name}: PATHFINDING FAILED\n" +
-                $"Start: {start}, Target: {target}\n" +
-                $"Expanded cells: {pathClosedSet.Count}\n" +
-                $"Rejected out of bounds: {rejectedOutOfBounds}\n" +
-                $"Rejected foundation: {rejectedFoundation}\n" +
-                $"Rejected foundation clearance: {rejectedClearance}\n" +
-                $"Rejected occupied: {rejectedOccupied}\n" +
-                $"Rejected obstacles: {rejectedObstacle}\n" +
-                $"Remaining open cells: {pathOpenSet.Count}",
-                this);
+            string diagnostic =
+                $"No route found from {pathStart} to {pathTarget}. " +
+                $"Expanded cells: {pathClosedSet.Count}; " +
+                $"rejected out of bounds: {rejectedOutOfBounds}; " +
+                $"foundation: {rejectedFoundation}; " +
+                $"clearance: {rejectedClearance}; " +
+                $"occupied: {rejectedOccupied}; obstacles: {rejectedObstacle}.";
 
-            Vector2Int[] targetNeighbors =
-            {
-                target + Vector2Int.up,
-                target + Vector2Int.right,
-                target + Vector2Int.down,
-                target + Vector2Int.left,
-                new Vector2Int(target.x + 1, target.y + 1),
-                new Vector2Int(target.x + 1, target.y - 1),
-                new Vector2Int(target.x - 1, target.y - 1),
-                new Vector2Int(target.x - 1, target.y + 1)
-            };
+            if (logToConsole)
+                LogWarning($"{name}: PATHFINDING FAILED\\n{diagnostic}", this);
 
-            foreach (Vector2Int neighbor in targetNeighbors)
-            {
-                if (!gridManager.IsInsideGrid(neighbor))
-                {
-                    Log($"{name}: Target neighbor {neighbor}: OUTSIDE GRID.", this);
-                    continue;
-                }
+            Fail(diagnostic);
+        }
+    }
 
-                Log(
-                    $"{name}: Target neighbor {neighbor}: " +
-                    $"Surface={gridSurface.GetSurface(neighbor)}, " +
-                    $"Occupied={gridOccupancy.IsOccupied(neighbor)}, " +
-                    $"FoundationClearance={IsWithinFoundationClearance(neighbor)}, " +
-                    $"Obstacle={gridSurface.IsObstacle(neighbor)}, " +
-                    $"Home={IsHomeAreaCell(neighbor)}, " +
-                    $"Destination={IsCurrentDestinationGateCell(neighbor)}",
-                    this);
-            }
+    private void CompletePathSearch(List<Vector2Int> cells)
+    {
+        isCalculatingPath = false;
+
+        if (cells == null || cells.Count == 0)
+        {
+            Fail(
+                $"No route found from {pathStart} to {pathTarget}. " +
+                "Check foundation clearance, occupied cells and grid bounds.");
+            return;
         }
 
-        return new List<Vector2Int>();
+        routeCellCount = cells.Count;
+        List<Vector3> cellPositions = new List<Vector3>(cells.Count);
+
+        foreach (Vector2Int cell in cells)
+        {
+            Vector3 point = gridManager.GridToWorldCenter(cell);
+            point.y = movementHeight;
+            cellPositions.Add(point);
+        }
+
+        movementPath.Clear();
+        BuildSmoothedMovementPath(cellPositions);
+
+        destination = lastRequestedDestination;
+        destination.y = movementHeight;
+
+        if (movementPath.Count == 0 ||
+            HorizontalDistance(
+                movementPath[movementPath.Count - 1],
+                destination) > 0.02f)
+        {
+            movementPath.Add(destination);
+        }
+
+        BuildFinalParkingCurve();
+
+        currentWaypointIndex = 0;
+        while (currentWaypointIndex < movementPath.Count &&
+               HorizontalDistance(
+                   transform.position,
+                   movementPath[currentWaypointIndex]) <=
+               waypointArrivalDistance)
+        {
+            currentWaypointIndex++;
+        }
+
+        isMoving = currentWaypointIndex < movementPath.Count;
+        movementStatus = isMoving
+            ? "Following smoothed grid route"
+            : "Arrived";
+
+        Log(
+            $"{name}: Weighted route calculated. " +
+            $"Grid cells: {routeCellCount}, " +
+            $"waypoints: {movementPath.Count}, " +
+            $"grass cost: {grassMovementCost}, " +
+            $"foundation cost: {foundationMovementCost}, " +
+            $"tarmac cost: {tarmacMovementCost}, " +
+            $"taxiway cost: {taxiwayMovementCost}, " +
+            $"runway cost: {runwayMovementCost}, " +
+            $"pedestrian tarmac cost: {pedestrianTarmacMovementCost}, " +
+            $"road cost: {roadMovementCost}, " +
+            $"foundation clearance: {foundationClearance}, " +
+            $"parking turn distance: {parkingTurnDistanceInCells} cells.",
+            this);
     }
 
     private struct VehicleOpenNode
@@ -1386,6 +1389,11 @@ public class AirportGroundVehicleMovement : MonoBehaviour
     public void StopMovement()
     {
         isMoving = false;
+        isCalculatingPath = false;
+        pathOpenSet.Clear();
+        pathCameFrom.Clear();
+        pathGScore.Clear();
+        pathClosedSet.Clear();
         movementPath.Clear();
         currentWaypointIndex = 0;
         movementStatus = "Stopped";
@@ -1474,6 +1482,7 @@ public class AirportGroundVehicleMovement : MonoBehaviour
     private void Fail(string reason)
     {
         isMoving = false;
+        isCalculatingPath = false;
         movementStatus = "Failed: " + reason;
 
         LogWarning(
