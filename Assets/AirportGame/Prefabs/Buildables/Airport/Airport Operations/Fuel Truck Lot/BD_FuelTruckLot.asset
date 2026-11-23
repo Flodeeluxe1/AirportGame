@@ -16,10 +16,10 @@ MonoBehaviour:
   displayName: Fuel Truck Lot
   prefab: {fileID: 6521951930670635967, guid: 2a409b0f347f0a146821087e66575cc0, type: 3}
   placementType: 0
+  allowedSurfaces: 5
   requiredSurface: 0
-  allowedSurfaces: 1
-  width: 6
-  depth: 4
+  width: 4
+  depth: 6
   edgeLength: 1
   requiresExistingWall: 0
   isWallMounted: 0
@@ -28,6 +28,8 @@ MonoBehaviour:
   canRotate: 1
   buildCost: 12000
   blocksPathfinding: 1
+  environmentValue: 0
+  environmentRadius: 0
   menuCategory: Airport Operations
   category: 3
   icon: {fileID: 2800000, guid: 383a14949cfbe644daf1d82bd83ab773, type: 3}
