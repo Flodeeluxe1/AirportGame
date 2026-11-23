@@ -53,7 +53,6 @@ public class FlightSchoolInstructorController : MonoBehaviour
     private long conversationEndGameSecond;
     private bool initialized;
     private bool subscribedToGameTime;
-    private long decisionEventId;
 
     public void Initialize(
         Vector2Int classroomAnchor,
@@ -91,7 +90,6 @@ public class FlightSchoolInstructorController : MonoBehaviour
     private void OnEnable()
     {
         SubscribeToGameTime();
-        ScheduleNextDecision();
     }
 
     private void OnDisable()
@@ -109,7 +107,6 @@ public class FlightSchoolInstructorController : MonoBehaviour
             gameTimeManager.GameTimeAdvanced -= HandleGameTimeAdvanced;
 
         subscribedToGameTime = false;
-        CancelDecisionEvent();
     }
 
     private void SubscribeToGameTime()
@@ -130,12 +127,38 @@ public class FlightSchoolInstructorController : MonoBehaviour
             ReturnToBoard();
         }
 
-        if (gameTimeManager == null ||
-            gameTimeManager.EventScheduler == null)
+        if (!initialized || movement == null || movement.IsMoving ||
+            GameTimeManager.SimulationTime < nextActionTime)
         {
-            if (decisionEventId == 0 &&
-                GameTimeManager.SimulationTime >= nextActionTime)
-                HandleScheduledDecision();
+            return;
+        }
+
+        if (state == InstructorState.BoardPause)
+        {
+            if (pendingWelcomeStudents.Count > 0)
+            {
+                FlightSchoolStudentAgent welcome = pendingWelcomeStudents.Dequeue();
+                BeginStudentVisit(welcome, true);
+                return;
+            }
+
+            if (GameTimeManager.SimulationTime >= nextStudentVisitTime &&
+                TryChooseStudentToVisit())
+            {
+                return;
+            }
+
+            if (GameTimeManager.SimulationTime >= nextDemonstrationTime)
+            {
+                BeginDemonstration();
+                return;
+            }
+
+            MoveToBoardPoint(movingToRight ? 1 : 0);
+        }
+        else if (state == InstructorState.DemonstrationPause)
+        {
+            ReturnToBoard();
         }
     }
 
@@ -145,7 +168,6 @@ public class FlightSchoolInstructorController : MonoBehaviour
             return;
 
         pendingWelcomeStudents.Enqueue(student);
-        ScheduleNextDecision();
     }
 
     private bool TryChooseStudentToVisit()
@@ -251,7 +273,6 @@ public class FlightSchoolInstructorController : MonoBehaviour
             movingToRight = !movingToRight;
             nextActionTime = GameTimeManager.SimulationTime + 2f;
             state = InstructorState.BoardPause;
-            ScheduleNextDecision();
         }
     }
 
@@ -277,7 +298,6 @@ public class FlightSchoolInstructorController : MonoBehaviour
                 nextActionTime = GameTimeManager.SimulationTime +
                     Random.Range(boardPauseMinimum, boardPauseMaximum);
                 movingToRight = !movingToRight;
-                ScheduleNextDecision();
                 break;
 
             case InstructorState.MovingToStudent:
@@ -298,7 +318,6 @@ public class FlightSchoolInstructorController : MonoBehaviour
                 state = InstructorState.DemonstrationPause;
                 currentActivity = "Demonstrating at the wallboard";
                 nextActionTime = GameTimeManager.SimulationTime + Random.Range(15f, 26f);
-                ScheduleNextDecision();
                 break;
         }
     }
@@ -322,7 +341,6 @@ public class FlightSchoolInstructorController : MonoBehaviour
         state = InstructorState.BoardPause;
         currentActivity = "Returning to the wallboard";
         nextActionTime = GameTimeManager.SimulationTime + 1f;
-        ScheduleNextDecision();
     }
 
     private void HandleGameTimeAdvanced(long previousSecond, long currentSecond)
@@ -376,89 +394,5 @@ public class FlightSchoolInstructorController : MonoBehaviour
     {
         nextDemonstrationTime = GameTimeManager.SimulationTime +
             Random.Range(demonstrationIntervalMinimum, demonstrationIntervalMaximum);
-        ScheduleNextDecision();
-    }
-
-    private void ScheduleNextDecision()
-    {
-        if (!initialized || !isActiveAndEnabled ||
-            (state != InstructorState.BoardPause &&
-             state != InstructorState.DemonstrationPause) ||
-            movement == null || decisionEventId != 0)
-            return;
-
-        if (gameTimeManager == null)
-            gameTimeManager = GameTimeManager.Instance;
-
-        if (gameTimeManager == null || gameTimeManager.EventScheduler == null)
-            return;
-
-        double dueTime = System.Math.Max(
-            GameTimeManager.SimulationTime,
-            nextActionTime);
-
-        decisionEventId = gameTimeManager.EventScheduler.ScheduleAt(
-            dueTime,
-            HandleScheduledDecision);
-    }
-
-    private void HandleScheduledDecision()
-    {
-        decisionEventId = 0;
-
-        if (!initialized || !isActiveAndEnabled ||
-            movement == null ||
-            GameTimeManager.SimulationTime < nextActionTime)
-            return;
-
-        // Arrival callbacks can run before the movement controller clears its
-        // moving flag. Defer the decision briefly rather than losing the wake-up.
-        if (movement.IsMoving)
-        {
-            if (gameTimeManager != null && gameTimeManager.EventScheduler != null)
-            {
-                decisionEventId = gameTimeManager.EventScheduler.ScheduleAfter(
-                    0.25,
-                    HandleScheduledDecision);
-            }
-            return;
-        }
-
-        if (state == InstructorState.DemonstrationPause)
-        {
-            ReturnToBoard();
-            return;
-        }
-
-        if (state != InstructorState.BoardPause)
-            return;
-
-        if (pendingWelcomeStudents.Count > 0)
-        {
-            FlightSchoolStudentAgent welcome = pendingWelcomeStudents.Dequeue();
-            BeginStudentVisit(welcome, true);
-            return;
-        }
-
-        if (GameTimeManager.SimulationTime >= nextStudentVisitTime &&
-            TryChooseStudentToVisit())
-            return;
-
-        if (GameTimeManager.SimulationTime >= nextDemonstrationTime)
-        {
-            BeginDemonstration();
-            return;
-        }
-
-        MoveToBoardPoint(movingToRight ? 1 : 0);
-    }
-
-    private void CancelDecisionEvent()
-    {
-        if (decisionEventId != 0 &&
-            gameTimeManager != null && gameTimeManager.EventScheduler != null)
-            gameTimeManager.EventScheduler.Cancel(decisionEventId);
-
-        decisionEventId = 0;
     }
 }
