@@ -79,8 +79,8 @@ public class FlightSchoolManager : MonoBehaviour
     private FlightSchoolAssessmentController assessmentController;
     private GameTimeManager gameTimeManager;
 
-    private double nextRoomRefreshTime;
-    private double nextParkingSpotRefreshTime;
+    private long roomRefreshEventId;
+    private long parkingSpotRefreshEventId;
     private HobbyAircraftParkingSpot[] cachedParkingSpots =
         Array.Empty<HobbyAircraftParkingSpot>();
     private static FlightSchoolManager activeManager;
@@ -115,20 +115,7 @@ public class FlightSchoolManager : MonoBehaviour
 
         ResolveReferences();
 
-        if (GameTimeManager.SimulationTime >= nextRoomRefreshTime)
-        {
-            nextRoomRefreshTime =
-                GameTimeManager.SimulationTime + Mathf.Max(0.1f, roomRefreshInterval);
-
-            RefreshSchoolRooms();
-        }
-
-        if (GameTimeManager.SimulationTime >= nextParkingSpotRefreshTime)
-        {
-            nextParkingSpotRefreshTime =
-                GameTimeManager.SimulationTime + Mathf.Max(0.5f, parkingSpotRefreshInterval);
-            RefreshParkingSpotCache();
-        }
+        EnsurePeriodicRefreshEventsScheduled();
 
         foreach (SchoolOperation operation in operations.Values)
         {
@@ -151,6 +138,67 @@ public class FlightSchoolManager : MonoBehaviour
 
             TrySpawnTrainingAircraft(operation);
         }
+    }
+
+    private void OnDisable()
+    {
+        CancelPeriodicRefreshEvents();
+
+        if (activeManager == this)
+            activeManager = null;
+    }
+
+    private void EnsurePeriodicRefreshEventsScheduled()
+    {
+        if (gameTimeManager == null ||
+            gameTimeManager.EventScheduler == null)
+            return;
+
+        if (roomRefreshEventId == 0)
+            roomRefreshEventId = gameTimeManager.EventScheduler.ScheduleAfter(
+                0.0, HandleRoomRefreshScheduled);
+
+        if (parkingSpotRefreshEventId == 0)
+            parkingSpotRefreshEventId = gameTimeManager.EventScheduler.ScheduleAfter(
+                0.0, HandleParkingSpotRefreshScheduled);
+    }
+
+    private void HandleRoomRefreshScheduled()
+    {
+        roomRefreshEventId = 0;
+        if (!isActiveAndEnabled)
+            return;
+
+        RefreshSchoolRooms();
+        if (gameTimeManager != null && gameTimeManager.EventScheduler != null)
+            roomRefreshEventId = gameTimeManager.EventScheduler.ScheduleAfter(
+                Mathf.Max(0.1f, roomRefreshInterval), HandleRoomRefreshScheduled);
+    }
+
+    private void HandleParkingSpotRefreshScheduled()
+    {
+        parkingSpotRefreshEventId = 0;
+        if (!isActiveAndEnabled)
+            return;
+
+        RefreshParkingSpotCache();
+        if (gameTimeManager != null && gameTimeManager.EventScheduler != null)
+            parkingSpotRefreshEventId = gameTimeManager.EventScheduler.ScheduleAfter(
+                Mathf.Max(0.5f, parkingSpotRefreshInterval), HandleParkingSpotRefreshScheduled);
+    }
+
+    private void CancelPeriodicRefreshEvents()
+    {
+        if (gameTimeManager != null && gameTimeManager.EventScheduler != null)
+        {
+            if (roomRefreshEventId != 0)
+                gameTimeManager.EventScheduler.Cancel(roomRefreshEventId);
+            if (parkingSpotRefreshEventId != 0)
+                gameTimeManager.EventScheduler.Cancel(parkingSpotRefreshEventId);
+        }
+
+        roomRefreshEventId = 0;
+        parkingSpotRefreshEventId = 0;
     }
 
     private void ResolveReferences()
