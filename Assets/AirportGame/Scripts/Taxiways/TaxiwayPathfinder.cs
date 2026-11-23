@@ -117,14 +117,22 @@ public class TaxiwayPathfinder : MonoBehaviour
 
             closedSet.Add(current);
 
-            TryVisitSingleTargetNeighbor(current, current + Vector2Int.up, target,
-                minimumTaxiwayWidth, gScore[current], openSet, cameFrom, gScore, closedSet);
-            TryVisitSingleTargetNeighbor(current, current + Vector2Int.right, target,
-                minimumTaxiwayWidth, gScore[current], openSet, cameFrom, gScore, closedSet);
-            TryVisitSingleTargetNeighbor(current, current + Vector2Int.down, target,
-                minimumTaxiwayWidth, gScore[current], openSet, cameFrom, gScore, closedSet);
-            TryVisitSingleTargetNeighbor(current, current + Vector2Int.left, target,
-                minimumTaxiwayWidth, gScore[current], openSet, cameFrom, gScore, closedSet);
+            if (taxiwayNetwork.TryGetPathfindingCellData(
+                    current, out TaxiwayPathCellData currentData))
+            {
+                if (currentData.North)
+                    TryVisitSingleTargetNeighbor(current, current + Vector2Int.up, target,
+                        minimumTaxiwayWidth, gScore[current], openSet, cameFrom, gScore, closedSet);
+                if (currentData.East)
+                    TryVisitSingleTargetNeighbor(current, current + Vector2Int.right, target,
+                        minimumTaxiwayWidth, gScore[current], openSet, cameFrom, gScore, closedSet);
+                if (currentData.South)
+                    TryVisitSingleTargetNeighbor(current, current + Vector2Int.down, target,
+                        minimumTaxiwayWidth, gScore[current], openSet, cameFrom, gScore, closedSet);
+                if (currentData.West)
+                    TryVisitSingleTargetNeighbor(current, current + Vector2Int.left, target,
+                        minimumTaxiwayWidth, gScore[current], openSet, cameFrom, gScore, closedSet);
+            }
         }
 
         return emptyPath;
@@ -218,29 +226,26 @@ public class TaxiwayPathfinder : MonoBehaviour
                 }
             }
 
-            TryVisitGroundNeighbor(
-                current, current + Vector2Int.up, currentGScore,
-                minimumTaxiwayWidth,
-                minimumX, maximumX, minimumY, maximumY,
-                openSet, cameFrom, gScore, closedSet);
-
-            TryVisitGroundNeighbor(
-                current, current + Vector2Int.right, currentGScore,
-                minimumTaxiwayWidth,
-                minimumX, maximumX, minimumY, maximumY,
-                openSet, cameFrom, gScore, closedSet);
-
-            TryVisitGroundNeighbor(
-                current, current + Vector2Int.down, currentGScore,
-                minimumTaxiwayWidth,
-                minimumX, maximumX, minimumY, maximumY,
-                openSet, cameFrom, gScore, closedSet);
-
-            TryVisitGroundNeighbor(
-                current, current + Vector2Int.left, currentGScore,
-                minimumTaxiwayWidth,
-                minimumX, maximumX, minimumY, maximumY,
-                openSet, cameFrom, gScore, closedSet);
+            if (taxiwayNetwork.TryGetPathfindingCellData(
+                    current, out TaxiwayPathCellData currentData))
+            {
+                if (currentData.North)
+                    TryVisitGroundNeighbor(current, current + Vector2Int.up, currentGScore,
+                        minimumTaxiwayWidth, minimumX, maximumX, minimumY, maximumY,
+                        openSet, cameFrom, gScore, closedSet);
+                if (currentData.East)
+                    TryVisitGroundNeighbor(current, current + Vector2Int.right, currentGScore,
+                        minimumTaxiwayWidth, minimumX, maximumX, minimumY, maximumY,
+                        openSet, cameFrom, gScore, closedSet);
+                if (currentData.South)
+                    TryVisitGroundNeighbor(current, current + Vector2Int.down, currentGScore,
+                        minimumTaxiwayWidth, minimumX, maximumX, minimumY, maximumY,
+                        openSet, cameFrom, gScore, closedSet);
+                if (currentData.West)
+                    TryVisitGroundNeighbor(current, current + Vector2Int.left, currentGScore,
+                        minimumTaxiwayWidth, minimumX, maximumX, minimumY, maximumY,
+                        openSet, cameFrom, gScore, closedSet);
+            }
         }
 
         if (!foundTarget)
@@ -366,18 +371,26 @@ public class TaxiwayPathfinder : MonoBehaviour
                 }
             }
 
-            TryVisitGroundNeighbor(current, current + Vector2Int.up, currentScore,
-                minimumTaxiwayWidth, minimumX, maximumX, minimumY, maximumY,
-                openSet, cameFrom, gScore, closedSet);
-            TryVisitGroundNeighbor(current, current + Vector2Int.right, currentScore,
-                minimumTaxiwayWidth, minimumX, maximumX, minimumY, maximumY,
-                openSet, cameFrom, gScore, closedSet);
-            TryVisitGroundNeighbor(current, current + Vector2Int.down, currentScore,
-                minimumTaxiwayWidth, minimumX, maximumX, minimumY, maximumY,
-                openSet, cameFrom, gScore, closedSet);
-            TryVisitGroundNeighbor(current, current + Vector2Int.left, currentScore,
-                minimumTaxiwayWidth, minimumX, maximumX, minimumY, maximumY,
-                openSet, cameFrom, gScore, closedSet);
+            if (taxiwayNetwork.TryGetPathfindingCellData(
+                    current, out TaxiwayPathCellData currentData))
+            {
+                if (currentData.North)
+                    TryVisitGroundNeighbor(current, current + Vector2Int.up, currentScore,
+                        minimumTaxiwayWidth, minimumX, maximumX, minimumY, maximumY,
+                        openSet, cameFrom, gScore, closedSet);
+                if (currentData.East)
+                    TryVisitGroundNeighbor(current, current + Vector2Int.right, currentScore,
+                        minimumTaxiwayWidth, minimumX, maximumX, minimumY, maximumY,
+                        openSet, cameFrom, gScore, closedSet);
+                if (currentData.South)
+                    TryVisitGroundNeighbor(current, current + Vector2Int.down, currentScore,
+                        minimumTaxiwayWidth, minimumX, maximumX, minimumY, maximumY,
+                        openSet, cameFrom, gScore, closedSet);
+                if (currentData.West)
+                    TryVisitGroundNeighbor(current, current + Vector2Int.left, currentScore,
+                        minimumTaxiwayWidth, minimumX, maximumX, minimumY, maximumY,
+                        openSet, cameFrom, gScore, closedSet);
+            }
         }
 
         if (!foundTarget)
