@@ -76,7 +76,7 @@ public class SightseeingPassengerManager : MonoBehaviour
     private bool subscribedToSpawner;
     private bool subscribedToGameTime;
     private bool initialSchedulePrepared;
-    private double nextCheckInRetryTime;
+    private long checkInRetryEventId;
 
     private void Awake() => ResolveReferences();
 
@@ -86,6 +86,7 @@ public class SightseeingPassengerManager : MonoBehaviour
         SubscribeToSpawner();
         SubscribeToGameTime();
         ResumePendingCarSpawns();
+        ScheduleCheckInRetryIfNeeded();
     }
 
     private void OnDisable()
@@ -97,6 +98,7 @@ public class SightseeingPassengerManager : MonoBehaviour
         }
         subscribedToSpawner = false;
         CancelPendingCarSpawnEvents();
+        CancelCheckInRetryEvent();
         if (gameTimeManager != null && subscribedToGameTime)
             gameTimeManager.GameTimeAdvanced -= HandleGameTimeAdvanced;
         subscribedToGameTime = false;
@@ -142,11 +144,6 @@ public class SightseeingPassengerManager : MonoBehaviour
             return;
         }
 
-        if (GameTimeManager.SimulationTime >= nextCheckInRetryTime)
-        {
-            nextCheckInRetryTime = GameTimeManager.SimulationTime + Mathf.Max(0.1f, checkInRetrySeconds);
-            RetryCheckIn();
-        }
     }
 
     private void ResolveReferences()
@@ -463,7 +460,8 @@ public class SightseeingPassengerManager : MonoBehaviour
         agent.SetDepartureUrgency(CalculateDepartureUrgency(
             group != null ? group.scheduledBoardingGameSecond - GetAbsoluteGameSecond() : 0L));
 
-        TryBeginCheckIn(agent);
+        if (!TryBeginCheckIn(agent))
+            ScheduleCheckInRetryIfNeeded();
     }
 
     public bool TryBeginCheckIn(SightseeingPassengerAgent agent)
@@ -712,6 +710,8 @@ public class SightseeingPassengerManager : MonoBehaviour
         {
             agent.CancelCheckIn();
         }
+
+        ScheduleCheckInRetryIfNeeded();
     }
 
     private static long GetAbsoluteGameSecond()
@@ -827,20 +827,87 @@ public class SightseeingPassengerManager : MonoBehaviour
         TryRemoveFinishedGroup(group);
     }
 
+    private void ScheduleCheckInRetryIfNeeded()
+    {
+        if (!isActiveAndEnabled || !HasPendingCheckInRetries() ||
+            gameTimeManager == null || gameTimeManager.EventScheduler == null ||
+            checkInRetryEventId != 0)
+            return;
+
+        checkInRetryEventId = gameTimeManager.EventScheduler.ScheduleAfter(
+            Mathf.Max(0.1f, checkInRetrySeconds),
+            HandleScheduledCheckInRetry);
+    }
+
+    private void HandleScheduledCheckInRetry()
+    {
+        checkInRetryEventId = 0;
+
+        if (!isActiveAndEnabled)
+            return;
+
+        RetryCheckIn();
+        ScheduleCheckInRetryIfNeeded();
+    }
+
     private void RetryCheckIn()
     {
         for (int i = 0; i < activeGroups.Count; i++)
         {
             FlightGroup group = activeGroups[i];
-            if (group.boardingStarted || group.cancelled) continue;
+            if (group == null || group.boardingStarted || group.cancelled) continue;
+
             for (int j = 0; j < group.passengers.Count; j++)
             {
                 PassengerRecord record = group.passengers[j];
+                SightseeingPassengerAgent agent = record != null ? record.agent : null;
+
                 if (record == null || record.completed || record.checkedIn ||
-                    record.agent == null || !record.agent.isActiveAndEnabled) continue;
-                TryBeginCheckIn(record.agent);
+                    agent == null || !agent.isActiveAndEnabled ||
+                    agent.IsWalkingToCheckIn || agent.IsOnBoard ||
+                    agent.IsWalkingToCar ||
+                    agent.State == SightseeingPassengerAgent.PassengerState.Completed)
+                    continue;
+
+                TryBeginCheckIn(agent);
             }
         }
+    }
+
+    private bool HasPendingCheckInRetries()
+    {
+        for (int i = 0; i < activeGroups.Count; i++)
+        {
+            FlightGroup group = activeGroups[i];
+            if (group == null || group.boardingStarted || group.cancelled)
+                continue;
+
+            for (int j = 0; j < group.passengers.Count; j++)
+            {
+                PassengerRecord record = group.passengers[j];
+                SightseeingPassengerAgent agent = record != null ? record.agent : null;
+
+                if (record != null && !record.completed && !record.checkedIn &&
+                    agent != null && agent.isActiveAndEnabled &&
+                    !agent.IsWalkingToCheckIn && !agent.IsOnBoard &&
+                    !agent.IsWalkingToCar &&
+                    agent.State != SightseeingPassengerAgent.PassengerState.Completed)
+                    return true;
+            }
+        }
+
+        return false;
+    }
+
+    private void CancelCheckInRetryEvent()
+    {
+        if (checkInRetryEventId != 0 &&
+            gameTimeManager != null && gameTimeManager.EventScheduler != null)
+        {
+            gameTimeManager.EventScheduler.Cancel(checkInRetryEventId);
+        }
+
+        checkInRetryEventId = 0;
     }
 
     private PassengerRecord FindRecord(TrafficTestVehicle car, out FlightGroup owner)
