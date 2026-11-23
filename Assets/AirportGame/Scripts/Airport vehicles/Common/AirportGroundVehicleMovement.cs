@@ -30,9 +30,9 @@ public class AirportGroundVehicleMovement : MonoBehaviour
     [SerializeField] private int roadMovementCost = 5;
 
     [Header("Clearance")]
-    [Range(1, 5)]
+    [Range(0, 5)]
     [SerializeField] private int foundationClearance = 1;
-    [Range(1, 5)]
+    [Range(0, 5)]
     [SerializeField] private int runwayClearance = 1;
 
     [Header("Pathfinding")]
@@ -200,8 +200,8 @@ public class AirportGroundVehicleMovement : MonoBehaviour
         runwayMovementCost = Mathf.Max(1, runwayMovementCost);
         pedestrianTarmacMovementCost = Mathf.Max(1, pedestrianTarmacMovementCost);
         roadMovementCost = Mathf.Max(1, roadMovementCost);
-        foundationClearance = Mathf.Clamp(foundationClearance, 1, 5);
-        runwayClearance = Mathf.Clamp(runwayClearance, 1, 5);
+        foundationClearance = Mathf.Clamp(foundationClearance, 0, 5);
+        runwayClearance = Mathf.Clamp(runwayClearance, 0, 5);
 
         movementHeight = transform.position.y + groundHeightOffset;
     }
