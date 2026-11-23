@@ -314,12 +314,26 @@ public class AircraftHobbyLandingTaxiController : MonoBehaviour
 
         if (targets.Count == 0)
         {
-            Fail(
-                "No suitable taxiway centerline was found near " +
-                "the reserved grass parking spot."
-            );
-            return;
+        List<TargetCandidate> candidates = new List<TargetCandidate>();
+
+        Vector2Int center = gridManager.WorldToGrid(worldPosition);
+        IReadOnlyList<Vector2Int> cachedCells =
+            taxiwayNetwork.GetNearbyCenterlineTaxiwayCells(
+                center, connectionSearchRadiusCells, minimumTaxiwayWidth);
+
+        foreach (Vector2Int cell in cachedCells)
+        {
+            Vector3 cellWorld = gridManager.GridToWorldCenter(cell);
+            float distanceSquared =
+                HorizontalDistanceSquared(worldPosition, cellWorld);
+            candidates.Add(new TargetCandidate(cell, distanceSquared));
         }
+
+        candidates.Sort((a, b) =>
+            a.DistanceSquared.CompareTo(b.DistanceSquared));
+
+        return candidates;
+    }
 
         bool foundRoute = false;
         ExitCandidate chosenExit = default;
