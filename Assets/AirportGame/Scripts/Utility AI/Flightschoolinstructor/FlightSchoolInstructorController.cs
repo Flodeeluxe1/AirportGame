@@ -53,6 +53,7 @@ public class FlightSchoolInstructorController : MonoBehaviour
     private long conversationEndGameSecond;
     private bool initialized;
     private bool subscribedToGameTime;
+    private long decisionEventId;
 
     public void Initialize(
         Vector2Int classroomAnchor,
@@ -90,6 +91,7 @@ public class FlightSchoolInstructorController : MonoBehaviour
     private void OnEnable()
     {
         SubscribeToGameTime();
+        ScheduleNextDecision();
     }
 
     private void OnDisable()
@@ -107,6 +109,7 @@ public class FlightSchoolInstructorController : MonoBehaviour
             gameTimeManager.GameTimeAdvanced -= HandleGameTimeAdvanced;
 
         subscribedToGameTime = false;
+        CancelDecisionEvent();
     }
 
     private void SubscribeToGameTime()
@@ -126,40 +129,6 @@ public class FlightSchoolInstructorController : MonoBehaviour
         {
             ReturnToBoard();
         }
-
-        if (!initialized || movement == null || movement.IsMoving ||
-            GameTimeManager.SimulationTime < nextActionTime)
-        {
-            return;
-        }
-
-        if (state == InstructorState.BoardPause)
-        {
-            if (pendingWelcomeStudents.Count > 0)
-            {
-                FlightSchoolStudentAgent welcome = pendingWelcomeStudents.Dequeue();
-                BeginStudentVisit(welcome, true);
-                return;
-            }
-
-            if (GameTimeManager.SimulationTime >= nextStudentVisitTime &&
-                TryChooseStudentToVisit())
-            {
-                return;
-            }
-
-            if (GameTimeManager.SimulationTime >= nextDemonstrationTime)
-            {
-                BeginDemonstration();
-                return;
-            }
-
-            MoveToBoardPoint(movingToRight ? 1 : 0);
-        }
-        else if (state == InstructorState.DemonstrationPause)
-        {
-            ReturnToBoard();
-        }
     }
 
     public void NotifyStudentArrived(FlightSchoolStudentAgent student)
@@ -168,6 +137,7 @@ public class FlightSchoolInstructorController : MonoBehaviour
             return;
 
         pendingWelcomeStudents.Enqueue(student);
+        ScheduleNextDecision();
     }
 
     private bool TryChooseStudentToVisit()
@@ -273,6 +243,7 @@ public class FlightSchoolInstructorController : MonoBehaviour
             movingToRight = !movingToRight;
             nextActionTime = GameTimeManager.SimulationTime + 2f;
             state = InstructorState.BoardPause;
+            ScheduleNextDecision();
         }
     }
 
@@ -298,6 +269,7 @@ public class FlightSchoolInstructorController : MonoBehaviour
                 nextActionTime = GameTimeManager.SimulationTime +
                     Random.Range(boardPauseMinimum, boardPauseMaximum);
                 movingToRight = !movingToRight;
+                ScheduleNextDecision();
                 break;
 
             case InstructorState.MovingToStudent:
@@ -341,6 +313,7 @@ public class FlightSchoolInstructorController : MonoBehaviour
         state = InstructorState.BoardPause;
         currentActivity = "Returning to the wallboard";
         nextActionTime = GameTimeManager.SimulationTime + 1f;
+        ScheduleNextDecision();
     }
 
     private void HandleGameTimeAdvanced(long previousSecond, long currentSecond)
@@ -388,11 +361,74 @@ public class FlightSchoolInstructorController : MonoBehaviour
     {
         nextStudentVisitTime = GameTimeManager.SimulationTime +
             Random.Range(studentVisitIntervalMinimum, studentVisitIntervalMaximum);
+        ScheduleNextDecision();
     }
 
     private void ScheduleNextDemonstration()
     {
         nextDemonstrationTime = GameTimeManager.SimulationTime +
             Random.Range(demonstrationIntervalMinimum, demonstrationIntervalMaximum);
+        ScheduleNextDecision();
+    }
+
+    private void ScheduleNextDecision()
+    {
+        if (!initialized || !isActiveAndEnabled ||
+            state != InstructorState.BoardPause || movement == null ||
+            movement.IsMoving || decisionEventId != 0)
+            return;
+
+        if (gameTimeManager == null)
+            gameTimeManager = GameTimeManager.Instance;
+
+        if (gameTimeManager == null || gameTimeManager.EventScheduler == null)
+            return;
+
+        double dueTime = System.Math.Max(
+            GameTimeManager.SimulationTime,
+            nextActionTime);
+
+        decisionEventId = gameTimeManager.EventScheduler.ScheduleAt(
+            dueTime,
+            HandleScheduledDecision);
+    }
+
+    private void HandleScheduledDecision()
+    {
+        decisionEventId = 0;
+
+        if (!initialized || !isActiveAndEnabled ||
+            state != InstructorState.BoardPause || movement == null ||
+            movement.IsMoving ||
+            GameTimeManager.SimulationTime < nextActionTime)
+            return;
+
+        if (pendingWelcomeStudents.Count > 0)
+        {
+            FlightSchoolStudentAgent welcome = pendingWelcomeStudents.Dequeue();
+            BeginStudentVisit(welcome, true);
+            return;
+        }
+
+        if (GameTimeManager.SimulationTime >= nextStudentVisitTime &&
+            TryChooseStudentToVisit())
+            return;
+
+        if (GameTimeManager.SimulationTime >= nextDemonstrationTime)
+        {
+            BeginDemonstration();
+            return;
+        }
+
+        MoveToBoardPoint(movingToRight ? 1 : 0);
+    }
+
+    private void CancelDecisionEvent()
+    {
+        if (decisionEventId != 0 &&
+            gameTimeManager != null && gameTimeManager.EventScheduler != null)
+            gameTimeManager.EventScheduler.Cancel(decisionEventId);
+
+        decisionEventId = 0;
     }
 }
