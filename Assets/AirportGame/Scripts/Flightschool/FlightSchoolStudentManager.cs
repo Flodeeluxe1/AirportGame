@@ -183,9 +183,11 @@ public class FlightSchoolStudentManager : MonoBehaviour
 
     private void HandleGameTimeAdvanced(long previousSecond, long currentSecond)
     {
-        // Keep the legacy clock-event fallback when the central scheduler is unavailable.
-        if (gameTimeManager == null || gameTimeManager.EventScheduler == null)
-            UpdateStudentDepartureTimers(currentSecond);
+        // Keep the per-second deadline check as a safety net for student departures.
+        // The scheduler normally starts the departure exactly at its due time, but
+        // this also recovers if a pending event was not registered or was cancelled
+        // during a manager lifecycle transition.
+        UpdateStudentDepartureTimers(currentSecond);
     }
 
     private void SubscribeToLessons()
