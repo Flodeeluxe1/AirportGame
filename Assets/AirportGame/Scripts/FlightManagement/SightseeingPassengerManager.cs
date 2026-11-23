@@ -714,6 +714,11 @@ public class SightseeingPassengerManager : MonoBehaviour
         }
     }
 
+    private static long GetAbsoluteGameSecond()
+    {
+        return (long)System.Math.Floor(GameTimeManager.SimulationTime);
+    }
+
     private void HandleAircraftReturned(AircraftSSTurnaroundController turnaround)
     {
         FlightGroup group = FindGroup(turnaround);
