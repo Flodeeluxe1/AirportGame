@@ -14,9 +14,8 @@ public class GridSurface : MonoBehaviour
 
     // Shared, precomputed proximity map used by ground-vehicle pathfinding.
     // It is rebuilt lazily after relevant surface changes.
-    private bool[,] groundVehicleClearanceMap;
-    private int clearanceMapFoundationRadius = -1;
-    private int clearanceMapRunwayRadius = -1;
+    private readonly Dictionary<int, bool[,]> groundVehicleClearanceMaps =
+        new Dictionary<int, bool[,]>();
     private int groundVehicleClearanceRevision;
 
     public int GroundVehicleClearanceRevision =>
@@ -112,33 +111,35 @@ public class GridSurface : MonoBehaviour
         foundationClearance = Mathf.Clamp(foundationClearance, 0, 5);
         runwayClearance = Mathf.Clamp(runwayClearance, 0, 5);
 
-        if (groundVehicleClearanceMap == null ||
-            clearanceMapFoundationRadius != foundationClearance ||
-            clearanceMapRunwayRadius != runwayClearance ||
-            groundVehicleClearanceMap.GetLength(0) != gridManager.Width ||
-            groundVehicleClearanceMap.GetLength(1) != gridManager.Height)
+        // Cache maps by both radii so vehicles with different settings can
+        // safely share GridSurface without rebuilding each other's maps.
+        int mapKey = foundationClearance * 6 + runwayClearance;
+
+        if (!groundVehicleClearanceMaps.TryGetValue(
+                mapKey,
+                out bool[,] clearanceMap) ||
+            clearanceMap.GetLength(0) != gridManager.Width ||
+            clearanceMap.GetLength(1) != gridManager.Height)
         {
-            RebuildGroundVehicleClearanceMap(
+            clearanceMap = BuildGroundVehicleClearanceMap(
                 foundationClearance,
                 runwayClearance);
+            groundVehicleClearanceMaps[mapKey] = clearanceMap;
         }
 
-        return groundVehicleClearanceMap[position.x, position.y];
+        return clearanceMap[position.x, position.y];
     }
 
-    private void RebuildGroundVehicleClearanceMap(
+    private bool[,] BuildGroundVehicleClearanceMap(
         int foundationClearance,
         int runwayClearance)
     {
-        groundVehicleClearanceMap = new bool[
+        bool[,] clearanceMap = new bool[
             gridManager.Width,
             gridManager.Height];
 
-        clearanceMapFoundationRadius = foundationClearance;
-        clearanceMapRunwayRadius = runwayClearance;
-
         if (foundationClearance == 0 && runwayClearance == 0)
-            return;
+            return clearanceMap;
 
         for (int x = 0; x < gridManager.Width; x++)
         {
@@ -150,6 +151,7 @@ public class GridSurface : MonoBehaviour
                     foundationClearance > 0)
                 {
                     MarkGroundVehicleClearanceArea(
+                        clearanceMap,
                         x,
                         z,
                         foundationClearance);
@@ -159,15 +161,19 @@ public class GridSurface : MonoBehaviour
                     runwayClearance > 0)
                 {
                     MarkGroundVehicleClearanceArea(
+                        clearanceMap,
                         x,
                         z,
                         runwayClearance);
                 }
             }
         }
+
+        return clearanceMap;
     }
 
     private void MarkGroundVehicleClearanceArea(
+        bool[,] clearanceMap,
         int sourceX,
         int sourceZ,
         int radius)
@@ -186,21 +192,18 @@ public class GridSurface : MonoBehaviour
                 if (x == sourceX && z == sourceZ)
                     continue;
 
-                groundVehicleClearanceMap[x, z] = true;
+                clearanceMap[x, z] = true;
             }
         }
     }
 
     private void InvalidateGroundVehicleClearanceMap()
     {
-        if (groundVehicleClearanceMap != null)
+        if (groundVehicleClearanceMaps.Count > 0)
         {
-            groundVehicleClearanceMap = null;
+            groundVehicleClearanceMaps.Clear();
             groundVehicleClearanceRevision++;
         }
-
-        clearanceMapFoundationRadius = -1;
-        clearanceMapRunwayRadius = -1;
     }
 
     public void SetSurface(Vector2Int position, BuildSurface surface)
