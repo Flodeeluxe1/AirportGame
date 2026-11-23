@@ -852,6 +852,9 @@ public class AircraftCargoPaxLandingTaxiController : MonoBehaviour
 
         foreach (Vector2Int cell in cachedCells)
         {
+            if (!gridManager.IsInsideGrid(cell))
+                continue;
+
             Vector3 cellWorld = gridManager.GridToWorldCenter(cell);
             float distanceSquared =
                 HorizontalDistanceSquared(worldPosition, cellWorld);
