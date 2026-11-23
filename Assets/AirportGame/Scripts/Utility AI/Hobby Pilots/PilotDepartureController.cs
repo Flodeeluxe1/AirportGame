@@ -28,6 +28,8 @@ public class PilotDepartureController : MonoBehaviour
     private Transform aircraft;
     private Action boardedCallback;
     private double nextRetryTime;
+    private GameTimeManager gameTimeManager;
+    private long retryEventId;
 
     public bool IsDeparting => isDeparting;
     public string CurrentStatus => currentStatus;
@@ -35,29 +37,44 @@ public class PilotDepartureController : MonoBehaviour
     private void Awake()
     {
         movement = GetComponent<PedestrianMovementController>();
+        gameTimeManager = GameTimeManager.Instance;
     }
 
     private void OnEnable()
     {
         if (movement == null)
             movement = GetComponent<PedestrianMovementController>();
+        if (gameTimeManager == null)
+            gameTimeManager = GameTimeManager.Instance;
 
         if (movement != null)
             movement.Arrived += HandleMovementArrived;
+
+        if (isDeparting && currentWaypoint < route.Count &&
+            movement != null && !movement.IsMoving)
+            ScheduleRetry();
     }
 
     private void OnDisable()
     {
         if (movement != null)
             movement.Arrived -= HandleMovementArrived;
+
+        CancelRetryEvent();
     }
 
     private void Update()
     {
-        if (!isDeparting || movement == null || movement.IsMoving)
+        if (!isDeparting || movement == null || movement.IsMoving ||
+            currentWaypoint >= route.Count)
             return;
 
-        if (currentWaypoint < route.Count && GameTimeManager.SimulationTime >= nextRetryTime)
+        if (gameTimeManager == null)
+            gameTimeManager = GameTimeManager.Instance;
+
+        // Keep a polling fallback only if the central scheduler is unavailable.
+        if ((gameTimeManager == null || gameTimeManager.EventScheduler == null) &&
+            GameTimeManager.SimulationTime >= nextRetryTime)
             MoveToCurrentWaypoint();
     }
 
@@ -211,11 +228,13 @@ public class PilotDepartureController : MonoBehaviour
             return;
         }
 
+        CancelRetryEvent();
         nextRetryTime = GameTimeManager.SimulationTime + retryInterval;
 
         if (!movement.MoveTo(route[currentWaypoint]))
         {
             currentStatus = $"Waiting for a path to walk-around point {currentWaypoint + 1}";
+            ScheduleRetry();
             return;
         }
 
@@ -229,6 +248,7 @@ public class PilotDepartureController : MonoBehaviour
         if (!isDeparting)
             return;
 
+        CancelRetryEvent();
         currentWaypoint++;
 
         if (currentWaypoint >= route.Count)
@@ -241,11 +261,50 @@ public class PilotDepartureController : MonoBehaviour
         MoveToCurrentWaypoint();
     }
 
+    private void ScheduleRetry()
+    {
+        if (!isActiveAndEnabled || !isDeparting ||
+            currentWaypoint >= route.Count || movement == null ||
+            movement.IsMoving || retryEventId != 0)
+            return;
+
+        if (gameTimeManager == null)
+            gameTimeManager = GameTimeManager.Instance;
+
+        if (gameTimeManager == null || gameTimeManager.EventScheduler == null)
+            return;
+
+        retryEventId = gameTimeManager.EventScheduler.ScheduleAfter(
+            Mathf.Max(0.1f, retryInterval),
+            HandleScheduledRetry);
+    }
+
+    private void HandleScheduledRetry()
+    {
+        retryEventId = 0;
+
+        if (!isActiveAndEnabled || !isDeparting ||
+            movement == null || movement.IsMoving)
+            return;
+
+        MoveToCurrentWaypoint();
+    }
+
+    private void CancelRetryEvent()
+    {
+        if (retryEventId != 0 &&
+            gameTimeManager != null && gameTimeManager.EventScheduler != null)
+            gameTimeManager.EventScheduler.Cancel(retryEventId);
+
+        retryEventId = 0;
+    }
+
     private void CompleteBoarding()
     {
         if (!isDeparting)
             return;
 
+        CancelRetryEvent();
         isDeparting = false;
         currentStatus = "Boarded";
         movement.Stop();
