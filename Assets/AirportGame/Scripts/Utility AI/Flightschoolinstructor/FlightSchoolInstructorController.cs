@@ -129,6 +129,14 @@ public class FlightSchoolInstructorController : MonoBehaviour
         {
             ReturnToBoard();
         }
+
+        if (gameTimeManager == null ||
+            gameTimeManager.EventScheduler == null)
+        {
+            if (decisionEventId == 0 &&
+                GameTimeManager.SimulationTime >= nextActionTime)
+                HandleScheduledDecision();
+        }
     }
 
     public void NotifyStudentArrived(FlightSchoolStudentAgent student)
