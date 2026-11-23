@@ -898,9 +898,12 @@ public class AirportGroundVehicleMovement : MonoBehaviour
 
     private int GetMinimumMovementCost()
     {
+        // Foundation cells are rejected as intermediate route cells, so their
+        // movement cost cannot contribute to a valid path. Including a lower
+        // foundation cost weakens the A* heuristic and can cause many extra
+        // cells to be expanded without improving route correctness.
         return Mathf.Min(
             grassMovementCost,
-            foundationMovementCost,
             tarmacMovementCost,
             taxiwayMovementCost,
             runwayMovementCost,
