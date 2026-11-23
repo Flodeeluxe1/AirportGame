@@ -448,6 +448,10 @@ public class AircraftTurnaroundController : MonoBehaviour
                 if (baggageVehicleRequestRetryTimer <= 0f)
                     RequestExternalBaggageServiceIfAvailable();
             }
+            else if (baggageServiceRetryEventId == 0)
+            {
+                ScheduleBaggageServiceRetry();
+            }
         }
         else
         {
