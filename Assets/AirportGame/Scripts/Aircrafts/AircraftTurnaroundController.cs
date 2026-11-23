@@ -367,6 +367,8 @@ public class AircraftTurnaroundController : MonoBehaviour
     [SerializeField, HideInInspector]
     private float baggageVehicleRequestRetryTimer;
 
+    private long baggageServiceRetryEventId;
+
     public bool TurnaroundStarted => turnaroundStarted;
     public bool ReadyToDepart => readyToDepart;
     public bool IsTurnaroundComplete => AllTasksCompleted();
@@ -440,13 +442,17 @@ public class AircraftTurnaroundController : MonoBehaviour
 
         if (NeedsExternalBaggageService())
         {
-            baggageVehicleRequestRetryTimer -= GameTimeManager.SimulationDeltaTime;
-            if (baggageVehicleRequestRetryTimer <= 0f)
-                RequestExternalBaggageServiceIfAvailable();
+            if (gameTimeManager == null || gameTimeManager.EventScheduler == null)
+            {
+                baggageVehicleRequestRetryTimer -= GameTimeManager.SimulationDeltaTime;
+                if (baggageVehicleRequestRetryTimer <= 0f)
+                    RequestExternalBaggageServiceIfAvailable();
+            }
         }
         else
         {
             baggageVehicleRequestRetryTimer = 0f;
+            CancelBaggageServiceRetry();
         }
 
         float deltaGameSeconds = GameTimeManager.SimulationDeltaTime;
@@ -614,14 +620,58 @@ public class AircraftTurnaroundController : MonoBehaviour
         return incomingNeeded || outgoingNeeded;
     }
 
+    private void ScheduleBaggageServiceRetry()
+    {
+        if (baggageServiceRetryEventId != 0 || gameTimeManager == null ||
+            gameTimeManager.EventScheduler == null)
+            return;
+
+        baggageServiceRetryEventId = gameTimeManager.EventScheduler.ScheduleAfter(
+            5.0,
+            HandleScheduledBaggageServiceRetry);
+    }
+
+    private void HandleScheduledBaggageServiceRetry()
+    {
+        baggageServiceRetryEventId = 0;
+        if (NeedsExternalBaggageService())
+            RequestExternalBaggageServiceIfAvailable();
+        else
+            baggageVehicleRequestRetryTimer = 0f;
+    }
+
+    private void CancelBaggageServiceRetry()
+    {
+        if (baggageServiceRetryEventId == 0)
+            return;
+
+        if (gameTimeManager != null && gameTimeManager.EventScheduler != null)
+            gameTimeManager.EventScheduler.Cancel(baggageServiceRetryEventId);
+
+        baggageServiceRetryEventId = 0;
+    }
+
+    private void OnDisable()
+    {
+        CancelBaggageServiceRetry();
+    }
+
+    private void OnEnable()
+    {
+        if (turnaroundStarted && NeedsExternalBaggageService())
+            ScheduleBaggageServiceRetry();
+    }
+
     private void RequestExternalBaggageServiceIfAvailable()
     {
         if (!NeedsExternalBaggageService())
         {
             baggageVehicleRequestRetryTimer = 0f;
+            CancelBaggageServiceRetry();
             return;
         }
 
+        ScheduleBaggageServiceRetry();
         baggageVehicleRequestRetryTimer = 5f;
 
         AirportBaggageDispatcher dispatcher =
