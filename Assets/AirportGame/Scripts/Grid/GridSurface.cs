@@ -16,10 +16,6 @@ public class GridSurface : MonoBehaviour
     // It is rebuilt lazily after relevant surface changes.
     private readonly Dictionary<int, bool[,]> groundVehicleClearanceMaps =
         new Dictionary<int, bool[,]>();
-    private int groundVehicleClearanceRevision;
-
-    public int GroundVehicleClearanceRevision =>
-        groundVehicleClearanceRevision;
 
     private readonly Dictionary<Vector2Int, GameObject> surfaceOwners =
         new Dictionary<Vector2Int, GameObject>();
@@ -200,10 +196,7 @@ public class GridSurface : MonoBehaviour
     private void InvalidateGroundVehicleClearanceMap()
     {
         if (groundVehicleClearanceMaps.Count > 0)
-        {
             groundVehicleClearanceMaps.Clear();
-            groundVehicleClearanceRevision++;
-        }
     }
 
     public void SetSurface(Vector2Int position, BuildSurface surface)
