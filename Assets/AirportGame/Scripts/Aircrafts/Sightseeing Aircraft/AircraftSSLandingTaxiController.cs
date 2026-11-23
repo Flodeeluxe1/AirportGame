@@ -363,13 +363,26 @@ public class AircraftSSLandingTaxiController : MonoBehaviour
         
         for (int i = 0; i < targets.Count; i++)
         {
-            TargetCandidate t = targets[i];
-            Vector3 world = gridManager.GridToWorldCenter(t.Cell);
+        List<TargetCandidate> candidates = new List<TargetCandidate>();
 
-            float edgeDistance =
-                GetDistanceToParkingFootprintEdge(t.Cell);
+        Vector2Int center = gridManager.WorldToGrid(worldPosition);
+        IReadOnlyList<Vector2Int> cachedCells =
+            taxiwayNetwork.GetNearbyCenterlineTaxiwayCells(
+                center, connectionSearchRadiusCells, minimumTaxiwayWidth);
 
-                    }
+        foreach (Vector2Int cell in cachedCells)
+        {
+            Vector3 cellWorld = gridManager.GridToWorldCenter(cell);
+            float distanceSquared =
+                HorizontalDistanceSquared(worldPosition, cellWorld);
+            candidates.Add(new TargetCandidate(cell, distanceSquared));
+        }
+
+        candidates.Sort((a, b) =>
+            a.DistanceSquared.CompareTo(b.DistanceSquared));
+
+        return candidates;
+    }
 
         if (targets.Count == 0)
         {
