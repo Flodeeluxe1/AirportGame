@@ -66,6 +66,9 @@ public class TaxiwayNetwork : MonoBehaviour
     private int cachedPathfindingTopologyVersion = -1;
     private readonly Dictionary<Vector2Int, TaxiwayPathCellData> pathfindingCellCache =
         new Dictionary<Vector2Int, TaxiwayPathCellData>();
+    private int cachedConnectivityTopologyVersion = -1;
+    private readonly Dictionary<int, Dictionary<Vector2Int, int>> connectivityComponentCaches =
+        new Dictionary<int, Dictionary<Vector2Int, int>>();
 
     public int TopologyVersion => topologyVersion;
 
@@ -90,6 +93,99 @@ public class TaxiwayNetwork : MonoBehaviour
     {
         EnsurePathfindingCellCache();
         return pathfindingCellCache.TryGetValue(position, out data);
+    }
+
+    /// <summary>
+    /// Quickly determines whether two cells belong to the same connected
+    /// taxiway/runway region for the requested aircraft width.
+    /// Component maps are shared and rebuilt only when the network topology changes.
+    /// </summary>
+    public bool ArePathfindingCellsConnected(
+        Vector2Int start,
+        Vector2Int target,
+        int minimumTaxiwayWidth = 1)
+    {
+        minimumTaxiwayWidth = Mathf.Max(1, minimumTaxiwayWidth);
+        EnsurePathfindingCellCache();
+
+        if (cachedConnectivityTopologyVersion != topologyVersion)
+        {
+            connectivityComponentCaches.Clear();
+            cachedConnectivityTopologyVersion = topologyVersion;
+        }
+
+        if (!connectivityComponentCaches.TryGetValue(
+                minimumTaxiwayWidth,
+                out Dictionary<Vector2Int, int> components))
+        {
+            components = BuildConnectivityComponents(minimumTaxiwayWidth);
+            connectivityComponentCaches[minimumTaxiwayWidth] = components;
+        }
+
+        return components.TryGetValue(start, out int startComponent) &&
+               components.TryGetValue(target, out int targetComponent) &&
+               startComponent == targetComponent;
+    }
+
+    private Dictionary<Vector2Int, int> BuildConnectivityComponents(
+        int minimumTaxiwayWidth)
+    {
+        Dictionary<Vector2Int, int> components =
+            new Dictionary<Vector2Int, int>(pathfindingCellCache.Count);
+        Queue<Vector2Int> queue = new Queue<Vector2Int>();
+        int nextComponentId = 0;
+
+        foreach (KeyValuePair<Vector2Int, TaxiwayPathCellData> entry in pathfindingCellCache)
+        {
+            Vector2Int start = entry.Key;
+            if (components.ContainsKey(start) ||
+                !IsUsablePathfindingCell(entry.Value, minimumTaxiwayWidth))
+                continue;
+
+            int componentId = nextComponentId++;
+            components[start] = componentId;
+            queue.Enqueue(start);
+
+            while (queue.Count > 0)
+            {
+                Vector2Int current = queue.Dequeue();
+                TaxiwayPathCellData currentData = pathfindingCellCache[current];
+
+                if (currentData.North)
+                    AddConnectedCell(current + North, componentId, minimumTaxiwayWidth, components, queue);
+                if (currentData.East)
+                    AddConnectedCell(current + East, componentId, minimumTaxiwayWidth, components, queue);
+                if (currentData.South)
+                    AddConnectedCell(current + South, componentId, minimumTaxiwayWidth, components, queue);
+                if (currentData.West)
+                    AddConnectedCell(current + West, componentId, minimumTaxiwayWidth, components, queue);
+            }
+        }
+
+        return components;
+    }
+
+    private void AddConnectedCell(
+        Vector2Int position,
+        int componentId,
+        int minimumTaxiwayWidth,
+        Dictionary<Vector2Int, int> components,
+        Queue<Vector2Int> queue)
+    {
+        if (components.ContainsKey(position) ||
+            !pathfindingCellCache.TryGetValue(position, out TaxiwayPathCellData data) ||
+            !IsUsablePathfindingCell(data, minimumTaxiwayWidth))
+            return;
+
+        components[position] = componentId;
+        queue.Enqueue(position);
+    }
+
+    private bool IsUsablePathfindingCell(
+        TaxiwayPathCellData data,
+        int minimumTaxiwayWidth)
+    {
+        return data.IsRunway || data.Width >= minimumTaxiwayWidth;
     }
 
     private void EnsurePathfindingCellCache()
