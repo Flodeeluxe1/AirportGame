@@ -78,6 +78,17 @@ public class TaxiwayPathfinder : MonoBehaviour
             return emptyPath;
         }
 
+        // Avoid a full A* search when the endpoints are in disconnected
+        // parts of the static taxiway graph. This lookup is O(1) after the
+        // shared component map has been built for this width/topology.
+        if (!taxiwayNetwork.ArePathfindingCellsConnected(
+                start,
+                target,
+                minimumTaxiwayWidth))
+        {
+            return emptyPath;
+        }
+
         if (start == target)
         {
             return new List<Vector2Int>
