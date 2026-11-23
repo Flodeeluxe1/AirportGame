@@ -66,9 +66,29 @@ public class TaxiwayNetwork : MonoBehaviour
     private int cachedPathfindingTopologyVersion = -1;
     private readonly Dictionary<Vector2Int, TaxiwayPathCellData> pathfindingCellCache =
         new Dictionary<Vector2Int, TaxiwayPathCellData>();
+    private readonly Dictionary<AccessPointCacheKey, IReadOnlyList<Vector2Int>> accessPointCache =
+        new Dictionary<AccessPointCacheKey, IReadOnlyList<Vector2Int>>();
     private int cachedConnectivityTopologyVersion = -1;
     private readonly Dictionary<int, Dictionary<Vector2Int, int>> connectivityComponentCaches =
         new Dictionary<int, Dictionary<Vector2Int, int>>();
+
+    private struct AccessPointCacheKey
+    {
+        public Vector2Int Center;
+        public int Radius;
+        public int MinimumWidth;
+        public AccessPointCacheKey(Vector2Int center, int radius, int minimumWidth)
+        { Center = center; Radius = radius; MinimumWidth = minimumWidth; }
+        public override bool Equals(object obj)
+        {
+            if (!(obj is AccessPointCacheKey other)) return false;
+            return Center == other.Center && Radius == other.Radius && MinimumWidth == other.MinimumWidth;
+        }
+        public override int GetHashCode()
+        {
+            unchecked { int hash = Center.GetHashCode(); hash = (hash * 397) ^ Radius; return (hash * 397) ^ MinimumWidth; }
+        }
+    }
 
     public int TopologyVersion => topologyVersion;
 
@@ -194,6 +214,7 @@ public class TaxiwayNetwork : MonoBehaviour
             return;
 
         pathfindingCellCache.Clear();
+        accessPointCache.Clear();
 
         foreach (KeyValuePair<Vector2Int, TaxiwayCell> entry in taxiwayCells)
         {
@@ -231,6 +252,33 @@ public class TaxiwayNetwork : MonoBehaviour
         }
 
         cachedPathfindingTopologyVersion = topologyVersion;
+    }
+
+    /// <summary>Returns cached nearby taxiway centerline access cells for a destination footprint.</summary>
+    public IReadOnlyList<Vector2Int> GetNearbyCenterlineTaxiwayCells(
+        Vector2Int center, int radius, int minimumTaxiwayWidth)
+    {
+        radius = Mathf.Max(0, radius);
+        minimumTaxiwayWidth = Mathf.Max(1, minimumTaxiwayWidth);
+        EnsurePathfindingCellCache();
+        AccessPointCacheKey key = new AccessPointCacheKey(center, radius, minimumTaxiwayWidth);
+        if (accessPointCache.TryGetValue(key, out IReadOnlyList<Vector2Int> cached))
+            return cached;
+
+        List<Vector2Int> candidates = new List<Vector2Int>();
+        for (int dx = -radius; dx <= radius; dx++)
+        {
+            for (int dz = -radius; dz <= radius; dz++)
+            {
+                Vector2Int cell = new Vector2Int(center.x + dx, center.y + dz);
+                if (!pathfindingCellCache.TryGetValue(cell, out TaxiwayPathCellData data) ||
+                    data.IsRunway || !data.IsCenterline || data.Width < minimumTaxiwayWidth)
+                    continue;
+                candidates.Add(cell);
+            }
+        }
+        accessPointCache[key] = candidates;
+        return candidates;
     }
 
     public bool IsTaxiway(Vector2Int position)
