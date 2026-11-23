@@ -23,6 +23,16 @@ public class TaxiwayPathfinder : MonoBehaviour
     [TextArea(2, 5)]
     public string debugLastResult = "No pathfinding test run.";
 
+    private readonly MinPriorityQueue openSet = new MinPriorityQueue();
+    private readonly Dictionary<Vector2Int, Vector2Int> cameFrom =
+        new Dictionary<Vector2Int, Vector2Int>();
+    private readonly Dictionary<Vector2Int, float> gScore =
+        new Dictionary<Vector2Int, float>();
+    private readonly HashSet<Vector2Int> closedSet =
+        new HashSet<Vector2Int>();
+    private readonly HashSet<Vector2Int> startSet =
+        new HashSet<Vector2Int>();
+
     private void Awake()
     {
         if (taxiwayNetwork == null)
@@ -76,17 +86,10 @@ public class TaxiwayPathfinder : MonoBehaviour
             };
         }
 
-        MinPriorityQueue openSet =
-            new MinPriorityQueue();
-
-        Dictionary<Vector2Int, Vector2Int> cameFrom =
-            new Dictionary<Vector2Int, Vector2Int>();
-
-        Dictionary<Vector2Int, float> gScore =
-            new Dictionary<Vector2Int, float>();
-
-        HashSet<Vector2Int> closedSet =
-            new HashSet<Vector2Int>();
+        openSet.Clear();
+        cameFrom.Clear();
+        gScore.Clear();
+        closedSet.Clear();
 
         gScore[start] = 0f;
 
@@ -176,10 +179,10 @@ public class TaxiwayPathfinder : MonoBehaviour
         if (targetCount == 0)
             return new List<Vector2Int>();
 
-        MinPriorityQueue openSet = new MinPriorityQueue();
-        Dictionary<Vector2Int, Vector2Int> cameFrom = new Dictionary<Vector2Int, Vector2Int>();
-        Dictionary<Vector2Int, float> gScore = new Dictionary<Vector2Int, float>();
-        HashSet<Vector2Int> closedSet = new HashSet<Vector2Int>();
+        openSet.Clear();
+        cameFrom.Clear();
+        gScore.Clear();
+        closedSet.Clear();
 
         gScore[start] = 0f;
         openSet.Enqueue(
@@ -258,12 +261,13 @@ public class TaxiwayPathfinder : MonoBehaviour
         HashSet<Vector2Int> closedSet)
     {
         if (closedSet.Contains(next) ||
-            !IsSuitableGroundMovementCell(next, minimumTaxiwayWidth))
+            !taxiwayNetwork.TryGetPathfindingCellData(next, out TaxiwayPathCellData cellData) ||
+            (!cellData.IsRunway && cellData.Width < minimumTaxiwayWidth))
             return;
 
-        float movementCost = taxiwayNetwork.IsRunway(next)
+        float movementCost = cellData.IsRunway
             ? 100f
-            : taxiwayNetwork.IsCenterlineCell(next) ? 1f : offCenterlineCost;
+            : cellData.IsCenterline ? 1f : offCenterlineCost;
 
         float tentative = currentGScore + movementCost;
         if (gScore.TryGetValue(next, out float oldScore) && tentative >= oldScore)
@@ -318,11 +322,11 @@ public class TaxiwayPathfinder : MonoBehaviour
         if (targetCount == 0)
             return new List<Vector2Int>();
 
-        HashSet<Vector2Int> startSet = new HashSet<Vector2Int>();
-        MinPriorityQueue openSet = new MinPriorityQueue();
-        Dictionary<Vector2Int, Vector2Int> cameFrom = new Dictionary<Vector2Int, Vector2Int>();
-        Dictionary<Vector2Int, float> gScore = new Dictionary<Vector2Int, float>();
-        HashSet<Vector2Int> closedSet = new HashSet<Vector2Int>();
+        startSet.Clear();
+        openSet.Clear();
+        cameFrom.Clear();
+        gScore.Clear();
+        closedSet.Clear();
 
         foreach (Vector2Int start in starts)
         {
@@ -423,19 +427,15 @@ public class TaxiwayPathfinder : MonoBehaviour
         HashSet<Vector2Int> closedSet)
     {
         if (closedSet.Contains(next) ||
-            !IsSuitableGroundMovementCell(next, minimumTaxiwayWidth))
+            !taxiwayNetwork.TryGetPathfindingCellData(next, out TaxiwayPathCellData cellData) ||
+            (!cellData.IsRunway && cellData.Width < minimumTaxiwayWidth))
         {
             return;
         }
 
-        float movementCost;
-
-        if (taxiwayNetwork.IsRunway(next))
-            movementCost = 100f;
-        else
-            movementCost = taxiwayNetwork.IsCenterlineCell(next)
-                ? 1f
-                : offCenterlineCost;
+        float movementCost = cellData.IsRunway
+            ? 100f
+            : cellData.IsCenterline ? 1f : offCenterlineCost;
 
         float tentativeGScore = currentGScore + movementCost;
 
@@ -483,16 +483,13 @@ public class TaxiwayPathfinder : MonoBehaviour
         Vector2Int cell,
         int minimumTaxiwayWidth)
     {
-        if (!taxiwayNetwork.IsGroundMovementCell(cell))
+        if (!taxiwayNetwork.TryGetPathfindingCellData(
+                cell, out TaxiwayPathCellData cellData))
             return false;
 
-        // Runway cells are traversable regardless of taxiway-width rules.
-        if (taxiwayNetwork.IsRunway(cell))
-            return true;
-
-        // Taxiway width restrictions remain unchanged.
-        return taxiwayNetwork.GetTaxiwayWidth(cell) >=
-               minimumTaxiwayWidth;
+        // Runway cells remain traversable regardless of taxiway-width rules.
+        return cellData.IsRunway ||
+               cellData.Width >= minimumTaxiwayWidth;
     }
 
     private float GetHeuristic(
@@ -591,6 +588,12 @@ public class TaxiwayPathfinder : MonoBehaviour
 
         public int Count => nodes.Count;
         public float PeekPriority => nodes.Count > 0 ? nodes[0].Priority : float.MaxValue;
+
+        public void Clear()
+        {
+            nodes.Clear();
+            orderCounter = 0;
+        }
 
         public void Enqueue(
             Vector2Int position,
