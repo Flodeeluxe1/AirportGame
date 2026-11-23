@@ -75,6 +75,7 @@ public class FlightSchoolStudentManager : MonoBehaviour
         public bool waitingAfterLesson;
         public bool departing;
         public long departureReadyAtGameSeconds;
+        public long departureEventId;
         public GameObject pendingAircraft;
     }
 
@@ -182,7 +183,9 @@ public class FlightSchoolStudentManager : MonoBehaviour
 
     private void HandleGameTimeAdvanced(long previousSecond, long currentSecond)
     {
-        UpdateStudentDepartureTimers(currentSecond);
+        // Keep the legacy clock-event fallback when the central scheduler is unavailable.
+        if (gameTimeManager == null || gameTimeManager.EventScheduler == null)
+            UpdateStudentDepartureTimers(currentSecond);
     }
 
     private void SubscribeToLessons()
@@ -730,6 +733,7 @@ public class FlightSchoolStudentManager : MonoBehaviour
             record.waitingAfterLesson = true;
             record.departureReadyAtGameSeconds =
                 GetAbsoluteGameTimeSeconds() + StudentReturnWaitSeconds;
+            ScheduleStudentDeparture(record);
 
             debugStatus =
                 $"Student returned to Flight School at {record.roomAnchor}; " +
@@ -951,7 +955,6 @@ public class FlightSchoolStudentManager : MonoBehaviour
 
     private void UpdateStudentDepartureTimers(long currentGameSeconds)
     {
-
         for (int i = 0; i < students.Count; i++)
         {
             StudentRecord record = students[i];
@@ -968,11 +971,69 @@ public class FlightSchoolStudentManager : MonoBehaviour
         }
     }
 
+    private void SchedulePendingStudentDepartures()
+    {
+        for (int i = 0; i < students.Count; i++)
+        {
+            StudentRecord record = students[i];
+            if (record != null && record.waitingAfterLesson && !record.departing)
+                ScheduleStudentDeparture(record);
+        }
+    }
+
+    private void ScheduleStudentDeparture(StudentRecord record)
+    {
+        if (record == null || !record.waitingAfterLesson || record.departing ||
+            record.departureEventId != 0)
+            return;
+
+        if (gameTimeManager == null)
+            gameTimeManager = GameTimeManager.Instance;
+
+        if (gameTimeManager == null || gameTimeManager.EventScheduler == null)
+            return;
+
+        record.departureEventId = gameTimeManager.EventScheduler.ScheduleAt(
+            record.departureReadyAtGameSeconds,
+            () => HandleScheduledStudentDeparture(record));
+    }
+
+    private void HandleScheduledStudentDeparture(StudentRecord record)
+    {
+        if (record == null)
+            return;
+
+        record.departureEventId = 0;
+        if (!record.waitingAfterLesson || record.departing)
+            return;
+
+        long now = GetAbsoluteGameTimeSeconds();
+        if (now < record.departureReadyAtGameSeconds)
+        {
+            ScheduleStudentDeparture(record);
+            return;
+        }
+
+        BeginStudentDeparture(record);
+    }
+
+    private void CancelStudentDeparture(StudentRecord record)
+    {
+        if (record == null || record.departureEventId == 0)
+            return;
+
+        if (gameTimeManager != null && gameTimeManager.EventScheduler != null)
+            gameTimeManager.EventScheduler.Cancel(record.departureEventId);
+
+        record.departureEventId = 0;
+    }
+
     private void BeginStudentDeparture(StudentRecord record)
     {
         if (record == null || record.departing)
             return;
 
+        CancelStudentDeparture(record);
         record.departing = true;
         record.waitingAfterLesson = false;
         record.returningFromLesson = false;
@@ -1305,6 +1366,17 @@ public class FlightSchoolStudentManager : MonoBehaviour
         student.SeatReached -= HandleStudentSeated;
         student.AircraftReached -= HandleStudentReachedAircraft;
         student.PathFailed -= HandleStudentPathFailed;
+    }
+
+    private void OnEnable()
+    {
+        SchedulePendingStudentDepartures();
+    }
+
+    private void OnDisable()
+    {
+        for (int i = 0; i < students.Count; i++)
+            CancelStudentDeparture(students[i]);
     }
 
     private void OnDestroy()
