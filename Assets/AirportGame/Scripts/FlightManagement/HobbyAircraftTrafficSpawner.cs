@@ -107,6 +107,8 @@ public class HobbyAircraftTrafficSpawner : MonoBehaviour
     private const long SecondsPerDay = 86400L;
 
     private bool initialized;
+    private long nextDemandCheckGameSeconds;
+    private long lastObservedGameSeconds = -1;
     private bool previousTestFlightMode;
     private bool warnedMissingAirportRatingManager;
 
@@ -157,6 +159,9 @@ public class HobbyAircraftTrafficSpawner : MonoBehaviour
             return;
         }
 
+        long now = GetCurrentGameSeconds();
+        nextDemandCheckGameSeconds = now + GetCheckIntervalSeconds();
+        lastObservedGameSeconds = now;
         initialized = true;
 
         previousTestFlightMode = testFlightMode;
@@ -210,6 +215,9 @@ public class HobbyAircraftTrafficSpawner : MonoBehaviour
             }
             else
             {
+                long now = GetCurrentGameSeconds();
+                lastObservedGameSeconds = now;
+                nextDemandCheckGameSeconds = now + GetCheckIntervalSeconds();
                 debugStatus = "Test flight mode disabled; normal demand resumed";
                 Log("Hobby test flight mode disabled.", this);
                 ScheduleNextSpawnAttempt(GetCheckIntervalSeconds());
@@ -252,14 +260,40 @@ public class HobbyAircraftTrafficSpawner : MonoBehaviour
         }
         else
         {
-            // One demand roll per elapsed interval. Rescheduling from the
-            // current simulation time prevents catch-up spawn bursts.
-            TrySpawnVisitor(ignoreDemandRoll: false);
+            long now = GetCurrentGameSeconds();
+
+            // Preserve the original demand-check cadence when simulation time
+            // jumps: process elapsed checks, but allow at most one spawn.
+            if (lastObservedGameSeconds >= 0 && now < lastObservedGameSeconds)
+            {
+                nextDemandCheckGameSeconds = now + GetCheckIntervalSeconds();
+                lastObservedGameSeconds = now;
+                debugStatus = "Game clock reset; demand timer restarted";
+            }
+            else
+            {
+                lastObservedGameSeconds = now;
+                bool spawnedThisUpdate = false;
+                int checksProcessed = 0;
+
+                while (nextDemandCheckGameSeconds <= now && checksProcessed < 512)
+                {
+                    nextDemandCheckGameSeconds += GetCheckIntervalSeconds();
+                    checksProcessed++;
+
+                    if (!spawnedThisUpdate && TrySpawnVisitor(ignoreDemandRoll: false))
+                        spawnedThisUpdate = true;
+                }
+
+                if (nextDemandCheckGameSeconds <= now)
+                    nextDemandCheckGameSeconds = now + GetCheckIntervalSeconds();
+            }
         }
 
-        ScheduleNextSpawnAttempt(testMode
+        double nextDelay = testMode
             ? Mathf.Max(1f, testSpawnIntervalSeconds)
-            : GetCheckIntervalSeconds());
+            : System.Math.Max(0L, nextDemandCheckGameSeconds - GetCurrentGameSeconds());
+        ScheduleNextSpawnAttempt(nextDelay);
     }
 
     private bool TrySpawnVisitor(bool ignoreDemandRoll)
