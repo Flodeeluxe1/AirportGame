@@ -30,9 +30,9 @@ public class AirportGroundVehicleMovement : MonoBehaviour
     [SerializeField] private int roadMovementCost = 5;
 
     [Header("Clearance")]
-    [Range(0, 5)]
+    [Range(1, 5)]
     [SerializeField] private int foundationClearance = 1;
-    [Range(0, 5)]
+    [Range(1, 5)]
     [SerializeField] private int runwayClearance = 1;
 
     [Header("Pathfinding")]
@@ -86,6 +86,11 @@ public class AirportGroundVehicleMovement : MonoBehaviour
         new Dictionary<Vector2Int, int>(256);
     private readonly HashSet<Vector2Int> pathClosedSet =
         new HashSet<Vector2Int>();
+
+    // Reuse clearance results during one path-search frame. The cache is
+    // cleared each frame so changes to the grid are picked up.
+    private readonly Dictionary<Vector2Int, bool> clearanceCache =
+        new Dictionary<Vector2Int, bool>(256);
 
     private static readonly Vector2Int[] PathNeighborOffsets =
     {
@@ -200,8 +205,8 @@ public class AirportGroundVehicleMovement : MonoBehaviour
         runwayMovementCost = Mathf.Max(1, runwayMovementCost);
         pedestrianTarmacMovementCost = Mathf.Max(1, pedestrianTarmacMovementCost);
         roadMovementCost = Mathf.Max(1, roadMovementCost);
-        foundationClearance = Mathf.Clamp(foundationClearance, 0, 5);
-        runwayClearance = Mathf.Clamp(runwayClearance, 0, 5);
+        foundationClearance = Mathf.Clamp(foundationClearance, 1, 5);
+        runwayClearance = Mathf.Clamp(runwayClearance, 1, 5);
 
         movementHeight = transform.position.y + groundHeightOffset;
     }
@@ -297,7 +302,6 @@ public class AirportGroundVehicleMovement : MonoBehaviour
             Fail("Cannot move: one or more grid references are missing.");
             return false;
         }
-
         Vector2Int startCell =
             gridManager.WorldToGrid(transform.position);
 
@@ -496,6 +500,7 @@ public class AirportGroundVehicleMovement : MonoBehaviour
         // Clamp existing serialized component values too, so older prefabs
         // configured to 200 also receive the safer per-frame cap.
         int frameNodeLimit = Mathf.Clamp(maxPathNodesPerFrame, 1, 50);
+        clearanceCache.Clear();
         pathSearchFrames++;
 
         while (pathOpenSet.Count > 0 && nodesProcessed < frameNodeLimit)
@@ -597,8 +602,7 @@ public class AirportGroundVehicleMovement : MonoBehaviour
                 if (pathGScore.TryGetValue(neighbor, out int existingScore) &&
                     tentativeScore >= existingScore)
                 {
-                    continue;
-                }
+                    continue;                }
 
                 pathCameFrom[neighbor] = current;
                 pathGScore[neighbor] = tentativeScore;
@@ -788,12 +792,18 @@ public class AirportGroundVehicleMovement : MonoBehaviour
 
     private bool IsWithinFoundationOrRunwayClearance(Vector2Int cell)
     {
+        if (clearanceCache.TryGetValue(cell, out bool cachedResult))
+            return cachedResult;
+
         int searchRadius = Mathf.Max(
             foundationClearance,
             runwayClearance);
 
         if (searchRadius <= 0)
+        {
+            clearanceCache[cell] = false;
             return false;
+        }
 
         for (int x = -searchRadius; x <= searchRadius; x++)
         {
@@ -836,11 +846,13 @@ public class AirportGroundVehicleMovement : MonoBehaviour
                     (checkRunway &&
                      surface == BuildSurface.Runway))
                 {
+                    clearanceCache[cell] = true;
                     return true;
                 }
             }
         }
 
+        clearanceCache[cell] = false;
         return false;
     }
 
@@ -897,8 +909,7 @@ public class AirportGroundVehicleMovement : MonoBehaviour
             if (!cameFrom.TryGetValue(current, out Vector2Int previous))
                 return new List<Vector2Int>();
 
-            current = previous;
-            path.Add(current);
+            current = previous;            path.Add(current);
         }
 
         path.Reverse();
@@ -1197,8 +1208,7 @@ public class AirportGroundVehicleMovement : MonoBehaviour
                 cumulativeDistance[i - 1] + segmentLength;
 
             if (cellSize <= 0.001f && segmentLength > 0.001f)
-                cellSize = segmentLength;
-        }
+                cellSize = segmentLength;        }
 
         if (cellSize <= 0.001f)
         {
@@ -1497,7 +1507,6 @@ public class AirportGroundVehicleMovement : MonoBehaviour
                     : Vector3.forward);
 
         finalDirection.y = 0f;
-
         if (finalDirection.sqrMagnitude < 0.0001f)
             finalDirection = Vector3.back;
 
