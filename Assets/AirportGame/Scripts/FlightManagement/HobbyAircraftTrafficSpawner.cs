@@ -39,7 +39,6 @@ public class HobbyAircraftTrafficSpawner : MonoBehaviour
     public GameObject HobbyAircraftPrefab => hobbyAircraftPrefab;
 
     private long scheduledSpawnEventId;
-    private bool scheduledTestMode;
 
     [Header("Daily Demand")]
     [Tooltip("Expected daily visitors before parking capacity is added.")]
@@ -169,7 +168,6 @@ public class HobbyAircraftTrafficSpawner : MonoBehaviour
         initialized = true;
 
         previousTestFlightMode = testFlightMode;
-        scheduledTestMode = testFlightMode;
         ScheduleNextSpawnAttempt(testFlightMode
             ? Mathf.Max(1f, testSpawnIntervalSeconds)
             : GetCheckIntervalSeconds());
@@ -186,6 +184,16 @@ public class HobbyAircraftTrafficSpawner : MonoBehaviour
         );
     }
 
+    private void OnEnable()
+    {
+        if (initialized)
+        {
+            ScheduleNextSpawnAttempt(testFlightMode
+                ? Mathf.Max(1f, testSpawnIntervalSeconds)
+                : GetCheckIntervalSeconds());
+        }
+    }
+
     private void OnDisable()
     {
         CancelScheduledSpawnAttempt();
@@ -200,7 +208,6 @@ public class HobbyAircraftTrafficSpawner : MonoBehaviour
         if (testFlightMode != previousTestFlightMode)
         {
             previousTestFlightMode = testFlightMode;
-            scheduledTestMode = testFlightMode;
             CancelScheduledSpawnAttempt();
 
             if (testFlightMode)
