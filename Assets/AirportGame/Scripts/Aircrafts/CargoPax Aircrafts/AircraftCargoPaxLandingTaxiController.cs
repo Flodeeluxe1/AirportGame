@@ -382,33 +382,11 @@ public class AircraftCargoPaxLandingTaxiController : MonoBehaviour
 
         if (targets.Count == 0)
         {
-        List<TaxiwayCandidate> candidates = new List<TaxiwayCandidate>();
-
-        Vector2Int center = gridManager.WorldToGrid(worldPosition);
-        IReadOnlyList<Vector2Int> cachedCells =
-            taxiwayNetwork.GetNearbyCenterlineTaxiwayCells(
-                center, connectionSearchRadiusCells, minimumTaxiwayWidth);
-
-        foreach (Vector2Int cell in cachedCells)
-        {
-            Vector3 cellWorld = gridManager.GridToWorldCenter(cell);
-            float distanceSquared =
-                HorizontalDistanceSquared(worldPosition, cellWorld);
-            candidates.Add(new TaxiwayCandidate(cell, distanceSquared));
+            SetFailure(
+                $"No suitable taxiway centerline was found near " +
+                $"{assignedGate.DisplayName}.");
+            return;
         }
-
-        candidates.Sort((a, b) =>
-            a.DistanceSquared.CompareTo(b.DistanceSquared));
-
-        if (candidates.Count > maximumConnectionCandidates)
-        {
-            candidates.RemoveRange(
-                maximumConnectionCandidates,
-                candidates.Count - maximumConnectionCandidates);
-        }
-
-        return candidates;
-    }
 
         bool routeFound = false;
         int attempts = 0;
@@ -865,38 +843,19 @@ public class AircraftCargoPaxLandingTaxiController : MonoBehaviour
         Vector3 worldPosition,
         int minimumTaxiwayWidth)
     {
-        List<TaxiwayCandidate> candidates =
-            new List<TaxiwayCandidate>();
+        List<TaxiwayCandidate> candidates = new List<TaxiwayCandidate>();
 
         Vector2Int center = gridManager.WorldToGrid(worldPosition);
-        int radius = connectionSearchRadiusCells;
+        IReadOnlyList<Vector2Int> cachedCells =
+            taxiwayNetwork.GetNearbyCenterlineTaxiwayCells(
+                center, connectionSearchRadiusCells, minimumTaxiwayWidth);
 
-        for (int xOffset = -radius; xOffset <= radius; xOffset++)
+        foreach (Vector2Int cell in cachedCells)
         {
-            for (int zOffset = -radius; zOffset <= radius; zOffset++)
-            {
-                Vector2Int cell = new Vector2Int(
-                    center.x + xOffset,
-                    center.y + zOffset);
-
-                if (!gridManager.IsInsideGrid(cell))
-                    continue;
-
-                if (!taxiwayNetwork.IsTaxiway(cell) ||
-                    !taxiwayNetwork.IsCenterlineCell(cell))
-                    continue;
-
-                if (taxiwayNetwork.GetTaxiwayWidth(cell) <
-                    minimumTaxiwayWidth)
-                    continue;
-
-                Vector3 cellPosition =
-                    gridManager.GridToWorldCenter(cell);
-
-                candidates.Add(new TaxiwayCandidate(
-                    cell,
-                    HorizontalDistanceSquared(worldPosition, cellPosition)));
-            }
+            Vector3 cellWorld = gridManager.GridToWorldCenter(cell);
+            float distanceSquared =
+                HorizontalDistanceSquared(worldPosition, cellWorld);
+            candidates.Add(new TaxiwayCandidate(cell, distanceSquared));
         }
 
         candidates.Sort((a, b) =>
