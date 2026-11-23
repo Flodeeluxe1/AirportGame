@@ -2,6 +2,17 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+public struct TaxiwayPathCellData
+{
+    public int Width;
+    public bool IsRunway;
+    public bool IsCenterline;
+    public bool North;
+    public bool East;
+    public bool South;
+    public bool West;
+}
+
 public class TaxiwayNetwork : MonoBehaviour
 {
     [Header("Debug")]
@@ -52,6 +63,9 @@ public class TaxiwayNetwork : MonoBehaviour
         new HashSet<Vector2Int>();
 
     private int topologyVersion;
+    private int cachedPathfindingTopologyVersion = -1;
+    private readonly Dictionary<Vector2Int, TaxiwayPathCellData> pathfindingCellCache =
+        new Dictionary<Vector2Int, TaxiwayPathCellData>();
 
     public int TopologyVersion => topologyVersion;
 
@@ -69,6 +83,59 @@ public class TaxiwayNetwork : MonoBehaviour
 
     private static readonly Vector2Int West =
         new Vector2Int(-1, 0);
+
+    public bool TryGetPathfindingCellData(
+        Vector2Int position,
+        out TaxiwayPathCellData data)
+    {
+        EnsurePathfindingCellCache();
+        return pathfindingCellCache.TryGetValue(position, out data);
+    }
+
+    private void EnsurePathfindingCellCache()
+    {
+        if (cachedPathfindingTopologyVersion == topologyVersion)
+            return;
+
+        pathfindingCellCache.Clear();
+
+        foreach (KeyValuePair<Vector2Int, TaxiwayCell> entry in taxiwayCells)
+        {
+            Vector2Int position = entry.Key;
+            TaxiwayCell cell = entry.Value;
+
+            pathfindingCellCache[position] = new TaxiwayPathCellData
+            {
+                Width = cell.Definition != null
+                    ? Mathf.Max(1, cell.Definition.width)
+                    : 1,
+                IsRunway = false,
+                IsCenterline = centerlineCells.Contains(position),
+                North = IsGroundMovementCell(position + North),
+                East = IsGroundMovementCell(position + East),
+                South = IsGroundMovementCell(position + South),
+                West = IsGroundMovementCell(position + West)
+            };
+        }
+
+        foreach (KeyValuePair<Vector2Int, RunwayCell> entry in runwayCells)
+        {
+            Vector2Int position = entry.Key;
+
+            pathfindingCellCache[position] = new TaxiwayPathCellData
+            {
+                Width = int.MaxValue,
+                IsRunway = true,
+                IsCenterline = runwayCenterlineCells.Contains(position),
+                North = IsGroundMovementCell(position + North),
+                East = IsGroundMovementCell(position + East),
+                South = IsGroundMovementCell(position + South),
+                West = IsGroundMovementCell(position + West)
+            };
+        }
+
+        cachedPathfindingTopologyVersion = topologyVersion;
+    }
 
     public bool IsTaxiway(Vector2Int position)
     {
