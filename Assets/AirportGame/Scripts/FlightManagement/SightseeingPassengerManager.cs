@@ -305,7 +305,9 @@ public class SightseeingPassengerManager : MonoBehaviour
         if (group.nextCarSpawnIndex < group.carSpawnCount &&
             carSpawnIntervalGameSeconds > 0f)
         {
-            ScheduleNextPassengerCar(group, carSpawnIntervalGameSeconds);
+            ScheduleNextPassengerCar(
+                group,
+                Mathf.Max(1, Mathf.CeilToInt(carSpawnIntervalGameSeconds)));
         }
         else if (group.nextCarSpawnIndex < group.carSpawnCount)
         {
@@ -336,7 +338,9 @@ public class SightseeingPassengerManager : MonoBehaviour
             if (group != null && !group.cancelled &&
                 group.nextCarSpawnIndex < group.carSpawnCount &&
                 group.carSpawnEventId == 0)
-                ScheduleNextPassengerCar(group, carSpawnIntervalGameSeconds);
+                ScheduleNextPassengerCar(
+                group,
+                Mathf.Max(1, Mathf.CeilToInt(carSpawnIntervalGameSeconds)));
         }
     }
 
