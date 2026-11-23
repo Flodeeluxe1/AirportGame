@@ -31,6 +31,9 @@ public class AirlineContractPerformanceTracker : MonoBehaviour
     public event Action<ActiveAirlineContract> PerformanceUpdated;
     public event Action<AirlineDefinition, float> RelationshipUpdated;
 
+    private long dailyFinalizationEventId;
+    private bool hasStarted;
+
     private void Awake()
     {
         ResolveReferences();
@@ -42,22 +45,22 @@ public class AirlineContractPerformanceTracker : MonoBehaviour
     {
         ResolveReferences();
         AircraftCargoPaxTakeoffController.ContractFlightDepartureCompleted += HandleFlightDepartureCompleted;
-        if (gameTimeManager != null)
-            gameTimeManager.GameTimeAdvanced += HandleGameTimeAdvanced;
+        SubscribeToGameTime();
         if (contractManager != null)
             contractManager.ContractCompleted += HandleContractCompleted;
+
+        if (hasStarted)
+            ScheduleNextDailyFinalization();
     }
 
     private void Start()
     {
         ResolveReferences();
-        if (gameTimeManager != null)
-        {
-            gameTimeManager.GameTimeAdvanced -= HandleGameTimeAdvanced;
-            gameTimeManager.GameTimeAdvanced += HandleGameTimeAdvanced;
-        }
+        SubscribeToGameTime();
         SubscribeToManager();
         FinalizeElapsedContractDays();
+        hasStarted = true;
+        ScheduleNextDailyFinalization();
     }
 
     private void OnDisable()
@@ -67,6 +70,7 @@ public class AirlineContractPerformanceTracker : MonoBehaviour
             gameTimeManager.GameTimeAdvanced -= HandleGameTimeAdvanced;
         if (contractManager != null)
             contractManager.ContractCompleted -= HandleContractCompleted;
+        CancelDailyFinalizationEvent();
     }
 
     private void ResolveReferences()
@@ -87,9 +91,64 @@ public class AirlineContractPerformanceTracker : MonoBehaviour
         contractManager.ContractCompleted += HandleContractCompleted;
     }
 
+    // Listen only for explicit clock rewinds; ordinary day settlement is
+    // scheduled once at the next midnight.
     private void HandleGameTimeAdvanced(long previousAbsoluteSecond, long currentAbsoluteSecond)
     {
+        if (currentAbsoluteSecond < previousAbsoluteSecond)
+            ScheduleNextDailyFinalization();
+    }
+
+    private void SubscribeToGameTime()
+    {
+        if (gameTimeManager == null)
+            ResolveReferences();
+
+        if (gameTimeManager == null)
+            return;
+
+        gameTimeManager.GameTimeAdvanced -= HandleGameTimeAdvanced;
+        gameTimeManager.GameTimeAdvanced += HandleGameTimeAdvanced;
+    }
+
+    private void ScheduleNextDailyFinalization()
+    {
+        if (!isActiveAndEnabled || gameTimeManager == null ||
+            gameTimeManager.EventScheduler == null)
+            return;
+
+        CancelDailyFinalizationEvent();
+
+        double now = GameTimeManager.SimulationTime;
+        double nextDayBoundary =
+            (System.Math.Floor(now / SecondsPerDay) + 1.0) * SecondsPerDay;
+
+        dailyFinalizationEventId = gameTimeManager.EventScheduler.ScheduleAt(
+            nextDayBoundary,
+            HandleDailyFinalization);
+    }
+
+    private void HandleDailyFinalization()
+    {
+        dailyFinalizationEventId = 0;
+
+        if (!isActiveAndEnabled)
+            return;
+
         FinalizeElapsedContractDays();
+        ScheduleNextDailyFinalization();
+    }
+
+    private void CancelDailyFinalizationEvent()
+    {
+        if (dailyFinalizationEventId != 0 &&
+            gameTimeManager != null &&
+            gameTimeManager.EventScheduler != null)
+        {
+            gameTimeManager.EventScheduler.Cancel(dailyFinalizationEventId);
+        }
+
+        dailyFinalizationEventId = 0;
     }
 
     private void FinalizeElapsedContractDays()
