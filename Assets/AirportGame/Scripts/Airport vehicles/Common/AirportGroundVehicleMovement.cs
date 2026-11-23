@@ -37,7 +37,7 @@ public class AirportGroundVehicleMovement : MonoBehaviour
 
     [Header("Pathfinding")]
     [Range(1, 50)]
-    [SerializeField] private int maxPathNodesPerFrame = 50;
+    [SerializeField] private int maxPathNodesPerFrame = 15;
 
     [Header("Pathfinding Diagnostics")]
     [SerializeField] private int lastPathSearchFrames;
