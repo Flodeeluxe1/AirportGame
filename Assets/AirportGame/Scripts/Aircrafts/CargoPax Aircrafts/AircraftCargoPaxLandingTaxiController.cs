@@ -382,11 +382,33 @@ public class AircraftCargoPaxLandingTaxiController : MonoBehaviour
 
         if (targets.Count == 0)
         {
-            SetFailure(
-                $"No suitable taxiway centerline was found near " +
-                $"{assignedGate.DisplayName}.");
-            return;
+        List<TaxiwayCandidate> candidates = new List<TaxiwayCandidate>();
+
+        Vector2Int center = gridManager.WorldToGrid(worldPosition);
+        IReadOnlyList<Vector2Int> cachedCells =
+            taxiwayNetwork.GetNearbyCenterlineTaxiwayCells(
+                center, connectionSearchRadiusCells, minimumTaxiwayWidth);
+
+        foreach (Vector2Int cell in cachedCells)
+        {
+            Vector3 cellWorld = gridManager.GridToWorldCenter(cell);
+            float distanceSquared =
+                HorizontalDistanceSquared(worldPosition, cellWorld);
+            candidates.Add(new TaxiwayCandidate(cell, distanceSquared));
         }
+
+        candidates.Sort((a, b) =>
+            a.DistanceSquared.CompareTo(b.DistanceSquared));
+
+        if (candidates.Count > maximumConnectionCandidates)
+        {
+            candidates.RemoveRange(
+                maximumConnectionCandidates,
+                candidates.Count - maximumConnectionCandidates);
+        }
+
+        return candidates;
+    }
 
         bool routeFound = false;
         int attempts = 0;
