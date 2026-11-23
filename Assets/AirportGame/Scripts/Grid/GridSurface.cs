@@ -12,6 +12,16 @@ public class GridSurface : MonoBehaviour
 
     private BuildSurface[,] surfaces;
 
+    // Shared, precomputed proximity map used by ground-vehicle pathfinding.
+    // It is rebuilt lazily after relevant surface changes.
+    private bool[,] groundVehicleClearanceMap;
+    private int clearanceMapFoundationRadius = -1;
+    private int clearanceMapRunwayRadius = -1;
+    private int groundVehicleClearanceRevision;
+
+    public int GroundVehicleClearanceRevision =>
+        groundVehicleClearanceRevision;
+
     private readonly Dictionary<Vector2Int, GameObject> surfaceOwners =
         new Dictionary<Vector2Int, GameObject>();
 
@@ -61,6 +71,7 @@ public class GridSurface : MonoBehaviour
         {
             for (int z = 0; z < gridManager.Height; z++)
                 surfaces[x, z] = BuildSurface.Grass;
+                InvalidateGroundVehicleClearanceMap();
         }
 
         surfaceOwners.Clear();
@@ -68,6 +79,7 @@ public class GridSurface : MonoBehaviour
         taxiwayUnderlyingSurfaces.Clear();
         roadUnderlyingSurfaces.Clear();
         runwayUnderlyingSurfaces.Clear();
+        InvalidateGroundVehicleClearanceMap();
     }
 
     public BuildSurface GetSurface(Vector2Int position)
@@ -79,6 +91,116 @@ public class GridSurface : MonoBehaviour
             return BuildSurface.Grass;
 
         return surfaces[position.x, position.y];
+    }
+
+    /// <summary>
+    /// Returns the shared precomputed proximity result for foundations and
+    /// runways. Ownership exceptions are handled by the requesting vehicle.
+    /// </summary>
+    public bool IsWithinGroundVehicleClearance(
+        Vector2Int position,
+        int foundationClearance,
+        int runwayClearance)
+    {
+        if (gridManager == null ||
+            surfaces == null ||
+            !gridManager.IsInsideGrid(position))
+        {
+            return false;
+        }
+
+        foundationClearance = Mathf.Clamp(foundationClearance, 0, 5);
+        runwayClearance = Mathf.Clamp(runwayClearance, 0, 5);
+
+        if (groundVehicleClearanceMap == null ||
+            clearanceMapFoundationRadius != foundationClearance ||
+            clearanceMapRunwayRadius != runwayClearance ||
+            groundVehicleClearanceMap.GetLength(0) != gridManager.Width ||
+            groundVehicleClearanceMap.GetLength(1) != gridManager.Height)
+        {
+            RebuildGroundVehicleClearanceMap(
+                foundationClearance,
+                runwayClearance);
+        }
+
+        return groundVehicleClearanceMap[position.x, position.y];
+    }
+
+    private void RebuildGroundVehicleClearanceMap(
+        int foundationClearance,
+        int runwayClearance)
+    {
+        groundVehicleClearanceMap = new bool[
+            gridManager.Width,
+            gridManager.Height];
+
+        clearanceMapFoundationRadius = foundationClearance;
+        clearanceMapRunwayRadius = runwayClearance;
+
+        if (foundationClearance == 0 && runwayClearance == 0)
+            return;
+
+        for (int x = 0; x < gridManager.Width; x++)
+        {
+            for (int z = 0; z < gridManager.Height; z++)
+            {
+                BuildSurface surface = surfaces[x, z];
+
+                if (surface == BuildSurface.Foundation &&
+                    foundationClearance > 0)
+                {
+                    MarkGroundVehicleClearanceArea(
+                        x,
+                        z,
+                        foundationClearance);
+                }
+
+                if (surface == BuildSurface.Runway &&
+                    runwayClearance > 0)
+                {
+                    MarkGroundVehicleClearanceArea(
+                        x,
+                        z,
+                        runwayClearance);
+                }
+            }
+        }
+    }
+
+    private void MarkGroundVehicleClearanceArea(
+        int sourceX,
+        int sourceZ,
+        int radius)
+    {
+        int minX = Mathf.Max(0, sourceX - radius);
+        int maxX = Mathf.Min(gridManager.Width - 1, sourceX + radius);
+        int minZ = Mathf.Max(0, sourceZ - radius);
+        int maxZ = Mathf.Min(gridManager.Height - 1, sourceZ + radius);
+
+        for (int x = minX; x <= maxX; x++)
+        {
+            for (int z = minZ; z <= maxZ; z++)
+            {
+                // The original clearance rule checks neighbouring cells,
+                // not the source cell itself.
+                if (x == sourceX && z == sourceZ)
+                    continue;
+
+                groundVehicleClearanceMap[x, z] = true;
+            }
+        }
+    }
+
+    private void InvalidateGroundVehicleClearanceMap()
+    {
+        if (groundVehicleClearanceMap != null)
+        {
+            groundVehicleClearanceMap = null;
+            groundVehicleClearanceRevision++;
+        }
+
+        clearanceMapFoundationRadius = -1;
+        clearanceMapRunwayRadius = -1;
     }
 
     public void SetSurface(Vector2Int position, BuildSurface surface)
@@ -128,6 +250,7 @@ public class GridSurface : MonoBehaviour
         }
 
         surfaces[position.x, position.y] = surface;
+        InvalidateGroundVehicleClearanceMap();
 
         if (surface == BuildSurface.Grass)
             surfaceOwners.Remove(position);
@@ -305,6 +428,7 @@ public class GridSurface : MonoBehaviour
 
                 BuildSurface previousSurface = surfaces[cell.x, cell.y];
                 surfaces[cell.x, cell.y] = BuildSurface.Grass;
+                InvalidateGroundVehicleClearanceMap();
 
                 if (previousSurface == BuildSurface.Foundation)
                     FoundationSurfaceChanged?.Invoke();
@@ -411,6 +535,7 @@ public class GridSurface : MonoBehaviour
                     foundationChanged = true;
 
                 surfaces[x, z] = BuildSurface.Grass;
+                InvalidateGroundVehicleClearanceMap();
             }
         }
 
@@ -464,6 +589,7 @@ public class GridSurface : MonoBehaviour
         {
             BuildSurface previousSurface = surfaces[position.x, position.y];
             surfaces[position.x, position.y] = BuildSurface.Grass;
+            InvalidateGroundVehicleClearanceMap();
 
             if (previousSurface == BuildSurface.Foundation)
                 FoundationSurfaceChanged?.Invoke();
@@ -529,6 +655,7 @@ public class GridSurface : MonoBehaviour
 
                 BuildSurface previousSurface = surfaces[cell.x, cell.y];
                 surfaces[cell.x, cell.y] = BuildSurface.Road;
+                InvalidateGroundVehicleClearanceMap();
 
                 if (previousSurface == BuildSurface.Foundation)
                     FoundationSurfaceChanged?.Invoke();
@@ -559,11 +686,13 @@ public class GridSurface : MonoBehaviour
                         out BuildSurface underlyingSurface))
                 {
                     surfaces[cell.x, cell.y] = underlyingSurface;
+                    InvalidateGroundVehicleClearanceMap();
                     roadUnderlyingSurfaces.Remove(cell);
                 }
                 else if (previousSurface == BuildSurface.Road)
                 {
                     surfaces[cell.x, cell.y] = BuildSurface.Grass;
+                    InvalidateGroundVehicleClearanceMap();
                 }
 
                 BuildSurface currentSurface = surfaces[cell.x, cell.y];
@@ -593,6 +722,7 @@ public class GridSurface : MonoBehaviour
         }
 
         surfaces[position.x, position.y] = BuildSurface.Taxiway;
+        InvalidateGroundVehicleClearanceMap();
 
         if (previousSurface == BuildSurface.Foundation)
             FoundationSurfaceChanged?.Invoke();
@@ -614,12 +744,14 @@ public class GridSurface : MonoBehaviour
                 out BuildSurface underlyingSurface))
         {
             surfaces[position.x, position.y] = underlyingSurface;
+            InvalidateGroundVehicleClearanceMap();
             taxiwayUnderlyingSurfaces.Remove(position);
         }
         else if (previousSurface == BuildSurface.Taxiway)
         {
             // Fallback for taxiway cells without saved underlying data.
             surfaces[position.x, position.y] = BuildSurface.Grass;
+            InvalidateGroundVehicleClearanceMap();
         }
 
         BuildSurface currentSurface = surfaces[position.x, position.y];
@@ -653,6 +785,7 @@ public class GridSurface : MonoBehaviour
         }
 
         surfaces[position.x, position.y] = BuildSurface.Runway;
+        InvalidateGroundVehicleClearanceMap();
 
         if (previousSurface == BuildSurface.Foundation)
             FoundationSurfaceChanged?.Invoke();
@@ -674,11 +807,13 @@ public class GridSurface : MonoBehaviour
                 out BuildSurface underlyingSurface))
         {
             surfaces[position.x, position.y] = underlyingSurface;
+            InvalidateGroundVehicleClearanceMap();
             runwayUnderlyingSurfaces.Remove(position);
         }
         else if (previousSurface == BuildSurface.Runway)
         {
             surfaces[position.x, position.y] = BuildSurface.Grass;
+            InvalidateGroundVehicleClearanceMap();
         }
 
         BuildSurface currentSurface = surfaces[position.x, position.y];
