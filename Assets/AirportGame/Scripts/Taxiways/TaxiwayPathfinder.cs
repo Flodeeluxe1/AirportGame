@@ -33,6 +33,30 @@ public class TaxiwayPathfinder : MonoBehaviour
     private readonly HashSet<Vector2Int> startSet =
         new HashSet<Vector2Int>();
 
+    private struct RouteCacheKey
+    {
+        public Vector2Int Start, Target;
+        public int MinimumWidth;
+        public RouteCacheKey(Vector2Int start, Vector2Int target, int width)
+        { Start = start; Target = target; MinimumWidth = width; }
+        public override bool Equals(object obj)
+        {
+            if (!(obj is RouteCacheKey other)) return false;
+            return Start == other.Start && Target == other.Target && MinimumWidth == other.MinimumWidth;
+        }
+        public override int GetHashCode()
+        {
+            unchecked { int hash = Start.GetHashCode(); hash = (hash * 397) ^ Target.GetHashCode(); return (hash * 397) ^ MinimumWidth; }
+        }
+    }
+
+    private const int MaximumCachedRoutes = 512;
+    private readonly Dictionary<RouteCacheKey, Vector2Int[]> routeCache =
+        new Dictionary<RouteCacheKey, Vector2Int[]>();
+    private readonly Queue<RouteCacheKey> routeCacheOrder = new Queue<RouteCacheKey>();
+    private int cachedRouteTopologyVersion = -1;
+    private float cachedOffCenterlineCost = float.NaN;
+
     private void Awake()
     {
         if (taxiwayNetwork == null)
@@ -49,9 +73,38 @@ public class TaxiwayPathfinder : MonoBehaviour
     }
 
     public List<Vector2Int> FindPath(
-        Vector2Int start,
-        Vector2Int target,
-        int minimumTaxiwayWidth = 1)
+        Vector2Int start, Vector2Int target, int minimumTaxiwayWidth = 1)
+    {
+        minimumTaxiwayWidth = Mathf.Max(1, minimumTaxiwayWidth);
+        if (taxiwayNetwork == null)
+            return FindPathUncached(start, target, minimumTaxiwayWidth);
+
+        if (cachedRouteTopologyVersion != taxiwayNetwork.TopologyVersion ||
+            !Mathf.Approximately(cachedOffCenterlineCost, offCenterlineCost))
+        {
+            routeCache.Clear();
+            routeCacheOrder.Clear();
+            cachedRouteTopologyVersion = taxiwayNetwork.TopologyVersion;
+            cachedOffCenterlineCost = offCenterlineCost;
+        }
+
+        RouteCacheKey key = new RouteCacheKey(start, target, minimumTaxiwayWidth);
+        if (routeCache.TryGetValue(key, out Vector2Int[] cachedPath))
+            return new List<Vector2Int>(cachedPath);
+
+        List<Vector2Int> path = FindPathUncached(start, target, minimumTaxiwayWidth);
+        if (routeCache.Count >= MaximumCachedRoutes && routeCacheOrder.Count > 0)
+        {
+            RouteCacheKey oldest = routeCacheOrder.Dequeue();
+            routeCache.Remove(oldest);
+        }
+        routeCache[key] = path.ToArray();
+        routeCacheOrder.Enqueue(key);
+        return path;
+    }
+
+    private List<Vector2Int> FindPathUncached(
+        Vector2Int start, Vector2Int target, int minimumTaxiwayWidth)
     {
         List<Vector2Int> emptyPath =
             new List<Vector2Int>();
