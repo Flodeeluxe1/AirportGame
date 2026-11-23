@@ -38,7 +38,8 @@ public class HobbyAircraftTrafficSpawner : MonoBehaviour
 
     public GameObject HobbyAircraftPrefab => hobbyAircraftPrefab;
 
-    private double nextTestSpawnTime;
+    private long scheduledSpawnEventId;
+    private bool scheduledTestMode;
 
     [Header("Daily Demand")]
     [Tooltip("Expected daily visitors before parking capacity is added.")]
@@ -168,7 +169,10 @@ public class HobbyAircraftTrafficSpawner : MonoBehaviour
         initialized = true;
 
         previousTestFlightMode = testFlightMode;
-        nextTestSpawnTime = GameTimeManager.SimulationTime + Mathf.Max(1f, testSpawnIntervalSeconds);
+        scheduledTestMode = testFlightMode;
+        ScheduleNextSpawnAttempt(testFlightMode
+            ? Mathf.Max(1f, testSpawnIntervalSeconds)
+            : GetCheckIntervalSeconds());
 
         debugStatus = testFlightMode
             ? "Test flight mode enabled; waiting for first test spawn"
@@ -182,6 +186,11 @@ public class HobbyAircraftTrafficSpawner : MonoBehaviour
         );
     }
 
+    private void OnDisable()
+    {
+        CancelScheduledSpawnAttempt();
+    }
+
     private void Update()
     {
         if (!initialized || gameTimeManager == null)
@@ -191,98 +200,67 @@ public class HobbyAircraftTrafficSpawner : MonoBehaviour
         if (testFlightMode != previousTestFlightMode)
         {
             previousTestFlightMode = testFlightMode;
+            scheduledTestMode = testFlightMode;
+            CancelScheduledSpawnAttempt();
 
             if (testFlightMode)
             {
-                nextTestSpawnTime =
-                    GameTimeManager.SimulationTime + Mathf.Max(1f, testSpawnIntervalSeconds);
-
                 debugStatus = "Test flight mode enabled";
                 Log("Hobby test flight mode enabled.", this);
+                ScheduleNextSpawnAttempt(Mathf.Max(1f, testSpawnIntervalSeconds));
             }
             else
             {
                 debugStatus = "Test flight mode disabled; normal demand resumed";
                 Log("Hobby test flight mode disabled.", this);
+                ScheduleNextSpawnAttempt(GetCheckIntervalSeconds());
             }
-        }
-
-        if (testFlightMode)
-        {
-            UpdateTestFlightSpawning();
-            return;
-        }
-
-        UpdateNormalDemandSpawning();
-    }
-
-    private void UpdateTestFlightSpawning()
-    {
-        if (GameTimeManager.SimulationTime < nextTestSpawnTime)
-            return;
-
-        // Schedule the next attempt from the current game time. This avoids a
-        // burst of aircraft after a large simulation-time step.
-        nextTestSpawnTime =
-            GameTimeManager.SimulationTime + Mathf.Max(1f, testSpawnIntervalSeconds);
-
-        bool spawned = TrySpawnVisitor(ignoreDemandRoll: true);
-
-        if (!spawned && logDemandChecks)
-        {
-            Log(
-                $"Hobby test spawn skipped: {debugStatus}",
-                this
-            );
         }
     }
 
-    private void UpdateNormalDemandSpawning()
+    private void CancelScheduledSpawnAttempt()
     {
-        long now = GetCurrentGameSeconds();
+        if (scheduledSpawnEventId != 0 && gameTimeManager != null)
+            gameTimeManager.EventScheduler.Cancel(scheduledSpawnEventId);
 
-        // Handle loading a save or resetting the game clock.
-        if (lastObservedGameSeconds >= 0 &&
-            now < lastObservedGameSeconds)
-        {
-            nextDemandCheckGameSeconds =
-                now + GetCheckIntervalSeconds();
+        scheduledSpawnEventId = 0;
+    }
 
-            lastObservedGameSeconds = now;
-            debugStatus = "Game clock reset; demand timer restarted";
-            return;
-        }
-
-        lastObservedGameSeconds = now;
-
-        if (now < nextDemandCheckGameSeconds)
+    private void ScheduleNextSpawnAttempt(double delaySeconds)
+    {
+        if (!initialized || !isActiveAndEnabled || gameTimeManager == null ||
+            scheduledSpawnEventId != 0)
             return;
 
-        bool spawnedThisUpdate = false;
-        int checksProcessed = 0;
+        scheduledSpawnEventId = gameTimeManager.EventScheduler.ScheduleAfter(
+            System.Math.Max(0.0, delaySeconds),
+            HandleScheduledSpawnAttempt);
+    }
 
-        // Process elapsed intervals safely if game time advances quickly.
-        while (nextDemandCheckGameSeconds <= now &&
-               checksProcessed < 512)
+    private void HandleScheduledSpawnAttempt()
+    {
+        scheduledSpawnEventId = 0;
+
+        if (!initialized || !isActiveAndEnabled || gameTimeManager == null)
+            return;
+
+        bool testMode = testFlightMode;
+        if (testMode)
         {
-            nextDemandCheckGameSeconds +=
-                GetCheckIntervalSeconds();
-
-            checksProcessed++;
-
-            if (!spawnedThisUpdate &&
-                TrySpawnVisitor(ignoreDemandRoll: false))
-            {
-                spawnedThisUpdate = true;
-            }
+            bool spawned = TrySpawnVisitor(ignoreDemandRoll: true);
+            if (!spawned && logDemandChecks)
+                Log($"Hobby test spawn skipped: {debugStatus}", this);
+        }
+        else
+        {
+            // One demand roll per elapsed interval. Rescheduling from the
+            // current simulation time prevents catch-up spawn bursts.
+            TrySpawnVisitor(ignoreDemandRoll: false);
         }
 
-        // Avoid an excessive catch-up loop after a very large time jump.
-        if (nextDemandCheckGameSeconds <= now)
-        {
-            nextDemandCheckGameSeconds =
-                now + GetCheckIntervalSeconds();
-        }
+        ScheduleNextSpawnAttempt(testMode
+            ? Mathf.Max(1f, testSpawnIntervalSeconds)
+            : GetCheckIntervalSeconds());
     }
 
     private bool TrySpawnVisitor(bool ignoreDemandRoll)
