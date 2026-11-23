@@ -106,8 +106,6 @@ public class HobbyAircraftTrafficSpawner : MonoBehaviour
 
     private const long SecondsPerDay = 86400L;
 
-    private long nextDemandCheckGameSeconds;
-    private long lastObservedGameSeconds = -1;
     private bool initialized;
     private bool previousTestFlightMode;
     private bool warnedMissingAirportRatingManager;
@@ -159,12 +157,6 @@ public class HobbyAircraftTrafficSpawner : MonoBehaviour
             return;
         }
 
-        long now = GetCurrentGameSeconds();
-
-        nextDemandCheckGameSeconds =
-            now + GetCheckIntervalSeconds();
-
-        lastObservedGameSeconds = now;
         initialized = true;
 
         previousTestFlightMode = testFlightMode;
@@ -227,7 +219,7 @@ public class HobbyAircraftTrafficSpawner : MonoBehaviour
 
     private void CancelScheduledSpawnAttempt()
     {
-        if (scheduledSpawnEventId != 0 && gameTimeManager != null)
+        if (scheduledSpawnEventId != 0 && gameTimeManager != null && gameTimeManager.EventScheduler != null)
             gameTimeManager.EventScheduler.Cancel(scheduledSpawnEventId);
 
         scheduledSpawnEventId = 0;
@@ -235,7 +227,7 @@ public class HobbyAircraftTrafficSpawner : MonoBehaviour
 
     private void ScheduleNextSpawnAttempt(double delaySeconds)
     {
-        if (!initialized || !isActiveAndEnabled || gameTimeManager == null ||
+        if (!initialized || !isActiveAndEnabled || gameTimeManager == null || gameTimeManager.EventScheduler == null ||
             scheduledSpawnEventId != 0)
             return;
 
