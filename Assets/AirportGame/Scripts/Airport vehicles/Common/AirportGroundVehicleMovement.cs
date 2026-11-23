@@ -581,7 +581,8 @@ public class AirportGroundVehicleMovement : MonoBehaviour
 
                     if (gridOccupancy.IsOccupied(neighbor))
                     {
-                        rejectedOccupied++;                        continue;
+                        rejectedOccupied++;
+                        continue;
                     }
 
                     if (gridSurface.IsObstacle(neighbor))
@@ -599,7 +600,8 @@ public class AirportGroundVehicleMovement : MonoBehaviour
                 if (pathGScore.TryGetValue(neighbor, out int existingScore) &&
                     tentativeScore >= existingScore)
                 {
-                    continue;                }
+                    continue;
+                }
 
                 pathCameFrom[neighbor] = current;
                 pathGScore[neighbor] = tentativeScore;
@@ -1213,7 +1215,8 @@ public class AirportGroundVehicleMovement : MonoBehaviour
                 cumulativeDistance[i - 1] + segmentLength;
 
             if (cellSize <= 0.001f && segmentLength > 0.001f)
-                cellSize = segmentLength;        }
+                cellSize = segmentLength;
+        }
 
         if (cellSize <= 0.001f)
         {
