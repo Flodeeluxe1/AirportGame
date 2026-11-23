@@ -87,6 +87,8 @@ public class ScheduledAircraftSpawner : MonoBehaviour
     private long gameDayIndex;
 
     private long nextAllowedSpawnGameSecond = -1;
+    private long queueProcessingEventId;
+    private double queueProcessingDueTime = double.PositiveInfinity;
 
     private long observedWriteTicks = long.MinValue;
     private long observedFileLength = -1;
@@ -106,6 +108,8 @@ public class ScheduledAircraftSpawner : MonoBehaviour
             gameTimeManager.GameTimeAdvanced += HandleGameTimeAdvanced;
 
         FlightManagementUIController.AirportScheduleChanged += HandleAirportScheduleChanged;
+        if (initialized)
+            ScheduleQueueProcessing();
     }
 
     private void OnDisable()
@@ -114,6 +118,7 @@ public class ScheduledAircraftSpawner : MonoBehaviour
             gameTimeManager.GameTimeAdvanced -= HandleGameTimeAdvanced;
 
         FlightManagementUIController.AirportScheduleChanged -= HandleAirportScheduleChanged;
+        CancelQueueProcessingEvent();
     }
 
     private void Start()
@@ -174,6 +179,7 @@ public class ScheduledAircraftSpawner : MonoBehaviour
         lastGameSecond = gameTimeManager.GetGameTimeSeconds();
         gameDayIndex = gameTimeManager.CurrentDay - 1;
         initialized = true;
+        ScheduleQueueProcessing();
 
         Log(
             $"ScheduledAircraftSpawner ready. Game time: " +
@@ -201,6 +207,8 @@ public class ScheduledAircraftSpawner : MonoBehaviour
         {
             gameDayIndex = currentAbsoluteSecond / SecondsPerDay;
             lastGameSecond = (int)(currentAbsoluteSecond % SecondsPerDay);
+            if (spawnQueue.Count > 0)
+                ScheduleQueueProcessing();
             return;
         }
 
@@ -221,7 +229,8 @@ public class ScheduledAircraftSpawner : MonoBehaviour
 
         gameDayIndex = currentDay;
         lastGameSecond = (int)(currentAbsoluteSecond % SecondsPerDay);
-        ProcessSpawnQueue();
+        if (spawnQueue.Count > 0)
+            ScheduleQueueProcessing();
     }
 
     private bool IsAirportOperational()
@@ -371,6 +380,7 @@ public class ScheduledAircraftSpawner : MonoBehaviour
 
         spawnQueue.Enqueue(queuedFlight);
         queuedOperationIds.Add(operationId);
+        ScheduleQueueProcessing();
 
         if (logQueueChanges)
         {
@@ -384,10 +394,56 @@ public class ScheduledAircraftSpawner : MonoBehaviour
         }
     }
 
+    private void ScheduleQueueProcessing()
+    {
+        if (!initialized || !isActiveAndEnabled || spawnQueue.Count == 0 ||
+            gameTimeManager == null || gameTimeManager.EventScheduler == null)
+            return;
+
+        double now = GameTimeManager.SimulationTime;
+        double due = nextAllowedSpawnGameSecond >= 0
+            ? System.Math.Max(now, nextAllowedSpawnGameSecond)
+            : now;
+        ScheduleQueueProcessingAt(due);
+    }
+
+    private void ScheduleQueueProcessingAt(double dueTime)
+    {
+        if (!initialized || !isActiveAndEnabled || spawnQueue.Count == 0 ||
+            gameTimeManager == null || gameTimeManager.EventScheduler == null)
+            return;
+
+        if (queueProcessingEventId != 0 && queueProcessingDueTime <= dueTime)
+            return;
+
+        CancelQueueProcessingEvent();
+        queueProcessingDueTime = dueTime;
+        queueProcessingEventId = gameTimeManager.EventScheduler.ScheduleAt(
+            dueTime, HandleScheduledQueueProcessing);
+    }
+
+    private void HandleScheduledQueueProcessing()
+    {
+        queueProcessingEventId = 0;
+        queueProcessingDueTime = double.PositiveInfinity;
+        if (!initialized || !isActiveAndEnabled)
+            return;
+        ProcessSpawnQueue();
+    }
+
+    private void CancelQueueProcessingEvent()
+    {
+        if (queueProcessingEventId != 0 && gameTimeManager != null &&
+            gameTimeManager.EventScheduler != null)
+            gameTimeManager.EventScheduler.Cancel(queueProcessingEventId);
+
+        queueProcessingEventId = 0;
+        queueProcessingDueTime = double.PositiveInfinity;
+    }
+
     private void ProcessSpawnQueue()
     {
-        // A contract flight can remain queued while the spawn interval is
-        // running. Discard it if its contract day has ended before spawning.
+        // Expire contract flights before attempting the next queued arrival.
         while (spawnQueue.Count > 0)
         {
             QueuedAircraftSpawn queued = spawnQueue.Peek();
@@ -400,20 +456,15 @@ public class ScheduledAircraftSpawner : MonoBehaviour
             string contractId = queued.Scheduled != null
                 ? queued.Scheduled.ContractId
                 : null;
-
             if (string.IsNullOrWhiteSpace(contractId))
                 break;
 
             if (contractManager == null)
                 contractManager = FindAnyObjectByType<AirlineContractOfferManager>();
 
-            if (contractManager != null &&
-                contractManager.IsContractActiveOnDay(
-                    contractId,
-                    queued.ScheduledDayIndex + 1))
-            {
+            if (contractManager != null && contractManager.IsContractActiveOnDay(
+                contractId, queued.ScheduledDayIndex + 1))
                 break;
-            }
 
             spawnQueue.Dequeue();
             queuedOperationIds.Remove(queued.OperationId);
@@ -423,51 +474,40 @@ public class ScheduledAircraftSpawner : MonoBehaviour
         if (spawnQueue.Count == 0)
             return;
 
-        // If the CEO Office becomes invalid while flights are queued,
-        // discard those arrivals instead of spawning them later in a burst.
+        // Do not hold arrivals if the airport is no longer operational.
         if (!IsAirportOperational())
         {
             while (spawnQueue.Count > 0)
             {
                 QueuedAircraftSpawn skipped = spawnQueue.Dequeue();
-
                 if (skipped == null)
                     continue;
-
                 queuedOperationIds.Remove(skipped.OperationId);
                 spawnedOperationIds.Add(skipped.OperationId);
             }
-
             return;
         }
 
-        long currentGameTime =
-            gameDayIndex * SecondsPerDay + lastGameSecond;
-
+        long currentGameTime = (long)System.Math.Floor(GameTimeManager.SimulationTime);
         if (nextAllowedSpawnGameSecond >= 0 &&
             currentGameTime < nextAllowedSpawnGameSecond)
         {
+            ScheduleQueueProcessingAt(nextAllowedSpawnGameSecond);
             return;
         }
 
-        // Keep the flight queued until a compatible gate has been reserved
-        // and the aircraft has actually spawned.
         QueuedAircraftSpawn queuedFlight = spawnQueue.Peek();
-
         if (!SpawnQueuedAircraft(queuedFlight))
         {
-            // Retry while preserving queue order on a later game-time event.
+            // Retry at the next whole game second, preserving queue order.
             nextAllowedSpawnGameSecond = currentGameTime + 1;
+            ScheduleQueueProcessingAt(nextAllowedSpawnGameSecond);
             return;
         }
 
         spawnQueue.Dequeue();
         queuedOperationIds.Remove(queuedFlight.OperationId);
-
-        // The next aircraft cannot spawn until the configured interval
-        // has elapsed in game time.
-        nextAllowedSpawnGameSecond =
-            currentGameTime + spawnIntervalSeconds;
+        nextAllowedSpawnGameSecond = currentGameTime + spawnIntervalSeconds;
 
         if (logQueueChanges)
         {
@@ -478,6 +518,9 @@ public class ScheduledAircraftSpawner : MonoBehaviour
                 this
             );
         }
+
+        if (spawnQueue.Count > 0)
+            ScheduleQueueProcessingAt(nextAllowedSpawnGameSecond);
     }
 
     private bool SpawnQueuedAircraft(QueuedAircraftSpawn queuedFlight)
