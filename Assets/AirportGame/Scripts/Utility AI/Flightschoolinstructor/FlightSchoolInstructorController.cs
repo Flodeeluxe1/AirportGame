@@ -290,6 +290,7 @@ public class FlightSchoolInstructorController : MonoBehaviour
                 state = InstructorState.DemonstrationPause;
                 currentActivity = "Demonstrating at the wallboard";
                 nextActionTime = GameTimeManager.SimulationTime + Random.Range(15f, 26f);
+                ScheduleNextDecision();
                 break;
         }
     }
@@ -361,7 +362,6 @@ public class FlightSchoolInstructorController : MonoBehaviour
     {
         nextStudentVisitTime = GameTimeManager.SimulationTime +
             Random.Range(studentVisitIntervalMinimum, studentVisitIntervalMaximum);
-        ScheduleNextDecision();
     }
 
     private void ScheduleNextDemonstration()
@@ -374,8 +374,9 @@ public class FlightSchoolInstructorController : MonoBehaviour
     private void ScheduleNextDecision()
     {
         if (!initialized || !isActiveAndEnabled ||
-            state != InstructorState.BoardPause || movement == null ||
-            movement.IsMoving || decisionEventId != 0)
+            (state != InstructorState.BoardPause &&
+             state != InstructorState.DemonstrationPause) ||
+            movement == null || movement.IsMoving || decisionEventId != 0)
             return;
 
         if (gameTimeManager == null)
@@ -398,9 +399,17 @@ public class FlightSchoolInstructorController : MonoBehaviour
         decisionEventId = 0;
 
         if (!initialized || !isActiveAndEnabled ||
-            state != InstructorState.BoardPause || movement == null ||
-            movement.IsMoving ||
+            movement == null || movement.IsMoving ||
             GameTimeManager.SimulationTime < nextActionTime)
+            return;
+
+        if (state == InstructorState.DemonstrationPause)
+        {
+            ReturnToBoard();
+            return;
+        }
+
+        if (state != InstructorState.BoardPause)
             return;
 
         if (pendingWelcomeStudents.Count > 0)
