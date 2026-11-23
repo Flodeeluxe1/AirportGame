@@ -44,7 +44,7 @@ public class SightseeingAircraftSpawner : MonoBehaviour
     [Header("Hourly Schedule")]
     [SerializeField] private bool hourlyScheduleEnabled = true;
 
-    [Tooltip("Real-world seconds between retries when parking is unavailable.")]
+    [Tooltip("Game-time seconds between retries when parking is unavailable.")]
     [Min(0.1f)]
     [SerializeField] private float parkingRetryIntervalSeconds = 2f;
 
@@ -67,6 +67,7 @@ public class SightseeingAircraftSpawner : MonoBehaviour
 
     private bool waitingMessageLogged;
     private bool subscribedToGameTime;
+    private long retryEventId;
     private AircraftSSTurnaroundController reusableAircraft;
 
     public GameObject SightseeingAircraftPrefab => sightseeingAircraftPrefab;
@@ -100,6 +101,7 @@ public class SightseeingAircraftSpawner : MonoBehaviour
         if (gameTimeManager != null && subscribedToGameTime)
             gameTimeManager.GameTimeAdvanced -= HandleGameTimeAdvanced;
         subscribedToGameTime = false;
+        CancelScheduledRetry();
     }
 
     private static void RebuildTicketDeskCache()
@@ -205,28 +207,43 @@ public class SightseeingAircraftSpawner : MonoBehaviour
 
     private void Update()
     {
-        if (gameTimeManager == null)
+        // Keep Inspector-driven schedule toggles responsive without polling
+        // the retry timer itself.
+        if (hourlyScheduleEnabled && flightPending && retryEventId == 0 &&
+            gameTimeManager != null && gameTimeManager.CurrentSpeedMultiplier > 0)
+            SchedulePendingFlightRetry(0.0);
+    }
+
+    private void CancelScheduledRetry()
+    {
+        if (retryEventId != 0 && gameTimeManager != null)
+            gameTimeManager.EventScheduler.Cancel(retryEventId);
+
+        retryEventId = 0;
+        retryTimer = 0f;
+    }
+
+    private void SchedulePendingFlightRetry(double delaySeconds)
+    {
+        if (!isActiveAndEnabled || gameTimeManager == null ||
+            !hourlyScheduleEnabled || !flightPending || retryEventId != 0)
             return;
 
-        if (!hourlyScheduleEnabled)
-            return;
+        retryTimer = (float)delaySeconds;
+        retryEventId = gameTimeManager.EventScheduler.ScheduleAfter(
+            delaySeconds,
+            () =>
+            {
+                retryEventId = 0;
+                retryTimer = 0f;
 
-        // Do not schedule or retry departures while game time is paused.
-        if (gameTimeManager.CurrentSpeedMultiplier <= 0)
-            return;
+                if (!isActiveAndEnabled || !hourlyScheduleEnabled ||
+                    !flightPending || gameTimeManager == null ||
+                    gameTimeManager.CurrentSpeedMultiplier <= 0)
+                    return;
 
-        if (!flightPending)
-            return;
-
-        if (retryTimer > 0f)
-        {
-            retryTimer -= GameTimeManager.SimulationDeltaTime;
-
-            if (retryTimer > 0f)
-                return;
-        }
-
-        ProcessPendingFlight();
+                ProcessPendingFlight();
+            });
     }
 
     private void HandleGameTimeAdvanced(long previousSecond, long currentSecond)
@@ -235,7 +252,7 @@ public class SightseeingAircraftSpawner : MonoBehaviour
         {
             flightPending = false;
             pendingFlightHourSlot = 0L;
-            retryTimer = 0f;
+            CancelScheduledRetry();
             waitingMessageLogged = false;
             lastObservedHourSlot = GetCurrentHourSlot();
             scheduleStatus = "Waiting for a sightseeing ticket desk";
@@ -261,7 +278,7 @@ public class SightseeingAircraftSpawner : MonoBehaviour
         {
             flightPending = true;
             pendingFlightHourSlot = currentSlot;
-            retryTimer = 0f;
+            CancelScheduledRetry();
             waitingMessageLogged = false;
             scheduleStatus = "Hourly flight due";
         }
@@ -312,29 +329,29 @@ public class SightseeingAircraftSpawner : MonoBehaviour
             case SpawnAttemptResult.Spawned:
                 flightPending = false;
                 pendingFlightHourSlot = 0L;
-                retryTimer = 0f;
+                CancelScheduledRetry();
                 waitingMessageLogged = false;
                 scheduleStatus = "Flight spawned; waiting for next hour";
                 break;
 
             case SpawnAttemptResult.TicketDeskUnavailable:
                 flightPending = false;
-                retryTimer = 0f;
+                CancelScheduledRetry();
                 waitingMessageLogged = false;
                 scheduleStatus = "Waiting for a sightseeing ticket desk";
                 break;
 
             case SpawnAttemptResult.WaitingForParking:
             case SpawnAttemptResult.RetryableFailure:
-                retryTimer = Mathf.Max(
-                    0.1f,
-                    parkingRetryIntervalSeconds);
+                SchedulePendingFlightRetry(
+                    Mathf.Max(0.1f, parkingRetryIntervalSeconds));
                 break;
 
             case SpawnAttemptResult.FatalFailure:
                 // Stop automatic attempts when configuration is invalid.
                 hourlyScheduleEnabled = false;
                 flightPending = false;
+                CancelScheduledRetry();
                 scheduleStatus =
                     "Schedule disabled because of a configuration error";
                 break;
