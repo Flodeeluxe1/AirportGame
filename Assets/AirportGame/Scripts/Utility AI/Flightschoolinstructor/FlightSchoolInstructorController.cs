@@ -384,7 +384,7 @@ public class FlightSchoolInstructorController : MonoBehaviour
         if (!initialized || !isActiveAndEnabled ||
             (state != InstructorState.BoardPause &&
              state != InstructorState.DemonstrationPause) ||
-            movement == null || movement.IsMoving || decisionEventId != 0)
+            movement == null || decisionEventId != 0)
             return;
 
         if (gameTimeManager == null)
@@ -407,9 +407,22 @@ public class FlightSchoolInstructorController : MonoBehaviour
         decisionEventId = 0;
 
         if (!initialized || !isActiveAndEnabled ||
-            movement == null || movement.IsMoving ||
+            movement == null ||
             GameTimeManager.SimulationTime < nextActionTime)
             return;
+
+        // Arrival callbacks can run before the movement controller clears its
+        // moving flag. Defer the decision briefly rather than losing the wake-up.
+        if (movement.IsMoving)
+        {
+            if (gameTimeManager != null && gameTimeManager.EventScheduler != null)
+            {
+                decisionEventId = gameTimeManager.EventScheduler.ScheduleAfter(
+                    0.25,
+                    HandleScheduledDecision);
+            }
+            return;
+        }
 
         if (state == InstructorState.DemonstrationPause)
         {
