@@ -125,7 +125,6 @@ public class AirportGroundVehicleMovement : MonoBehaviour
     private int pathMinimumMovementCost;
     private int pathSearchFrames;
     private int pathSearchDequeuedNodes;
-    private int pathClearanceMapRevision;
     private int rejectedOutOfBounds;
     private int rejectedFoundation;
     private int rejectedClearance;
@@ -297,7 +296,6 @@ public class AirportGroundVehicleMovement : MonoBehaviour
         currentWaypointIndex = 0;
         routeCellCount = 0;
         movementStatus = "Calculating route";
-
         if (!HasRequiredReferences())        {
             Fail("Cannot move: one or more grid references are missing.");
             return false;
@@ -421,9 +419,6 @@ public class AirportGroundVehicleMovement : MonoBehaviour
         pathSearchFrames = 0;
         pathSearchDequeuedNodes = 0;
         clearanceCache.Clear();
-        pathClearanceMapRevision = gridSurface != null
-            ? gridSurface.GroundVehicleClearanceRevision
-            : 0;
         lastPathSearchFrames = 0;
         lastPathSearchExpandedCells = 0;
         lastPathSearchDequeuedNodes = 0;
@@ -504,18 +499,7 @@ public class AirportGroundVehicleMovement : MonoBehaviour
         // Clamp existing serialized component values too, so older prefabs
         // configured to 200 also receive the safer per-frame cap.
         int frameNodeLimit = Mathf.Clamp(maxPathNodesPerFrame, 1, 50);
-
-        int currentClearanceRevision =
-            gridSurface != null
-                ? gridSurface.GroundVehicleClearanceRevision
-                : 0;
-
-        if (pathClearanceMapRevision != currentClearanceRevision)
-        {
-            clearanceCache.Clear();
-            pathClearanceMapRevision = currentClearanceRevision;
-        }
-
+        clearanceCache.Clear();
         pathSearchFrames++;
 
         while (pathOpenSet.Count > 0 && nodesProcessed < frameNodeLimit)
@@ -597,8 +581,7 @@ public class AirportGroundVehicleMovement : MonoBehaviour
 
                     if (gridOccupancy.IsOccupied(neighbor))
                     {
-                        rejectedOccupied++;
-                        continue;
+                        rejectedOccupied++;                        continue;
                     }
 
                     if (gridSurface.IsObstacle(neighbor))
@@ -897,8 +880,7 @@ public class AirportGroundVehicleMovement : MonoBehaviour
             case BuildSurface.Grass:
                 return grassMovementCost;
 
-            case BuildSurface.Foundation:
-                return foundationMovementCost;
+            case BuildSurface.Foundation:                return foundationMovementCost;
 
             case BuildSurface.Tarmac:
                 return tarmacMovementCost;
@@ -1197,8 +1179,7 @@ public class AirportGroundVehicleMovement : MonoBehaviour
 
             if (distanceAlongPath + segmentLength >= targetDistance)
             {
-                float t =
-                    (targetDistance - distanceAlongPath) / segmentLength;
+                float t =                    (targetDistance - distanceAlongPath) / segmentLength;
 
                 return Vector3.Lerp(previous, current, t);
             }
@@ -1497,7 +1478,6 @@ public class AirportGroundVehicleMovement : MonoBehaviour
 
             remainingTime -= segmentTime;
         }
-
         if (currentWaypointIndex >= movementPath.Count)
             FinishMovement();
     }
