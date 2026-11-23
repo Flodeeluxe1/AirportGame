@@ -724,11 +724,11 @@ public class PedestrianMovementController : MonoBehaviour
         // Accumulate the full game-time delta independently of Unity's capped
         // Time.timeScale. Larger substeps reduce pathfinder/avoidance work at
         // high speeds while still checking each short movement segment.
-        const float maximumSimulationStep = 0.2f;
-        // At 1000x, a slower rendered frame can represent substantially more
-        // than 19.2 game seconds. Allow enough bounded work to keep pedestrian
-        // movement caught up at typical low frame rates without unbounded loops.
-        const int maximumMovementStepsPerFrame = 512;
+        const float maximumSimulationStep = 0.5f;
+        // Larger bounded steps reduce repeated nearby-pedestrian queries and
+        // path-segment validation calls at high simulation speeds. The cap
+        // still permits up to 128 game seconds of movement work per frame.
+        const int maximumMovementStepsPerFrame = 256;
 
         SimulationMovementUtility.AccumulateTime(
             ref pendingMovementTime,
