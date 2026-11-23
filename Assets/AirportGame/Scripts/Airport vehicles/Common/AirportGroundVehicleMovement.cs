@@ -553,8 +553,7 @@ public class AirportGroundVehicleMovement : MonoBehaviour
                         continue;
                     }
 
-                    if (IsWithinFoundationClearance(neighbor) ||
-                        IsWithinRunwayClearance(neighbor))
+                    if (IsWithinFoundationOrRunwayClearance(neighbor))
                     {
                         rejectedClearance++;
                         continue;
@@ -768,20 +767,33 @@ public class AirportGroundVehicleMovement : MonoBehaviour
         return a.Order < b.Order;
     }
 
-    private bool IsWithinFoundationClearance(Vector2Int cell)
+    private bool IsWithinFoundationOrRunwayClearance(Vector2Int cell)
     {
-        if (foundationClearance <= 0)
+        int searchRadius = Mathf.Max(
+            foundationClearance,
+            runwayClearance);
+
+        if (searchRadius <= 0)
             return false;
 
-        for (int x = -foundationClearance;
-             x <= foundationClearance;
-             x++)
+        for (int x = -searchRadius; x <= searchRadius; x++)
         {
-            for (int y = -foundationClearance;
-                 y <= foundationClearance;
-                 y++)
+            for (int y = -searchRadius; y <= searchRadius; y++)
             {
                 if (x == 0 && y == 0)
+                    continue;
+
+                bool checkFoundation =
+                    foundationClearance > 0 &&
+                    Mathf.Abs(x) <= foundationClearance &&
+                    Mathf.Abs(y) <= foundationClearance;
+
+                bool checkRunway =
+                    runwayClearance > 0 &&
+                    Mathf.Abs(x) <= runwayClearance &&
+                    Mathf.Abs(y) <= runwayClearance;
+
+                if (!checkFoundation && !checkRunway)
                     continue;
 
                 Vector2Int checkedCell = new Vector2Int(
@@ -797,48 +809,13 @@ public class AirportGroundVehicleMovement : MonoBehaviour
                     continue;
                 }
 
-                if (gridSurface.GetSurface(checkedCell) ==
-                    BuildSurface.Foundation)
-                {
-                    return true;
-                }
-            }
-        }
+                BuildSurface surface =
+                    gridSurface.GetSurface(checkedCell);
 
-        return false;
-    }
-
-    private bool IsWithinRunwayClearance(Vector2Int cell)
-    {
-        if (runwayClearance <= 0)
-            return false;
-
-        for (int x = -runwayClearance;
-             x <= runwayClearance;
-             x++)
-        {
-            for (int y = -runwayClearance;
-                 y <= runwayClearance;
-                 y++)
-            {
-                if (x == 0 && y == 0)
-                    continue;
-
-                Vector2Int checkedCell = new Vector2Int(
-                    cell.x + x,
-                    cell.y + y);
-
-                if (!gridManager.IsInsideGrid(checkedCell))
-                    continue;
-
-                if (IsHomeAreaCell(checkedCell) ||
-                    IsCurrentDestinationGateCell(checkedCell))
-                {
-                    continue;
-                }
-
-                if (gridSurface.GetSurface(checkedCell) ==
-                    BuildSurface.Runway)
+                if ((checkFoundation &&
+                     surface == BuildSurface.Foundation) ||
+                    (checkRunway &&
+                     surface == BuildSurface.Runway))
                 {
                     return true;
                 }
@@ -946,8 +923,7 @@ public class AirportGroundVehicleMovement : MonoBehaviour
         }
 
         return gridSurface.GetSurface(cell) == BuildSurface.Foundation ||
-               IsWithinFoundationClearance(cell) ||
-               IsWithinRunwayClearance(cell) ||
+               IsWithinFoundationOrRunwayClearance(cell) ||
                gridOccupancy.IsOccupied(cell) ||
                gridSurface.IsObstacle(cell);
     }
