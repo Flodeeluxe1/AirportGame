@@ -216,7 +216,7 @@ public class SightseeingAircraftSpawner : MonoBehaviour
 
     private void CancelScheduledRetry()
     {
-        if (retryEventId != 0 && gameTimeManager != null)
+        if (retryEventId != 0 && gameTimeManager != null && gameTimeManager.EventScheduler != null)
             gameTimeManager.EventScheduler.Cancel(retryEventId);
 
         retryEventId = 0;
@@ -225,7 +225,7 @@ public class SightseeingAircraftSpawner : MonoBehaviour
 
     private void SchedulePendingFlightRetry(double delaySeconds)
     {
-        if (!isActiveAndEnabled || gameTimeManager == null ||
+        if (!isActiveAndEnabled || gameTimeManager == null || gameTimeManager.EventScheduler == null ||
             !hourlyScheduleEnabled || !flightPending || retryEventId != 0)
             return;
 
