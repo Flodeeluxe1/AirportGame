@@ -143,9 +143,6 @@ public class FlightSchoolManager : MonoBehaviour
     private void OnDisable()
     {
         CancelPeriodicRefreshEvents();
-
-        if (activeManager == this)
-            activeManager = null;
     }
 
     private void EnsurePeriodicRefreshEventsScheduled()
