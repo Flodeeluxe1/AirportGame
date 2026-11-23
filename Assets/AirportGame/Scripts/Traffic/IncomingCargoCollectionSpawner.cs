@@ -6,7 +6,8 @@ public class IncomingCargoCollectionSpawner : MonoBehaviour
 {
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
-    private const long RetryIntervalGameSeconds = 1L;
+    private const double RetryIntervalGameSeconds = 1.0;
+    private long retryEventId;
 
     private GameObject cargoTruckPrefab;
     private Transform spawnPoint;
@@ -30,7 +31,6 @@ public class IncomingCargoCollectionSpawner : MonoBehaviour
     private Vector2Int startCell;
     private Vector2Int exitCell;
     private Vector3 spawnPosition;
-    private long nextRetryGameSecond;
     private bool initialized;
     private bool roadSetupWarningShown;
 
@@ -39,12 +39,16 @@ public class IncomingCargoCollectionSpawner : MonoBehaviour
         CargoZone.AvailabilityChanged += QueueZone;
 
         if (initialized)
+        {
             QueueRegisteredZones();
+            EnsureRetryScheduled(0.0);
+        }
     }
 
     private void OnDisable()
     {
         CargoZone.AvailabilityChanged -= QueueZone;
+        CancelRetryEvent();
         pendingZones.Clear();
         pendingZoneBuffer.Clear();
     }
@@ -107,8 +111,8 @@ public class IncomingCargoCollectionSpawner : MonoBehaviour
         }
 
         initialized = true;
-        nextRetryGameSecond = GetAbsoluteGameTimeSeconds();
         QueueRegisteredZones();
+        EnsureRetryScheduled(0.0);
     }
 
     public static void QueueOutgoingRecoveryForFlight(string operationId)
@@ -120,7 +124,10 @@ public class IncomingCargoCollectionSpawner : MonoBehaviour
             FindAnyObjectByType<IncomingCargoCollectionSpawner>();
 
         if (spawner != null)
+        {
             spawner.pendingOutgoingRecoveryOperations.Add(operationId);
+            spawner.EnsureRetryScheduled(0.0);
+        }
         else
             Debug.LogWarning(
                 "Cannot recover undelivered cargo: IncomingCargoCollectionSpawner " +
@@ -129,27 +136,62 @@ public class IncomingCargoCollectionSpawner : MonoBehaviour
 
     private void Update()
     {
-        if (!initialized || gameTimeManager == null)
-            return;
+        // Recover if this component initializes before the central scheduler.
+        if (initialized && HasPendingWork() && retryEventId == 0)
+            EnsureRetryScheduled(0.0);
+    }
 
-        long currentGameSecond = GetAbsoluteGameTimeSeconds();
-        if (currentGameSecond < nextRetryGameSecond)
-            return;
+    private bool HasPendingWork()
+    {
+        return pendingOutgoingRecoveryOperations.Count > 0 ||
+               pendingZones.Count > 0;
+    }
 
-        nextRetryGameSecond = currentGameSecond + RetryIntervalGameSeconds;
+    private void EnsureRetryScheduled(double delaySeconds)
+    {
+        if (!initialized ||
+            !isActiveAndEnabled ||
+            !HasPendingWork() ||
+            retryEventId != 0 ||
+            gameTimeManager == null ||
+            gameTimeManager.EventScheduler == null)
+        {
+            return;
+        }
+
+        retryEventId = gameTimeManager.EventScheduler.ScheduleAfter(
+            delaySeconds,
+            HandleScheduledRetry);
+    }
+
+    private void HandleScheduledRetry()
+    {
+        retryEventId = 0;
+
+        if (!initialized || !isActiveAndEnabled)
+            return;
 
         if (pendingOutgoingRecoveryOperations.Count > 0)
             ProcessOutgoingRecoveryOperations();
 
         if (pendingZones.Count > 0)
             ProcessPendingZones();
+
+        EnsureRetryScheduled(RetryIntervalGameSeconds);
     }
 
-    private long GetAbsoluteGameTimeSeconds()
+    private void CancelRetryEvent()
     {
-        return
-            (gameTimeManager.CurrentDay - 1) * 86400L +
-            gameTimeManager.GetGameTimeSeconds();
+        if (retryEventId == 0)
+            return;
+
+        if (gameTimeManager != null &&
+            gameTimeManager.EventScheduler != null)
+        {
+            gameTimeManager.EventScheduler.Cancel(retryEventId);
+        }
+
+        retryEventId = 0;
     }
 
     private void ProcessOutgoingRecoveryOperations()
@@ -232,7 +274,10 @@ public class IncomingCargoCollectionSpawner : MonoBehaviour
     private void QueueZone(CargoZone zone)
     {
         if (initialized && zone != null)
+        {
             pendingZones.Add(zone);
+            EnsureRetryScheduled(0.0);
+        }
     }
 
     private void ProcessPendingZones()
