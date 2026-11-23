@@ -36,8 +36,13 @@ public class AirportGroundVehicleMovement : MonoBehaviour
     [SerializeField] private int runwayClearance = 1;
 
     [Header("Pathfinding")]
-    [Min(1)]
-    [SerializeField] private int maxPathNodesPerFrame = 200;
+    [Range(1, 50)]
+    [SerializeField] private int maxPathNodesPerFrame = 50;
+
+    [Header("Pathfinding Diagnostics")]
+    [SerializeField] private int lastPathSearchFrames;
+    [SerializeField] private int lastPathSearchExpandedCells;
+    [SerializeField] private int lastPathSearchDequeuedNodes;
 
     [Header("Movement")]
     [Min(0.1f)]
@@ -113,6 +118,8 @@ public class AirportGroundVehicleMovement : MonoBehaviour
     private Vector2Int pathTarget;
     private int pathInsertionOrder;
     private int pathMinimumMovementCost;
+    private int pathSearchFrames;
+    private int pathSearchDequeuedNodes;
     private int rejectedOutOfBounds;
     private int rejectedFoundation;
     private int rejectedClearance;
@@ -407,6 +414,11 @@ public class AirportGroundVehicleMovement : MonoBehaviour
     {
         pathStart = start;
         pathTarget = target;
+        pathSearchFrames = 0;
+        pathSearchDequeuedNodes = 0;
+        lastPathSearchFrames = 0;
+        lastPathSearchExpandedCells = 0;
+        lastPathSearchDequeuedNodes = 0;
 
         if (start == target)
         {
@@ -481,12 +493,16 @@ public class AirportGroundVehicleMovement : MonoBehaviour
     private void ProcessPathSearchFrame()
     {
         int nodesProcessed = 0;
-        int frameNodeLimit = Mathf.Max(1, maxPathNodesPerFrame);
+        // Clamp existing serialized component values too, so older prefabs
+        // configured to 200 also receive the safer per-frame cap.
+        int frameNodeLimit = Mathf.Clamp(maxPathNodesPerFrame, 1, 50);
+        pathSearchFrames++;
 
         while (pathOpenSet.Count > 0 && nodesProcessed < frameNodeLimit)
         {
             VehicleOpenNode currentNode = DequeuePathNode();
             nodesProcessed++;
+            pathSearchDequeuedNodes++;
 
             Vector2Int current = currentNode.Position;
 
@@ -615,6 +631,9 @@ public class AirportGroundVehicleMovement : MonoBehaviour
     private void CompletePathSearch(List<Vector2Int> cells)
     {
         isCalculatingPath = false;
+        lastPathSearchFrames = pathSearchFrames;
+        lastPathSearchExpandedCells = pathClosedSet.Count;
+        lastPathSearchDequeuedNodes = pathSearchDequeuedNodes;
 
         if (cells == null || cells.Count == 0)
         {
