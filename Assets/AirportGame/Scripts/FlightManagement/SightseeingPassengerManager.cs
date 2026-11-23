@@ -67,6 +67,9 @@ public class SightseeingPassengerManager : MonoBehaviour
         public bool boardingStarted;
         public bool returned;
         public bool cancelled;
+        public int carSpawnCount;
+        public int nextCarSpawnIndex;
+        public long carSpawnEventId;
     }
 
     private readonly List<FlightGroup> activeGroups = new List<FlightGroup>();
@@ -82,6 +85,7 @@ public class SightseeingPassengerManager : MonoBehaviour
         ResolveReferences();
         SubscribeToSpawner();
         SubscribeToGameTime();
+        ResumePendingCarSpawns();
     }
 
     private void OnDisable()
@@ -92,6 +96,7 @@ public class SightseeingPassengerManager : MonoBehaviour
             aircraftSpawner.AircraftSpawned -= HandleAircraftSpawned;
         }
         subscribedToSpawner = false;
+        CancelPendingCarSpawnEvents();
         if (gameTimeManager != null && subscribedToGameTime)
             gameTimeManager.GameTimeAdvanced -= HandleGameTimeAdvanced;
         subscribedToGameTime = false;
@@ -267,42 +272,88 @@ public class SightseeingPassengerManager : MonoBehaviour
         activeGroups.Add(group);
 
         debugStatus = "Preparing " + demand + " sightseeing passenger(s) for the next hourly flight.";
-        if (demand > 0) StartCoroutine(SpawnPassengerCars(group, demand));
-    }
-
-    private IEnumerator SpawnPassengerCars(FlightGroup group, int count)
-    {
-        for (int i = 0; i < count; i++)
+        if (demand > 0)
         {
-            if (group == null || group.cancelled || !activeGroups.Contains(group)) yield break;
-
-            TrafficTestVehicle car = trafficSpawner.SpawnExternallyControlledVehicle(passengerCarPrefab);
-            if (car == null)
-            {
-                LogWarning("SightseeingPassengerManager: Could not spawn passenger car " + (i + 1) + "/" + count + ".", this);
-            }
-            else
-            {
-                PassengerRecord record = new PassengerRecord { vehicle = car };
-                group.passengers.Add(record);
-                car.Parked += HandleCarParked;
-                car.Exited += HandleCarExited;
-            }
-
-            if (carSpawnIntervalGameSeconds > 0f && i < count - 1)
-            {
-                long target = GetAbsoluteGameSecond() + Mathf.Max(1, Mathf.CeilToInt(carSpawnIntervalGameSeconds));
-                while (gameTimeManager != null && GetAbsoluteGameSecond() < target)
-                    yield return null;
-            }
+            group.carSpawnCount = demand;
+            SpawnNextPassengerCar(group);
         }
     }
 
-    private long GetAbsoluteGameSecond()
+    private void SpawnNextPassengerCar(FlightGroup group)
     {
-        return gameTimeManager != null
-            ? (gameTimeManager.CurrentDay - 1) * 86400L + gameTimeManager.GetGameTimeSeconds()
-            : 0L;
+        if (!isActiveAndEnabled || group == null || group.cancelled ||
+            !activeGroups.Contains(group) || trafficSpawner == null ||
+            passengerCarPrefab == null || group.nextCarSpawnIndex >= group.carSpawnCount)
+            return;
+
+        int passengerIndex = group.nextCarSpawnIndex + 1;
+        TrafficTestVehicle car = trafficSpawner.SpawnExternallyControlledVehicle(passengerCarPrefab);
+        if (car == null)
+        {
+            LogWarning("SightseeingPassengerManager: Could not spawn passenger car " +
+                passengerIndex + "/" + group.carSpawnCount + ".", this);
+        }
+        else
+        {
+            PassengerRecord record = new PassengerRecord { vehicle = car };
+            group.passengers.Add(record);
+            car.Parked += HandleCarParked;
+            car.Exited += HandleCarExited;
+        }
+
+        group.nextCarSpawnIndex++;
+        if (group.nextCarSpawnIndex < group.carSpawnCount &&
+            carSpawnIntervalGameSeconds > 0f)
+        {
+            ScheduleNextPassengerCar(group, carSpawnIntervalGameSeconds);
+        }
+        else if (group.nextCarSpawnIndex < group.carSpawnCount)
+        {
+            SpawnNextPassengerCar(group);
+        }
+    }
+
+    private void ScheduleNextPassengerCar(FlightGroup group, double delaySeconds)
+    {
+        if (gameTimeManager == null || group == null || group.cancelled ||
+            group.carSpawnEventId != 0)
+            return;
+
+        group.carSpawnEventId = gameTimeManager.EventScheduler.ScheduleAfter(
+            System.Math.Max(0.0, delaySeconds),
+            () =>
+            {
+                group.carSpawnEventId = 0;
+                SpawnNextPassengerCar(group);
+            });
+    }
+
+    private void ResumePendingCarSpawns()
+    {
+        for (int i = 0; i < activeGroups.Count; i++)
+        {
+            FlightGroup group = activeGroups[i];
+            if (group != null && !group.cancelled &&
+                group.nextCarSpawnIndex < group.carSpawnCount &&
+                group.carSpawnEventId == 0)
+                ScheduleNextPassengerCar(group, carSpawnIntervalGameSeconds);
+        }
+    }
+
+    private void CancelPendingCarSpawnEvents()
+    {
+        if (gameTimeManager == null)
+            return;
+
+        for (int i = 0; i < activeGroups.Count; i++)
+        {
+            FlightGroup group = activeGroups[i];
+            if (group == null || group.carSpawnEventId == 0)
+                continue;
+
+            gameTimeManager.EventScheduler.Cancel(group.carSpawnEventId);
+            group.carSpawnEventId = 0;
+        }
     }
 
     private Transform GetWaitingAreaAnchor()
@@ -745,6 +796,11 @@ public class SightseeingPassengerManager : MonoBehaviour
     {
         if (group == null || group.cancelled) return;
         group.cancelled = true;
+        if (group.carSpawnEventId != 0 && gameTimeManager != null)
+        {
+            gameTimeManager.EventScheduler.Cancel(group.carSpawnEventId);
+            group.carSpawnEventId = 0;
+        }
 
         for (int i = 0; i < group.passengers.Count; i++)
         {
