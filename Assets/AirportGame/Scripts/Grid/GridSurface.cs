@@ -66,7 +66,6 @@ public class GridSurface : MonoBehaviour
         {
             for (int z = 0; z < gridManager.Height; z++)
                 surfaces[x, z] = BuildSurface.Grass;
-                InvalidateGroundVehicleClearanceMap();
         }
 
         surfaceOwners.Clear();
