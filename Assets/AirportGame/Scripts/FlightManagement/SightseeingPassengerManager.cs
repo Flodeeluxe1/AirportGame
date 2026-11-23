@@ -315,7 +315,7 @@ public class SightseeingPassengerManager : MonoBehaviour
 
     private void ScheduleNextPassengerCar(FlightGroup group, double delaySeconds)
     {
-        if (gameTimeManager == null || group == null || group.cancelled ||
+        if (gameTimeManager == null || gameTimeManager.EventScheduler == null || group == null || group.cancelled ||
             group.carSpawnEventId != 0)
             return;
 
@@ -342,7 +342,7 @@ public class SightseeingPassengerManager : MonoBehaviour
 
     private void CancelPendingCarSpawnEvents()
     {
-        if (gameTimeManager == null)
+        if (gameTimeManager == null || gameTimeManager.EventScheduler == null)
             return;
 
         for (int i = 0; i < activeGroups.Count; i++)
@@ -796,7 +796,7 @@ public class SightseeingPassengerManager : MonoBehaviour
     {
         if (group == null || group.cancelled) return;
         group.cancelled = true;
-        if (group.carSpawnEventId != 0 && gameTimeManager != null)
+        if (group.carSpawnEventId != 0 && gameTimeManager != null && gameTimeManager.EventScheduler != null)
         {
             gameTimeManager.EventScheduler.Cancel(group.carSpawnEventId);
             group.carSpawnEventId = 0;
