@@ -11,6 +11,7 @@ using UnityEngine;
 public class AirlineContractOfferManager : MonoBehaviour
 {
     private const int EvaluationIntervalDays = 2;
+    private const double SecondsPerDay = 86400.0;
     private const int MinimumOffersPerEvaluation = 1;
     private const int MaximumOffersPerEvaluation = 3;
     private const int OfferLifetimeDays = 3;
@@ -38,6 +39,7 @@ public class AirlineContractOfferManager : MonoBehaviour
 
     private long lastEvaluatedPeriod = -1;
     private bool initializationComplete;
+    private long dailyProcessingEventId;
 
     public event Action<AirlineContractOffer> OfferGenerated;
     public event Action<AirlineContractOffer> OfferExpired;
@@ -55,8 +57,10 @@ public class AirlineContractOfferManager : MonoBehaviour
     {
         ResolveReferences();
 
-        if (gameTimeManager != null)
-            gameTimeManager.GameTimeAdvanced += HandleGameTimeAdvanced;
+        SubscribeToGameTime();
+
+        if (initializationComplete)
+            ScheduleNextDailyProcessing();
 
         // Let the airport snapshot collector finish its initial scene refresh first.
         StartCoroutine(InitializeAfterAirportSystems());
@@ -68,13 +72,28 @@ public class AirlineContractOfferManager : MonoBehaviour
         yield return null;
         ResolveReferences();
         initializationComplete = true;
+        SubscribeToGameTime();
         EvaluateForCurrentDay();
+        ScheduleNextDailyProcessing();
     }
 
     private void OnDisable()
     {
         if (gameTimeManager != null)
             gameTimeManager.GameTimeAdvanced -= HandleGameTimeAdvanced;
+        CancelDailyProcessingEvent();
+    }
+
+    private void SubscribeToGameTime()
+    {
+        if (gameTimeManager == null)
+            ResolveReferences();
+
+        if (gameTimeManager == null)
+            return;
+
+        gameTimeManager.GameTimeAdvanced -= HandleGameTimeAdvanced;
+        gameTimeManager.GameTimeAdvanced += HandleGameTimeAdvanced;
     }
 
     private void ResolveReferences()
@@ -89,20 +108,57 @@ public class AirlineContractOfferManager : MonoBehaviour
             performanceTracker = FindAnyObjectByType<AirlineContractPerformanceTracker>();
     }
 
+    // GameTimeAdvanced is retained only to detect an explicit clock rewind.
+    // Normal deadline processing is driven by the next midnight event.
     private void HandleGameTimeAdvanced(long previousAbsoluteSecond, long currentAbsoluteSecond)
     {
-        if (!initializationComplete)
+        if (initializationComplete && currentAbsoluteSecond < previousAbsoluteSecond)
+            ScheduleNextDailyProcessing();
+    }
+
+    private void ScheduleNextDailyProcessing()
+    {
+        if (!initializationComplete || !isActiveAndEnabled ||
+            gameTimeManager == null || gameTimeManager.EventScheduler == null)
             return;
 
-        if (gameTimeManager == null)
-            ResolveReferences();
+        CancelDailyProcessingEvent();
 
-        if (gameTimeManager == null)
+        double now = GameTimeManager.SimulationTime;
+        double nextDayBoundary =
+            (System.Math.Floor(now / SecondsPerDay) + 1.0) * SecondsPerDay;
+
+        dailyProcessingEventId = gameTimeManager.EventScheduler.ScheduleAt(
+            nextDayBoundary,
+            HandleDailyProcessing);
+    }
+
+    private void HandleDailyProcessing()
+    {
+        dailyProcessingEventId = 0;
+
+        if (!initializationComplete || !isActiveAndEnabled)
             return;
 
+        // These methods already process all elapsed days and guard against
+        // duplicate finalization, even when simulation time jumps several days.
         CompleteExpiredContracts();
         ExpireOldOffers();
         EvaluateForCurrentDay();
+
+        ScheduleNextDailyProcessing();
+    }
+
+    private void CancelDailyProcessingEvent()
+    {
+        if (dailyProcessingEventId != 0 &&
+            gameTimeManager != null &&
+            gameTimeManager.EventScheduler != null)
+        {
+            gameTimeManager.EventScheduler.Cancel(dailyProcessingEventId);
+        }
+
+        dailyProcessingEventId = 0;
     }
 
     private void EvaluateForCurrentDay()
