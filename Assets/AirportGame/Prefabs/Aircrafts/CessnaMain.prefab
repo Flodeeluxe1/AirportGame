@@ -135,7 +135,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0d67c402bd390654888b128ce40c910d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AircraftHobbyLandingController
-  logToConsole: 1
+  logToConsole: 0
   gridManager: {fileID: 0}
   weather: {fileID: 0}
   approachDistance: 60
@@ -177,7 +177,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 443cf1a01839a0743b71ae075c2d02f9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AircraftHobbyLandingTaxiController
-  logToConsole: 1
+  logToConsole: 0
   landingController: {fileID: 0}
   gridManager: {fileID: 0}
   taxiwayNetwork: {fileID: 0}

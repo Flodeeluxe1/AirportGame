@@ -185,9 +185,12 @@ MonoBehaviour:
   runwayMovementCost: 100
   pedestrianTarmacMovementCost: 8
   roadMovementCost: 32
-  foundationClearance: 1
-  runwayClearance: 5
-  maxPathNodesPerFrame: 200
+  foundationClearance: 0
+  runwayClearance: 0
+  maxPathNodesPerFrame: 50
+  lastPathSearchFrames: 0
+  lastPathSearchExpandedCells: 0
+  lastPathSearchDequeuedNodes: 0
   movementSpeed: 3
   rotationSpeed: 5
   waypointArrivalDistance: 0.08
