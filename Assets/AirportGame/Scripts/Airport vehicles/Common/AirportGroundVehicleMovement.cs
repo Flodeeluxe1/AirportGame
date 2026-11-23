@@ -125,6 +125,7 @@ public class AirportGroundVehicleMovement : MonoBehaviour
     private int pathMinimumMovementCost;
     private int pathSearchFrames;
     private int pathSearchDequeuedNodes;
+    private int pathClearanceMapRevision;
     private int rejectedOutOfBounds;
     private int rejectedFoundation;
     private int rejectedClearance;
@@ -297,8 +298,7 @@ public class AirportGroundVehicleMovement : MonoBehaviour
         routeCellCount = 0;
         movementStatus = "Calculating route";
 
-        if (!HasRequiredReferences())
-        {
+        if (!HasRequiredReferences())        {
             Fail("Cannot move: one or more grid references are missing.");
             return false;
         }
@@ -420,6 +420,10 @@ public class AirportGroundVehicleMovement : MonoBehaviour
         pathTarget = target;
         pathSearchFrames = 0;
         pathSearchDequeuedNodes = 0;
+        clearanceCache.Clear();
+        pathClearanceMapRevision = gridSurface != null
+            ? gridSurface.GroundVehicleClearanceRevision
+            : 0;
         lastPathSearchFrames = 0;
         lastPathSearchExpandedCells = 0;
         lastPathSearchDequeuedNodes = 0;
@@ -500,7 +504,18 @@ public class AirportGroundVehicleMovement : MonoBehaviour
         // Clamp existing serialized component values too, so older prefabs
         // configured to 200 also receive the safer per-frame cap.
         int frameNodeLimit = Mathf.Clamp(maxPathNodesPerFrame, 1, 50);
-        clearanceCache.Clear();
+
+        int currentClearanceRevision =
+            gridSurface != null
+                ? gridSurface.GroundVehicleClearanceRevision
+                : 0;
+
+        if (pathClearanceMapRevision != currentClearanceRevision)
+        {
+            clearanceCache.Clear();
+            pathClearanceMapRevision = currentClearanceRevision;
+        }
+
         pathSearchFrames++;
 
         while (pathOpenSet.Count > 0 && nodesProcessed < frameNodeLimit)
@@ -598,7 +613,6 @@ public class AirportGroundVehicleMovement : MonoBehaviour
                     stepCost = Mathf.CeilToInt(stepCost * 1.41421356f);
 
                 int tentativeScore = currentBestG + stepCost;
-
                 if (pathGScore.TryGetValue(neighbor, out int existingScore) &&
                     tentativeScore >= existingScore)
                 {
@@ -795,6 +809,18 @@ public class AirportGroundVehicleMovement : MonoBehaviour
         if (clearanceCache.TryGetValue(cell, out bool cachedResult))
             return cachedResult;
 
+        // Most cells are rejected by this shared precomputed map lookup.
+        // Only cells near foundations/runways need the ownership-exception scan.
+        if (gridSurface == null ||
+            !gridSurface.IsWithinGroundVehicleClearance(
+                cell,
+                foundationClearance,
+                runwayClearance))
+        {
+            clearanceCache[cell] = false;
+            return false;
+        }
+
         int searchRadius = Mathf.Max(
             foundationClearance,
             runwayClearance);
@@ -897,8 +923,7 @@ public class AirportGroundVehicleMovement : MonoBehaviour
 
     private List<Vector2Int> ReconstructPath(
         Dictionary<Vector2Int, Vector2Int> cameFrom,
-        Vector2Int start,
-        Vector2Int target)
+        Vector2Int start,        Vector2Int target)
     {
         List<Vector2Int> path = new List<Vector2Int>();
         Vector2Int current = target;
@@ -1198,7 +1223,6 @@ public class AirportGroundVehicleMovement : MonoBehaviour
         int count = points.Count;
         float[] cumulativeDistance = new float[count];
         float cellSize = 0f;
-
         for (int i = 1; i < count; i++)
         {
             float segmentLength =
@@ -1498,7 +1522,6 @@ public class AirportGroundVehicleMovement : MonoBehaviour
     private void FinishMovement()
     {
         transform.position = destination;
-
         Vector3 finalDirection =
             destinationFacingTransform != null
                 ? destinationFacingTransform.forward
