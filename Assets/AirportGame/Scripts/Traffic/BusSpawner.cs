@@ -86,9 +86,10 @@ public class BusSpawner : MonoBehaviour
 
         if (TryDispatchBus())
         {
-            long interval = Mathf.Max(
+            long interval = System.Math.Max(
                 1L,
-                Mathf.CeilToInt(publicTransportManager.BusFrequencyMinutes * 60f));
+                (long)Mathf.CeilToInt(
+                    publicTransportManager.BusFrequencyMinutes * 60f));
             nextDispatchGameSecond = now + interval;
         }
         else
@@ -178,6 +179,13 @@ public class BusSpawner : MonoBehaviour
         out List<Vector2Int> journey,
         out List<int> stopIndices)
     {
+        journey = new List<Vector2Int>();
+        stopIndices = new List<int>();
+
+        if (roadNetwork == null || gridManager == null ||
+            exitPoint == null || publicTransportManager == null)
+            return false;
+
         Vector2Int startCell = roadNetwork.GetRoadAnchor(
             gridManager.WorldToGrid(currentPosition));
         List<Vector2Int> roadPositions = roadNetwork.GetRoadPositions();
