@@ -11,11 +11,17 @@ public class BusController : MonoBehaviour
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
 
-    [Header("Road Movement")]
+    [Header("Movement")]
     [Min(0.1f)] [SerializeField] private float movementSpeed = 5f;
     [Min(0.1f)] [SerializeField] private float rotationSpeed = 10f;
     [SerializeField] private float heightOffset = 0.2f;
     [Min(0.01f)] [SerializeField] private float waypointTolerance = 0.08f;
+
+    [Header("Road Turn Smoothing")]
+    [Tooltip("Requested turn radius in grid-cell units.")]
+    [SerializeField, Min(0f)] private float turningRadiusInCells = 2f;
+    [Tooltip("Number of segments used to approximate each Bezier curve.")]
+    [SerializeField, Min(1)] private int turnCurveResolution = 8;
 
     [Header("Stop Service")]
     [Min(0f)] [SerializeField] private float stopDwellSeconds = 5f;
@@ -24,12 +30,22 @@ public class BusController : MonoBehaviour
     [Min(0)] [SerializeField] private int intersectionLookAheadModules = 1;
     [Min(1)] [SerializeField] private int intersectionClearModules = 2;
 
-    [Header("Runtime")]
-    [SerializeField] private string debugState = "Waiting for journey";
-    [SerializeField] private int debugPathIndex;
-    [SerializeField] private int debugPathLength;
+    [Header("Debug - Runtime Information")]
+    public string debugState = "Waiting for journey";
+    public float debugCurrentSpeed;
+    [Tooltip("Closest vehicle currently blocking this bus.")]
+    public string debugBlockingCollider = "None";
+    public string debugBlockingVehicleState = "None";
+    public float debugBlockingDistance;
+    public string debugTrafficDecision = "Not tested";
+    public int debugPathIndex;
+    public int debugPathLength;
 
     private readonly List<Vector2Int> route = new List<Vector2Int>();
+    private readonly List<Vector3> smoothedMovementWaypoints =
+        new List<Vector3>();
+    private readonly List<int> smoothedRouteIndices = new List<int>();
+    private int currentSmoothedWaypointIndex;
     private readonly HashSet<int> stopPathIndices = new HashSet<int>();
     private readonly HashSet<Vector2Int> completedStopRoadCells =
         new HashSet<Vector2Int>();
@@ -106,6 +122,7 @@ public class BusController : MonoBehaviour
         routeTopologyVersion = roadNetwork.TopologyVersion;
         currentSpeed = 0f;
         debugPathLength = route.Count;
+        InitializeSmoothedMovementPath();
         debugState = "Driving to first bus stop";
         transform.position = GetRoadWorldPosition(route[0]);
         return true;
@@ -164,7 +181,13 @@ public class BusController : MonoBehaviour
             if (currentSpeed <= 0.001f)
                 return;
 
-            Vector3 target = GetRoadWorldPosition(route[pathIndex]);
+            if (currentSmoothedWaypointIndex >= smoothedMovementWaypoints.Count)
+            {
+                CompleteJourney();
+                return;
+            }
+
+            Vector3 target = smoothedMovementWaypoints[currentSmoothedWaypointIndex];
             Vector3 offset = target - transform.position;
             offset.y = 0f;
             float distance = offset.magnitude;
@@ -172,7 +195,7 @@ public class BusController : MonoBehaviour
             if (distance <= waypointTolerance)
             {
                 transform.position = target;
-                ArriveAtWaypoint();
+                ArriveAtSmoothedWaypoint();
                 if (stopTimeRemaining > 0f)
                     return;
                 continue;
@@ -191,7 +214,7 @@ public class BusController : MonoBehaviour
             if (segmentTime >= timeToTarget)
             {
                 transform.position = target;
-                ArriveAtWaypoint();
+                ArriveAtSmoothedWaypoint();
                 if (stopTimeRemaining > 0f)
                     return;
             }
@@ -204,20 +227,23 @@ public class BusController : MonoBehaviour
         }
     }
 
-    private void ArriveAtWaypoint()
+    private void ArriveAtSmoothedWaypoint()
     {
-        int reachedIndex = pathIndex;
-        pathIndex++;
+        int reachedRouteIndex = smoothedRouteIndices[
+            currentSmoothedWaypointIndex];
+        currentSmoothedWaypointIndex++;
+
+        pathIndex = Mathf.Max(pathIndex, reachedRouteIndex);
         debugPathIndex = pathIndex;
 
-        if (stopPathIndices.Contains(reachedIndex))
+        if (stopPathIndices.Contains(reachedRouteIndex))
         {
-            completedStopRoadCells.Add(route[reachedIndex]);
+            completedStopRoadCells.Add(route[reachedRouteIndex]);
             currentSpeed = 0f;
             stopTimeRemaining = stopDwellSeconds;
             debugState = "At bus stop";
         }
-        else if (pathIndex >= route.Count)
+        else if (currentSmoothedWaypointIndex >= smoothedMovementWaypoints.Count)
         {
             debugState = "Reached traffic exit";
         }
@@ -254,6 +280,7 @@ public class BusController : MonoBehaviour
         routeTopologyVersion = roadNetwork.TopologyVersion;
         pathIndex = route.Count > 1 ? 1 : route.Count;
         transform.position = GetRoadWorldPosition(route[0]);
+        InitializeSmoothedMovementPath();
         currentSpeed = 0f;
         waitingForIntersection = false;
         hasIntersectionReservation = false;
@@ -338,6 +365,98 @@ public class BusController : MonoBehaviour
         hasIntersectionReservation = true;
         waitingForIntersection = false;
         return false;
+    }
+
+    private void InitializeSmoothedMovementPath()
+    {
+        smoothedMovementWaypoints.Clear();
+        smoothedRouteIndices.Clear();
+
+        if (route.Count == 0)
+            return;
+
+        List<Vector3> original = new List<Vector3>(route.Count);
+        for (int i = 0; i < route.Count; i++)
+            original.Add(GetRoadWorldPosition(route[i]));
+
+        AddSmoothedWaypoint(original[0], 0);
+
+        float requestedRadius = turningRadiusInCells * gridManager.CellSize;
+        const float bezierCircleFactor = 0.55228475f;
+        int resolution = Mathf.Max(1, turnCurveResolution);
+
+        for (int i = 1; i < original.Count - 1; i++)
+        {
+            Vector3 corner = original[i];
+            Vector3 incoming = corner - original[i - 1];
+            Vector3 outgoing = original[i + 1] - corner;
+            incoming.y = 0f;
+            outgoing.y = 0f;
+
+            float radius = 0f;
+            if (!stopPathIndices.Contains(i) &&
+                incoming.sqrMagnitude > 0.001f &&
+                outgoing.sqrMagnitude > 0.001f)
+            {
+                incoming.Normalize();
+                outgoing.Normalize();
+                float angle = Vector3.Angle(incoming, outgoing);
+                if (angle >= 1f && angle <= 179f)
+                {
+                    float inLength = Vector3.Distance(original[i - 1], corner);
+                    float outLength = Vector3.Distance(corner, original[i + 1]);
+                    radius = Mathf.Min(requestedRadius, inLength * 0.5f,
+                        outLength * 0.5f);
+                }
+            }
+
+            if (radius <= 0.001f)
+            {
+                AddSmoothedWaypoint(corner, i);
+                continue;
+            }
+
+            incoming = (corner - original[i - 1]).normalized;
+            outgoing = (original[i + 1] - corner).normalized;
+            incoming.y = 0f;
+            outgoing.y = 0f;
+            incoming.Normalize();
+            outgoing.Normalize();
+
+            Vector3 entry = corner - incoming * radius;
+            Vector3 exit = corner + outgoing * radius;
+            AddSmoothedWaypoint(entry, i);
+
+            Vector3 control1 = entry + incoming * radius * bezierCircleFactor;
+            Vector3 control2 = exit - outgoing * radius * bezierCircleFactor;
+
+            for (int step = 1; step <= resolution; step++)
+            {
+                float t = step / (float)resolution;
+                float u = 1f - t;
+                Vector3 point =
+                    u * u * u * entry +
+                    3f * u * u * t * control1 +
+                    3f * u * t * t * control2 +
+                    t * t * t * exit;
+                AddSmoothedWaypoint(point, i + 1);
+            }
+        }
+
+        AddSmoothedWaypoint(original[original.Count - 1], original.Count - 1);
+        currentSmoothedWaypointIndex =
+            smoothedMovementWaypoints.Count > 1 ? 1 : 0;
+    }
+
+    private void AddSmoothedWaypoint(Vector3 position, int routeIndex)
+    {
+        if (smoothedMovementWaypoints.Count > 0 &&
+            Vector3.Distance(smoothedMovementWaypoints[
+                smoothedMovementWaypoints.Count - 1], position) <= 0.001f)
+            return;
+
+        smoothedMovementWaypoints.Add(position);
+        smoothedRouteIndices.Add(routeIndex);
     }
 
     private Vector3 GetRoadWorldPosition(Vector2Int cell)
