@@ -15,7 +15,6 @@ MonoBehaviour:
   id: airport.checkin.desk
   displayName: Check-in Desk
   prefab: {fileID: 5763874352558134915, guid: f631780a1cb54e743b698821217b37b8, type: 3}
-  purpose: 1
   placementType: 0
   allowedSurfaces: 2
   requiredSurface: 1
@@ -35,3 +34,4 @@ MonoBehaviour:
   category: 3
   icon: {fileID: 2800000, guid: 56848a07af905a44f910da25b56b25a0, type: 3}
   roomFurnitureRole: 0
+  publicTransportModes: 1
