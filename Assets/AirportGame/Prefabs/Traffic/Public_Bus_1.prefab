@@ -40,6 +40,18 @@ PrefabInstance:
       propertyPath: m_Name
       value: Public_Bus_1
       objectReference: {fileID: 0}
+    - target: {fileID: -6689036041284674117, guid: 74408381b0e017948a601204247b2f98, type: 3}
+      propertyPath: m_Layer
+      value: 7
+      objectReference: {fileID: 0}
+    - target: {fileID: -6621916751153068753, guid: 74408381b0e017948a601204247b2f98, type: 3}
+      propertyPath: m_Layer
+      value: 7
+      objectReference: {fileID: 0}
+    - target: {fileID: -6022833333891042209, guid: 74408381b0e017948a601204247b2f98, type: 3}
+      propertyPath: m_Layer
+      value: 7
+      objectReference: {fileID: 0}
     - target: {fileID: -1226650851475965759, guid: 74408381b0e017948a601204247b2f98, type: 3}
       propertyPath: m_LocalRotation.w
       value: 1
@@ -108,6 +120,14 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 4765298714127416584, guid: 74408381b0e017948a601204247b2f98, type: 3}
+      propertyPath: m_Layer
+      value: 7
+      objectReference: {fileID: 0}
+    - target: {fileID: 8551425149563703802, guid: 74408381b0e017948a601204247b2f98, type: 3}
+      propertyPath: m_Layer
+      value: 7
+      objectReference: {fileID: 0}
     - target: {fileID: 8887990047695817904, guid: 74408381b0e017948a601204247b2f98, type: 3}
       propertyPath: m_LocalRotation.w
       value: 0.7071068
@@ -127,6 +147,15 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: -6689036041284674117, guid: 74408381b0e017948a601204247b2f98, type: 3}
       insertIndex: -1
       addedObject: {fileID: 5330501099940256480}
+    - targetCorrespondingSourceObject: {fileID: -6689036041284674117, guid: 74408381b0e017948a601204247b2f98, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7518313658133617442}
+    - targetCorrespondingSourceObject: {fileID: -6689036041284674117, guid: 74408381b0e017948a601204247b2f98, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7247999339693463475}
+    - targetCorrespondingSourceObject: {fileID: -6689036041284674117, guid: 74408381b0e017948a601204247b2f98, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8649479552319239630}
   m_SourcePrefab: {fileID: -5645937942226959685, guid: 74408381b0e017948a601204247b2f98, type: 3}
 --- !u!1 &7243723649401442556 stripped
 GameObject:
@@ -154,3 +183,54 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1.5, y: 1.66, z: 6.08}
   m_Center: {x: 0, y: -0.2, z: 0}
+--- !u!114 &7518313658133617442
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7243723649401442556}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 27bf15b4a1e7b5b49abb4a144e3a8fe1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::VehicleSpawnID
+--- !u!114 &7247999339693463475
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7243723649401442556}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3f7b9a2d6c1e4a8f9b5d0c2e7a6f1b43, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BusController
+  logToConsole: 0
+  movementSpeed: 5
+  rotationSpeed: 10
+  heightOffset: 0.2
+  waypointTolerance: 0.08
+  stopDwellSeconds: 60
+  intersectionLookAheadModules: 1
+  intersectionClearModules: 2
+  debugState: Waiting for journey
+  debugPathIndex: 0
+  debugPathLength: 0
+--- !u!114 &8649479552319239630
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7243723649401442556}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d4a1c9e8b7f64a2d9c3e5f1a8b6d0c42, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TrafficFollowing
+  desiredFollowingDistance: 2.5
+  routeMatchTolerance: 1.25
+  acceleration: 4
+  braking: 8
