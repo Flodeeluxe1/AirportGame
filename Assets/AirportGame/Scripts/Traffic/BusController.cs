@@ -163,6 +163,8 @@ public class BusController : MonoBehaviour
             {
                 transform.position = target;
                 ArriveAtWaypoint();
+                if (stopTimeRemaining > 0f)
+                    return;
                 continue;
             }
 
@@ -180,6 +182,8 @@ public class BusController : MonoBehaviour
             {
                 transform.position = target;
                 ArriveAtWaypoint();
+                if (stopTimeRemaining > 0f)
+                    return;
             }
             else
             {
