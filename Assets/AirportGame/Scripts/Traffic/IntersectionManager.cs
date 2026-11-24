@@ -187,7 +187,8 @@ public class IntersectionManager : MonoBehaviour
         return vehicle is TrafficTestVehicle ||
                vehicle is CargoDeliveryTruck ||
                vehicle is FuelTruckController ||
-               vehicle is GarbageCollectorController;
+               vehicle is GarbageCollectorController ||
+               vehicle is BusController;
     }
 
     private IntersectionState GetState(Vector2Int intersection)
