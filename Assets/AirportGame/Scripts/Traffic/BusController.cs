@@ -142,6 +142,7 @@ public class BusController : MonoBehaviour
         if (stopTimeRemaining > 0f)
         {
             currentSpeed = 0f;
+            debugCurrentSpeed = 0f;
             stopTimeRemaining = Mathf.Max(
                 0f, stopTimeRemaining - GameTimeManager.SimulationDeltaTime);
             if (stopTimeRemaining <= 0f)
@@ -171,12 +172,25 @@ public class BusController : MonoBehaviour
             {
                 debugState = "Waiting for intersection";
                 currentSpeed = 0f;
+                debugCurrentSpeed = 0f;
+                debugTrafficDecision = "Waiting for intersection reservation";
                 return;
             }
 
             currentSpeed = trafficFollowing.GetFollowingSpeed(
                 movementSpeed, currentSpeed, route,
-                roadNetwork, gridManager, hasIntersectionReservation, out _);
+                roadNetwork, gridManager, hasIntersectionReservation,
+                out float followingDistance);
+
+            debugBlockingCollider = "None";
+            debugBlockingVehicleState = "None";
+            debugBlockingDistance = float.IsPositiveInfinity(followingDistance)
+                ? 0f
+                : followingDistance;
+            debugTrafficDecision = float.IsPositiveInfinity(followingDistance)
+                ? "No vehicle on the same route ahead"
+                : $"Maintaining route gap: {followingDistance:F2}m";
+            debugCurrentSpeed = currentSpeed;
 
             if (currentSpeed <= 0.001f)
                 return;
