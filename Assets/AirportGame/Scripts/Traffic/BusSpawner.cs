@@ -120,7 +120,7 @@ public class BusSpawner : MonoBehaviour
             return false;
         }
 
-        if (!TryBuildJourney(startCell, exitCell,
+        if (!TryBuildJourney(startCell, exitCell, null, false,
                 out List<Vector2Int> journey,
                 out List<int> stopIndices))
         {
@@ -172,9 +172,31 @@ public class BusSpawner : MonoBehaviour
         return true;
     }
 
+    public bool TryRebuildJourney(
+        Vector3 currentPosition,
+        HashSet<Vector2Int> completedStopRoadCells,
+        out List<Vector2Int> journey,
+        out List<int> stopIndices)
+    {
+        Vector2Int startCell = roadNetwork.GetRoadAnchor(
+            gridManager.WorldToGrid(currentPosition));
+        List<Vector2Int> roadPositions = roadNetwork.GetRoadPositions();
+        if (!roadNetwork.IsRoad(startCell))
+            startCell = FindNearestRoadCell(currentPosition, roadPositions);
+
+        Vector2Int exitCell = roadNetwork.GetRoadAnchor(
+            gridManager.WorldToGrid(exitPoint.position));
+        return roadNetwork.IsRoad(startCell) &&
+               roadNetwork.IsRoad(exitCell) &&
+               TryBuildJourney(startCell, exitCell, completedStopRoadCells,
+                   true, out journey, out stopIndices);
+    }
+
     private bool TryBuildJourney(
         Vector2Int startCell,
         Vector2Int exitCell,
+        HashSet<Vector2Int> completedStopRoadCells,
+        bool allowExitWithoutStops,
         out List<Vector2Int> journey,
         out List<int> stopIndices)
     {
@@ -187,11 +209,19 @@ public class BusSpawner : MonoBehaviour
 
         foreach (PlacedBuilding stop in publicTransportManager.RegisteredStops)
         {
-            if (stop != null && stop.isActiveAndEnabled)
-                remainingStops.Add(stop);
+            if (stop == null || !stop.isActiveAndEnabled)
+                continue;
+
+            Vector2Int stopRoadCell = FindNearestRoadCell(
+                stop.transform.position, roadPositions);
+            if (completedStopRoadCells != null &&
+                completedStopRoadCells.Contains(stopRoadCell))
+                continue;
+
+            remainingStops.Add(stop);
         }
 
-        if (remainingStops.Count == 0)
+        if (remainingStops.Count == 0 && !allowExitWithoutStops)
             return false;
 
         Vector2Int currentCell = startCell;
@@ -229,7 +259,7 @@ public class BusSpawner : MonoBehaviour
             remainingStops.Remove(bestStop);
         }
 
-        if (stopIndices.Count == 0)
+        if (stopIndices.Count == 0 && !allowExitWithoutStops)
             return false;
 
         List<Vector2Int> exitPath =
