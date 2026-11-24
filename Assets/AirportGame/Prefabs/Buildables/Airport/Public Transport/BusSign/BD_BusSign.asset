@@ -16,7 +16,7 @@ MonoBehaviour:
   displayName: Bus stop
   prefab: {fileID: 2136309825660380934, guid: 1fd2202829736654dab6cc4311997ccb, type: 3}
   placementType: 0
-  allowedSurfaces: 2
+  allowedSurfaces: 33
   requiredSurface: 1
   width: 1
   depth: 1
