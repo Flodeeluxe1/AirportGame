@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -154,7 +155,9 @@ public class PublicTransportRoute : MonoBehaviour
         if (orderComparison != 0)
             return orderComparison;
 
-        return a.GetInstanceID().CompareTo(b.GetInstanceID());
+        string aId = a.PlacedBuilding != null ? a.PlacedBuilding.InstanceId : a.name;
+        string bId = b.PlacedBuilding != null ? b.PlacedBuilding.InstanceId : b.name;
+        return string.Compare(aId, bId, StringComparison.Ordinal);
     }
 
     public bool TryGetStop(int index, out PublicTransportStop stop)
