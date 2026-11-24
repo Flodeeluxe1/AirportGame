@@ -103,8 +103,8 @@ public class PublicTransportManager : MonoBehaviour
         return building != null &&
                building.isActiveAndEnabled &&
                building.Definition != null &&
-               building.Definition.purpose ==
-                   BuildablePurpose.PublicTransportStop;
+               (building.Definition.publicTransportModes &
+                PublicTransportMode.BusStop) != 0;
     }
 
     private static bool IsActiveBuilding(PlacedBuilding building)
