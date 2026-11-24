@@ -31,6 +31,8 @@ public class BusController : MonoBehaviour
 
     private readonly List<Vector2Int> route = new List<Vector2Int>();
     private readonly HashSet<int> stopPathIndices = new HashSet<int>();
+    private readonly HashSet<Vector2Int> completedStopRoadCells =
+        new HashSet<Vector2Int>();
     private RoadNetwork roadNetwork;
     private GridManager gridManager;
     private IntersectionManager intersectionManager;
@@ -40,6 +42,7 @@ public class BusController : MonoBehaviour
     private float currentSpeed;
     private float stopTimeRemaining;
     private bool routeInitialized;
+    private int routeTopologyVersion = -1;
     private bool waitingForIntersection;
     private bool hasIntersectionReservation;
     private Vector2Int requestedIntersection;
@@ -100,6 +103,7 @@ public class BusController : MonoBehaviour
         ownerSpawner = spawner;
         pathIndex = 1;
         routeInitialized = true;
+        routeTopologyVersion = roadNetwork.TopologyVersion;
         currentSpeed = 0f;
         debugPathLength = route.Count;
         debugState = "Driving to first bus stop";
@@ -111,6 +115,12 @@ public class BusController : MonoBehaviour
     {
         if (!routeInitialized)
             return;
+
+        if (roadNetwork != null &&
+            routeTopologyVersion != roadNetwork.TopologyVersion)
+        {
+            RebuildRemainingJourney();
+        }
 
         if (stopTimeRemaining > 0f)
         {
@@ -202,6 +212,7 @@ public class BusController : MonoBehaviour
 
         if (stopPathIndices.Contains(reachedIndex))
         {
+            completedStopRoadCells.Add(route[reachedIndex]);
             currentSpeed = 0f;
             stopTimeRemaining = stopDwellSeconds;
             debugState = "At bus stop";
@@ -214,6 +225,45 @@ public class BusController : MonoBehaviour
         {
             debugState = "Driving to next bus stop / exit";
         }
+    }
+
+    private void RebuildRemainingJourney()
+    {
+        if (ownerSpawner == null ||
+            !ownerSpawner.TryRebuildJourney(
+                transform.position,
+                completedStopRoadCells,
+                out List<Vector2Int> rebuiltRoute,
+                out List<int> rebuiltStopIndices))
+        {
+            routeTopologyVersion = roadNetwork.TopologyVersion;
+            debugState = "Road topology changed; no replacement route found";
+            currentSpeed = 0f;
+            return;
+        }
+
+        if (intersectionManager != null)
+            intersectionManager.CancelRequest(this);
+
+        route.Clear();
+        route.AddRange(rebuiltRoute);
+        stopPathIndices.Clear();
+        for (int i = 0; i < rebuiltStopIndices.Count; i++)
+            stopPathIndices.Add(rebuiltStopIndices[i]);
+
+        routeTopologyVersion = roadNetwork.TopologyVersion;
+        pathIndex = route.Count > 1 ? 1 : route.Count;
+        transform.position = GetRoadWorldPosition(route[0]);
+        currentSpeed = 0f;
+        waitingForIntersection = false;
+        hasIntersectionReservation = false;
+        reservedIntersectionPathIndex = -1;
+        stopTimeRemaining = 0f;
+        debugPathLength = route.Count;
+        debugPathIndex = pathIndex;
+        debugState = stopPathIndices.Count > 0
+            ? "Route recalculated after road changes"
+            : "Road changed; proceeding to traffic exit";
     }
 
     private bool ShouldWaitForIntersection()
