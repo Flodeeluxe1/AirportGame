@@ -15,12 +15,6 @@ public enum BuildSurfaceOptions
     All = Grass | Foundation | Tarmac | Taxiway | Runway | PedestrianTarmac | Road
 }
 
-public enum BuildablePurpose
-{
-    None,
-    PublicTransportStop
-}
-
 public enum BuildCategory
 {
     Floor,
@@ -48,6 +42,20 @@ public enum RoomFurnitureRole
     Book = 128
 }
 
+[System.Flags]
+public enum PublicTransportMode
+{
+    None = 0,
+    [InspectorName("Bus Stop")]
+    BusStop = 1 << 0,
+    [InspectorName("Train Stop")]
+    TrainStop = 1 << 1,
+    [InspectorName("Taxi Stop")]
+    TaxiStop = 1 << 2,
+    [InspectorName("Underground Stop")]
+    UndergroundStop = 1 << 3
+}
+
 [CreateAssetMenu(
     fileName = "BuildableDefinition",
     menuName = "Airport/Building/Buildable Definition"
@@ -60,10 +68,6 @@ public class BuildableDefinition : ScriptableObject
 
     [Header("Prefab")]
     public GameObject prefab;
-
-    [Header("Gameplay Purpose")]
-    [Tooltip("Identifies special gameplay roles without coupling them to the build menu category.")]
-    public BuildablePurpose purpose = BuildablePurpose.None;
 
     [Header("Placement")]
     public PlacementType placementType = PlacementType.Cell;
@@ -159,4 +163,8 @@ public class BuildableDefinition : ScriptableObject
 
     [Header("Room Furniture")]
     public RoomFurnitureRole roomFurnitureRole = RoomFurnitureRole.None;
+
+    [Header("Public Transport")]
+    [Tooltip("Select the public-transport stop types this buildable provides.")]
+    public PublicTransportMode publicTransportModes = PublicTransportMode.None;
 }
