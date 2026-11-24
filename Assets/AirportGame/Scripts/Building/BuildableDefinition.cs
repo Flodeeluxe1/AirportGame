@@ -15,6 +15,12 @@ public enum BuildSurfaceOptions
     All = Grass | Foundation | Tarmac | Taxiway | Runway | PedestrianTarmac | Road
 }
 
+public enum BuildablePurpose
+{
+    None,
+    PublicTransportStop
+}
+
 public enum BuildCategory
 {
     Floor,
@@ -54,6 +60,10 @@ public class BuildableDefinition : ScriptableObject
 
     [Header("Prefab")]
     public GameObject prefab;
+
+    [Header("Gameplay Purpose")]
+    [Tooltip("Identifies special gameplay roles without coupling them to the build menu category.")]
+    public BuildablePurpose purpose = BuildablePurpose.None;
 
     [Header("Placement")]
     public PlacementType placementType = PlacementType.Cell;
