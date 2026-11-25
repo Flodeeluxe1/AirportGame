@@ -18,6 +18,12 @@ public class AirlineContractOfferManager : MonoBehaviour
 
     [Header("Systems")]
     [SerializeField] private AirlineAirportSnapshotCollector snapshotCollector;
+
+    [Header("Passenger Contract Unlock")]
+    [Range(0, 5)]
+    [SerializeField] private int currentAirportLevel = 5;
+    [Range(0, 5)]
+    [SerializeField] private int requiredPassengerAirportLevel = 5;
     [SerializeField] private GameTimeManager gameTimeManager;
     [SerializeField] private AirlineContractPerformanceTracker performanceTracker;
 
@@ -503,6 +509,14 @@ public class AirlineContractOfferManager : MonoBehaviour
         AirlineDefinition airline,
         AirlineContractTemplate template)
     {
+        // Passenger-only contracts remain locked until the configured airport
+        // level is reached. Cargo and mixed-operation airlines keep existing rules.
+        if (airline.OperationType == AirlineOperationType.Passenger &&
+            currentAirportLevel < requiredPassengerAirportLevel)
+        {
+            return false;
+        }
+
         AirlineAirportSnapshot snapshot = snapshotCollector.BuildSnapshot(airline);
         if (snapshot == null)
             return false;
@@ -510,6 +524,12 @@ public class AirlineContractOfferManager : MonoBehaviour
         if (snapshot.suitableGateCount <= 0 ||
             (int)airline.PreferredGateSize < (int)template.MinimumGateSize ||
             snapshot.longestRunwayLengthMeters < template.MinimumRunwayLengthMeters)
+        {
+            return false;
+        }
+
+        if (airline.OperationType == AirlineOperationType.Passenger &&
+            snapshot.foundationCellCount < template.MinimumFoundationCells)
         {
             return false;
         }
