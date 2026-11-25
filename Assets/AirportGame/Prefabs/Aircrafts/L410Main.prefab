@@ -100,7 +100,7 @@ MonoBehaviour:
   outgoingPassengers: 0
   maxTaxiSpeed: 15
   currentTaxiSpeed: 0
-  maxCargo: 20
+  maxCargo: 0
   incomingCargo: 0
   outgoingCargo: 0
 --- !u!114 &741642120645326264
