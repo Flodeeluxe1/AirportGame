@@ -14,6 +14,9 @@ public class AirportRatingManager : MonoBehaviour
     private const int MaximumVisitorsPerFrame = 250;
     private static AirportRatingManager instance;
 
+    [Header("Airport Progression")]
+    [SerializeField, Range(0, 5)] private int airportLevel = 5;
+
     [Header("Rating Weights")]
     [SerializeField, Min(0f)] private float visitorSatisfactionWeight = 0.75f;
     [SerializeField, Min(0f)] private float environmentWeight = 0.25f;
@@ -47,6 +50,7 @@ public class AirportRatingManager : MonoBehaviour
     public float EnvironmentExperience => environmentExperience;
     public float RawAirportRating => rawAirportRating;
     public float AirportRating => airportRating;
+    public int AirportLevel => airportLevel;
 
     public event Action<float> AirportRatingChanged;
 
@@ -211,6 +215,7 @@ public class AirportRatingManager : MonoBehaviour
 
     private void OnValidate()
     {
+        airportLevel = Mathf.Clamp(airportLevel, 0, 5);
         visitorSatisfactionWeight = Mathf.Max(0f, visitorSatisfactionWeight);
         environmentWeight = Mathf.Max(0f, environmentWeight);
         ratingSmoothingTimeSeconds = Mathf.Max(0.01f, ratingSmoothingTimeSeconds);
