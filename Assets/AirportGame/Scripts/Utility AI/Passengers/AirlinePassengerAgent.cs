@@ -125,10 +125,13 @@ public class AirlinePassengerAgent : MonoBehaviour
             return false;
         }
 
-        if (!movement.MoveTo(stopPosition))
-            return false;
-
         state = JourneyState.WalkingToBusStop;
+        if (!movement.MoveTo(stopPosition))
+        {
+            state = JourneyState.Uninitialized;
+            return false;
+        }
+
         return true;
     }
 
