@@ -47,6 +47,7 @@ public class BusController : MonoBehaviour
 
     private readonly List<Vector2Int> route = new List<Vector2Int>();
     private readonly List<PlacedBuilding> orderedStops = new List<PlacedBuilding>();
+    private PlacedBuilding initialFirstStop;
     private readonly List<AirlinePassengerAgent> onboardPassengers = new List<AirlinePassengerAgent>();
     private readonly List<Vector3> smoothedMovementWaypoints =
         new List<Vector3>();
@@ -75,7 +76,7 @@ public class BusController : MonoBehaviour
     public event Action<BusController, PlacedBuilding> StopReached;
     public event Action<BusController> JourneyCompleted;
 
-    public PlacedBuilding FirstStop => orderedStops.Count > 0 ? orderedStops[0] : null;
+    public PlacedBuilding FirstStop => initialFirstStop;
     public int PassengerCapacity => Mathf.Max(1, maxPassengerCapacity);
     public int OnboardPassengerCount
     {
@@ -162,6 +163,7 @@ public class BusController : MonoBehaviour
 
         route.AddRange(assignedRoute);
         orderedStops.AddRange(assignedStops);
+        initialFirstStop = assignedStops.Count > 0 ? assignedStops[0] : null;
         for (int i = 0; i < assignedStopPathIndices.Count; i++)
         {
             int index = assignedStopPathIndices[i];
