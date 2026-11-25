@@ -402,36 +402,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &549940486
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 168345271}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6e9a7c2f4d1b48a5a3e7c9d2f1b60485, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SightseeingPassengerManager
-  logToConsole: 0
-  passengerPrefab: {fileID: 7225608004980206237, guid: 5f6c3da8c2867f44aab7979bbc9a2435, type: 3}
-  passengerCarPrefab: {fileID: 2154428240389558112, guid: 9150906fb3da9b049807bba55795f99b, type: 3}
-  checkInInteraction: {fileID: 11400000, guid: 8a6b3d1f5c2e49a7b4d0e8f1c3a62579, type: 2}
-  checkInRetrySeconds: 5
-  publicTerminalWaitingArea: {fileID: 0}
-  waitingAreaRadiusCells: 8
-  carSpawnIntervalGameSeconds: 1.5
-  carExitOffset: 1.5
-  trafficSpawner: {fileID: 2134991059}
-  aircraftSpawner: {fileID: 549940480}
-  sightseeingEconomy: {fileID: 133712790}
-  gameTimeManager: {fileID: 449210932}
-  pedestrianPathfinder: {fileID: 0}
-  roomPurposeController: {fileID: 1399790236}
-  debugStatus: Waiting for sightseeing schedule.
-  activePassengers: 0
-  pendingFlights: 0
 --- !u!4 &168345272
 Transform:
   m_ObjectHideFlags: 0
@@ -813,6 +783,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 12a76f44375d3664195a68274ef301a1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TaxiwayNetwork
+  logToConsole: 0
 --- !u!114 &405670569
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1197,6 +1168,36 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &549940486
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 168345271}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6e9a7c2f4d1b48a5a3e7c9d2f1b60485, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SightseeingPassengerManager
+  logToConsole: 0
+  passengerPrefab: {fileID: 7225608004980206237, guid: 5f6c3da8c2867f44aab7979bbc9a2435, type: 3}
+  passengerCarPrefab: {fileID: 2154428240389558112, guid: 9150906fb3da9b049807bba55795f99b, type: 3}
+  checkInInteraction: {fileID: 11400000, guid: 8a6b3d1f5c2e49a7b4d0e8f1c3a62579, type: 2}
+  checkInRetrySeconds: 5
+  publicTerminalWaitingArea: {fileID: 0}
+  waitingAreaRadiusCells: 8
+  carSpawnIntervalGameSeconds: 1.5
+  carExitOffset: 1.5
+  trafficSpawner: {fileID: 2134991059}
+  aircraftSpawner: {fileID: 549940480}
+  sightseeingEconomy: {fileID: 133712790}
+  gameTimeManager: {fileID: 449210932}
+  pedestrianPathfinder: {fileID: 0}
+  roomPurposeController: {fileID: 1399790236}
+  debugStatus: Waiting for sightseeing schedule.
+  activePassengers: 0
+  pendingFlights: 0
 --- !u!1 &555229055
 GameObject:
   m_ObjectHideFlags: 0
@@ -1525,22 +1526,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &621534529
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 621534527}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8d4b6f1a2c3e4d5f9a7b1c6e8f203145, type: 3}
-  m_Name:
-  m_EditorClassIdentifier: Assembly-CSharp::PassengerCoordinator
-  baseOccupancy: 0.3
-  minimumRandomVariation: 0.85
-  maximumRandomVariation: 1.15
-  logToConsole: 0
 --- !u!4 &621534528
 Transform:
   m_ObjectHideFlags: 0
@@ -1556,6 +1541,22 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &621534529
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 621534527}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8d4b6f1a2c3e4d5f9a7b1c6e8f203145, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PassengerCoordinator
+  baseOccupancy: 0.3
+  minimumRandomVariation: 0.85
+  maximumRandomVariation: 1.15
+  logToConsole: 0
 --- !u!1 &728659357
 GameObject:
   m_ObjectHideFlags: 0
@@ -2760,13 +2761,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ScheduledAircraftSpawner
   logToConsole: 0
-  aircraftPrefab: {fileID: 2387620211239937619, guid: c1be6962e7b8a7b4492d64878a85de86, type: 3}
-  passengerAircraftPrefab: {fileID: 3545578725970996442, guid: f37c4f3a3f5f80640bc40e596f3c8532, type: 3}
+  cargoOnlyAircraftPrefab: {fileID: 2387620211239937619, guid: c1be6962e7b8a7b4492d64878a85de86, type: 3}
+  passengerOnlyAircraftPrefab: {fileID: 3545578725970996442, guid: f37c4f3a3f5f80640bc40e596f3c8532, type: 3}
+  cargoAndPassengersAircraftPrefab: {fileID: 411983450407012736, guid: 371096fb6d9c3a640a5a446ecf9275c9, type: 3}
   spawnPoint: {fileID: 1023196800}
   flightCatalog: {fileID: 1712716984}
   gameTimeManager: {fileID: 449210932}
-  airportManagementController: {fileID: 0}
-  contractManager: {fileID: 0}
+  airportManagementController: {fileID: 1390174456}
+  contractManager: {fileID: 1352646397}
   spawnIntervalSeconds: 120
   logScheduleReloads: 1
   logAircraftSpawns: 1
@@ -3163,6 +3165,7 @@ MonoBehaviour:
   airportManagementController: {fileID: 1390174456}
   gateRegistry: {fileID: 335832197}
   gridManager: {fileID: 728659359}
+  gridSurface: {fileID: 0}
   interestResults: []
 --- !u!4 &1352646395
 Transform:
@@ -3209,6 +3212,7 @@ MonoBehaviour:
   snapshotCollector: {fileID: 0}
   gameTimeManager: {fileID: 0}
   performanceTracker: {fileID: 0}
+  requiredAirportLevel: 5
   minimumRenewalRelationship: 50
   minimumRenewalCompletionRate: 0.75
   paymentIncreasePerRenewal: 0.02
