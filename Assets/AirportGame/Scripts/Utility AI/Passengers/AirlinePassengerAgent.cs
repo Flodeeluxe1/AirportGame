@@ -33,6 +33,8 @@ public class AirlinePassengerAgent : MonoBehaviour
     private EnvironmentScoreMonitor environmentMonitor;
     private AirportVisitorExperience visitorExperience;
 
+    public event System.Action<AirlinePassengerAgent> ReachedBusStop;
+
     public string FlightOperationId => flightOperationId;
     public JourneyState State => state;
     public UtilityNeeds Needs => needs;
@@ -41,6 +43,28 @@ public class AirlinePassengerAgent : MonoBehaviour
     private void Awake()
     {
         CacheComponents();
+    }
+
+    private void OnEnable()
+    {
+        CacheComponents();
+        if (movement != null)
+            movement.Arrived += HandleMovementArrived;
+    }
+
+    private void OnDisable()
+    {
+        if (movement != null)
+            movement.Arrived -= HandleMovementArrived;
+    }
+
+    private void HandleMovementArrived()
+    {
+        if (state != JourneyState.WalkingToBusStop)
+            return;
+
+        BeginWaitingForBus();
+        ReachedBusStop?.Invoke(this);
     }
 
     private void CacheComponents()
@@ -198,6 +222,19 @@ public class AirlinePassengerAgent : MonoBehaviour
             movement.Stop();
 
         state = JourneyState.Completed;
+    }
+
+    /// <summary>Completes a homebound passenger's bus trip as the bus leaves the airport road network.</summary>
+    public void CompleteReturnBusJourney()
+    {
+        if (state != JourneyState.OnBus)
+            return;
+
+        transform.SetParent(null, true);
+        if (interactions != null)
+            interactions.SetExternallyControlled(false);
+        CompleteJourney();
+        Destroy(gameObject);
     }
 
     public void AbandonJourney()
