@@ -65,6 +65,10 @@ public class AirlineDefinition : ScriptableObject
     [Min(0f)]
     [SerializeField] private float minimumRunwayLengthMeters = 100f;
 
+    [Header("Passenger Airport Size Preferences")]
+    [Min(0)]
+    [SerializeField] private int desiredFoundationCellCount = 100;
+
     [Header("Cargo Capacity Preferences")]
     [Min(0f)]
     [SerializeField] private float desiredCargoStorageCapacity = 100f;
@@ -94,6 +98,7 @@ public class AirlineDefinition : ScriptableObject
     public AircraftGateSize PreferredGateSize => preferredGateSize;
     public int DesiredSuitableGateCount => desiredSuitableGateCount;
     public float MinimumRunwayLengthMeters => minimumRunwayLengthMeters;
+    public int DesiredFoundationCellCount => desiredFoundationCellCount;
     public float DesiredCargoStorageCapacity => desiredCargoStorageCapacity;
     public float DesiredCargoHandlingThroughputPerHour =>
         desiredCargoHandlingThroughputPerHour;
@@ -117,6 +122,7 @@ public class AirlineDefinition : ScriptableObject
 
         desiredSuitableGateCount = Mathf.Max(1, desiredSuitableGateCount);
         minimumRunwayLengthMeters = Mathf.Max(0f, minimumRunwayLengthMeters);
+        desiredFoundationCellCount = Mathf.Max(0, desiredFoundationCellCount);
         desiredCargoStorageCapacity = Mathf.Max(0f, desiredCargoStorageCapacity);
         desiredCargoHandlingThroughputPerHour = Mathf.Max(
             0f,
