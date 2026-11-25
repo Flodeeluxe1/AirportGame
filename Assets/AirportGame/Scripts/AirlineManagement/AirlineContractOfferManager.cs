@@ -584,7 +584,8 @@ public class AirlineContractOfferManager : MonoBehaviour
 
         contract.flightObligations = BuildFlightObligations(
             contract.contractId,
-            offer.terms);
+            offer.terms,
+            offer.airline.OperationType);
 
         pendingOffers.Remove(offer);
         activeContracts.Add(contract);
@@ -594,7 +595,8 @@ public class AirlineContractOfferManager : MonoBehaviour
 
     private static List<AirlineContractFlightObligation> BuildFlightObligations(
         string contractId,
-        AirlineContractTerms terms)
+        AirlineContractTerms terms,
+        AirlineOperationType operationType)
     {
         List<AirlineContractFlightObligation> obligations =
             new List<AirlineContractFlightObligation>();
@@ -603,6 +605,9 @@ public class AirlineContractOfferManager : MonoBehaviour
             return obligations;
 
         int slotIndex = 0;
+        string flightPrefix = operationType == AirlineOperationType.Passenger
+            ? "PT"
+            : "CT";
         string contractCode = contractId.Length > 8
             ? contractId.Substring(0, 8).ToUpperInvariant()
             : contractId.ToUpperInvariant();
@@ -618,7 +623,7 @@ public class AirlineContractOfferManager : MonoBehaviour
                 obligations.Add(new AirlineContractFlightObligation
                 {
                     obligationId = Guid.NewGuid().ToString("N"),
-                    flightNumber = $"CT{contractCode}{slotIndex:00}",
+                    flightNumber = $"{flightPrefix}{contractCode}{slotIndex:00}",
                     window = requirement.window,
                     slotIndex = slotIndex
                 });
