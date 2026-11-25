@@ -1,5 +1,6 @@
 using UnityEngine;
 
+[RequireComponent(typeof(AircraftStats))]
 public class PassengerFlightRevenue : MonoBehaviour
 {
     [Header("Debug")]
