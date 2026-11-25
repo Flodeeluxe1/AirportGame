@@ -140,8 +140,14 @@ public class PassengerCoordinator : MonoBehaviour
             }
 
             foreach (AirlinePassengerAgent passenger in walkingToBusStopPassengers)
-                if (passenger != null)
-                    passenger.ReachedBusStop += HandlePassengerReachedBusStop;
+            {
+                if (passenger == null)
+                    continue;
+
+                passenger.ReachedBusStop += HandlePassengerReachedBusStop;
+                if (passenger.State == AirlinePassengerAgent.JourneyState.WaitingForBus)
+                    HandlePassengerReachedBusStop(passenger);
+            }
         }
     }
 
