@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 5977615204451694522}
   - component: {fileID: 225061702537081064}
   - component: {fileID: -3395384393607782239}
+  - component: {fileID: -6123456789012345003}
   - component: {fileID: 741642120645326264}
   - component: {fileID: -8777921106205756673}
   - component: {fileID: 7339072742877791106}
@@ -22,7 +23,6 @@ GameObject:
   - component: {fileID: 7274079364506538117}
   - component: {fileID: -5377837908492148942}
   - component: {fileID: -7123456789012345678}
-  - component: {fileID: -6123456789012345003}
   m_Layer: 7
   m_Name: L410Main
   m_TagString: Untagged
@@ -79,9 +79,30 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: db4052f87d2eb79448f793591e583f1d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AircraftFlightIdentity
+  logToConsole: 0
   flightNumber: 
   plannedGateStableId: 
   actualGateStableId: 
+--- !u!114 &-6123456789012345003
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3545578725970996442}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4f8a1c26d934e0e9f7b2a6c5d8130ef, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AircraftStats
+  maxPassengers: 19
+  incomingPassengers: 0
+  outgoingPassengers: 0
+  maxTaxiSpeed: 15
+  currentTaxiSpeed: 0
+  maxCargo: 20
+  incomingCargo: 0
+  outgoingCargo: 0
 --- !u!114 &741642120645326264
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -121,6 +142,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d75000dbb8f2a064595f1f29d625b999, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AircraftCargoPaxLandingController
+  logToConsole: 0
   gridManager: {fileID: 0}
   weather: {fileID: 0}
   approachDistance: 60
@@ -160,6 +182,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1bdf799d3ec2c72479ca67ffd2b39abd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AircraftCargoPaxLandingTaxiController
+  logToConsole: 0
   landingController: {fileID: 0}
   flightIdentity: {fileID: 0}
   gridManager: {fileID: 0}
@@ -205,6 +228,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7ee889bd93e678145a77cbff86ae978e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AircraftTurnaroundController
+  logToConsole: 0
   gameTimeManager: {fileID: 0}
   loadingManifest: {fileID: 0}
   deboarding:
@@ -244,6 +268,7 @@ MonoBehaviour:
   fuelTruckRequestRetryTimer: 0
   externalCleaningControlled: 0
   cleaningVehicleRequestRetryTimer: 0
+  baggageVehicleRequestRetryTimer: 0
 --- !u!114 &-2652892901643927754
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -256,6 +281,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a68a9ae924af9f34eaff1318be320c89, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AircraftCargoPaxGateExitController
+  logToConsole: 0
   turnaroundController: {fileID: 0}
   flightIdentity: {fileID: 0}
   gateRegistry: {fileID: 0}
@@ -282,6 +308,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8d299382e42c56945bf0472f7f719a6d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AircraftCargoPaxDepartureTaxiController
+  logToConsole: 0
   gateExitController: {fileID: 0}
   gridManager: {fileID: 0}
   weather: {fileID: 0}
@@ -328,6 +355,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f65fa880a29cecc4f98753390af22b46, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AircraftCargoPaxTakeoffController
+  logToConsole: 0
   departureController: {fileID: 0}
   trafficManager: {fileID: 0}
   gameTimeManager: {fileID: 0}
@@ -363,6 +391,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e4f0fded1e400a14e8046655719557e9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AircraftTaxiTrafficFollowing
+  logToConsole: 0
   trafficLayer:
     serializedVersion: 2
     m_Bits: 128
@@ -394,6 +423,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 29c0e67caadc5d741ba362d0bcf2caa3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PassengerFlightRevenue
+  logToConsole: 0
   departureRevenueRecorded: 0
 --- !u!114 &-7123456789012345678
 MonoBehaviour:
@@ -407,6 +437,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 109a25440e7fdd44b871e7d3a13cef3f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AircraftAirportFees
+  logToConsole: 0
   landingFee: 250
   parkingFee: 100
   parkingIntervalMinutes: 15
@@ -1444,22 +1475,3 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 2774220344278030320, guid: 6011a2c838097c94db47527aa3ed4565, type: 3}
   m_PrefabInstance: {fileID: 8712370441465966709}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &-6123456789012345003
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3545578725970996442}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b4f8a1c26d934e0e9f7b2a6c5d8130ef, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::AircraftStats
-  maxPassengers: 19
-  outgoingPassengers: 0
-  maxTaxiSpeed: 15
-  currentTaxiSpeed: 0
-  maxCargo: 20
-  incomingCargo: 0
-  outgoingCargo: 0

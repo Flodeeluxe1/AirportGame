@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 1868921001595489411}
   - component: {fileID: -1437335864178184074}
   - component: {fileID: -5828195141393434414}
+  - component: {fileID: -6123456789012345001}
   - component: {fileID: 7115448970014184870}
   - component: {fileID: 887766554433221100}
   - component: {fileID: -8064365332280727941}
@@ -22,7 +23,6 @@ GameObject:
   - component: {fileID: -1894496117262883330}
   - component: {fileID: 8327461950283746102}
   - component: {fileID: 7165853331674213948}
-  - component: {fileID: -6123456789012345001}
   m_Layer: 7
   m_Name: CessnaMain
   m_TagString: Untagged
@@ -97,6 +97,26 @@ MonoBehaviour:
   flightNumber: 
   plannedGateStableId: 
   actualGateStableId: 
+--- !u!114 &-6123456789012345001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5782728294546788241}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4f8a1c26d934e0e9f7b2a6c5d8130ef, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AircraftStats
+  maxPassengers: 2
+  incomingPassengers: 0
+  outgoingPassengers: 0
+  maxTaxiSpeed: 12
+  currentTaxiSpeed: 0
+  maxCargo: 0
+  incomingCargo: 0
+  outgoingCargo: 0
 --- !u!114 &7115448970014184870
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -457,23 +477,3 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 2774220344278030320, guid: 34f5e73ca2ce0ad4886ba2ec2578877b, type: 3}
   m_PrefabInstance: {fileID: 3491101786787771838}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &-6123456789012345001
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5782728294546788241}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b4f8a1c26d934e0e9f7b2a6c5d8130ef, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::AircraftStats
-  maxPassengers: 2
-  incomingPassengers: 0
-  outgoingPassengers: 0
-  maxTaxiSpeed: 12
-  currentTaxiSpeed: 0
-  maxCargo: 20
-  incomingCargo: 0
-  outgoingCargo: 0
