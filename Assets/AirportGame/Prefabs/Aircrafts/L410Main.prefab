@@ -22,6 +22,7 @@ GameObject:
   - component: {fileID: 7274079364506538117}
   - component: {fileID: -5377837908492148942}
   - component: {fileID: -7123456789012345678}
+  - component: {fileID: -6123456789012345003}
   m_Layer: 7
   m_Name: L410Main
   m_TagString: Untagged
@@ -1448,3 +1449,23 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 2774220344278030320, guid: 6011a2c838097c94db47527aa3ed4565, type: 3}
   m_PrefabInstance: {fileID: 8712370441465966709}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &-6123456789012345003
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3545578725970996442}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4f8a1c26d934e0e9f7b2a6c5d8130ef, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AircraftStats
+  maxPassengers: 19
+  incomingPassengers: 0
+  outgoingPassengers: 0
+  maxTaxiSpeed: 15
+  currentTaxiSpeed: 0
+  maxCargo: 20
+  incomingCargo: 0
+  outgoingCargo: 0
