@@ -69,6 +69,10 @@ public class AircraftStatus : MonoBehaviour
             IsTaxiing = false;
             IsFlying = false;
             CurrentSpeedKnots = 0f;
+
+            AircraftStats stats = GetComponent<AircraftStats>();
+            if (stats != null)
+                stats.SetCurrentTaxiSpeed(0f);
         }
 
         if (changed)
@@ -95,6 +99,13 @@ public class AircraftStatus : MonoBehaviour
     public void SetCurrentSpeedKnots(float speed)
     {
         CurrentSpeedKnots = Mathf.Max(0f, speed);
+
+        if (IsTaxiing)
+        {
+            AircraftStats stats = GetComponent<AircraftStats>();
+            if (stats != null)
+                stats.SetCurrentTaxiSpeed(CurrentSpeedKnots);
+        }
     }
 
     public void ResetForTrainingLesson()
