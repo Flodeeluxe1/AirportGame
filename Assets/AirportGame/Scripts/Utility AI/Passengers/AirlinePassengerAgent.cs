@@ -137,6 +137,43 @@ public class AirlinePassengerAgent : MonoBehaviour
         }
     }
 
+    /// <summary>Boards a bus, including passengers spawned directly into its departing manifest.</summary>
+    public bool BoardBus(Transform busTransform)
+    {
+        CacheComponents();
+        if (busTransform == null || state == JourneyState.Completed ||
+            state == JourneyState.Abandoned || state == JourneyState.OnBus)
+            return false;
+
+        if (movement != null && movement.IsMoving)
+            movement.Stop();
+
+        if (interactions != null)
+            interactions.SetExternallyControlled(true);
+
+        transform.SetParent(busTransform, true);
+        state = JourneyState.OnBus;
+        return true;
+    }
+
+    /// <summary>Leaves the bus and resumes normal visitor behaviour while walking to the flight terminal.</summary>
+    public bool DisembarkToTerminal(Vector3 terminalPosition)
+    {
+        CacheComponents();
+        if (state != JourneyState.OnBus || movement == null)
+            return false;
+
+        transform.SetParent(null, true);
+        if (interactions != null)
+            interactions.SetExternallyControlled(false);
+
+        if (!movement.MoveTo(terminalPosition))
+            return false;
+
+        state = JourneyState.WalkingToTerminal;
+        return true;
+    }
+
     public void BeginWalkingToTerminal(Vector3 terminalPosition)
     {
         CacheComponents();
