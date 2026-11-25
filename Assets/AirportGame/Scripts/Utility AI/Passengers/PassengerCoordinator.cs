@@ -26,6 +26,7 @@ public class PassengerCoordinator : MonoBehaviour
         new Dictionary<string, int>();
     private readonly Dictionary<BusController, List<BusPassengerRecord>> busManifests =
         new Dictionary<BusController, List<BusPassengerRecord>>();
+    private bool busSpawnerSubscribed;
 
     private sealed class BusPassengerRecord
     {
@@ -68,19 +69,31 @@ public class PassengerCoordinator : MonoBehaviour
         if (gateRegistry == null)
             gateRegistry = FindAnyObjectByType<AircraftGateRegistry>();
 
-        if (busSpawner != null)
-            busSpawner.BusDispatched += HandleBusDispatched;
-        else
+        SubscribeToBusSpawner();
+        if (busSpawner == null)
             Debug.LogError("PassengerCoordinator: BusSpawner is missing; airline bus manifests cannot be loaded.", this);
 
         if (airlinePassengerPrefab == null)
             Debug.LogError("PassengerCoordinator: Assign the airline Passenger prefab. SS_Passenger is reserved for sightseeing.", this);
     }
 
+    private void SubscribeToBusSpawner()
+    {
+        if (busSpawnerSubscribed || busSpawner == null)
+            return;
+
+        busSpawner.BusDispatched += HandleBusDispatched;
+        busSpawnerSubscribed = true;
+        foreach (KeyValuePair<BusController, List<BusPassengerRecord>> pair in busManifests)
+            if (pair.Key != null)
+                pair.Key.StopReached += HandleBusStopReached;
+    }
+
     private void OnDisable()
     {
-        if (busSpawner != null)
+        if (busSpawnerSubscribed && busSpawner != null)
             busSpawner.BusDispatched -= HandleBusDispatched;
+        busSpawnerSubscribed = false;
 
         foreach (KeyValuePair<BusController, List<BusPassengerRecord>> pair in busManifests)
             if (pair.Key != null)
@@ -89,8 +102,8 @@ public class PassengerCoordinator : MonoBehaviour
 
     private void OnEnable()
     {
-        if (instance == this && busSpawner != null)
-            busSpawner.BusDispatched += HandleBusDispatched;
+        if (instance == this)
+            SubscribeToBusSpawner();
     }
 
     private void HandleBusDispatched(BusController bus)
