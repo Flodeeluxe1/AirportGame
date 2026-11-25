@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: NorthstarCargo
   m_EditorClassIdentifier: Assembly-CSharp::AirlineDefinition
   airlineId: northstar
-  displayName: Northstar Cargo
+  displayName: Northstar
   logo: {fileID: 0}
   interestWeights:
     airportFees: 20
