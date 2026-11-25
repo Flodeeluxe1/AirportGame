@@ -18,6 +18,7 @@ public class AirlineAirportSnapshotCollector : MonoBehaviour
     [SerializeField] private AirportManagementController airportManagementController;
     [SerializeField] private AircraftGateRegistry gateRegistry;
     [SerializeField] private GridManager gridManager;
+    [SerializeField] private GridSurface gridSurface;
 
     [Header("Runtime Results")]
     [SerializeField] private List<AirlineInterestRecord> interestResults =
@@ -25,6 +26,10 @@ public class AirlineAirportSnapshotCollector : MonoBehaviour
 
     private readonly Dictionary<AirlineDefinition, AirlineInterestResult> results =
         new Dictionary<AirlineDefinition, AirlineInterestResult>();
+
+    private bool foundationCountDirty = true;
+    private int cachedFoundationCellCount;
+    private Coroutine pendingFoundationRefresh;
 
     public event Action<AirlineDefinition, AirlineInterestResult> InterestUpdated;
 
@@ -34,6 +39,7 @@ public class AirlineAirportSnapshotCollector : MonoBehaviour
     private void OnEnable()
     {
         ResolveReferences();
+        SubscribeToFoundationChanges();
 
         PlacedBuilding.BuildingChanged += HandleBuildingChanged;
         CargoZone.CapacityChanged += HandleCargoCapacityChanged;
@@ -50,6 +56,9 @@ public class AirlineAirportSnapshotCollector : MonoBehaviour
     private void OnDisable()
     {
         PlacedBuilding.BuildingChanged -= HandleBuildingChanged;
+        if (gridSurface != null)
+            gridSurface.FoundationSurfaceChanged -= HandleFoundationSurfaceChanged;
+        pendingFoundationRefresh = null;
         CargoZone.CapacityChanged -= HandleCargoCapacityChanged;
 
         if (airportManagementController != null)
@@ -79,10 +88,14 @@ public class AirlineAirportSnapshotCollector : MonoBehaviour
 
         if (gridManager == null)
             gridManager = FindAnyObjectByType<GridManager>();
+
+        if (gridSurface == null)
+            gridSurface = FindAnyObjectByType<GridSurface>();
     }
 
     private void SubscribeToResolvedServices()
     {
+        SubscribeToFoundationChanges();
         if (airportManagementController != null)
             airportManagementController.StateChanged -= HandleAirportStateChanged;
 
@@ -95,6 +108,60 @@ public class AirlineAirportSnapshotCollector : MonoBehaviour
             ratingManager.AirportRatingChanged -= HandleAirportRatingChanged;
             ratingManager.AirportRatingChanged += HandleAirportRatingChanged;
         }
+    }
+
+
+    private void SubscribeToFoundationChanges()
+    {
+        if (gridSurface == null)
+            return;
+
+        gridSurface.FoundationSurfaceChanged -= HandleFoundationSurfaceChanged;
+        gridSurface.FoundationSurfaceChanged += HandleFoundationSurfaceChanged;
+    }
+
+    private void HandleFoundationSurfaceChanged()
+    {
+        foundationCountDirty = true;
+
+        // GridSurface can raise this event once per changed cell. Coalesce a
+        // burst into one refresh on the next frame instead of rescanning and
+        // recalculating every airline for every individual cell.
+        if (pendingFoundationRefresh == null && isActiveAndEnabled)
+            pendingFoundationRefresh = StartCoroutine(RefreshAfterFoundationChanges());
+    }
+
+    private IEnumerator RefreshAfterFoundationChanges()
+    {
+        yield return null;
+        pendingFoundationRefresh = null;
+        if (isActiveAndEnabled)
+            RefreshAllAirlines();
+    }
+
+    private int GetFoundationCellCount()
+    {
+        if (!foundationCountDirty)
+            return cachedFoundationCellCount;
+
+        cachedFoundationCellCount = 0;
+        if (gridManager != null && gridSurface != null)
+        {
+            for (int x = 0; x < gridManager.Width; x++)
+            {
+                for (int z = 0; z < gridManager.Height; z++)
+                {
+                    if (gridSurface.GetSurface(new Vector2Int(x, z)) ==
+                        BuildSurface.Foundation)
+                    {
+                        cachedFoundationCellCount++;
+                    }
+                }
+            }
+        }
+
+        foundationCountDirty = false;
+        return cachedFoundationCellCount;
     }
 
     private void HandleBuildingChanged(PlacedBuilding building)
@@ -199,7 +266,8 @@ public class AirlineAirportSnapshotCollector : MonoBehaviour
             airportReputation = AirportRatingManager.Instance != null
                 ? AirportRatingManager.Instance.AirportRating
                 : 50f,
-            previousContractPerformance = 50f
+            previousContractPerformance = 50f,
+            foundationCellCount = GetFoundationCellCount()
         };
 
         GetCargoCapacity(
