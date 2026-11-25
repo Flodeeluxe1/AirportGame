@@ -75,6 +75,8 @@ public class PassengerCoordinator : MonoBehaviour
 
         if (airlinePassengerPrefab == null)
             Debug.LogError("PassengerCoordinator: Assign the airline Passenger prefab. SS_Passenger is reserved for sightseeing.", this);
+        else if (airlinePassengerPrefab.GetComponent<AirlinePassengerAgent>() == null)
+            Debug.LogError("PassengerCoordinator: The assigned Passenger prefab must contain AirlinePassengerAgent.", airlinePassengerPrefab);
     }
 
     private void SubscribeToBusSpawner()
@@ -142,7 +144,7 @@ public class PassengerCoordinator : MonoBehaviour
             int requestedPassengers = CalculateBookedPassengers(
                 aircraftCapacity, airportRanking, flight.StartMinute);
             int passengerCount = Mathf.Min(requestedPassengers, bus.AvailablePassengerCapacity);
-            bookedPassengerCounts[flight.OperationId] = passengerCount;
+            int createdPassengerCount = 0;
 
             for (int passengerIndex = 0; passengerIndex < passengerCount; passengerIndex++)
             {
@@ -165,7 +167,10 @@ public class PassengerCoordinator : MonoBehaviour
                     Agent = agent,
                     GateStableId = flight.GateStableId
                 });
+                createdPassengerCount++;
             }
+
+            bookedPassengerCounts[flight.OperationId] = createdPassengerCount;
         }
 
         if (manifest.Count == 0)
