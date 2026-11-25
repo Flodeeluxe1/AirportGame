@@ -73,6 +73,7 @@ public class BusController : MonoBehaviour
     private int reservedIntersectionPathIndex = -1;
 
     public event Action<BusController, PlacedBuilding> StopReached;
+    public event Action<BusController> JourneyCompleted;
 
     public PlacedBuilding FirstStop => orderedStops.Count > 0 ? orderedStops[0] : null;
     public int PassengerCapacity => Mathf.Max(1, maxPassengerCapacity);
@@ -541,6 +542,7 @@ public class BusController : MonoBehaviour
 
     private void CompleteJourney()
     {
+        JourneyCompleted?.Invoke(this);
         debugState = "Exited";
         routeInitialized = false;
         if (intersectionManager != null)
