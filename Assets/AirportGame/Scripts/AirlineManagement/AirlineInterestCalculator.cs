@@ -35,15 +35,13 @@ public static class AirlineInterestCalculator
             airport.cargoHandlingThroughputPerHour,
             airline.DesiredCargoHandlingThroughputPerHour);
 
-        // Storage space and handling throughput are equally important parts
-        // of the cargo-handling factor.
-        // Cargo infrastructure is irrelevant to a passenger-only airline.
-        // A passenger-specific handling factor can replace this neutral score
-        // when passenger terminal capacity is represented by the airport.
-        float cargoScore =
-            airline.OperationType == AirlineOperationType.Passenger
-                ? 100f
-                : (storageScore + throughputScore) * 0.5f;
+        // Passenger airport size is represented by developed foundation cells.
+        // Cargo airlines continue to use storage and handling throughput.
+        float cargoScore = airline.OperationType == AirlineOperationType.Passenger
+            ? CalculateCapacityScore(
+                airport.foundationCellCount,
+                airline.DesiredFoundationCellCount)
+            : (storageScore + throughputScore) * 0.5f;
 
         float nightScore = Mathf.Clamp(
             airport.nightOperationsScore,
