@@ -66,6 +66,7 @@ public class AirlineContractTemplate : ScriptableObject
     [Min(0f)]
     [SerializeField] private float minimumCargoHandlingThroughputPerHour;
 
+    [Tooltip("Airport capacity targets used to calculate interest for this contract. The minimum requirements above also act as the target for full capacity interest.")]
     [Header("Payment")]
     [Min(0)]
     [SerializeField] private int paymentPerCompletedFlight = 500;
