@@ -41,7 +41,8 @@ public class AirlineDefinition : ScriptableObject
     [SerializeField] private string displayName;
     [SerializeField] private Sprite logo;
 
-    [Header("Operations")]
+    [Header("Default Operation Type (Interest Overview)")]
+    [Tooltip("Used only for the general airline interest overview. Contract offers use the Operation Type configured on each contract template.")]
     [SerializeField] private AirlineOperationType operationType =
         AirlineOperationType.Cargo;
 
