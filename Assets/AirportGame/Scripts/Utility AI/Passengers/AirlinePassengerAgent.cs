@@ -213,7 +213,9 @@ public class AirlinePassengerAgent : MonoBehaviour
         if (state != JourneyState.OnBus || movement == null)
             return false;
 
-        Transform busTransform = transform.parent;
+        // Detach before doing anything that can fail. A passenger who has
+        // left the bus must never be re-parented to it: otherwise the bus
+        // carries the passenger to its road exit and destroys the passenger.
         transform.SetParent(null, true);
 
         // Pedestrian pathfinding starts from walkable pedestrian space, not
@@ -225,13 +227,18 @@ public class AirlinePassengerAgent : MonoBehaviour
             interactions.SetExternallyControlled(true);
         state = JourneyState.WalkingToTerminal;
 
-        if (!movement.MoveTo(terminalPosition))
+        // Prefer a direct route. If the exact gate point is blocked, let the
+        // pathfinder search for a nearby walkable approach instead.
+        if (!movement.MoveTo(terminalPosition) &&
+            !movement.TryMoveToNearby(terminalPosition, disembarkPosition))
         {
-            state = JourneyState.OnBus;
-            transform.SetParent(busTransform, true);
-            return false;
+            Debug.LogWarning(
+                $"AirlinePassengerAgent: Passenger {flightOperationId} was detached at the bus stop but no pedestrian route to the terminal could be found.",
+                this);
         }
 
+        // Disembarking succeeds even if pathfinding fails: the passenger is
+        // no longer onboard and must not be carried away with the bus.
         return true;
     }
 
