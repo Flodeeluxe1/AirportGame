@@ -147,7 +147,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e7a542f747dfa0f499c8ad5004609305, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PedestrianAccessProfile
-  accessGroups: []
+  accessGroups:
+  - {fileID: 11400000, guid: 31073482e2d74dc40a91460d1e7d9af5, type: 2}
 --- !u!114 &1618146539823908488
 MonoBehaviour:
   m_ObjectHideFlags: 0
