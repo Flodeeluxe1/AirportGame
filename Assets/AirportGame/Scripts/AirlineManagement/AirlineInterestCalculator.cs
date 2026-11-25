@@ -8,16 +8,6 @@ public static class AirlineInterestCalculator
 {
     public static AirlineInterestResult Calculate(
         AirlineDefinition airline,
-        AirlineAirportSnapshot airport)
-    {
-        return Calculate(
-            airline,
-            airport,
-            airline != null ? airline.OperationType : AirlineOperationType.Cargo);
-    }
-
-    public static AirlineInterestResult Calculate(
-        AirlineDefinition airline,
         AirlineAirportSnapshot airport,
         AirlineOperationType operationType)
     {
