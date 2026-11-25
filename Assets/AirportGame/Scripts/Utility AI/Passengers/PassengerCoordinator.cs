@@ -150,7 +150,7 @@ public class PassengerCoordinator : MonoBehaviour
         for (int i = 0; i < registrationFlights.Count; i++)
         {
             ScheduledPassengerFlight flight = registrationFlights[i];
-            if (flight == null || string.IsNullOrWhiteSpace(flight.OperationId))
+            if (string.IsNullOrWhiteSpace(flight.OperationId))
                 continue;
 
             long flightAbsoluteSecond =
@@ -271,9 +271,9 @@ public class PassengerCoordinator : MonoBehaviour
             airlinePassengerPrefab == null)
             return;
 
-        double intervalSeconds = Math.Max(60.0, publicTransportManager.BusFrequencyMinutes * 60.0);
+        double intervalSeconds = System.Math.Max(60.0, publicTransportManager.BusFrequencyMinutes * 60.0);
         double now = GameTimeManager.SimulationTime;
-        double departureSecond = Math.Floor(now / intervalSeconds + 1e-7) * intervalSeconds;
+        double departureSecond = System.Math.Floor(now / intervalSeconds + 1e-7) * intervalSeconds;
         scheduledAircraftSpawner.GetPassengerFlightsForBusDeparture(
             departureSecond,
             publicTransportManager.BusFrequencyMinutes,
