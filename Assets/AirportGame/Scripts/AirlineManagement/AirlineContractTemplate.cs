@@ -29,6 +29,9 @@ public class AirlineContractTemplate : ScriptableObject
     [SerializeField] private string templateId;
     [SerializeField] private string displayName = "Standard Operations Contract";
 
+    [Header("Operation")]
+    [SerializeField] private AirlineOperationType operationType = AirlineOperationType.Cargo;
+
     [Header("Contract Duration")]
     [Min(1)]
     [SerializeField] private int durationDays = 7;
@@ -78,6 +81,7 @@ public class AirlineContractTemplate : ScriptableObject
 
     public string TemplateId => templateId;
     public string DisplayName => displayName;
+    public AirlineOperationType OperationType => operationType;
     public int DurationDays => durationDays;
     public IReadOnlyList<AirlineContractFlightWindowRequirement> FlightWindows => flightWindows;
     public int TotalFlightsPerDay
