@@ -24,6 +24,8 @@ public class PassengerCoordinator : MonoBehaviour
         new List<ScheduledPassengerFlight>();
     private readonly Dictionary<string, int> bookedPassengerCounts =
         new Dictionary<string, int>();
+    private readonly Dictionary<string, List<AirlinePassengerAgent>> terminalPassengersByOperationId =
+        new Dictionary<string, List<AirlinePassengerAgent>>();
     private readonly Dictionary<BusController, List<BusPassengerRecord>> busManifests =
         new Dictionary<BusController, List<BusPassengerRecord>>();
     private readonly Queue<AirlinePassengerAgent> waitingReturnPassengers =
@@ -263,7 +265,18 @@ public class PassengerCoordinator : MonoBehaviour
             }
 
             if (bus.DisembarkPassengerToTerminal(record.Agent, gate.transform.position))
+            {
+                string operationId = record.Agent.FlightOperationId;
+                if (!terminalPassengersByOperationId.TryGetValue(
+                    operationId, out List<AirlinePassengerAgent> flightPassengers))
+                {
+                    flightPassengers = new List<AirlinePassengerAgent>();
+                    terminalPassengersByOperationId.Add(operationId, flightPassengers);
+                }
+
+                flightPassengers.Add(record.Agent);
                 manifest.RemoveAt(i);
+            }
         }
 
             if (manifest.Count == 0)
@@ -445,6 +458,28 @@ public class PassengerCoordinator : MonoBehaviour
 
         aircraftStats.SetOutgoingPassengers(bookedPassengers);
         return true;
+    }
+
+    public void UpdateScheduledFlightGate(AircraftFlightIdentity flightIdentity)
+    {
+        if (flightIdentity == null || !flightIdentity.IsInitialized ||
+            !flightIdentity.HasActualGate || gateRegistry == null ||
+            !terminalPassengersByOperationId.TryGetValue(
+                flightIdentity.OperationId, out List<AirlinePassengerAgent> passengers))
+            return;
+
+        if (!gateRegistry.TryGetGate(
+            flightIdentity.ActualGateStableId, out AircraftGate actualGate) || actualGate == null)
+            return;
+
+        for (int i = 0; i < passengers.Count; i++)
+        {
+            AirlinePassengerAgent passenger = passengers[i];
+            if (passenger != null)
+                passenger.RedirectToTerminal(actualGate.transform.position);
+        }
+
+        terminalPassengersByOperationId.Remove(flightIdentity.OperationId);
     }
 
     public void ForgetScheduledFlightPassengerCount(string operationId)
