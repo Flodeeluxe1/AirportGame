@@ -25,6 +25,7 @@ public class AircraftLoadingManifest : MonoBehaviour
     [SerializeField] private int reservedOutgoingBaggage;
 
     private AircraftFlightIdentity flightIdentity;
+    private AircraftStats aircraftStats;
 
     private readonly List<string> incomingPackageIds =
         new List<string>();
@@ -71,6 +72,7 @@ public class AircraftLoadingManifest : MonoBehaviour
     private void Awake()
     {
         flightIdentity = GetComponent<AircraftFlightIdentity>();
+        aircraftStats = GetComponent<AircraftStats>();
     }
 
     public bool InitializeManifest()
@@ -80,6 +82,9 @@ public class AircraftLoadingManifest : MonoBehaviour
 
         if (flightIdentity == null)
             flightIdentity = GetComponent<AircraftFlightIdentity>();
+
+        if (aircraftStats == null)
+            aircraftStats = GetComponent<AircraftStats>();
 
         if (flightIdentity == null ||
             !flightIdentity.IsInitialized)
@@ -110,7 +115,12 @@ public class AircraftLoadingManifest : MonoBehaviour
         remainingIncomingBaggage = totalIncomingBaggage;
         reservedIncomingBaggage = 0;
 
+        if (aircraftStats != null)
+            aircraftStats.SetIncomingCargo(remainingIncomingBaggage);
+
         totalOutgoingBaggageLoaded = 0;
+        if (aircraftStats != null)
+            aircraftStats.SetOutgoingCargo(0);
         remainingOutgoingBaggage =
             Mathf.Max(0, expectedOutgoingBaggageCount);
         reservedOutgoingBaggage = 0;
@@ -182,6 +192,9 @@ public class AircraftLoadingManifest : MonoBehaviour
 
         remainingIncomingBaggage = incomingPackageIds.Count;
 
+        if (aircraftStats != null)
+            aircraftStats.SetIncomingCargo(remainingIncomingBaggage);
+
         reservedIncomingBaggage =
             reservedIncomingPackageIds.Count;
 
@@ -252,6 +265,13 @@ public class AircraftLoadingManifest : MonoBehaviour
             return false;
         }
 
+        if (aircraftStats != null &&
+            !aircraftStats.HasCargoCapacityFor(
+                reservedOutgoingPackageIds.Count + 1))
+        {
+            return false;
+        }
+
         reservedOutgoingPackageIds.Add(packageId);
 
         reservedOutgoingBaggage =
@@ -302,6 +322,9 @@ public class AircraftLoadingManifest : MonoBehaviour
 
         totalOutgoingBaggageLoaded =
             loadedOutgoingPackageIds.Count;
+
+        if (aircraftStats != null)
+            aircraftStats.SetOutgoingCargo(totalOutgoingBaggageLoaded);
 
         remainingOutgoingBaggage = Mathf.Max(
             0,
