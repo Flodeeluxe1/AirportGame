@@ -10,6 +10,17 @@ public static class AirlineInterestCalculator
         AirlineDefinition airline,
         AirlineAirportSnapshot airport)
     {
+        return Calculate(
+            airline,
+            airport,
+            airline != null ? airline.OperationType : AirlineOperationType.Cargo);
+    }
+
+    public static AirlineInterestResult Calculate(
+        AirlineDefinition airline,
+        AirlineAirportSnapshot airport,
+        AirlineOperationType operationType)
+    {
         if (airline == null || airport == null)
             return default;
 
@@ -37,7 +48,7 @@ public static class AirlineInterestCalculator
 
         // Passenger airport size is represented by developed foundation cells.
         // Cargo airlines continue to use storage and handling throughput.
-        float cargoScore = airline.OperationType == AirlineOperationType.Passenger
+        float cargoScore = operationType == AirlineOperationType.Passenger
             ? CalculateCapacityScore(
                 airport.foundationCellCount,
                 airline.DesiredFoundationCellCount)
