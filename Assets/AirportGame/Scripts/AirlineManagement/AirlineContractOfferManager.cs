@@ -510,7 +510,8 @@ public class AirlineContractOfferManager : MonoBehaviour
         AirlineContractTemplate template)
     {
         // Passenger-only contracts remain locked until the configured airport
-        // level is reached. Cargo and mixed-operation airlines keep existing rules.
+        // level is reached. Mixed contracts must meet both passenger and cargo
+        // infrastructure requirements, but retain their existing unlock rules.
         if (template.OperationType == AirlineOperationType.Passenger)
         {
             AirportRatingManager ratingManager = AirportRatingManager.Instance;
@@ -533,7 +534,7 @@ public class AirlineContractOfferManager : MonoBehaviour
             return false;
         }
 
-        if (template.OperationType == AirlineOperationType.Passenger &&
+        if (template.OperationType != AirlineOperationType.Cargo &&
             snapshot.foundationCellCount < template.MinimumFoundationCells)
         {
             return false;
@@ -563,6 +564,8 @@ public class AirlineContractOfferManager : MonoBehaviour
 
         if (gameTimeManager.CurrentDay >= offer.expiresOnDay ||
             offer.airline == null ||
+            offer.template == null ||
+            offer.terms == null ||
             HasActiveContract(offer.airline, offer.template.OperationType))
         {
             RemoveOfferAsExpired(offer);
