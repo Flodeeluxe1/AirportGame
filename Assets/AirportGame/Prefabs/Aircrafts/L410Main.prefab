@@ -95,6 +95,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b4f8a1c26d934e0e9f7b2a6c5d8130ef, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AircraftStats
+  operationType: 1
   maxPassengers: 19
   incomingPassengers: 0
   outgoingPassengers: 0
