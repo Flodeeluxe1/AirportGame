@@ -190,6 +190,76 @@ public class PedestrianMovementController : MonoBehaviour
         UtilityAISpatialRegistry<PedestrianMovementController>.UpdatePosition(this);
     }
 
+    /// <summary>
+    /// Aligns the bottom of the pedestrian's visible/physical body with a
+    /// supplied ground point while preserving its horizontal position.
+    /// </summary>
+    public void AlignFeetToGround(Vector3 groundPosition)
+    {
+        if (alignmentColliders == null || alignmentRenderers == null)
+            return;
+
+        bool hasBounds = false;
+        Bounds bodyBounds = default;
+
+        if (alignmentColliders != null)
+        {
+            for (int i = 0; i < alignmentColliders.Length; i++)
+            {
+                Collider bodyCollider = alignmentColliders[i];
+                if (bodyCollider == null || !bodyCollider.enabled || bodyCollider.isTrigger)
+                    continue;
+
+                if (!hasBounds)
+                {
+                    bodyBounds = bodyCollider.bounds;
+                    hasBounds = true;
+                }
+                else
+                {
+                    bodyBounds.Encapsulate(bodyCollider.bounds);
+                }
+            }
+        }
+
+        if (!hasBounds && alignmentRenderers != null)
+        {
+            for (int i = 0; i < alignmentRenderers.Length; i++)
+            {
+                Renderer bodyRenderer = alignmentRenderers[i];
+                if (bodyRenderer == null || !bodyRenderer.enabled)
+                    continue;
+
+                if (!hasBounds)
+                {
+                    bodyBounds = bodyRenderer.bounds;
+                    hasBounds = true;
+                }
+                else
+                {
+                    bodyBounds.Encapsulate(bodyRenderer.bounds);
+                }
+            }
+        }
+
+        if (hasBounds)
+        {
+            Vector3 position = transform.position;
+            position.y += groundPosition.y - bodyBounds.min.y;
+            transform.position = position;
+        }
+        else
+        {
+            Vector3 position = transform.position;
+            position.y = groundPosition.y;
+            transform.position = position;
+        }
+
+        movementHeight = transform.position.y;
+        lastWalkableHeight = movementHeight;
+        UtilityAISpatialRegistry<PedestrianMovementController>.UpdatePosition(this);
+    }
+
     private float GetBodyHalfHeight()
     {
         bool hasBounds = false;
