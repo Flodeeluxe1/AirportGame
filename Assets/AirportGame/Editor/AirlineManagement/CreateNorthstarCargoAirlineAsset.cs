@@ -40,8 +40,6 @@ public static class CreateNorthstarCargoAirlineAsset
             (int)AircraftGateSize.Grass;
         serializedAirline.FindProperty("desiredSuitableGateCount").intValue = 1;
         serializedAirline.FindProperty("minimumRunwayLengthMeters").floatValue = 100f;
-        serializedAirline.FindProperty("desiredCargoStorageCapacity").floatValue = 100f;
-        serializedAirline.FindProperty("desiredCargoHandlingThroughputPerHour").floatValue = 10f;
         serializedAirline.FindProperty("minimumPreferredAirportReputation").floatValue = 50f;
         serializedAirline.FindProperty("priceSensitivity").floatValue = 1.25f;
 
