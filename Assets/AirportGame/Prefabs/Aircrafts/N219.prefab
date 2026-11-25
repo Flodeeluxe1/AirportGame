@@ -274,7 +274,6 @@ MonoBehaviour:
   maximumRunwayExitLateralDistance: 12
   minimumExitForwardDistance: 0.5
   runwayEndTolerance: 1
-  taxiSpeedKnots: 15
   rotationSpeed: 2
   waypointArrivalDistance: 0.2
   gateArrivalDistance: 0.5
@@ -397,7 +396,6 @@ MonoBehaviour:
   startSearchRadiusCells: 12
   maximumStartCandidates: 10
   runwaySafetyMarginInCells: 1
-  taxiSpeedKnots: 15
   rotationSpeedDegreesPerSecond: 45
   waypointArrivalDistance: 0.15
   modelRotationOffset: {x: 0, y: 0, z: 0}
