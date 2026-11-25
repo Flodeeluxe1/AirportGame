@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 087e4e2989a0ec942ac28b0ec5d91c70, type: 3}
   m_Name: NorthstarCargo
   m_EditorClassIdentifier: Assembly-CSharp::AirlineDefinition
-  airlineId: northstar_cargo
+  airlineId: northstar
   displayName: Northstar Cargo
   logo: {fileID: 0}
   interestWeights:
@@ -28,10 +28,12 @@ MonoBehaviour:
   preferredGateSize: 0
   desiredSuitableGateCount: 1
   minimumRunwayLengthMeters: 70
-  desiredFoundationCellCount: 100
+  desiredFoundationCellCount: 0
   desiredCargoStorageCapacity: 100
   desiredCargoHandlingThroughputPerHour: 10
   contractTemplates:
   - {fileID: 11400000, guid: 07f3d59c5ad5e164db82499267bb4684, type: 2}
+  - {fileID: 11400000, guid: 07f3d59c5ad5e164db82499267bb4684, type: 2}
+  - {fileID: 11400000, guid: 648baec2a518d774b8f30cba99db50e0, type: 2}
   minimumPreferredAirportReputation: 50
   priceSensitivity: 1.25

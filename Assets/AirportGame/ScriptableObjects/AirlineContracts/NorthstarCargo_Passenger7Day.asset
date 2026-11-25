@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3510f664bdb488d4f973069d17c7bab9, type: 3}
+  m_Name: NorthstarCargo_Passenger7Day
+  m_EditorClassIdentifier: Assembly-CSharp::AirlineContractTemplate
+  templateId: 
+  displayName: Standard Operations Contract
+  operationType: 0
+  durationDays: 7
+  flightWindows:
+  - window: 0
+    flightsPerDay: 1
+  - window: 1
+    flightsPerDay: 1
+  turnaroundMinutes: 60
+  minimumGateSize: 0
+  minimumRunwayLengthMeters: 100
+  minimumFoundationCells: 0
+  minimumCargoStorageCapacity: 0
+  minimumCargoHandlingThroughputPerHour: 0
+  paymentPerCompletedFlight: 500
+  missedFlightPenalty: 250
+  completionBonus: 0
+  minimumAirlineInterest: 20
