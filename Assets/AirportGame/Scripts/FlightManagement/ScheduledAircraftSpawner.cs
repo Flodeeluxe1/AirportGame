@@ -11,7 +11,6 @@ public class ScheduledAircraftSpawner : MonoBehaviour
     [Header("References")]
     [SerializeField] private GameObject aircraftPrefab;
     [SerializeField] private GameObject passengerAircraftPrefab;
-    [SerializeField] private GameObject mixedAircraftPrefab;
     [SerializeField] private Transform spawnPoint;
     [SerializeField] private TestFlightCatalog flightCatalog;
     [SerializeField] private GameTimeManager gameTimeManager;
@@ -524,43 +523,6 @@ public class ScheduledAircraftSpawner : MonoBehaviour
             ScheduleQueueProcessingAt(nextAllowedSpawnGameSecond);
     }
 
-    private bool HasMixedOperationComponents(GameObject prefab)
-    {
-        if (prefab == null)
-        {
-            LogError(
-                "Cannot spawn a mixed cargo + passenger flight: assign " +
-                "Mixed Aircraft Prefab on ScheduledAircraftSpawner.",
-                this
-            );
-            return false;
-        }
-
-        AircraftStats stats = prefab.GetComponent<AircraftStats>();
-        if (stats == null || stats.maxPassengers <= 0 || stats.maxCargo <= 0)
-        {
-            LogError(
-                $"Cannot spawn mixed flight with prefab '{prefab.name}': " +
-                "AircraftStats must have both passenger and cargo capacity.",
-                this
-            );
-            return false;
-        }
-
-        if (prefab.GetComponent<AircraftLoadingManifest>() == null ||
-            prefab.GetComponent<PassengerFlightRevenue>() == null)
-        {
-            LogError(
-                $"Cannot spawn mixed flight with prefab '{prefab.name}': " +
-                "AircraftLoadingManifest and PassengerFlightRevenue are required.",
-                this
-            );
-            return false;
-        }
-
-        return true;
-    }
-
     private bool SpawnQueuedAircraft(QueuedAircraftSpawn queuedFlight)
     {
         if (queuedFlight == null ||
@@ -598,10 +560,12 @@ public class ScheduledAircraftSpawner : MonoBehaviour
                 break;
 
             case FlightOperationType.CargoAndPassengers:
-                prefabToSpawn = mixedAircraftPrefab;
-                if (!HasMixedOperationComponents(prefabToSpawn))
-                    return false;
-                break;
+                LogError(
+                    $"Cannot spawn flight {scheduled.Definition.FlightNumber}: " +
+                    "Cargo + passengers is not supported by the spawner yet.",
+                    this
+                );
+                return false;
 
             default:
                 LogError(
@@ -659,8 +623,7 @@ public class ScheduledAircraftSpawner : MonoBehaviour
             queuedFlight.ScheduledDayIndex
         );
 
-        if (scheduled.Definition.OperationType == FlightOperationType.PassengerOnly ||
-            scheduled.Definition.OperationType == FlightOperationType.CargoAndPassengers)
+        if (scheduled.Definition.OperationType == FlightOperationType.PassengerOnly)
         {
             AircraftStats aircraftStats = aircraft.GetComponent<AircraftStats>();
             PassengerCoordinator passengerCoordinator = PassengerCoordinator.Instance;
