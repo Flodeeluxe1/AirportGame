@@ -850,6 +850,7 @@ public class AirlineContractOfferManager : MonoBehaviour
             turnaroundMinutes = source.turnaroundMinutes,
             minimumGateSize = source.minimumGateSize,
             minimumRunwayLengthMeters = source.minimumRunwayLengthMeters,
+            minimumFoundationCells = source.minimumFoundationCells,
             minimumCargoStorageCapacity = source.minimumCargoStorageCapacity,
             minimumCargoHandlingThroughputPerHour =
                 source.minimumCargoHandlingThroughputPerHour,
