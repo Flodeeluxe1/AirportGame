@@ -972,13 +972,13 @@ public class AircraftTurnaroundController : MonoBehaviour
 
     private void ChargeCleaningFee()
     {
-        PassengerFlightRevenue passengerRevenue =
-            GetComponent<PassengerFlightRevenue>();
+        AircraftStats aircraftStats =
+            GetComponent<AircraftStats>();
 
-        if (passengerRevenue == null)
+        if (aircraftStats == null)
         {
             LogWarning(
-                name + ": Cannot determine the cleaning fee because PassengerFlightRevenue is missing.",
+                name + ": Cannot determine the cleaning fee because AircraftStats is missing.",
                 this);
             return;
         }
@@ -994,7 +994,7 @@ public class AircraftTurnaroundController : MonoBehaviour
             return;
         }
 
-        airportFees.ChargeCleaningFee(passengerRevenue.SeatCapacity);
+        airportFees.ChargeCleaningFee(aircraftStats.maxPassengers);
     }
 
     /// <summary>
