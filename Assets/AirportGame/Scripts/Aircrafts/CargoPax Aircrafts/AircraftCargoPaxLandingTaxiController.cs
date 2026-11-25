@@ -4,6 +4,11 @@ using UnityEngine;
 
 public class AircraftCargoPaxLandingTaxiController : MonoBehaviour
 {
+    private float TaxiSpeedKnots =>
+        GetComponent<AircraftStats>() != null
+            ? GetComponent<AircraftStats>().maxTaxiSpeed
+            : 0f;
+
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
 
@@ -36,8 +41,6 @@ public class AircraftCargoPaxLandingTaxiController : MonoBehaviour
     [SerializeField] private float runwayEndTolerance = 1f;
 
     [Header("Taxi Movement")]
-    [Min(1f)]
-    [SerializeField] private float taxiSpeedKnots = 15f;
 
     [Min(0.1f)]
     [SerializeField] private float rotationSpeed = 2f;
@@ -536,7 +539,7 @@ public class AircraftCargoPaxLandingTaxiController : MonoBehaviour
                 $"CARGOPAX TAXI STARTED | " +
                 $"Flight: {flightIdentity.FlightNumber} | " +
                 $"Gate: {assignedGate.DisplayName} | " +
-                $"Speed: {taxiSpeedKnots:F1} knots",
+                $"Speed: {TaxiSpeedKnots:F1} knots",
                 this);
         }
     }
@@ -1031,7 +1034,7 @@ public class AircraftCargoPaxLandingTaxiController : MonoBehaviour
         if (trafficFollowing != null)
             PublishPlannedTaxiRoute(taxiRoute);
 
-        float speedKnots = this.taxiSpeedKnots;
+        float speedKnots = this.TaxiSpeedKnots;
         if (trafficFollowing != null)
         {
             speedKnots =
