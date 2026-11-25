@@ -4,6 +4,11 @@ using UnityEngine;
 
 public class AircraftCargoPaxDepartureTaxiController : MonoBehaviour
 {
+    private float TaxiSpeedKnots =>
+        GetComponent<AircraftStats>() != null
+            ? GetComponent<AircraftStats>().maxTaxiSpeed
+            : 0f;
+
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
     public enum DepartureState
@@ -45,8 +50,6 @@ public class AircraftCargoPaxDepartureTaxiController : MonoBehaviour
     [SerializeField] private float runwaySafetyMarginInCells = 1f;
 
     [Header("Taxi Movement")]
-    [Min(1f)]
-    [SerializeField] private float taxiSpeedKnots = 15f;
 
     [Min(1f)]
     [SerializeField] private float rotationSpeedDegreesPerSecond = 45f;
@@ -1108,7 +1111,7 @@ public class AircraftCargoPaxDepartureTaxiController : MonoBehaviour
                 continue;
             }
 
-            float cruisingSpeedKnots = taxiSpeedKnots;
+            float cruisingSpeedKnots = TaxiSpeedKnots;
 
             if (trafficFollowing != null)
                 PublishPlannedTaxiRoute(
