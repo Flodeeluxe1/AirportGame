@@ -14,6 +14,7 @@ GameObject:
   - component: {fileID: 6888020343707883017}
   - component: {fileID: -8786692194654866576}
   - component: {fileID: 362024171542107623}
+  - component: {fileID: -5306766738131380520}
   - component: {fileID: 1618146539823908488}
   - component: {fileID: 4538715317622249873}
   - component: {fileID: -7906548610408018250}
@@ -149,6 +150,20 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PedestrianAccessProfile
   accessGroups:
   - {fileID: 11400000, guid: 31073482e2d74dc40a91460d1e7d9af5, type: 2}
+--- !u!114 &-5306766738131380520
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3345817600321289670}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ce03f5fa6aa3e134da56773c9bd21b79, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AirlinePassengerAgent
+  flightOperationId: 
+  state: 0
 --- !u!114 &1618146539823908488
 MonoBehaviour:
   m_ObjectHideFlags: 0

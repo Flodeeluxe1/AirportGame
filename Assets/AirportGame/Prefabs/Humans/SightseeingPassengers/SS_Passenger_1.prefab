@@ -14,6 +14,7 @@ GameObject:
   - component: {fileID: 4723424379852589341}
   - component: {fileID: 2845524376035673793}
   - component: {fileID: 2316774708712910342}
+  - component: {fileID: 1845506647296669846}
   - component: {fileID: 508928968763155885}
   - component: {fileID: 5263155835712010849}
   - component: {fileID: 7391915496937533256}
@@ -149,6 +150,21 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PedestrianAccessProfile
   accessGroups:
   - {fileID: 11400000, guid: 31073482e2d74dc40a91460d1e7d9af5, type: 2}
+--- !u!114 &1845506647296669846
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7225608004980206237}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7f1a8c3d5e2b49a6b4d0c8e1f3a52796, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SightseeingPassengerAgent
+  state: 0
+  ticketPricePaid: 0
+  hasTicket: 0
 --- !u!114 &508928968763155885
 MonoBehaviour:
   m_ObjectHideFlags: 0
