@@ -9,8 +9,9 @@ public class ScheduledAircraftSpawner : MonoBehaviour
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
     [Header("References")]
-    [SerializeField] private GameObject aircraftPrefab;
-    [SerializeField] private GameObject passengerAircraftPrefab;
+    [SerializeField] private GameObject cargoOnlyAircraftPrefab;
+    [SerializeField] private GameObject passengerOnlyAircraftPrefab;
+    [SerializeField] private GameObject cargoAndPassengersAircraftPrefab;
     [SerializeField] private Transform spawnPoint;
     [SerializeField] private TestFlightCatalog flightCatalog;
     [SerializeField] private GameTimeManager gameTimeManager;
@@ -27,8 +28,9 @@ public class ScheduledAircraftSpawner : MonoBehaviour
     [SerializeField] private bool logAircraftSpawns = true;
     [SerializeField] private bool logQueueChanges = true;
 
-    public GameObject CargoAircraftPrefab => aircraftPrefab;
-    public GameObject PassengerAircraftPrefab => passengerAircraftPrefab;
+    public GameObject CargoAircraftPrefab => cargoOnlyAircraftPrefab;
+    public GameObject PassengerAircraftPrefab => passengerOnlyAircraftPrefab;
+    public GameObject CargoAndPassengersAircraftPrefab => cargoAndPassengersAircraftPrefab;
 
     private const int ScheduleFileVersion = 1;
     private const int MinutesBeforeScheduledTime = 1;
@@ -131,16 +133,6 @@ public class ScheduledAircraftSpawner : MonoBehaviour
 
         if (contractManager == null)
             contractManager = FindAnyObjectByType<AirlineContractOfferManager>();
-
-        if (aircraftPrefab == null)
-        {
-            LogError(
-                "ScheduledAircraftSpawner: Assign an aircraft prefab.",
-                this
-            );
-            enabled = false;
-            return;
-        }
 
         if (spawnPoint == null)
         {
@@ -549,18 +541,18 @@ public class ScheduledAircraftSpawner : MonoBehaviour
                 return false;
 
             case FlightOperationType.CargoOnly:
-                prefabToSpawn = aircraftPrefab;
+                prefabToSpawn = cargoOnlyAircraftPrefab;
                 break;
 
             case FlightOperationType.PassengerOnly:
-                prefabToSpawn = passengerAircraftPrefab;
+                prefabToSpawn = passengerOnlyAircraftPrefab;
 
                 if (prefabToSpawn == null)
                 {
                     LogError(
                         $"Cannot spawn passenger flight " +
                         $"{scheduled.Definition.FlightNumber}: assign " +
-                        "Passenger Aircraft Prefab on ScheduledAircraftSpawner.",
+                        "Passenger Only Aircraft Prefab on ScheduledAircraftSpawner.",
                         this
                     );
                     return false;
@@ -568,12 +560,8 @@ public class ScheduledAircraftSpawner : MonoBehaviour
                 break;
 
             case FlightOperationType.CargoAndPassengers:
-                LogError(
-                    $"Cannot spawn flight {scheduled.Definition.FlightNumber}: " +
-                    "Cargo + passengers is not supported by the spawner yet.",
-                    this
-                );
-                return false;
+                prefabToSpawn = cargoAndPassengersAircraftPrefab;
+                break;
 
             default:
                 LogError(
@@ -631,7 +619,8 @@ public class ScheduledAircraftSpawner : MonoBehaviour
             queuedFlight.ScheduledDayIndex
         );
 
-        if (scheduled.Definition.OperationType == FlightOperationType.PassengerOnly)
+        if (scheduled.Definition.OperationType == FlightOperationType.PassengerOnly ||
+            scheduled.Definition.OperationType == FlightOperationType.CargoAndPassengers)
         {
             AircraftStats aircraftStats = aircraft.GetComponent<AircraftStats>();
             PassengerCoordinator passengerCoordinator = PassengerCoordinator.Instance;
@@ -829,18 +818,6 @@ public class ScheduledAircraftSpawner : MonoBehaviour
                         LogWarning(
                             $"Skipping scheduled flight {saved.flightNumber}: " +
                             "its operation type is None.",
-                            this
-                        );
-                        continue;
-                    }
-
-                    if (definition.OperationType ==
-                        FlightOperationType.CargoAndPassengers)
-                    {
-                        LogWarning(
-                            $"Skipping scheduled flight {saved.flightNumber}: " +
-                            "cargo + passengers is not supported by " +
-                            "ScheduledAircraftSpawner yet.",
                             this
                         );
                         continue;
