@@ -4,42 +4,40 @@ public class PassengerFlightRevenue : MonoBehaviour
 {
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
-    [Header("Passenger Capacity")]
-    [Tooltip("Maximum number of seats available on this aircraft.")]
-    [SerializeField, Min(1)]
-    private int seatCapacity = 19;
-
-    [Header("Incoming Passengers")]
-    [Tooltip("Passengers arriving on this flight. Used for deboarding and cleaning.")]
-    [SerializeField, Min(0)]
-    private int incomingPassengers;
-
-    [Header("Outgoing Booked Passengers")]
-    [Tooltip("Passengers booked to depart on this flight. Used for departure revenue.")]
-    [SerializeField, Min(0)]
-    private int bookedPassengers;
 
     [Header("Runtime")]
     [SerializeField]
     private bool departureRevenueRecorded;
 
-    public int SeatCapacity => Mathf.Max(1, seatCapacity);
+    private AircraftStats aircraftStats;
+
+    public int SeatCapacity =>
+        aircraftStats != null ? Mathf.Max(1, aircraftStats.maxPassengers) : 1;
 
     public int IncomingPassengers =>
-        Mathf.Clamp(incomingPassengers, 0, SeatCapacity);
+        aircraftStats != null ? aircraftStats.IncomingPassengers : 0;
 
     public int BookedPassengers =>
-        Mathf.Clamp(bookedPassengers, 0, SeatCapacity);
+        aircraftStats != null ? aircraftStats.OutgoingPassengers : 0;
 
     public bool DepartureRevenueRecorded =>
         departureRevenueRecorded;
 
     private void Awake()
     {
-        // Generate arriving and departing passenger counts independently
-        // when this flight's aircraft instance is created.
-        incomingPassengers = Random.Range(0, SeatCapacity + 1);
-        bookedPassengers = Random.Range(0, SeatCapacity + 1);
+        aircraftStats = GetComponent<AircraftStats>();
+
+        if (aircraftStats == null)
+        {
+            LogWarning($"{name}: AircraftStats is missing; passenger counts cannot be initialized.", this);
+            return;
+        }
+
+        // Preserve the existing independent random passenger-count behaviour.
+        aircraftStats.SetIncomingPassengers(
+            Random.Range(0, SeatCapacity + 1));
+        aircraftStats.SetOutgoingPassengers(
+            Random.Range(0, SeatCapacity + 1));
     }
 
     /// <summary>
