@@ -9,10 +9,12 @@ public static class AirlineInterestCalculator
     public static AirlineInterestResult Calculate(
         AirlineDefinition airline,
         AirlineAirportSnapshot airport,
-        AirlineOperationType operationType)
+        AirlineContractTemplate template)
     {
-        if (airline == null || airport == null)
+        if (airline == null || airport == null || template == null)
             return default;
+
+        AirlineOperationType operationType = template.OperationType;
 
         float feeScore = CalculateFeeScore(
             airport.representativeLandingAndParkingFee,
@@ -30,17 +32,17 @@ public static class AirlineInterestCalculator
 
         float storageScore = CalculateCapacityScore(
             airport.cargoStorageCapacity,
-            airline.DesiredCargoStorageCapacity);
+            template.MinimumCargoStorageCapacity);
 
         float throughputScore = CalculateCapacityScore(
             airport.cargoHandlingThroughputPerHour,
-            airline.DesiredCargoHandlingThroughputPerHour);
+            template.MinimumCargoHandlingThroughputPerHour);
 
-        // Passenger airport size is represented by developed foundation cells.
-        // Cargo airlines continue to use storage and handling throughput.
+        // Each contract's own minimum infrastructure requirements are also
+        // its capacity-interest targets. Zero means that capacity is irrelevant.
         float passengerCapacityScore = CalculateCapacityScore(
             airport.foundationCellCount,
-            airline.DesiredFoundationCellCount);
+            template.MinimumFoundationCells);
         float cargoCapacityScore = (storageScore + throughputScore) * 0.5f;
 
         float cargoScore;
