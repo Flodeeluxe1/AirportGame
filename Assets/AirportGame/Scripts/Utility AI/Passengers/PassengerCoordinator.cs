@@ -311,8 +311,18 @@ public class PassengerCoordinator : MonoBehaviour
                 AirlinePassengerAgent agent = passengerObject.GetComponent<AirlinePassengerAgent>();
 
                 if (agent == null || !agent.Initialize(
-                    flight.OperationId, PassengerIdentity.TransportMode.Bus) ||
-                    !bus.TryBoardPassenger(agent))
+                    flight.OperationId, PassengerIdentity.TransportMode.Bus))
+                {
+                    Destroy(passengerObject);
+                    continue;
+                }
+
+                // Passenger prefab pivots and collider bottoms vary. Align the
+                // feet to the bus spawn height before parenting the passenger.
+                if (agent.Movement != null)
+                    agent.Movement.AlignFeetToGround(spawnPosition);
+
+                if (!bus.TryBoardPassenger(agent))
                 {
                     if (passengerObject != null)
                         Destroy(passengerObject);
