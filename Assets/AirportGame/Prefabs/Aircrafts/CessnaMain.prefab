@@ -190,7 +190,6 @@ MonoBehaviour:
   minimumExitForwardDistance: 0.5
   runwayEndTolerance: 1
   maximumParkingConnectorDistance: 12
-  taxiSpeedKnots: 12
   rotationSpeed: 3
   waypointArrivalDistance: 0.2
   parkingArrivalDistance: 0.5
@@ -252,7 +251,6 @@ MonoBehaviour:
   startSearchRadiusCells: 12
   maximumStartCandidates: 10
   runwaySafetyMarginInCells: 1
-  taxiSpeedKnots: 12
   rotationSpeedDegreesPerSecond: 45
   waypointArrivalDistance: 0.15
   modelRotationOffset: {x: 0, y: 0, z: 0}
@@ -358,7 +356,6 @@ MonoBehaviour:
   logToConsole: 0
   mandatoryRefuellingBelowFuelPercentage: 0.4
   logFuelDecision: 0
-  taxiSpeedKnots: 12
   rotationSpeedDegreesPerSecond: 35
   arrivalDistance: 0.2
   startSearchRadiusCells: 12
