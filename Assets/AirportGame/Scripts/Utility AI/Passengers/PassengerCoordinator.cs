@@ -139,6 +139,7 @@ public class PassengerCoordinator : MonoBehaviour
                 bus.JourneyCompleted += HandleBusJourneyCompleted;
             }
 
+            List<AirlinePassengerAgent> alreadyWaiting = new List<AirlinePassengerAgent>();
             foreach (AirlinePassengerAgent passenger in walkingToBusStopPassengers)
             {
                 if (passenger == null)
@@ -146,8 +147,11 @@ public class PassengerCoordinator : MonoBehaviour
 
                 passenger.ReachedBusStop += HandlePassengerReachedBusStop;
                 if (passenger.State == AirlinePassengerAgent.JourneyState.WaitingForBus)
-                    HandlePassengerReachedBusStop(passenger);
+                    alreadyWaiting.Add(passenger);
             }
+
+            for (int i = 0; i < alreadyWaiting.Count; i++)
+                HandlePassengerReachedBusStop(alreadyWaiting[i]);
         }
     }
 
