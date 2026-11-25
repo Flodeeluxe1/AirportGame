@@ -1097,7 +1097,15 @@ public class AircraftTurnaroundController : MonoBehaviour
         task.MarkCompleted();
 
         if (taskType == TaskType.Deboarding)
+        {
+            int listenerCount = PassengersDeboarded != null
+                ? PassengersDeboarded.GetInvocationList().Length
+                : 0;
+            Log(
+                $"{name}: Deboarding completed; raising PassengersDeboarded event to {listenerCount} listener(s).",
+                this);
             PassengersDeboarded?.Invoke(this);
+        }
 
         Log(
             $"{name}: {GetTaskName(taskType)} completed.",
