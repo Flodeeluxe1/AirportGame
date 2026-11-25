@@ -18,14 +18,14 @@ public class AirlineContractOfferManager : MonoBehaviour
 
     [Header("Systems")]
     [SerializeField] private AirlineAirportSnapshotCollector snapshotCollector;
+    [SerializeField] private GameTimeManager gameTimeManager;
+    [SerializeField] private AirlineContractPerformanceTracker performanceTracker;
 
     [Header("Passenger Contract Unlock")]
     [Range(0, 5)]
     [SerializeField] private int currentAirportLevel = 5;
     [Range(0, 5)]
     [SerializeField] private int requiredPassengerAirportLevel = 5;
-    [SerializeField] private GameTimeManager gameTimeManager;
-    [SerializeField] private AirlineContractPerformanceTracker performanceTracker;
 
     [Header("Automatic Renewal")]
     [SerializeField, Range(0f, 100f)] private float minimumRenewalRelationship = 50f;
