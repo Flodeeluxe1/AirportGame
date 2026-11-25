@@ -49,6 +49,7 @@ public class BusController : MonoBehaviour
     private readonly List<int> smoothedRouteIndices = new List<int>();
     private int currentSmoothedWaypointIndex;
     private readonly HashSet<int> stopPathIndices = new HashSet<int>();
+    private readonly List<int> orderedStopPathIndices = new List<int>();
     private readonly HashSet<Vector2Int> completedStopRoadCells =
         new HashSet<Vector2Int>();
     private RoadNetwork roadNetwork;
@@ -116,7 +117,10 @@ public class BusController : MonoBehaviour
         {
             int index = assignedStopPathIndices[i];
             if (index > 0 && index < route.Count - 1)
+            {
                 stopPathIndices.Add(index);
+                orderedStopPathIndices.Add(index);
+            }
         }
 
         if (stopPathIndices.Count == 0)
@@ -265,11 +269,10 @@ public class BusController : MonoBehaviour
             currentSpeed = 0f;
             stopTimeRemaining = stopDwellSeconds;
             debugState = "At bus stop";
-            for (int stopIndex = 0; stopIndex < orderedStops.Count; stopIndex++)
+                for (int stopIndex = 0; stopIndex < orderedStops.Count; stopIndex++)
             {
-                if (stopIndex < 0 || stopIndex >= stopPathIndices.Count)
-                    break;
-                if (GetStopPathIndex(stopIndex) == reachedRouteIndex)
+                if (stopIndex < orderedStopPathIndices.Count &&
+                    orderedStopPathIndices[stopIndex] == reachedRouteIndex)
                 {
                     PlacedBuilding reachedStop = orderedStops[stopIndex];
                     if (reachedStop != null)
@@ -286,18 +289,6 @@ public class BusController : MonoBehaviour
         {
             debugState = "Driving to next bus stop / exit";
         }
-    }
-
-    private int GetStopPathIndex(int stopIndex)
-    {
-        int current = 0;
-        foreach (int pathIndexValue in stopPathIndices)
-        {
-            if (current == stopIndex)
-                return pathIndexValue;
-            current++;
-        }
-        return -1;
     }
 
     private void RebuildRemainingJourney()
@@ -324,8 +315,12 @@ public class BusController : MonoBehaviour
         orderedStops.Clear();
         orderedStops.AddRange(rebuiltStops);
         stopPathIndices.Clear();
+        orderedStopPathIndices.Clear();
         for (int i = 0; i < rebuiltStopIndices.Count; i++)
+        {
             stopPathIndices.Add(rebuiltStopIndices[i]);
+            orderedStopPathIndices.Add(rebuiltStopIndices[i]);
+        }
 
         routeTopologyVersion = roadNetwork.TopologyVersion;
         pathIndex = route.Count > 1 ? 1 : route.Count;
