@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System;
 using UnityEngine;
 
 /// <summary>
@@ -137,9 +136,9 @@ public class PassengerCoordinator : MonoBehaviour
 
         long currentDayIndex = GameTimeManager.Instance != null
             ? GameTimeManager.Instance.CurrentDay - 1
-            : (long)Math.Floor(GameTimeManager.SimulationTime / 86400.0);
+            : (long)System.Math.Floor(GameTimeManager.SimulationTime / 86400.0);
         double now = GameTimeManager.SimulationTime;
-        double intervalSeconds = Math.Max(60.0, publicTransportManager.BusFrequencyMinutes * 60.0);
+        double intervalSeconds = System.Math.Max(60.0, publicTransportManager.BusFrequencyMinutes * 60.0);
         float airportRanking = AirportRatingManager.Instance != null
             ? AirportRatingManager.Instance.AirportRating
             : 50f;
