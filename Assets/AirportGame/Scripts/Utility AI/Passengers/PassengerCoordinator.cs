@@ -206,10 +206,7 @@ public class PassengerCoordinator : MonoBehaviour
         }
 
         if (manifest.Count == 0)
-        {
-            bus.StopReached -= HandleBusStopReached;
             busManifests.Remove(bus);
-        }
     }
 
     private void HandleBusStopReached(BusController bus, PlacedBuilding stop)
