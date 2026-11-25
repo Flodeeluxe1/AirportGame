@@ -269,7 +269,7 @@ public class BusController : MonoBehaviour
             currentSpeed = 0f;
             stopTimeRemaining = stopDwellSeconds;
             debugState = "At bus stop";
-                for (int stopIndex = 0; stopIndex < orderedStops.Count; stopIndex++)
+            for (int stopIndex = 0; stopIndex < orderedStops.Count; stopIndex++)
             {
                 if (stopIndex < orderedStopPathIndices.Count &&
                     orderedStopPathIndices[stopIndex] == reachedRouteIndex)
