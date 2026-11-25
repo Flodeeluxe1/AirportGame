@@ -425,7 +425,12 @@ public class AirlineManagementUIController : MonoBehaviour
         detail.Add(detailHeading);
         AddDetailLine(detail, "Minimum gate", terms.minimumGateSize.ToString());
         AddDetailLine(detail, "Runway length", terms.minimumRunwayLengthMeters.ToString("0") + " m");
-        if (offer.airline == null || offer.airline.OperationType != AirlineOperationType.Passenger)
+        AirlineOperationType offerOperationType = offer.template != null
+            ? offer.template.OperationType
+            : AirlineOperationType.Cargo;
+        if (offerOperationType != AirlineOperationType.Cargo)
+            AddDetailLine(detail, "Minimum foundation", terms.minimumFoundationCells + " cells");
+        if (offerOperationType != AirlineOperationType.Passenger)
         {
             AddDetailLine(detail, "Cargo storage", terms.minimumCargoStorageCapacity.ToString("0.#") + " packages");
             AddDetailLine(detail, "Handling throughput", terms.minimumCargoHandlingThroughputPerHour.ToString("0.#") + " packages/hour");
@@ -638,7 +643,23 @@ public class AirlineManagementUIController : MonoBehaviour
             name.style.fontSize = 15;
             name.style.unityFontStyleAndWeight = FontStyle.Bold;
             name.style.color = Color.white;
-            Label type = new Label(airline.OperationType.ToString());
+            string operationTypes = "No contract templates";
+            if (airline.ContractTemplates != null && airline.ContractTemplates.Count > 0)
+            {
+                HashSet<AirlineOperationType> configuredTypes =
+                    new HashSet<AirlineOperationType>();
+                foreach (AirlineContractTemplate template in airline.ContractTemplates)
+                    if (template != null)
+                        configuredTypes.Add(template.OperationType);
+                if (configuredTypes.Count > 0)
+                {
+                    List<string> labels = new List<string>();
+                    foreach (AirlineOperationType operationType in configuredTypes)
+                        labels.Add(operationType.ToString());
+                    operationTypes = "Offers: " + string.Join(", ", labels);
+                }
+            }
+            Label type = new Label(operationTypes);
             type.style.fontSize = 10;
             type.style.color = MutedTextColor;
             identity.Add(name);
@@ -655,8 +676,7 @@ public class AirlineManagementUIController : MonoBehaviour
             AddInterestFactor(card, "Airport fees", result.airportFees);
             AddInterestFactor(card, "Suitable gates", result.suitableGates);
             AddInterestFactor(card, "Runway suitability", result.runwaySuitability);
-            if (airline.OperationType != AirlineOperationType.Passenger)
-                AddInterestFactor(card, "Cargo handling capacity", result.cargoHandlingCapacity);
+            AddInterestFactor(card, "Operation capacity", result.cargoHandlingCapacity);
             AddInterestFactor(card, "Night operations", result.nightOperations);
             AddInterestFactor(card, "Airport reputation", result.airportReputation);
             AddInterestFactor(card, "Previous contract performance", result.previousContractPerformance);
