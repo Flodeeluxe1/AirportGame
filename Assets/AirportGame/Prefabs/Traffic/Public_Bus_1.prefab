@@ -213,6 +213,7 @@ MonoBehaviour:
   heightOffset: 0.2
   waypointTolerance: 0.08
   stopDwellSeconds: 60
+  maxPassengerCapacity: 50
   intersectionLookAheadModules: 1
   intersectionClearModules: 2
   debugState: Waiting for journey
