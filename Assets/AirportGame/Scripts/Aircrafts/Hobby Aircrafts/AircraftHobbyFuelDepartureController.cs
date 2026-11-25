@@ -10,6 +10,11 @@ using UnityEngine;
 [DefaultExecutionOrder(-100)]
 public class AircraftHobbyFuelDepartureController : MonoBehaviour
 {
+    private float TaxiSpeedKnots =>
+        GetComponent<AircraftStats>() != null
+            ? GetComponent<AircraftStats>().maxTaxiSpeed
+            : 0f;
+
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
     private enum FuelDepartureState
@@ -32,8 +37,6 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
     [SerializeField] private bool logFuelDecision = true;
 
     [Header("Taxi Movement")]
-    [Min(1f)]
-    [SerializeField] private float taxiSpeedKnots = 8f;
 
     [Min(1f)]
     [SerializeField] private float rotationSpeedDegreesPerSecond = 12f;
@@ -622,11 +625,11 @@ public class AircraftHobbyFuelDepartureController : MonoBehaviour
             return;
         }
 
-        float speedKnots = taxiSpeedKnots;
+        float speedKnots = TaxiSpeedKnots;
 
         if (trafficFollowing != null)
         {
-            speedKnots = trafficFollowing.GetTrafficFollowingSpeed(taxiSpeedKnots);
+            speedKnots = trafficFollowing.GetTrafficFollowingSpeed(TaxiSpeedKnots);
         }
         else if (aircraftStatus != null)
         {
