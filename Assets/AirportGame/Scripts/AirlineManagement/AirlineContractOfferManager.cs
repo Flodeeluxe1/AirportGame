@@ -605,9 +605,21 @@ public class AirlineContractOfferManager : MonoBehaviour
             return obligations;
 
         int slotIndex = 0;
-        string flightPrefix = operationType == AirlineOperationType.Passenger
-            ? "PT"
-            : "CT";
+        string flightPrefix;
+        switch (operationType)
+        {
+            case AirlineOperationType.Passenger:
+                flightPrefix = "PT";
+                break;
+
+            case AirlineOperationType.CargoAndPassengers:
+                flightPrefix = "PC";
+                break;
+
+            default:
+                flightPrefix = "CT";
+                break;
+        }
         string contractCode = contractId.Length > 8
             ? contractId.Substring(0, 8).ToUpperInvariant()
             : contractId.ToUpperInvariant();
