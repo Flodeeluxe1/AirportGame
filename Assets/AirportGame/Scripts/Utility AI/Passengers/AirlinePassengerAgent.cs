@@ -138,7 +138,7 @@ public class AirlinePassengerAgent : MonoBehaviour
             interactions.SetExternallyControlled(true);
 
         state = JourneyState.WalkingToBusStop;
-        if (!movement.MoveTo(stopPosition))
+        if (!movement.MoveToAllowingOccupiedEndpoints(stopPosition))
         {
             state = JourneyState.Uninitialized;
             if (interactions != null)
@@ -239,7 +239,7 @@ public class AirlinePassengerAgent : MonoBehaviour
 
         // Prefer a direct route. If the exact gate point is blocked, let the
         // pathfinder search for a nearby walkable approach instead.
-        if (!movement.MoveTo(terminalPosition) &&
+        if (!movement.MoveToAllowingOccupiedEndpoints(terminalPosition) &&
             !movement.TryMoveToNearby(terminalPosition, disembarkPosition))
         {
             Debug.LogWarning(
