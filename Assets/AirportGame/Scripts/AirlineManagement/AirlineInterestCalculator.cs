@@ -48,11 +48,24 @@ public static class AirlineInterestCalculator
 
         // Passenger airport size is represented by developed foundation cells.
         // Cargo airlines continue to use storage and handling throughput.
-        float cargoScore = operationType == AirlineOperationType.Passenger
-            ? CalculateCapacityScore(
-                airport.foundationCellCount,
-                airline.DesiredFoundationCellCount)
-            : (storageScore + throughputScore) * 0.5f;
+        float passengerCapacityScore = CalculateCapacityScore(
+            airport.foundationCellCount,
+            airline.DesiredFoundationCellCount);
+        float cargoCapacityScore = (storageScore + throughputScore) * 0.5f;
+
+        float cargoScore;
+        switch (operationType)
+        {
+            case AirlineOperationType.Passenger:
+                cargoScore = passengerCapacityScore;
+                break;
+            case AirlineOperationType.CargoAndPassengers:
+                cargoScore = (passengerCapacityScore + cargoCapacityScore) * 0.5f;
+                break;
+            default:
+                cargoScore = cargoCapacityScore;
+                break;
+        }
 
         float nightScore = Mathf.Clamp(
             airport.nightOperationsScore,
