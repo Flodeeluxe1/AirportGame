@@ -27,6 +27,9 @@ public class BusController : MonoBehaviour
     [Header("Stop Service")]
     [Min(0f)] [SerializeField] private float stopDwellSeconds = 5f;
 
+    [Header("Passenger Capacity")]
+    [Min(1)] [SerializeField] private int maxPassengerCapacity = 50;
+
     [Header("Intersection Control")]
     [Min(0)] [SerializeField] private int intersectionLookAheadModules = 1;
     [Min(1)] [SerializeField] private int intersectionClearModules = 2;
@@ -44,6 +47,7 @@ public class BusController : MonoBehaviour
 
     private readonly List<Vector2Int> route = new List<Vector2Int>();
     private readonly List<PlacedBuilding> orderedStops = new List<PlacedBuilding>();
+    private readonly List<AirlinePassengerAgent> onboardPassengers = new List<AirlinePassengerAgent>();
     private readonly List<Vector3> smoothedMovementWaypoints =
         new List<Vector3>();
     private readonly List<int> smoothedRouteIndices = new List<int>();
@@ -71,6 +75,29 @@ public class BusController : MonoBehaviour
     public event Action<BusController, PlacedBuilding> StopReached;
 
     public PlacedBuilding FirstStop => orderedStops.Count > 0 ? orderedStops[0] : null;
+    public int PassengerCapacity => Mathf.Max(1, maxPassengerCapacity);
+    public int OnboardPassengerCount => onboardPassengers.Count;
+    public int AvailablePassengerCapacity => Mathf.Max(0, PassengerCapacity - onboardPassengers.Count);
+
+    public bool TryBoardPassenger(AirlinePassengerAgent passenger)
+    {
+        if (passenger == null || onboardPassengers.Contains(passenger) ||
+            AvailablePassengerCapacity <= 0 || !passenger.BoardBus(transform))
+            return false;
+
+        onboardPassengers.Add(passenger);
+        return true;
+    }
+
+    public bool DisembarkPassengerToTerminal(AirlinePassengerAgent passenger, Vector3 terminalPosition)
+    {
+        if (passenger == null || !onboardPassengers.Contains(passenger) ||
+            !passenger.DisembarkToTerminal(terminalPosition))
+            return false;
+
+        onboardPassengers.Remove(passenger);
+        return true;
+    }
 
     public bool IsActiveOnRoad => routeInitialized && stopTimeRemaining <= 0f &&
                                   pathIndex < route.Count;
