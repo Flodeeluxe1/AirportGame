@@ -607,7 +607,7 @@ public class AirlineManagementUIController : MonoBehaviour
     private void BuildAirlinesTab()
     {
         AddSectionHeading("AIRLINES",
-            "Airport attractiveness is shown separately from satisfaction with completed operations.");
+            "Airport attractiveness is evaluated separately for each contract type the airline offers.");
 
         if (snapshotCollector == null)
         {
@@ -627,64 +627,71 @@ public class AirlineManagementUIController : MonoBehaviour
             if (airline == null)
                 continue;
 
-            AirlineInterestResult result;
-            if (!snapshotCollector.TryGetInterest(airline, out result))
-                result = snapshotCollector.RefreshInterest(airline);
-
-            VisualElement card = CreateCard();
-            VisualElement top = new VisualElement();
-            top.style.flexDirection = FlexDirection.Row;
-            top.style.alignItems = Align.Center;
-            AddAirlineLogo(top, airline);
-
-            VisualElement identity = new VisualElement();
-            identity.style.flexGrow = 1;
-            Label name = new Label(airline.DisplayName);
-            name.style.fontSize = 15;
-            name.style.unityFontStyleAndWeight = FontStyle.Bold;
-            name.style.color = Color.white;
-            string operationTypes = "No contract templates";
-            if (airline.ContractTemplates != null && airline.ContractTemplates.Count > 0)
+            HashSet<AirlineOperationType> configuredTypes =
+                new HashSet<AirlineOperationType>();
+            if (airline.ContractTemplates != null)
             {
-                HashSet<AirlineOperationType> configuredTypes =
-                    new HashSet<AirlineOperationType>();
                 foreach (AirlineContractTemplate template in airline.ContractTemplates)
+                {
                     if (template != null)
                         configuredTypes.Add(template.OperationType);
-                if (configuredTypes.Count > 0)
-                {
-                    List<string> labels = new List<string>();
-                    foreach (AirlineOperationType operationType in configuredTypes)
-                        labels.Add(operationType.ToString());
-                    operationTypes = "Offers: " + string.Join(", ", labels);
                 }
             }
-            Label type = new Label(operationTypes);
-            type.style.fontSize = 10;
-            type.style.color = MutedTextColor;
-            identity.Add(name);
-            identity.Add(type);
-            top.Add(identity);
 
-            Label score = new Label(result.totalInterest.ToString("0") + " / 100");
-            score.style.fontSize = 17;
-            score.style.unityFontStyleAndWeight = FontStyle.Bold;
-            score.style.color = GetScoreColor(result.totalInterest);
-            top.Add(score);
-            card.Add(top);
+            if (configuredTypes.Count == 0)
+            {
+                VisualElement emptyCard = CreateCard();
+                AddAirlineLogo(emptyCard, airline);
+                AddDescription(emptyCard, airline.DisplayName + " · No contract templates configured");
+                content.Add(emptyCard);
+                continue;
+            }
 
-            AddInterestFactor(card, "Airport fees", result.airportFees);
-            AddInterestFactor(card, "Suitable gates", result.suitableGates);
-            AddInterestFactor(card, "Runway suitability", result.runwaySuitability);
-            AddInterestFactor(card, "Operation capacity", result.cargoHandlingCapacity);
-            AddInterestFactor(card, "Night operations", result.nightOperations);
-            AddInterestFactor(card, "Airport reputation", result.airportReputation);
-            AddInterestFactor(card, "Previous contract performance", result.previousContractPerformance);
-            float relationship = performanceTracker != null
-                ? performanceTracker.GetRelationshipScore(airline)
-                : 50f;
-            AddDetailLine(card, "Airline relationship", relationship.ToString("0") + " / 100");
-            content.Add(card);
+            foreach (AirlineOperationType operationType in configuredTypes)
+            {
+                AirlineInterestResult result;
+                if (!snapshotCollector.TryGetInterest(airline, operationType, out result))
+                    result = snapshotCollector.RefreshInterest(airline, operationType);
+
+                VisualElement card = CreateCard();
+                VisualElement top = new VisualElement();
+                top.style.flexDirection = FlexDirection.Row;
+                top.style.alignItems = Align.Center;
+                AddAirlineLogo(top, airline);
+
+                VisualElement identity = new VisualElement();
+                identity.style.flexGrow = 1;
+                Label name = new Label(airline.DisplayName);
+                name.style.fontSize = 15;
+                name.style.unityFontStyleAndWeight = FontStyle.Bold;
+                name.style.color = Color.white;
+                Label type = new Label(operationType.ToString());
+                type.style.fontSize = 10;
+                type.style.color = MutedTextColor;
+                identity.Add(name);
+                identity.Add(type);
+                top.Add(identity);
+
+                Label score = new Label(result.totalInterest.ToString("0") + " / 100");
+                score.style.fontSize = 17;
+                score.style.unityFontStyleAndWeight = FontStyle.Bold;
+                score.style.color = GetScoreColor(result.totalInterest);
+                top.Add(score);
+                card.Add(top);
+
+                AddInterestFactor(card, "Airport fees", result.airportFees);
+                AddInterestFactor(card, "Suitable gates", result.suitableGates);
+                AddInterestFactor(card, "Runway suitability", result.runwaySuitability);
+                AddInterestFactor(card, "Operation capacity", result.cargoHandlingCapacity);
+                AddInterestFactor(card, "Night operations", result.nightOperations);
+                AddInterestFactor(card, "Airport reputation", result.airportReputation);
+                AddInterestFactor(card, "Previous contract performance", result.previousContractPerformance);
+                float relationship = performanceTracker != null
+                    ? performanceTracker.GetRelationshipScore(airline)
+                    : 50f;
+                AddDetailLine(card, "Airline relationship", relationship.ToString("0") + " / 100");
+                content.Add(card);
+            }
         }
     }
 
