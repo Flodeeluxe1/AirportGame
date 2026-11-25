@@ -816,6 +816,7 @@ public class ScheduledAircraftSpawner : MonoBehaviour
             {
                 scheduledFlights.Clear();
                 scheduleLoaded = false;
+                PassengerScheduleReloaded?.Invoke();
 
                 if (logScheduleReloads)
                 {
