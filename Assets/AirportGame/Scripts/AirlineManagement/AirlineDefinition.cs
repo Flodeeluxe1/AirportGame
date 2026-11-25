@@ -41,11 +41,6 @@ public class AirlineDefinition : ScriptableObject
     [SerializeField] private string displayName;
     [SerializeField] private Sprite logo;
 
-    [Header("Default Operation Type (Interest Overview)")]
-    [Tooltip("Used only for the general airline interest overview. Contract offers use the Operation Type configured on each contract template.")]
-    [SerializeField] private AirlineOperationType operationType =
-        AirlineOperationType.Cargo;
-
     [Header("Airline Interest Weights")]
     [SerializeField] private AirlineInterestWeights interestWeights =
         new AirlineInterestWeights();
@@ -92,7 +87,6 @@ public class AirlineDefinition : ScriptableObject
     public string AirlineId => airlineId;
     public string DisplayName => displayName;
     public Sprite Logo => logo;
-    public AirlineOperationType OperationType => operationType;
     public AirlineInterestWeights InterestWeights => interestWeights;
     public int IdealLandingAndParkingFee => idealLandingAndParkingFee;
     public int MaximumAcceptableLandingAndParkingFee =>
