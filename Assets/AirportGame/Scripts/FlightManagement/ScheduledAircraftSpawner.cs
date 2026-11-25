@@ -540,6 +540,14 @@ public class ScheduledAircraftSpawner : MonoBehaviour
 
         switch (scheduled.Definition.OperationType)
         {
+            case FlightOperationType.None:
+                LogError(
+                    $"Cannot spawn flight {scheduled.Definition.FlightNumber}: " +
+                    "operation type is None.",
+                    this
+                );
+                return false;
+
             case FlightOperationType.CargoOnly:
                 prefabToSpawn = aircraftPrefab;
                 break;
@@ -822,6 +830,16 @@ public class ScheduledAircraftSpawner : MonoBehaviour
                         LogWarning(
                             $"Skipping {saved.flightNumber}: no matching " +
                             "definition exists in TestFlightCatalog.",
+                            this
+                        );
+                        continue;
+                    }
+
+                    if (definition.OperationType == FlightOperationType.None)
+                    {
+                        LogWarning(
+                            $"Skipping scheduled flight {saved.flightNumber}: " +
+                            "its operation type is None.",
                             this
                         );
                         continue;
