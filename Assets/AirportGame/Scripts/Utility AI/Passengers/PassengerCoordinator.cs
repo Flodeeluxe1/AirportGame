@@ -42,6 +42,37 @@ public class PassengerCoordinator : MonoBehaviour
             instance = null;
     }
 
+    /// <summary>
+    /// Calculates and assigns the booked outgoing passengers for a scheduled
+    /// PassengerOnly flight. Flight-level passenger setup is owned by this
+    /// coordinator rather than the aircraft spawner.
+    /// </summary>
+    public bool ConfigureScheduledFlightPassengers(
+        AircraftStats aircraftStats,
+        AircraftFlightIdentity flightIdentity)
+    {
+        if (aircraftStats == null || flightIdentity == null ||
+            !flightIdentity.IsInitialized ||
+            flightIdentity.Definition == null ||
+            flightIdentity.Definition.OperationType != FlightOperationType.PassengerOnly)
+        {
+            return false;
+        }
+
+        AirportRatingManager ratingManager = AirportRatingManager.Instance;
+        float airportRanking = ratingManager != null
+            ? ratingManager.AirportRating
+            : 50f;
+
+        int bookedPassengers = CalculateBookedPassengers(
+            aircraftStats.maxPassengers,
+            airportRanking,
+            flightIdentity.PlannedStartMinute);
+
+        aircraftStats.SetOutgoingPassengers(bookedPassengers);
+        return true;
+    }
+
     public int CalculateBookedPassengers(int capacity, float airportRanking, int scheduledStartMinute)
     {
         if (capacity <= 0)
