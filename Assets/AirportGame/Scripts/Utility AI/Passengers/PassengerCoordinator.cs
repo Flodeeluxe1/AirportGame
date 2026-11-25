@@ -541,6 +541,12 @@ public class PassengerCoordinator : MonoBehaviour
                 continue;
             }
 
+            // Gate transforms can sit at the building pivot rather than the
+            // pedestrian floor. Align the passenger's collider feet to the
+            // gate's ground height before starting the walk to the bus stop.
+            if (passenger.Movement != null)
+                passenger.Movement.AlignFeetToGround(gate.transform.position + offset);
+
             if (firstStop == null)
                 continue;
 
