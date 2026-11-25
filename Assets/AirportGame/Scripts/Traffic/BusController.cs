@@ -77,8 +77,29 @@ public class BusController : MonoBehaviour
 
     public PlacedBuilding FirstStop => orderedStops.Count > 0 ? orderedStops[0] : null;
     public int PassengerCapacity => Mathf.Max(1, maxPassengerCapacity);
-    public int OnboardPassengerCount => onboardPassengers.Count;
-    public int AvailablePassengerCapacity => Mathf.Max(0, PassengerCapacity - onboardPassengers.Count);
+    public int OnboardPassengerCount
+    {
+        get
+        {
+            RemoveDestroyedPassengers();
+            return onboardPassengers.Count;
+        }
+    }
+    public int AvailablePassengerCapacity
+    {
+        get
+        {
+            RemoveDestroyedPassengers();
+            return Mathf.Max(0, PassengerCapacity - onboardPassengers.Count);
+        }
+    }
+
+    private void RemoveDestroyedPassengers()
+    {
+        for (int i = onboardPassengers.Count - 1; i >= 0; i--)
+            if (onboardPassengers[i] == null)
+                onboardPassengers.RemoveAt(i);
+    }
 
     public bool TryBoardPassenger(AirlinePassengerAgent passenger)
     {
