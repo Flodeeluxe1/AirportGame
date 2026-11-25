@@ -18,6 +18,7 @@ public class AirlinePassengerAgent : MonoBehaviour
         Boarding,
         OnBus,
         WalkingToTerminal,
+        AtTerminal,
         Completed,
         Abandoned
     }
@@ -60,11 +61,19 @@ public class AirlinePassengerAgent : MonoBehaviour
 
     private void HandleMovementArrived()
     {
-        if (state != JourneyState.WalkingToBusStop)
+        if (state == JourneyState.WalkingToBusStop)
+        {
+            BeginWaitingForBus();
+            ReachedBusStop?.Invoke(this);
             return;
+        }
 
-        BeginWaitingForBus();
-        ReachedBusStop?.Invoke(this);
+        if (state == JourneyState.WalkingToTerminal)
+        {
+            state = JourneyState.AtTerminal;
+            if (interactions != null)
+                interactions.SetExternallyControlled(false);
+        }
     }
 
     private void CacheComponents()
@@ -193,30 +202,46 @@ public class AirlinePassengerAgent : MonoBehaviour
         Transform busTransform = transform.parent;
         transform.SetParent(null, true);
         if (interactions != null)
-            interactions.SetExternallyControlled(false);
+            interactions.SetExternallyControlled(true);
+        state = JourneyState.WalkingToTerminal;
 
         if (!movement.MoveTo(terminalPosition))
         {
+            state = JourneyState.OnBus;
             transform.SetParent(busTransform, true);
-            if (interactions != null)
-                interactions.SetExternallyControlled(true);
             return false;
         }
 
+        return true;
+    }
+
+    public bool RedirectToTerminal(Vector3 terminalPosition)
+    {
+        CacheComponents();
+        if (movement == null ||
+            (state != JourneyState.WalkingToTerminal && state != JourneyState.AtTerminal))
+            return false;
+
+        JourneyState previousState = state;
         state = JourneyState.WalkingToTerminal;
+        if (interactions != null)
+            interactions.SetExternallyControlled(true);
+
+        if (!movement.MoveTo(terminalPosition))
+        {
+            state = previousState;
+            if (interactions != null && previousState == JourneyState.AtTerminal)
+                interactions.SetExternallyControlled(false);
+            return false;
+        }
+
         return true;
     }
 
     public void BeginWalkingToTerminal(Vector3 terminalPosition)
     {
-        CacheComponents();
-
-        if (movement == null || state != JourneyState.OnBus)
-            return;
-
-        gameObject.SetActive(true);
-        if (movement.MoveTo(terminalPosition))
-            state = JourneyState.WalkingToTerminal;
+        if (state == JourneyState.OnBus)
+            DisembarkToTerminal(terminalPosition);
     }
 
     public void CompleteJourney()
