@@ -1201,25 +1201,6 @@ public class AirportWorldResetController : MonoBehaviour
         economyManager.RestoreBalanceFromSave(data.balance);
         economyManager.RestoreTransactionsFromSave(data.financialTransactions);
 
-        // The manager's startup evaluation may have run before this save was
-        // restored, when the scene still contained the empty new-game airport.
-        // Refresh interest and retry offer generation against the loaded layout.
-        AirlineContractOfferManager contractOfferManager =
-            FindAnyObjectByType<AirlineContractOfferManager>();
-
-        if (contractOfferManager != null)
-        {
-            contractOfferManager.RefreshAfterAirportLoaded();
-        }
-        else
-        {
-            AirlineAirportSnapshotCollector snapshotCollector =
-                FindAnyObjectByType<AirlineAirportSnapshotCollector>();
-
-            if (snapshotCollector != null)
-                snapshotCollector.RefreshAllAirlines();
-        }
-
         if (data.hasAirlineManagementData)
         {
             AirlineContractOfferManager savedContractManager =
@@ -1237,6 +1218,26 @@ public class AirportWorldResetController : MonoBehaviour
                 LogWarning(
                     "Save contains airline contract state, but " +
                     "AirlineContractOfferManager was not found.");
+        }
+
+        // The manager's startup evaluation may have run before this save was
+        // restored, when the scene still contained the empty new-game airport.
+        // Restore saved contract state first, then refresh interest and retry
+        // offer generation against the loaded layout.
+        AirlineContractOfferManager contractOfferManager =
+            FindAnyObjectByType<AirlineContractOfferManager>();
+
+        if (contractOfferManager != null)
+        {
+            contractOfferManager.RefreshAfterAirportLoaded();
+        }
+        else
+        {
+            AirlineAirportSnapshotCollector snapshotCollector =
+                FindAnyObjectByType<AirlineAirportSnapshotCollector>();
+
+            if (snapshotCollector != null)
+                snapshotCollector.RefreshAllAirlines();
         }
 
 
