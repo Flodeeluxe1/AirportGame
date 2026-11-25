@@ -2,8 +2,7 @@ using UnityEngine;
 
 /// <summary>
 /// Controls an airline passenger's scheduled-flight journey while reusing
-/// the sightseeing passenger prefab's pedestrian movement and needs systems.
-/// Utility interactions are disabled during the controlled transport journey.
+/// the sightseeing passenger prefab's visitor, environment and needs systems.
 /// </summary>
 [DisallowMultipleComponent]
 [RequireComponent(typeof(PedestrianMovementController))]
@@ -31,6 +30,8 @@ public class AirlinePassengerAgent : MonoBehaviour
     private UtilityNeeds needs;
     private PassengerIdentity identity;
     private InteractionController interactions;
+    private EnvironmentScoreMonitor environmentMonitor;
+    private AirportVisitorExperience visitorExperience;
 
     public string FlightOperationId => flightOperationId;
     public JourneyState State => state;
@@ -52,6 +53,10 @@ public class AirlinePassengerAgent : MonoBehaviour
             identity = GetComponent<PassengerIdentity>();
         if (interactions == null)
             interactions = GetComponent<InteractionController>();
+        if (environmentMonitor == null)
+            environmentMonitor = GetComponent<EnvironmentScoreMonitor>();
+        if (visitorExperience == null)
+            visitorExperience = GetComponent<AirportVisitorExperience>();
     }
 
     /// <summary>
@@ -72,10 +77,15 @@ public class AirlinePassengerAgent : MonoBehaviour
         identity.Initialize(transportMode);
         needs.ResetForNewVisit();
 
-        // Airline transport is schedule-controlled. Do not let the sightseeing
-        // prefab's general utility AI send a waiting passenger elsewhere.
+        // These visitor systems must start with the passenger, just as they do
+        // for other airport visitors. Enabling invokes their normal OnEnable
+        // registration and experience-tracking setup.
         if (interactions != null)
-            interactions.enabled = false;
+            interactions.enabled = true;
+        if (environmentMonitor != null)
+            environmentMonitor.enabled = true;
+        if (visitorExperience != null)
+            visitorExperience.enabled = true;
 
         state = JourneyState.Uninitialized;
         return true;
