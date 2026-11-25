@@ -162,6 +162,28 @@ public class BusSpawner : MonoBehaviour
         hasScheduledDispatchEvent = false;
     }
 
+    /// <summary>Finds the first stop on the route a newly dispatched bus would currently take.</summary>
+    public PlacedBuilding GetNextFirstStop()
+    {
+        if (spawnPoint == null || exitPoint == null || gridManager == null || roadNetwork == null ||
+            publicTransportManager == null)
+            return null;
+
+        Vector2Int startCell = roadNetwork.GetRoadAnchor(
+            gridManager.WorldToGrid(spawnPoint.position));
+        Vector2Int exitCell = roadNetwork.GetRoadAnchor(
+            gridManager.WorldToGrid(exitPoint.position));
+
+        if (!roadNetwork.IsRoad(startCell) || !roadNetwork.IsRoad(exitCell) ||
+            !TryBuildJourney(startCell, exitCell, null, false,
+                out List<Vector2Int> journey,
+                out List<int> stopIndices,
+                out List<PlacedBuilding> orderedStops))
+            return null;
+
+        return orderedStops.Count > 0 ? orderedStops[0] : null;
+    }
+
     public bool TryDispatchBus()
     {
         if (!isActiveAndEnabled || busPrefab == null || spawnPoint == null ||
