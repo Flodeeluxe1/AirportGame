@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -42,6 +43,7 @@ public class BusController : MonoBehaviour
     public int debugPathLength;
 
     private readonly List<Vector2Int> route = new List<Vector2Int>();
+    private readonly List<PlacedBuilding> orderedStops = new List<PlacedBuilding>();
     private readonly List<Vector3> smoothedMovementWaypoints =
         new List<Vector3>();
     private readonly List<int> smoothedRouteIndices = new List<int>();
@@ -64,6 +66,10 @@ public class BusController : MonoBehaviour
     private Vector2Int requestedIntersection;
     private Vector2Int reservedIntersection;
     private int reservedIntersectionPathIndex = -1;
+
+    public event Action<BusController, PlacedBuilding> StopReached;
+
+    public PlacedBuilding FirstStop => orderedStops.Count > 0 ? orderedStops[0] : null;
 
     public bool IsActiveOnRoad => routeInitialized && stopTimeRemaining <= 0f &&
                                   pathIndex < route.Count;
@@ -95,14 +101,17 @@ public class BusController : MonoBehaviour
     public bool InitializeJourney(
         List<Vector2Int> assignedRoute,
         List<int> assignedStopPathIndices,
+        List<PlacedBuilding> assignedStops,
         BusSpawner spawner)
     {
         if (routeInitialized || assignedRoute == null ||
-            assignedRoute.Count < 2 || spawner == null ||
+            assignedRoute.Count < 2 || assignedStops == null ||
+            assignedStops.Count != assignedStopPathIndices.Count || spawner == null ||
             roadNetwork == null || gridManager == null)
             return false;
 
         route.AddRange(assignedRoute);
+        orderedStops.AddRange(assignedStops);
         for (int i = 0; i < assignedStopPathIndices.Count; i++)
         {
             int index = assignedStopPathIndices[i];
@@ -256,6 +265,18 @@ public class BusController : MonoBehaviour
             currentSpeed = 0f;
             stopTimeRemaining = stopDwellSeconds;
             debugState = "At bus stop";
+            for (int stopIndex = 0; stopIndex < orderedStops.Count; stopIndex++)
+            {
+                if (stopIndex < 0 || stopIndex >= stopPathIndices.Count)
+                    break;
+                if (GetStopPathIndex(stopIndex) == reachedRouteIndex)
+                {
+                    PlacedBuilding reachedStop = orderedStops[stopIndex];
+                    if (reachedStop != null)
+                        StopReached?.Invoke(this, reachedStop);
+                    break;
+                }
+            }
         }
         else if (currentSmoothedWaypointIndex >= smoothedMovementWaypoints.Count)
         {
@@ -267,6 +288,18 @@ public class BusController : MonoBehaviour
         }
     }
 
+    private int GetStopPathIndex(int stopIndex)
+    {
+        int current = 0;
+        foreach (int pathIndexValue in stopPathIndices)
+        {
+            if (current == stopIndex)
+                return pathIndexValue;
+            current++;
+        }
+        return -1;
+    }
+
     private void RebuildRemainingJourney()
     {
         if (ownerSpawner == null ||
@@ -274,7 +307,8 @@ public class BusController : MonoBehaviour
                 transform.position,
                 completedStopRoadCells,
                 out List<Vector2Int> rebuiltRoute,
-                out List<int> rebuiltStopIndices))
+                out List<int> rebuiltStopIndices,
+                out List<PlacedBuilding> rebuiltStops))
         {
             routeTopologyVersion = roadNetwork.TopologyVersion;
             debugState = "Road topology changed; no replacement route found";
@@ -287,6 +321,8 @@ public class BusController : MonoBehaviour
 
         route.Clear();
         route.AddRange(rebuiltRoute);
+        orderedStops.Clear();
+        orderedStops.AddRange(rebuiltStops);
         stopPathIndices.Clear();
         for (int i = 0; i < rebuiltStopIndices.Count; i++)
             stopPathIndices.Add(rebuiltStopIndices[i]);
