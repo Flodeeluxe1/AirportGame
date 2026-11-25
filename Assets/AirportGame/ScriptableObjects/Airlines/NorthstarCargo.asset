@@ -15,7 +15,6 @@ MonoBehaviour:
   airlineId: northstar_cargo
   displayName: Northstar Cargo
   logo: {fileID: 0}
-  operationType: 0
   interestWeights:
     airportFees: 20
     suitableGates: 15
