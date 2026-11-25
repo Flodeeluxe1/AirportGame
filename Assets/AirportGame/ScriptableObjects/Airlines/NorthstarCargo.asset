@@ -28,7 +28,8 @@ MonoBehaviour:
   maximumAcceptableLandingAndParkingFee: 750
   preferredGateSize: 0
   desiredSuitableGateCount: 1
-  minimumRunwayLengthMeters: 100
+  minimumRunwayLengthMeters: 70
+  desiredFoundationCellCount: 100
   desiredCargoStorageCapacity: 100
   desiredCargoHandlingThroughputPerHour: 10
   contractTemplates:
