@@ -47,7 +47,7 @@ public class ScheduledAircraftSpawner : MonoBehaviour
     /// <summary>Returns passenger flights whose one-hour-prior bus assignment matches this fixed timetable departure.</summary>
     public void GetPassengerFlightsForBusDeparture(
         long busDepartureAbsoluteSecond,
-        int busFrequencyMinutes,
+        float busFrequencyMinutes,
         List<ScheduledPassengerFlight> results)
     {
         if (results == null)
@@ -57,7 +57,7 @@ public class ScheduledAircraftSpawner : MonoBehaviour
         if (!scheduleLoaded || busFrequencyMinutes <= 0)
             return;
 
-        long intervalSeconds = busFrequencyMinutes * 60L;
+        long intervalSeconds = (long)System.Math.Max(60.0, busFrequencyMinutes * 60.0);
         long baseDay = (long)System.Math.Floor(busDepartureAbsoluteSecond / (double)SecondsPerDay);
         HashSet<string> addedOperationIds = new HashSet<string>();
 
