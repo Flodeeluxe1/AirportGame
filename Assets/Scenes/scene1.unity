@@ -735,6 +735,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AirportRatingManager
   logToConsole: 0
+  airportLevel: 5
   visitorSatisfactionWeight: 0.75
   environmentWeight: 0.25
   ratingSmoothingTimeSeconds: 30
@@ -812,7 +813,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 12a76f44375d3664195a68274ef301a1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TaxiwayNetwork
-  logToConsole: 0
 --- !u!114 &405670569
 MonoBehaviour:
   m_ObjectHideFlags: 0
