@@ -739,7 +739,10 @@ public class ScheduledAircraftSpawner : MonoBehaviour
         spawnedOperationIds.Add(queuedFlight.OperationId);
         PassengerCoordinator passengerCoordinator = PassengerCoordinator.Instance;
         if (passengerCoordinator != null)
+        {
+            passengerCoordinator.UpdateScheduledFlightGate(identity);
             passengerCoordinator.ForgetScheduledFlightPassengerCount(queuedFlight.OperationId);
+        }
 
         if (logAircraftSpawns)
         {
