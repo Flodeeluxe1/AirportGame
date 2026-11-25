@@ -5,7 +5,7 @@ public class AircraftStats : MonoBehaviour
 {
     [Header("Aircraft Operation")]
     [SerializeField]
-    private FlightOperationType operationType = FlightOperationType.CargoOnly;
+    private FlightOperationType operationType = FlightOperationType.None;
 
     public FlightOperationType OperationType => operationType;
 
