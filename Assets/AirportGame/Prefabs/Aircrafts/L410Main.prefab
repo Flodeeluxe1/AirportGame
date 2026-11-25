@@ -233,7 +233,7 @@ MonoBehaviour:
   gameTimeManager: {fileID: 0}
   loadingManifest: {fileID: 0}
   deboarding:
-    durationMinutes: 10
+    durationMinutes: 1
     status: 0
     elapsedGameSeconds: 0
   baggageUnloading:

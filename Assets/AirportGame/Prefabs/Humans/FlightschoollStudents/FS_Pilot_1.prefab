@@ -817,8 +817,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6b38c1a0a9d24d6f8c4b1e7a2f9d5031, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FlightSchoolStudentAgent
-  logToConsole: 1
-  logMovementArrivals: 1
+  logToConsole: 0
+  logMovementArrivals: 0
   needDecisionInterval: 2
   needInteractionSearchRadius: 100
   needInteractionTimeCost: 0.02
