@@ -328,6 +328,9 @@ public class PassengerCoordinator : MonoBehaviour
         if (bus == null)
             return;
 
+        // Homebound passengers are delivered when the bus reaches its exit.
+        // Do not return early: an unfinished departing manifest must also be
+        // cleaned up, and the bus event subscriptions must always be released.
         if (returnPassengersByBus.TryGetValue(bus, out List<AirlinePassengerAgent> passengers))
         {
             for (int i = 0; i < passengers.Count; i++)
