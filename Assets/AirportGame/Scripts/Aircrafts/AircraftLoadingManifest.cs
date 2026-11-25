@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 [DisallowMultipleComponent]
+[RequireComponent(typeof(AircraftStats))]
 public class AircraftLoadingManifest : MonoBehaviour
 {
     [Header("Debug")]
