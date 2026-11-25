@@ -28,9 +28,6 @@ MonoBehaviour:
   preferredGateSize: 0
   desiredSuitableGateCount: 1
   minimumRunwayLengthMeters: 70
-  desiredFoundationCellCount: 0
-  desiredCargoStorageCapacity: 100
-  desiredCargoHandlingThroughputPerHour: 10
   contractTemplates:
   - {fileID: 11400000, guid: 07f3d59c5ad5e164db82499267bb4684, type: 2}
   - {fileID: 11400000, guid: 07f3d59c5ad5e164db82499267bb4684, type: 2}
