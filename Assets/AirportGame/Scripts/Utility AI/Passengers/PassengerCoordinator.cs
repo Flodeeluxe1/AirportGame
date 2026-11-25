@@ -233,6 +233,8 @@ public class PassengerCoordinator : MonoBehaviour
         if (instance == this)
         {
             AircraftTurnaroundController.PassengersDeboarded += HandlePassengersDeboarded;
+            if (logToConsole)
+                Debug.Log("PassengerCoordinator: Subscribed to AircraftTurnaroundController.PassengersDeboarded.", this);
             SubscribeToBusSpawner();
             SubscribeToScheduleAndTime();
 
@@ -478,7 +480,13 @@ public class PassengerCoordinator : MonoBehaviour
     private void HandlePassengersDeboarded(AircraftTurnaroundController turnaround)
     {
         if (turnaround == null)
+        {
+            Debug.LogError("PassengerCoordinator: Deboarding event received with a null turnaround controller.", this);
             return;
+        }
+
+        if (logToConsole)
+            Debug.Log($"PassengerCoordinator: Deboarding event received from '{turnaround.name}'. Checking aircraft components and passenger configuration.", turnaround);
 
         if (airlinePassengerPrefab == null || gateRegistry == null)
         {
@@ -501,7 +509,22 @@ public class PassengerCoordinator : MonoBehaviour
             stats == null ||
             (identity.Definition.OperationType != FlightOperationType.PassengerOnly &&
              identity.Definition.OperationType != FlightOperationType.CargoAndPassengers))
+        {
+            string operationType = identity != null && identity.Definition != null
+                ? identity.Definition.OperationType.ToString()
+                : "unavailable";
+            Debug.LogWarning(
+                $"PassengerCoordinator: Ignoring deboarding event for '{turnaround.name}'. " +
+                $"AircraftFlightIdentity: {(identity == null ? "MISSING" : identity.IsInitialized ? "initialized" : "NOT initialized")}; " +
+                $"FlightDefinition: {(identity != null && identity.Definition != null ? "present" : "MISSING")}; " +
+                $"AircraftStats: {(stats == null ? "MISSING" : "present")}; OperationType: {operationType}. " +
+                "Expected an initialized PassengerOnly or CargoAndPassengers flight.",
+                turnaround);
             return;
+        }
+
+        if (logToConsole)
+            Debug.Log($"PassengerCoordinator: Flight {identity.FlightNumber} accepted. Incoming passengers: {stats.IncomingPassengers}; operation ID: '{identity.OperationId}'.", turnaround);
 
         if (stats.IncomingPassengers <= 0)
         {
@@ -536,6 +559,9 @@ public class PassengerCoordinator : MonoBehaviour
             Debug.Log($"PassengerCoordinator: Spawning {stats.IncomingPassengers} arriving passenger(s) for flight {identity.FlightNumber} at gate '{gateId}'.", turnaround);
 
         int passengerCount = stats.IncomingPassengers;
+        int spawnedCount = 0;
+        int routedCount = 0;
+        int failedCount = 0;
         for (int i = 0; i < passengerCount; i++)
         {
             float angle = i * 2.39996323f;
@@ -547,9 +573,16 @@ public class PassengerCoordinator : MonoBehaviour
             if (passenger == null || !passenger.Initialize(
                 identity.OperationId, PassengerIdentity.TransportMode.Bus))
             {
+                failedCount++;
+                Debug.LogWarning(
+                    $"PassengerCoordinator: Failed to initialize arriving passenger {i + 1}/{passengerCount} for flight {identity.FlightNumber}. " +
+                    $"Prefab: '{airlinePassengerPrefab.name}'. Check that it has a working AirlinePassengerAgent.",
+                    passengerObject);
                 Destroy(passengerObject);
                 continue;
             }
+
+            spawnedCount++;
 
             // Gate transforms can sit at the building pivot rather than the
             // pedestrian floor. Align the passenger's collider feet to the
@@ -567,9 +600,21 @@ public class PassengerCoordinator : MonoBehaviour
             {
                 passenger.ReachedBusStop -= HandlePassengerReachedBusStop;
                 walkingToBusStopPassengers.Remove(passenger);
+                failedCount++;
+                Debug.LogWarning(
+                    $"PassengerCoordinator: Passenger for flight {identity.FlightNumber} spawned at gate '{gateId}' but could not start walking to bus stop '{firstStop.name}'.",
+                    passengerObject);
                 Destroy(passengerObject);
+                continue;
             }
+
+            routedCount++;
         }
+
+        Debug.Log(
+            $"PassengerCoordinator: Arriving passenger result for flight {identity.FlightNumber}: " +
+            $"requested {passengerCount}, spawned {spawnedCount}, walking to bus stop {routedCount}, failed {failedCount}.",
+            turnaround);
     }
 
     private void HandlePassengerReachedBusStop(AirlinePassengerAgent passenger)
