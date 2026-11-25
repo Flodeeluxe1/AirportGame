@@ -56,6 +56,8 @@ public class AirlineContractTemplate : ScriptableObject
     [SerializeField] private AircraftGateSize minimumGateSize = AircraftGateSize.Grass;
     [Min(0f)]
     [SerializeField] private float minimumRunwayLengthMeters = 100f;
+    [Min(0)]
+    [SerializeField] private int minimumFoundationCells;
     [Min(0f)]
     [SerializeField] private float minimumCargoStorageCapacity;
     [Min(0f)]
@@ -98,6 +100,7 @@ public class AirlineContractTemplate : ScriptableObject
     public int TurnaroundMinutes => turnaroundMinutes;
     public AircraftGateSize MinimumGateSize => minimumGateSize;
     public float MinimumRunwayLengthMeters => minimumRunwayLengthMeters;
+    public int MinimumFoundationCells => minimumFoundationCells;
     public float MinimumCargoStorageCapacity => minimumCargoStorageCapacity;
     public float MinimumCargoHandlingThroughputPerHour => minimumCargoHandlingThroughputPerHour;
     public int PaymentPerCompletedFlight => paymentPerCompletedFlight;
@@ -116,6 +119,7 @@ public class AirlineContractTemplate : ScriptableObject
         durationDays = Mathf.Max(1, durationDays);
         turnaroundMinutes = Mathf.Max(0, turnaroundMinutes);
         minimumRunwayLengthMeters = Mathf.Max(0f, minimumRunwayLengthMeters);
+        minimumFoundationCells = Mathf.Max(0, minimumFoundationCells);
         minimumCargoStorageCapacity = Mathf.Max(0f, minimumCargoStorageCapacity);
         minimumCargoHandlingThroughputPerHour =
             Mathf.Max(0f, minimumCargoHandlingThroughputPerHour);
