@@ -26,6 +26,8 @@ public class PassengerCoordinator : MonoBehaviour
         new Dictionary<string, int>();
     private readonly Dictionary<string, int> registeredPassengerCounts =
         new Dictionary<string, int>();
+    private readonly Dictionary<string, int> registeredIncomingPassengerCounts =
+        new Dictionary<string, int>();
     private readonly List<ScheduledPassengerFlight> registrationFlights =
         new List<ScheduledPassengerFlight>();
     private readonly HashSet<string> currentRegistrationIds =
@@ -94,6 +96,9 @@ public class PassengerCoordinator : MonoBehaviour
         RefreshScheduledPassengerRegistrations();
         if (busSpawner == null)
             Debug.LogError("PassengerCoordinator: BusSpawner is missing; airline bus manifests cannot be loaded.", this);
+
+        if (gateRegistry == null)
+            Debug.LogError("PassengerCoordinator: AircraftGateRegistry is missing; arriving passengers cannot be routed from their gate.", this);
 
         if (airlinePassengerPrefab == null)
             Debug.LogError("PassengerCoordinator: Assign the airline Passenger prefab. SS_Passenger is reserved for sightseeing.", this);
@@ -174,6 +179,8 @@ public class PassengerCoordinator : MonoBehaviour
                 : null;
             int capacity = aircraftStats != null ? aircraftStats.maxPassengers : 0;
             registeredPassengerCounts[flight.OperationId] =
+                CalculateBookedPassengers(capacity, airportRanking, flight.StartMinute);
+            registeredIncomingPassengerCounts[flight.OperationId] =
                 CalculateBookedPassengers(capacity, airportRanking, flight.StartMinute);
         }
 
@@ -460,27 +467,58 @@ public class PassengerCoordinator : MonoBehaviour
 
     private void HandlePassengersDeboarded(AircraftTurnaroundController turnaround)
     {
-        if (turnaround == null || airlinePassengerPrefab == null || busSpawner == null ||
-            gateRegistry == null)
+        if (turnaround == null)
             return;
+
+        if (airlinePassengerPrefab == null || busSpawner == null || gateRegistry == null)
+        {
+            Debug.LogError(
+                $"PassengerCoordinator: Cannot spawn arriving passengers for {turnaround.name}. " +
+                $"Missing: {(airlinePassengerPrefab == null ? "airline passenger prefab; " : string.Empty)}" +
+                $"{(busSpawner == null ? "BusSpawner; " : string.Empty)}" +
+                $"{(gateRegistry == null ? "AircraftGateRegistry." : string.Empty)}",
+                turnaround);
+            return;
+        }
 
         AircraftFlightIdentity identity = turnaround.GetComponent<AircraftFlightIdentity>();
         AircraftStats stats = turnaround.GetComponent<AircraftStats>();
         if (identity == null || !identity.IsInitialized || identity.Definition == null ||
-            stats == null || stats.IncomingPassengers <= 0 ||
+            stats == null ||
             (identity.Definition.OperationType != FlightOperationType.PassengerOnly &&
              identity.Definition.OperationType != FlightOperationType.CargoAndPassengers))
             return;
+
+        if (stats.IncomingPassengers <= 0)
+        {
+            Debug.LogWarning(
+                $"PassengerCoordinator: Flight {identity.FlightNumber} completed deboarding with 0 incoming passengers; no passengers will spawn. Check its scheduled passenger demand configuration.",
+                turnaround);
+            return;
+        }
 
         string gateId = identity.HasActualGate
             ? identity.ActualGateStableId
             : identity.PlannedGateStableId;
         if (!gateRegistry.TryGetGate(gateId, out AircraftGate gate) || gate == null)
+        {
+            Debug.LogError(
+                $"PassengerCoordinator: Cannot spawn arriving passengers for flight {identity.FlightNumber}; gate '{gateId}' could not be resolved.",
+                turnaround);
             return;
+        }
 
         PlacedBuilding firstStop = busSpawner.GetNextFirstStop();
         if (firstStop == null)
+        {
+            Debug.LogError(
+                $"PassengerCoordinator: Cannot spawn arriving passengers for flight {identity.FlightNumber} at gate '{gateId}'; BusSpawner has no valid first stop.",
+                turnaround);
             return;
+        }
+
+        if (logToConsole)
+            Debug.Log($"PassengerCoordinator: Spawning {stats.IncomingPassengers} arriving passenger(s) for flight {identity.FlightNumber} at gate '{gateId}'.", turnaround);
 
         int passengerCount = stats.IncomingPassengers;
         for (int i = 0; i < passengerCount; i++)
@@ -555,6 +593,18 @@ public class PassengerCoordinator : MonoBehaviour
         }
 
         aircraftStats.SetOutgoingPassengers(bookedPassengers);
+        if (registeredIncomingPassengerCounts.TryGetValue(
+            flightIdentity.OperationId, out int incomingPassengers))
+        {
+            aircraftStats.SetIncomingPassengers(incomingPassengers);
+        }
+        else
+        {
+            Debug.LogWarning(
+                $"PassengerCoordinator: No incoming passenger demand was registered for flight {flightIdentity.FlightNumber}; incoming passengers set to zero.",
+                aircraftStats);
+            aircraftStats.SetIncomingPassengers(0);
+        }
         return true;
     }
 
@@ -601,7 +651,10 @@ public class PassengerCoordinator : MonoBehaviour
         if (staleOperationIds == null)
             return;
         for (int i = 0; i < staleOperationIds.Count; i++)
+        {
             registeredPassengerCounts.Remove(staleOperationIds[i]);
+            registeredIncomingPassengerCounts.Remove(staleOperationIds[i]);
+        }
     }
 
     public int CalculateBookedPassengers(int capacity, float airportRanking, int scheduledStartMinute)
