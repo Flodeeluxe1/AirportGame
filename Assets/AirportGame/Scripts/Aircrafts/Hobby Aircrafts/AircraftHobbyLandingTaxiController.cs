@@ -4,6 +4,11 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class AircraftHobbyLandingTaxiController : MonoBehaviour
 {
+    private float TaxiSpeedKnots =>
+        GetComponent<AircraftStats>() != null
+            ? GetComponent<AircraftStats>().maxTaxiSpeed
+            : 0f;
+
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
 
@@ -30,8 +35,7 @@ public class AircraftHobbyLandingTaxiController : MonoBehaviour
     [SerializeField] private float maximumParkingConnectorDistance = 12f;
 
     [Header("Taxi Movement")]
-    [Min(1f)]
-    [SerializeField] private float taxiSpeedKnots = 12f;
+
     [Min(0.1f)]
     [SerializeField] private float rotationSpeed = 3f;
     [Min(0.05f)]
@@ -849,7 +853,7 @@ public class AircraftHobbyLandingTaxiController : MonoBehaviour
         Vector3 movement = target - transform.position;
         movement.y = 0f;
 
-        float speedKnots = taxiSpeedKnots;
+        float speedKnots = TaxiSpeedKnots;
 
         AircraftTaxiTrafficFollowing trafficFollowing =
             GetComponent<AircraftTaxiTrafficFollowing>();
@@ -858,7 +862,7 @@ public class AircraftHobbyLandingTaxiController : MonoBehaviour
         {
             trafficFollowing.SetPlannedTaxiRoute(route);
             speedKnots =
-                trafficFollowing.GetTrafficFollowingSpeed(taxiSpeedKnots);
+                trafficFollowing.GetTrafficFollowingSpeed(TaxiSpeedKnots);
         }
         else
         {
