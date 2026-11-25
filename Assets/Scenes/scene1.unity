@@ -1558,10 +1558,10 @@ MonoBehaviour:
   maximumRandomVariation: 1.15
   logToConsole: 0
   airlinePassengerPrefab: {fileID: 3345817600321289670, guid: 785c6c3910084924a85c08f719b5bec7, type: 3}
-  scheduledAircraftSpawner: {fileID: 0}
-  busSpawner: {fileID: 0}
-  publicTransportManager: {fileID: 0}
-  gateRegistry: {fileID: 0}
+  scheduledAircraftSpawner: {fileID: 1023196796}
+  busSpawner: {fileID: 2134991063}
+  publicTransportManager: {fileID: 1522897182}
+  gateRegistry: {fileID: 335832197}
 --- !u!1 &728659357
 GameObject:
   m_ObjectHideFlags: 0
