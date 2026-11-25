@@ -4255,7 +4255,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PublicTransportManager
   roadNetwork: {fileID: 401526682}
   gridManager: {fileID: 728659359}
-  busFrequencyMinutes: 15
+  busFrequencyMinutes: 30
   ownedBuses: 0
   activeBuses: 1
 --- !u!1 &1577763651
