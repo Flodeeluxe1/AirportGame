@@ -250,7 +250,29 @@ public class AirlineAirportSnapshotCollector : MonoBehaviour
         return false;
     }
 
+    public AirlineInterestResult CalculateInterest(
+        AirlineDefinition airline,
+        AirlineOperationType operationType)
+    {
+        if (airline == null)
+            return default;
+
+        return AirlineInterestCalculator.Calculate(
+            airline,
+            BuildSnapshot(airline, operationType),
+            operationType);
+    }
+
     public AirlineAirportSnapshot BuildSnapshot(AirlineDefinition airline)
+    {
+        return airline == null
+            ? null
+            : BuildSnapshot(airline, airline.OperationType);
+    }
+
+    public AirlineAirportSnapshot BuildSnapshot(
+        AirlineDefinition airline,
+        AirlineOperationType operationType)
     {
         if (airline == null)
             return null;
@@ -259,7 +281,7 @@ public class AirlineAirportSnapshotCollector : MonoBehaviour
 
         AirlineAirportSnapshot snapshot = new AirlineAirportSnapshot
         {
-            representativeLandingAndParkingFee = GetRepresentativeFee(airline),
+            representativeLandingAndParkingFee = GetRepresentativeFee(airline, operationType),
             suitableGateCount = GetSuitableGateCount(airline),
             longestRunwayLengthMeters = GetLongestRunwayLength(),
             nightOperationsScore = 100f,
@@ -277,7 +299,9 @@ public class AirlineAirportSnapshotCollector : MonoBehaviour
         return snapshot;
     }
 
-    private int GetRepresentativeFee(AirlineDefinition airline)
+    private int GetRepresentativeFee(
+        AirlineDefinition airline,
+        AirlineOperationType operationType)
     {
         if (airportManagementController == null)
             return airline.MaximumAcceptableLandingAndParkingFee;
@@ -291,7 +315,7 @@ public class AirlineAirportSnapshotCollector : MonoBehaviour
         int cargoFee = GetProfileTotal(settings.cargo);
         int passengerFee = GetProfileTotal(settings.passenger);
 
-        switch (airline.OperationType)
+        switch (operationType)
         {
             case AirlineOperationType.Passenger:
                 return passengerFee;
