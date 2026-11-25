@@ -472,21 +472,22 @@ public class AirlineContractOfferManager : MonoBehaviour
 
         foreach (AirlineDefinition airline in configuredAirlines)
         {
-            if (airline == null || HasActiveContract(airline))
-                continue;
-
-            AirlineInterestResult interestResult;
-            if (!snapshotCollector.TryGetInterest(airline, out interestResult))
-                interestResult = snapshotCollector.RefreshInterest(airline);
-
-            if (airline.ContractTemplates == null)
+            if (airline == null || airline.ContractTemplates == null)
                 continue;
 
             foreach (AirlineContractTemplate template in airline.ContractTemplates)
             {
                 if (template == null ||
-                    interestResult.totalInterest < template.MinimumAirlineInterest ||
-                    HasPendingOffer(airline, template) ||
+                    HasActiveContract(airline, template.OperationType) ||
+                    HasPendingOffer(airline, template))
+                {
+                    continue;
+                }
+
+                AirlineInterestResult interestResult =
+                    snapshotCollector.CalculateInterest(airline, template.OperationType);
+
+                if (interestResult.totalInterest < template.MinimumAirlineInterest ||
                     !MeetsTemplateRequirements(airline, template))
                 {
                     continue;
@@ -510,7 +511,7 @@ public class AirlineContractOfferManager : MonoBehaviour
     {
         // Passenger-only contracts remain locked until the configured airport
         // level is reached. Cargo and mixed-operation airlines keep existing rules.
-        if (airline.OperationType == AirlineOperationType.Passenger)
+        if (template.OperationType == AirlineOperationType.Passenger)
         {
             AirportRatingManager ratingManager = AirportRatingManager.Instance;
             if (ratingManager == null ||
@@ -520,7 +521,8 @@ public class AirlineContractOfferManager : MonoBehaviour
             }
         }
 
-        AirlineAirportSnapshot snapshot = snapshotCollector.BuildSnapshot(airline);
+        AirlineAirportSnapshot snapshot =
+            snapshotCollector.BuildSnapshot(airline, template.OperationType);
         if (snapshot == null)
             return false;
 
@@ -531,13 +533,13 @@ public class AirlineContractOfferManager : MonoBehaviour
             return false;
         }
 
-        if (airline.OperationType == AirlineOperationType.Passenger &&
+        if (template.OperationType == AirlineOperationType.Passenger &&
             snapshot.foundationCellCount < template.MinimumFoundationCells)
         {
             return false;
         }
 
-        if (airline.OperationType != AirlineOperationType.Passenger &&
+        if (template.OperationType != AirlineOperationType.Passenger &&
             (snapshot.cargoStorageCapacity < template.MinimumCargoStorageCapacity ||
              snapshot.cargoHandlingThroughputPerHour <
              template.MinimumCargoHandlingThroughputPerHour))
@@ -561,7 +563,7 @@ public class AirlineContractOfferManager : MonoBehaviour
 
         if (gameTimeManager.CurrentDay >= offer.expiresOnDay ||
             offer.airline == null ||
-            HasActiveContract(offer.airline))
+            HasActiveContract(offer.airline, offer.template.OperationType))
         {
             RemoveOfferAsExpired(offer);
             return false;
@@ -585,7 +587,7 @@ public class AirlineContractOfferManager : MonoBehaviour
         contract.flightObligations = BuildFlightObligations(
             contract.contractId,
             offer.terms,
-            offer.airline.OperationType);
+            offer.template.OperationType);
 
         pendingOffers.Remove(offer);
         activeContracts.Add(contract);
@@ -746,8 +748,12 @@ public class AirlineContractOfferManager : MonoBehaviour
             performanceTracker == null || snapshotCollector == null)
             return null;
 
-        if (HasActiveContract(previousContract.airline))
+        if (HasActiveContract(
+            previousContract.airline,
+            previousContract.sourceTemplate.OperationType))
+        {
             return null;
+        }
 
         float relationship = performanceTracker.GetRelationshipScore(previousContract.airline);
         if (relationship < minimumRenewalRelationship)
@@ -766,9 +772,9 @@ public class AirlineContractOfferManager : MonoBehaviour
             previousContract.unpaidPenaltyAmount > 0)
             return null;
 
-        AirlineInterestResult interest;
-        if (!snapshotCollector.TryGetInterest(previousContract.airline, out interest))
-            interest = snapshotCollector.RefreshInterest(previousContract.airline);
+        AirlineInterestResult interest = snapshotCollector.CalculateInterest(
+            previousContract.airline,
+            previousContract.sourceTemplate.OperationType);
 
         if (interest.totalInterest < previousContract.sourceTemplate.MinimumAirlineInterest ||
             !MeetsTemplateRequirements(previousContract.airline, previousContract.sourceTemplate))
@@ -891,11 +897,15 @@ public class AirlineContractOfferManager : MonoBehaviour
         OfferExpired?.Invoke(offer);
     }
 
-    private bool HasActiveContract(AirlineDefinition airline)
+    private bool HasActiveContract(
+        AirlineDefinition airline,
+        AirlineOperationType operationType)
     {
         return activeContracts.Exists(contract =>
             contract != null &&
             contract.airline == airline &&
+            contract.sourceTemplate != null &&
+            contract.sourceTemplate.OperationType == operationType &&
             contract.status == AirlineContractStatus.Active);
     }
 
