@@ -71,5 +71,28 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 8771091787928289351, guid: d310c54ed4f98874599e63aa9953077d, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5100000000000000004}
   m_SourcePrefab: {fileID: -4161369568681901532, guid: d310c54ed4f98874599e63aa9953077d, type: 3}
+--- !u!114 &5100000000000000004
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2387620211239937619}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4f8a1c26d934e0e9f7b2a6c5d8130ef, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AircraftStats
+  maxPassengers: 0
+  incomingPassengers: 0
+  outgoingPassengers: 0
+  maxTaxiSpeed: 15
+  currentTaxiSpeed: 0
+  maxCargo: 20
+  incomingCargo: 0
+  outgoingCargo: 0
