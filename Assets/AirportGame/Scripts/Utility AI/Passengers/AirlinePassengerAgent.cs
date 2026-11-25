@@ -163,12 +163,18 @@ public class AirlinePassengerAgent : MonoBehaviour
         if (state != JourneyState.OnBus || movement == null)
             return false;
 
+        Transform busTransform = transform.parent;
         transform.SetParent(null, true);
         if (interactions != null)
             interactions.SetExternallyControlled(false);
 
         if (!movement.MoveTo(terminalPosition))
+        {
+            transform.SetParent(busTransform, true);
+            if (interactions != null)
+                interactions.SetExternallyControlled(true);
             return false;
+        }
 
         state = JourneyState.WalkingToTerminal;
         return true;
