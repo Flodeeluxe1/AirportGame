@@ -44,6 +44,8 @@ public class ScheduledAircraftSpawner : MonoBehaviour
     public GameObject PassengerAircraftPrefab => passengerOnlyAircraftPrefab;
     public GameObject CargoAndPassengersAircraftPrefab => cargoAndPassengersAircraftPrefab;
 
+    public event Action PassengerScheduleReloaded;
+
     /// <summary>Returns passenger flights whose one-hour-prior bus assignment matches this fixed timetable departure.</summary>
     public void GetPassengerFlightsForBusDeparture(
         double busDepartureAbsoluteSecond,
@@ -89,6 +91,51 @@ public class ScheduledAircraftSpawner : MonoBehaviour
                 if (spawnedOperationIds.Contains(operationId) ||
                     queuedOperationIds.Contains(operationId) ||
                     !addedOperationIds.Add(operationId))
+                    continue;
+
+                results.Add(new ScheduledPassengerFlight
+                {
+                    Definition = scheduled.Definition,
+                    GateStableId = scheduled.GateStableId,
+                    StartMinute = scheduled.StartMinute,
+                    ScheduledDayIndex = scheduledDay,
+                    OperationId = operationId
+                });
+            }
+        }
+    }
+
+    /// <summary>Returns eligible passenger flights in the requested absolute day range.</summary>
+    public void GetUpcomingPassengerFlights(
+        long firstDayIndex,
+        long lastDayIndex,
+        List<ScheduledPassengerFlight> results)
+    {
+        if (results == null)
+            return;
+
+        results.Clear();
+        if (!scheduleLoaded || !IsAirportOperational() || lastDayIndex < firstDayIndex)
+            return;
+
+        firstDayIndex = System.Math.Max(0L, firstDayIndex);
+        for (long scheduledDay = firstDayIndex; scheduledDay <= lastDayIndex; scheduledDay++)
+        {
+            foreach (ScheduledSpawn scheduled in scheduledFlights)
+            {
+                if (scheduled == null || scheduled.Definition == null ||
+                    (scheduled.Definition.OperationType != FlightOperationType.PassengerOnly &&
+                     scheduled.Definition.OperationType != FlightOperationType.CargoAndPassengers))
+                    continue;
+
+                if (!string.IsNullOrWhiteSpace(scheduled.ContractId) &&
+                    (contractManager == null || !contractManager.IsContractActiveOnDay(
+                        scheduled.ContractId, scheduledDay + 1)))
+                    continue;
+
+                string operationId = $"{scheduledDay}:{scheduled.Definition.FlightNumber}";
+                if (spawnedOperationIds.Contains(operationId) ||
+                    queuedOperationIds.Contains(operationId))
                     continue;
 
                 results.Add(new ScheduledPassengerFlight
@@ -920,6 +967,7 @@ public class ScheduledAircraftSpawner : MonoBehaviour
             scheduledFlights.AddRange(loadedFlights);
 
             scheduleLoaded = true;
+            PassengerScheduleReloaded?.Invoke();
 
             if (logScheduleReloads)
             {
