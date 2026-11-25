@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -33,6 +34,8 @@ public class BusSpawner : MonoBehaviour
     private long scheduledDispatchEventId;
     private bool hasScheduledDispatchEvent;
     private bool initialized;
+
+    public event Action<BusController> BusDispatched;
 
     public int ActiveBusCount
     {
@@ -183,7 +186,8 @@ public class BusSpawner : MonoBehaviour
 
         if (!TryBuildJourney(startCell, exitCell, null, false,
                 out List<Vector2Int> journey,
-                out List<int> stopIndices))
+                out List<int> stopIndices,
+                out List<PlacedBuilding> orderedStops))
         {
             LogDispatchFailure("No reachable bus stops and exit were found.");
             return false;
@@ -219,13 +223,15 @@ public class BusSpawner : MonoBehaviour
         }
 
         activeBuses.Add(bus);
-        if (!bus.InitializeJourney(journey, stopIndices, this))
+        if (!bus.InitializeJourney(journey, stopIndices, orderedStops, this))
         {
             activeBuses.Remove(bus);
             LogDispatchFailure("BusController rejected the generated journey.");
             Destroy(busObject);
             return false;
         }
+
+        BusDispatched?.Invoke(bus);
 
         if (logDispatches)
             Log($"BUS DISPATCHED | ID: {spawnID.SpawnID} | Stops: {stopIndices.Count} | Road cells: {journey.Count}", busObject);
@@ -237,10 +243,12 @@ public class BusSpawner : MonoBehaviour
         Vector3 currentPosition,
         HashSet<Vector2Int> completedStopRoadCells,
         out List<Vector2Int> journey,
-        out List<int> stopIndices)
+        out List<int> stopIndices,
+        out List<PlacedBuilding> orderedStops)
     {
         journey = new List<Vector2Int>();
         stopIndices = new List<int>();
+        orderedStops = new List<PlacedBuilding>();
 
         if (roadNetwork == null || gridManager == null ||
             exitPoint == null || publicTransportManager == null)
@@ -257,7 +265,7 @@ public class BusSpawner : MonoBehaviour
         return roadNetwork.IsRoad(startCell) &&
                roadNetwork.IsRoad(exitCell) &&
                TryBuildJourney(startCell, exitCell, completedStopRoadCells,
-                   true, out journey, out stopIndices);
+                   true, out journey, out stopIndices, out orderedStops);
     }
 
     private bool TryBuildJourney(
@@ -266,10 +274,12 @@ public class BusSpawner : MonoBehaviour
         HashSet<Vector2Int> completedStopRoadCells,
         bool allowExitWithoutStops,
         out List<Vector2Int> journey,
-        out List<int> stopIndices)
+        out List<int> stopIndices,
+        out List<PlacedBuilding> orderedStops)
     {
         journey = new List<Vector2Int>();
         stopIndices = new List<int>();
+        orderedStops = new List<PlacedBuilding>();
 
         List<Vector2Int> roadPositions = roadNetwork.GetRoadPositions();
         List<PlacedBuilding> remainingStops =
@@ -323,6 +333,7 @@ public class BusSpawner : MonoBehaviour
 
             AppendPath(journey, bestPath);
             stopIndices.Add(journey.Count - 1);
+            orderedStops.Add(bestStop);
             currentCell = bestPath[bestPath.Count - 1];
             remainingStops.Remove(bestStop);
         }
