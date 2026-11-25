@@ -222,7 +222,16 @@ public class AirlinePassengerAgent : MonoBehaviour
         // the road cell at the bus's transform. Place the passenger at the
         // stop's pedestrian approach area before requesting the gate route.
         transform.position = disembarkPosition;
-        movement.AlignFeetToGround(disembarkPosition);
+
+        // Match Flight School student spawning: the pathfinder supplies the
+        // walkable ground point, then the body collider half-height raises
+        // the passenger pivot clear of the floor.
+        Collider passengerCollider = GetComponent<Collider>();
+        if (passengerCollider == null)
+            passengerCollider = GetComponentInChildren<Collider>();
+
+        if (passengerCollider != null)
+            transform.position += Vector3.up * passengerCollider.bounds.extents.y;
 
         if (interactions != null)
             interactions.SetExternallyControlled(true);
