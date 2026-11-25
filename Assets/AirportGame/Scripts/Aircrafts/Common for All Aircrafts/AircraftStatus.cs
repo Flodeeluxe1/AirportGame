@@ -125,6 +125,10 @@ public class AircraftStatus : MonoBehaviour
         HasCompletedLanding = false;
         CurrentSpeedKnots = 0f;
 
+        AircraftStats stats = GetComponent<AircraftStats>();
+        if (stats != null)
+            stats.SetCurrentTaxiSpeed(0f);
+
         if (changed)
             NotifyStatusChanged();
     }
@@ -137,6 +141,11 @@ public class AircraftStatus : MonoBehaviour
         IsFlying = true;
         HasCompletedLanding = false;
         CurrentSpeedKnots = Mathf.Max(0f, currentSpeedKnots);
+
+        AircraftStats stats = GetComponent<AircraftStats>();
+        if (stats != null)
+            stats.SetCurrentTaxiSpeed(0f);
+
         if (changed)
             NotifyStatusChanged();
     }
