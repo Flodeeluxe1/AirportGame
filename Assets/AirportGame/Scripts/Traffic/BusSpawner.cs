@@ -30,7 +30,9 @@ public class BusSpawner : MonoBehaviour
 
     private readonly HashSet<BusController> activeBuses =
         new HashSet<BusController>();
-    private long nextDispatchGameSecond;
+    private long scheduledDispatchEventId;
+    private bool hasScheduledDispatchEvent;
+    private bool initialized;
 
     public int ActiveBusCount
     {
@@ -53,6 +55,15 @@ public class BusSpawner : MonoBehaviour
             gameTimeManager = FindAnyObjectByType<GameTimeManager>();
     }
 
+    private void OnEnable()
+    {
+        if (publicTransportManager != null)
+            publicTransportManager.BusFrequencyChanged += HandleBusFrequencyChanged;
+
+        if (initialized)
+            ScheduleNextTimetableEvent(true);
+    }
+
     private void Start()
     {
         if (busPrefab == null || spawnPoint == null || exitPoint == null ||
@@ -66,37 +77,86 @@ public class BusSpawner : MonoBehaviour
             return;
         }
 
-        nextDispatchGameSecond = GetAbsoluteGameTimeSeconds();
+        initialized = true;
+        ScheduleNextTimetableEvent(true);
     }
 
-    private void Update()
+    private void OnDisable()
     {
-        if (gameTimeManager == null || publicTransportManager == null)
+        if (publicTransportManager != null)
+            publicTransportManager.BusFrequencyChanged -= HandleBusFrequencyChanged;
+
+        CancelScheduledDispatch();
+    }
+
+    private void HandleBusFrequencyChanged()
+    {
+        CancelScheduledDispatch();
+        ScheduleNextTimetableEvent(true);
+    }
+
+    private void ScheduleNextTimetableEvent(bool includeCurrentSlot)
+    {
+        if (!initialized || !isActiveAndEnabled ||
+            gameTimeManager == null || publicTransportManager == null)
+            return;
+
+        SimulationEventScheduler scheduler = gameTimeManager.EventScheduler;
+        if (scheduler == null)
+            return;
+
+        double intervalSeconds =
+            System.Math.Max(60.0, publicTransportManager.BusFrequencyMinutes * 60.0);
+        double now = GameTimeManager.SimulationTime;
+        double slotIndex = includeCurrentSlot
+            ? System.Math.Ceiling(now / intervalSeconds - 1e-9)
+            : System.Math.Floor(now / intervalSeconds + 1e-9) + 1.0;
+        double nextSlotTime = slotIndex * intervalSeconds;
+
+        if (nextSlotTime < now)
+            nextSlotTime += intervalSeconds;
+
+        scheduledDispatchEventId = scheduler.ScheduleAt(
+            nextSlotTime, HandleScheduledDispatch);
+        hasScheduledDispatchEvent = true;
+    }
+
+    private void HandleScheduledDispatch()
+    {
+        hasScheduledDispatchEvent = false;
+        scheduledDispatchEventId = 0;
+
+        if (!initialized || !isActiveAndEnabled)
             return;
 
         int fleetLimit = Mathf.Min(
             maximumActiveBuses, publicTransportManager.ActiveBuses);
 
-        if (fleetLimit <= 0 || ActiveBusCount >= fleetLimit)
-            return;
-
-        long now = GetAbsoluteGameTimeSeconds();
-        if (now < nextDispatchGameSecond)
-            return;
-
-        if (TryDispatchBus())
+        if (fleetLimit > 0 && ActiveBusCount < fleetLimit)
         {
-            long interval = System.Math.Max(
-                1L,
-                (long)Mathf.CeilToInt(
-                    publicTransportManager.BusFrequencyMinutes * 60f));
-            nextDispatchGameSecond = now + interval;
+            if (!TryDispatchBus())
+                LogDispatchFailure("This timetable departure was skipped; the next fixed slot remains unchanged.");
         }
         else
         {
-            // Retry soon if there are temporarily no valid stops or roads.
-            nextDispatchGameSecond = now + 10L;
+            LogDispatchFailure("Fleet capacity is full; this timetable departure was skipped.");
         }
+
+        // Schedule from the fixed timetable grid, never relative to dispatch success.
+        // Missed slots are skipped rather than spawning a burst after a time jump.
+        ScheduleNextTimetableEvent(false);
+    }
+
+    private void CancelScheduledDispatch()
+    {
+        if (!hasScheduledDispatchEvent)
+            return;
+
+        if (gameTimeManager != null && gameTimeManager.EventScheduler != null)
+            gameTimeManager.EventScheduler.Cancel(scheduledDispatchEventId);
+
+        scheduledDispatchEventId = 0;
+        hasScheduledDispatchEvent = false;
     }
 
     public bool TryDispatchBus()
@@ -321,12 +381,6 @@ public class BusSpawner : MonoBehaviour
     {
         if (bus != null)
             activeBuses.Remove(bus);
-    }
-
-    private long GetAbsoluteGameTimeSeconds()
-    {
-        return (gameTimeManager.CurrentDay - 1) * 86400L +
-               gameTimeManager.GetGameTimeSeconds();
     }
 
     private void LogDispatchFailure(string reason)
