@@ -22,10 +22,9 @@ public class AirlineContractOfferManager : MonoBehaviour
     [SerializeField] private AirlineContractPerformanceTracker performanceTracker;
 
     [Header("Passenger Contract Unlock")]
+    [Tooltip("Passenger-only airline contracts become available at this airport level.")]
     [Range(0, 5)]
-    [SerializeField] private int currentAirportLevel = 5;
-    [Range(0, 5)]
-    [SerializeField] private int requiredPassengerAirportLevel = 5;
+    [SerializeField] private int requiredAirportLevel = 5;
 
     [Header("Automatic Renewal")]
     [SerializeField, Range(0f, 100f)] private float minimumRenewalRelationship = 50f;
@@ -511,10 +510,14 @@ public class AirlineContractOfferManager : MonoBehaviour
     {
         // Passenger-only contracts remain locked until the configured airport
         // level is reached. Cargo and mixed-operation airlines keep existing rules.
-        if (airline.OperationType == AirlineOperationType.Passenger &&
-            currentAirportLevel < requiredPassengerAirportLevel)
+        if (airline.OperationType == AirlineOperationType.Passenger)
         {
-            return false;
+            AirportRatingManager ratingManager = AirportRatingManager.Instance;
+            if (ratingManager == null ||
+                ratingManager.AirportLevel < requiredAirportLevel)
+            {
+                return false;
+            }
         }
 
         AirlineAirportSnapshot snapshot = snapshotCollector.BuildSnapshot(airline);
