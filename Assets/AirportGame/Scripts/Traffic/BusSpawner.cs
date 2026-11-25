@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -33,6 +34,8 @@ public class BusSpawner : MonoBehaviour
     private long scheduledDispatchEventId;
     private bool hasScheduledDispatchEvent;
     private bool initialized;
+
+    public event Action<BusController> BusDispatched;
 
     public int ActiveBusCount
     {
@@ -227,6 +230,8 @@ public class BusSpawner : MonoBehaviour
             Destroy(busObject);
             return false;
         }
+
+        BusDispatched?.Invoke(bus);
 
         if (logDispatches)
             Log($"BUS DISPATCHED | ID: {spawnID.SpawnID} | Stops: {stopIndices.Count} | Road cells: {journey.Count}", busObject);
