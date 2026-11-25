@@ -14,6 +14,7 @@ public class AirlineInterestWeights
     [Min(0f)] public float airportFees = 20f;
     [Min(0f)] public float suitableGates = 15f;
     [Min(0f)] public float runwaySuitability = 15f;
+    [Tooltip("Used as the foundation-cell capacity weight for passenger-only airlines.")]
     [Min(0f)] public float cargoHandlingCapacity = 15f;
     [Min(0f)] public float nightOperations = 10f;
     [Min(0f)] public float airportReputation = 10f;
