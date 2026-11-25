@@ -485,7 +485,7 @@ public class AirlineContractOfferManager : MonoBehaviour
                 }
 
                 AirlineInterestResult interestResult =
-                    snapshotCollector.CalculateInterest(airline, template.OperationType);
+                    snapshotCollector.CalculateInterest(airline, template);
 
                 if (interestResult.totalInterest < template.MinimumAirlineInterest ||
                     !MeetsTemplateRequirements(airline, template))
@@ -777,7 +777,7 @@ public class AirlineContractOfferManager : MonoBehaviour
 
         AirlineInterestResult interest = snapshotCollector.CalculateInterest(
             previousContract.airline,
-            previousContract.sourceTemplate.OperationType);
+            previousContract.sourceTemplate);
 
         if (interest.totalInterest < previousContract.sourceTemplate.MinimumAirlineInterest ||
             !MeetsTemplateRequirements(previousContract.airline, previousContract.sourceTemplate))
