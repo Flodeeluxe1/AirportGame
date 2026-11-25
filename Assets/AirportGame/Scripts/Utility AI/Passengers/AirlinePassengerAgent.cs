@@ -134,10 +134,15 @@ public class AirlinePassengerAgent : MonoBehaviour
             return false;
         }
 
+        if (interactions != null)
+            interactions.SetExternallyControlled(true);
+
         state = JourneyState.WalkingToBusStop;
         if (!movement.MoveTo(stopPosition))
         {
             state = JourneyState.Uninitialized;
+            if (interactions != null)
+                interactions.SetExternallyControlled(false);
             return false;
         }
 
@@ -153,6 +158,8 @@ public class AirlinePassengerAgent : MonoBehaviour
                 movement.Stop();
 
             state = JourneyState.WaitingForBus;
+            if (interactions != null)
+                interactions.SetExternallyControlled(true);
         }
     }
 
