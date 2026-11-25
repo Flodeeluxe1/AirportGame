@@ -24,8 +24,8 @@ public class AirlineAirportSnapshotCollector : MonoBehaviour
     [SerializeField] private List<AirlineInterestRecord> interestResults =
         new List<AirlineInterestRecord>();
 
-    private readonly Dictionary<AirlineDefinition, AirlineInterestResult> results =
-        new Dictionary<AirlineDefinition, AirlineInterestResult>();
+    private readonly Dictionary<AirlineDefinition, Dictionary<AirlineOperationType, AirlineInterestResult>> results =
+        new Dictionary<AirlineDefinition, Dictionary<AirlineOperationType, AirlineInterestResult>>();
 
     private bool foundationCountDirty = true;
     private int cachedFoundationCellCount;
@@ -209,22 +209,35 @@ public class AirlineAirportSnapshotCollector : MonoBehaviour
             if (airline == null)
                 continue;
 
-            RefreshInterest(airline);
+            HashSet<AirlineOperationType> operationTypes =
+                new HashSet<AirlineOperationType>();
+            foreach (AirlineContractTemplate template in airline.ContractTemplates)
+            {
+                if (template != null && operationTypes.Add(template.OperationType))
+                    RefreshInterest(airline, template.OperationType);
+            }
         }
     }
 
-    public AirlineInterestResult RefreshInterest(AirlineDefinition airline)
+    public AirlineInterestResult RefreshInterest(
+        AirlineDefinition airline,
+        AirlineOperationType operationType)
     {
         if (airline == null)
             return default;
 
-        AirlineAirportSnapshot snapshot = BuildSnapshot(airline);
+        AirlineAirportSnapshot snapshot = BuildSnapshot(airline, operationType);
         AirlineInterestResult result =
-            AirlineInterestCalculator.Calculate(airline, snapshot);
+            AirlineInterestCalculator.Calculate(airline, snapshot, operationType);
 
-        results[airline] = result;
+        if (!results.TryGetValue(airline, out Dictionary<AirlineOperationType, AirlineInterestResult> airlineResults))
+        {
+            airlineResults = new Dictionary<AirlineOperationType, AirlineInterestResult>();
+            results.Add(airline, airlineResults);
+        }
+        airlineResults[operationType] = result;
 
-        AirlineInterestRecord record = FindRecord(airline);
+        AirlineInterestRecord record = FindRecord(airline, operationType);
         if (record == null)
         {
             record = new AirlineInterestRecord();
@@ -232,6 +245,7 @@ public class AirlineAirportSnapshotCollector : MonoBehaviour
         }
 
         record.airline = airline;
+        record.operationType = operationType;
         record.snapshot = snapshot;
         record.result = result;
 
@@ -241,10 +255,15 @@ public class AirlineAirportSnapshotCollector : MonoBehaviour
 
     public bool TryGetInterest(
         AirlineDefinition airline,
+        AirlineOperationType operationType,
         out AirlineInterestResult result)
     {
-        if (airline != null && results.TryGetValue(airline, out result))
+        if (airline != null &&
+            results.TryGetValue(airline, out Dictionary<AirlineOperationType, AirlineInterestResult> airlineResults) &&
+            airlineResults.TryGetValue(operationType, out result))
+        {
             return true;
+        }
 
         result = default;
         return false;
@@ -261,13 +280,6 @@ public class AirlineAirportSnapshotCollector : MonoBehaviour
             airline,
             BuildSnapshot(airline, operationType),
             operationType);
-    }
-
-    public AirlineAirportSnapshot BuildSnapshot(AirlineDefinition airline)
-    {
-        return airline == null
-            ? null
-            : BuildSnapshot(airline, airline.OperationType);
     }
 
     public AirlineAirportSnapshot BuildSnapshot(
@@ -403,11 +415,15 @@ public class AirlineAirportSnapshotCollector : MonoBehaviour
         }
     }
 
-    private AirlineInterestRecord FindRecord(AirlineDefinition airline)
+    private AirlineInterestRecord FindRecord(
+        AirlineDefinition airline,
+        AirlineOperationType operationType)
     {
         foreach (AirlineInterestRecord record in interestResults)
         {
-            if (record != null && record.airline == airline)
+            if (record != null &&
+                record.airline == airline &&
+                record.operationType == operationType)
                 return record;
         }
 
@@ -419,6 +435,7 @@ public class AirlineAirportSnapshotCollector : MonoBehaviour
 public class AirlineInterestRecord
 {
     public AirlineDefinition airline;
+    public AirlineOperationType operationType;
     public AirlineAirportSnapshot snapshot;
     public AirlineInterestResult result;
 }
