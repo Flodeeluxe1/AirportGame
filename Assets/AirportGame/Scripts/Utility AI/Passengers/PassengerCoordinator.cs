@@ -323,6 +323,25 @@ public class PassengerCoordinator : MonoBehaviour
             returnPassengersByBus.Remove(bus);
         }
 
+        if (busManifests.TryGetValue(bus, out List<BusPassengerRecord> unfinishedManifest))
+        {
+            for (int i = 0; i < unfinishedManifest.Count; i++)
+            {
+                AirlinePassengerAgent passenger = unfinishedManifest[i] != null
+                    ? unfinishedManifest[i].Agent
+                    : null;
+                if (passenger == null)
+                    continue;
+
+                Debug.LogWarning(
+                    $"PassengerCoordinator: Flight passenger {passenger.FlightOperationId} could not reach its assigned gate before the bus exited.",
+                    passenger);
+                passenger.AbandonJourney();
+                Destroy(passenger.gameObject);
+            }
+            busManifests.Remove(bus);
+        }
+
         bus.StopReached -= HandleBusStopReached;
         bus.JourneyCompleted -= HandleBusJourneyCompleted;
         subscribedBuses.Remove(bus);
