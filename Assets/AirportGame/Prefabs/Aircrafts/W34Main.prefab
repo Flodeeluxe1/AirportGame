@@ -20,6 +20,7 @@ GameObject:
   - component: {fileID: -5519792594675222361}
   - component: {fileID: -9043542968318640712}
   - component: {fileID: -7123456789012345677}
+  - component: {fileID: -6123456789012345004}
   m_Layer: 7
   m_Name: W34Main
   m_TagString: Untagged
@@ -427,3 +428,23 @@ Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 1d30f23e6abae104a88e073f0a20be03, type: 3}
   m_PrefabInstance: {fileID: 3583963974137580783}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &-6123456789012345004
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 753756043139321930}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4f8a1c26d934e0e9f7b2a6c5d8130ef, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AircraftStats
+  maxPassengers: 4
+  incomingPassengers: 0
+  outgoingPassengers: 0
+  maxTaxiSpeed: 15
+  currentTaxiSpeed: 0
+  maxCargo: 20
+  incomingCargo: 0
+  outgoingCargo: 0
