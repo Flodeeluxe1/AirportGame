@@ -59,14 +59,16 @@ public class AirlineContractTemplate : ScriptableObject
     [SerializeField] private AircraftGateSize minimumGateSize = AircraftGateSize.Grass;
     [Min(0f)]
     [SerializeField] private float minimumRunwayLengthMeters = 100f;
+    [Tooltip("Minimum developed foundation cells required. This value is also the passenger-capacity target for this contract's interest score.")]
     [Min(0)]
     [SerializeField] private int minimumFoundationCells;
+    [Tooltip("Minimum cargo storage required. This value is also the storage-capacity target for this contract's interest score.")]
     [Min(0f)]
     [SerializeField] private float minimumCargoStorageCapacity;
+    [Tooltip("Minimum cargo handling throughput required per hour. This value is also the handling-capacity target for this contract's interest score.")]
     [Min(0f)]
     [SerializeField] private float minimumCargoHandlingThroughputPerHour;
 
-    [Tooltip("Airport capacity targets used to calculate interest for this contract. The minimum requirements above also act as the target for full capacity interest.")]
     [Header("Payment")]
     [Min(0)]
     [SerializeField] private int paymentPerCompletedFlight = 500;
