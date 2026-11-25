@@ -44,8 +44,8 @@ public class PassengerCoordinator : MonoBehaviour
 
     /// <summary>
     /// Calculates and assigns the booked outgoing passengers for a scheduled
-    /// PassengerOnly flight. Flight-level passenger setup is owned by this
-    /// coordinator rather than the aircraft spawner.
+    /// PassengerOnly or CargoAndPassengers flight. Flight-level passenger
+    /// setup is owned by this coordinator rather than the aircraft spawner.
     /// </summary>
     public bool ConfigureScheduledFlightPassengers(
         AircraftStats aircraftStats,
@@ -54,7 +54,8 @@ public class PassengerCoordinator : MonoBehaviour
         if (aircraftStats == null || flightIdentity == null ||
             !flightIdentity.IsInitialized ||
             flightIdentity.Definition == null ||
-            flightIdentity.Definition.OperationType != FlightOperationType.PassengerOnly)
+            (flightIdentity.Definition.OperationType != FlightOperationType.PassengerOnly &&
+             flightIdentity.Definition.OperationType != FlightOperationType.CargoAndPassengers))
         {
             return false;
         }
