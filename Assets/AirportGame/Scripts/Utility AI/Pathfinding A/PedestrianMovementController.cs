@@ -528,7 +528,17 @@ public class PedestrianMovementController : MonoBehaviour
     /// </summary>
     public bool MoveTo(Vector3 worldDestination)
     {
-        return MoveToWorldPosition(worldDestination, true);
+        return MoveToWorldPosition(worldDestination, true, false);
+    }
+
+    /// <summary>
+    /// Routes to a destination while allowing the start and destination cells
+    /// to be occupied by their associated building (for example a gate or stop).
+    /// Occupied cells elsewhere remain blocked.
+    /// </summary>
+    public bool MoveToAllowingOccupiedEndpoints(Vector3 worldDestination)
+    {
+        return MoveToWorldPosition(worldDestination, true, true);
     }
 
     /// <summary>
@@ -538,12 +548,13 @@ public class PedestrianMovementController : MonoBehaviour
     /// </summary>
     public bool TryMoveTo(Vector3 worldDestination)
     {
-        return MoveToWorldPosition(worldDestination, false);
+        return MoveToWorldPosition(worldDestination, false, false);
     }
 
     private bool MoveToWorldPosition(
         Vector3 worldDestination,
-        bool notifyOnImmediateFailure)
+        bool notifyOnImmediateFailure,
+        bool allowOccupiedEndpoints)
     {
         StopInternal("Calculating route");
         lastApproachProvider = null;
@@ -563,7 +574,7 @@ public class PedestrianMovementController : MonoBehaviour
         target.y = transform.position.y;
 
         List<Vector3> calculatedPath =
-            pathfinder.FindWorldPath(transform.position, target, AccessProfile);
+            pathfinder.FindWorldPath(transform.position, target, AccessProfile, allowOccupiedEndpoints);
 
         if (calculatedPath == null || calculatedPath.Count == 0)
         {
