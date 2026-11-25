@@ -627,18 +627,9 @@ public class AirlineManagementUIController : MonoBehaviour
             if (airline == null)
                 continue;
 
-            HashSet<AirlineOperationType> configuredTypes =
-                new HashSet<AirlineOperationType>();
-            if (airline.ContractTemplates != null)
-            {
-                foreach (AirlineContractTemplate template in airline.ContractTemplates)
-                {
-                    if (template != null)
-                        configuredTypes.Add(template.OperationType);
-                }
-            }
+            IReadOnlyList<AirlineContractTemplate> templates = airline.ContractTemplates;
 
-            if (configuredTypes.Count == 0)
+            if (templates == null || templates.Count == 0)
             {
                 VisualElement emptyCard = CreateCard();
                 AddAirlineLogo(emptyCard, airline);
@@ -647,11 +638,15 @@ public class AirlineManagementUIController : MonoBehaviour
                 continue;
             }
 
-            foreach (AirlineOperationType operationType in configuredTypes)
+            foreach (AirlineContractTemplate contractTemplate in templates)
             {
+                if (contractTemplate == null)
+                    continue;
+
+                AirlineOperationType operationType = contractTemplate.OperationType;
                 AirlineInterestResult result;
-                if (!snapshotCollector.TryGetInterest(airline, operationType, out result))
-                    result = snapshotCollector.RefreshInterest(airline, operationType);
+                if (!snapshotCollector.TryGetInterest(airline, contractTemplate, out result))
+                    result = snapshotCollector.RefreshInterest(airline, contractTemplate);
 
                 VisualElement card = CreateCard();
                 VisualElement top = new VisualElement();
@@ -665,7 +660,7 @@ public class AirlineManagementUIController : MonoBehaviour
                 name.style.fontSize = 15;
                 name.style.unityFontStyleAndWeight = FontStyle.Bold;
                 name.style.color = Color.white;
-                Label type = new Label(operationType.ToString());
+                Label type = new Label(contractTemplate.DisplayName + " · " + operationType);
                 type.style.fontSize = 10;
                 type.style.color = MutedTextColor;
                 identity.Add(name);
