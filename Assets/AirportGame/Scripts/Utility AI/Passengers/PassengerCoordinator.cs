@@ -19,6 +19,7 @@ public class PassengerCoordinator : MonoBehaviour
     [SerializeField] private BusSpawner busSpawner;
     [SerializeField] private PublicTransportManager publicTransportManager;
     [SerializeField] private AircraftGateRegistry gateRegistry;
+    [SerializeField] private PedestrianPathfinder pedestrianPathfinder;
 
     private readonly List<ScheduledPassengerFlight> dispatchFlights =
         new List<ScheduledPassengerFlight>();
@@ -90,6 +91,8 @@ public class PassengerCoordinator : MonoBehaviour
             publicTransportManager = FindAnyObjectByType<PublicTransportManager>();
         if (gateRegistry == null)
             gateRegistry = FindAnyObjectByType<AircraftGateRegistry>();
+        if (pedestrianPathfinder == null)
+            pedestrianPathfinder = FindAnyObjectByType<PedestrianPathfinder>();
 
         SubscribeToBusSpawner();
         SubscribeToScheduleAndTime();
@@ -375,7 +378,18 @@ public class PassengerCoordinator : MonoBehaviour
             float disembarkAngle = i * 2.39996323f;
             Vector3 disembarkOffset = new Vector3(
                 Mathf.Cos(disembarkAngle), 0f, Mathf.Sin(disembarkAngle)) * 1.5f;
-            Vector3 disembarkPosition = stop.transform.position + disembarkOffset;
+            Vector3 desiredDisembarkPosition = stop.transform.position + disembarkOffset;
+            if (pedestrianPathfinder == null ||
+                !pedestrianPathfinder.TryFindNearestWalkablePosition(
+                    desiredDisembarkPosition,
+                    8,
+                    out Vector3 disembarkPosition))
+            {
+                Debug.LogWarning(
+                    $"PassengerCoordinator: Could not find a walkable disembark position beside stop {stop.name} for flight {record.Agent.FlightOperationId}.",
+                    this);
+                continue;
+            }
 
             if (bus.DisembarkPassengerToTerminal(
                 record.Agent, disembarkPosition, gate.transform.position))
