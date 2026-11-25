@@ -5,6 +5,15 @@ using System.IO;
 using UnityEngine;
 using UnityEngine.Serialization;
 
+public struct ScheduledPassengerFlight
+{
+    public FlightDefinition Definition;
+    public string GateStableId;
+    public int StartMinute;
+    public long ScheduledDayIndex;
+    public string OperationId;
+}
+
 public class ScheduledAircraftSpawner : MonoBehaviour
 {
     [Header("Debug")]
@@ -34,6 +43,65 @@ public class ScheduledAircraftSpawner : MonoBehaviour
     public GameObject CargoAircraftPrefab => cargoOnlyAircraftPrefab;
     public GameObject PassengerAircraftPrefab => passengerOnlyAircraftPrefab;
     public GameObject CargoAndPassengersAircraftPrefab => cargoAndPassengersAircraftPrefab;
+
+    /// <summary>Returns passenger flights whose one-hour-prior bus assignment matches this fixed timetable departure.</summary>
+    public void GetPassengerFlightsForBusDeparture(
+        long busDepartureAbsoluteSecond,
+        int busFrequencyMinutes,
+        List<ScheduledPassengerFlight> results)
+    {
+        if (results == null)
+            return;
+
+        results.Clear();
+        if (!scheduleLoaded || busFrequencyMinutes <= 0)
+            return;
+
+        long intervalSeconds = busFrequencyMinutes * 60L;
+        long baseDay = (long)System.Math.Floor(busDepartureAbsoluteSecond / (double)SecondsPerDay);
+        HashSet<string> addedOperationIds = new HashSet<string>();
+
+        for (long dayOffset = -1; dayOffset <= 1; dayOffset++)
+        {
+            long scheduledDay = baseDay + dayOffset;
+            if (scheduledDay < 0)
+                continue;
+
+            foreach (ScheduledSpawn scheduled in scheduledFlights)
+            {
+                if (scheduled == null || scheduled.Definition == null ||
+                    (scheduled.Definition.OperationType != FlightOperationType.PassengerOnly &&
+                     scheduled.Definition.OperationType != FlightOperationType.CargoAndPassengers))
+                    continue;
+
+                if (!string.IsNullOrWhiteSpace(scheduled.ContractId) &&
+                    (contractManager == null || !contractManager.IsContractActiveOnDay(
+                        scheduled.ContractId, scheduledDay + 1)))
+                    continue;
+
+                long flightAbsoluteSecond = scheduledDay * SecondsPerDay + scheduled.StartMinute * 60L;
+                long assignedBusDeparture = (long)System.Math.Floor(
+                    (flightAbsoluteSecond - 3600L) / (double)intervalSeconds) * intervalSeconds;
+                if (assignedBusDeparture != busDepartureAbsoluteSecond)
+                    continue;
+
+                string operationId = $"{scheduledDay}:{scheduled.Definition.FlightNumber}";
+                if (spawnedOperationIds.Contains(operationId) ||
+                    queuedOperationIds.Contains(operationId) ||
+                    !addedOperationIds.Add(operationId))
+                    continue;
+
+                results.Add(new ScheduledPassengerFlight
+                {
+                    Definition = scheduled.Definition,
+                    GateStableId = scheduled.GateStableId,
+                    StartMinute = scheduled.StartMinute,
+                    ScheduledDayIndex = scheduledDay,
+                    OperationId = operationId
+                });
+            }
+        }
+    }
 
     private const int ScheduleFileVersion = 1;
     private const int MinutesBeforeScheduledTime = 1;
