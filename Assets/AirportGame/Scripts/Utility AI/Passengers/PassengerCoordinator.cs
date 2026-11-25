@@ -26,6 +26,14 @@ public class PassengerCoordinator : MonoBehaviour
         new Dictionary<string, int>();
     private readonly Dictionary<BusController, List<BusPassengerRecord>> busManifests =
         new Dictionary<BusController, List<BusPassengerRecord>>();
+    private readonly Queue<AirlinePassengerAgent> waitingReturnPassengers =
+        new Queue<AirlinePassengerAgent>();
+    private readonly HashSet<AirlinePassengerAgent> waitingReturnPassengerSet =
+        new HashSet<AirlinePassengerAgent>();
+    private readonly Dictionary<BusController, List<AirlinePassengerAgent>> returnPassengersByBus =
+        new Dictionary<BusController, List<AirlinePassengerAgent>>();
+    private readonly HashSet<BusController> subscribedBuses =
+        new HashSet<BusController>();
     private bool busSpawnerSubscribed;
 
     private sealed class BusPassengerRecord
@@ -88,7 +96,10 @@ public class PassengerCoordinator : MonoBehaviour
         busSpawnerSubscribed = true;
         foreach (KeyValuePair<BusController, List<BusPassengerRecord>> pair in busManifests)
             if (pair.Key != null)
-                pair.Key.StopReached += HandleBusStopReached;
+                SubscribeToBus(pair.Key);
+        foreach (KeyValuePair<BusController, List<AirlinePassengerAgent>> pair in returnPassengersByBus)
+            if (pair.Key != null)
+                SubscribeToBus(pair.Key);
     }
 
     private void OnDisable()
@@ -96,22 +107,44 @@ public class PassengerCoordinator : MonoBehaviour
         if (busSpawnerSubscribed && busSpawner != null)
             busSpawner.BusDispatched -= HandleBusDispatched;
         busSpawnerSubscribed = false;
+        AircraftTurnaroundController.PassengersDeboarded -= HandlePassengersDeboarded;
 
-        foreach (KeyValuePair<BusController, List<BusPassengerRecord>> pair in busManifests)
-            if (pair.Key != null)
-                pair.Key.StopReached -= HandleBusStopReached;
+        foreach (BusController bus in subscribedBuses)
+        {
+            if (bus == null)
+                continue;
+            bus.StopReached -= HandleBusStopReached;
+            bus.JourneyCompleted -= HandleBusJourneyCompleted;
+        }
+        subscribedBuses.Clear();
     }
 
     private void OnEnable()
     {
         if (instance == this)
+        {
+            AircraftTurnaroundController.PassengersDeboarded += HandlePassengersDeboarded;
             SubscribeToBusSpawner();
+        }
+    }
+
+    private void SubscribeToBus(BusController bus)
+    {
+        if (bus == null || !subscribedBuses.Add(bus))
+            return;
+
+        bus.StopReached += HandleBusStopReached;
+        bus.JourneyCompleted += HandleBusJourneyCompleted;
     }
 
     private void HandleBusDispatched(BusController bus)
     {
-        if (bus == null || scheduledAircraftSpawner == null ||
-            publicTransportManager == null || airlinePassengerPrefab == null)
+        if (bus == null)
+            return;
+
+        SubscribeToBus(bus);
+        if (scheduledAircraftSpawner == null || publicTransportManager == null ||
+            airlinePassengerPrefab == null)
             return;
 
         double departureSecond = GameTimeManager.SimulationTime;
@@ -125,7 +158,6 @@ public class PassengerCoordinator : MonoBehaviour
 
         List<BusPassengerRecord> manifest = new List<BusPassengerRecord>();
         busManifests[bus] = manifest;
-        bus.StopReached += HandleBusStopReached;
 
         for (int flightIndex = 0; flightIndex < dispatchFlights.Count; flightIndex++)
         {
@@ -182,11 +214,12 @@ public class PassengerCoordinator : MonoBehaviour
 
     private void HandleBusStopReached(BusController bus, PlacedBuilding stop)
     {
-        if (bus == null || stop == null || bus.FirstStop != stop ||
-            !busManifests.TryGetValue(bus, out List<BusPassengerRecord> manifest))
+        if (bus == null || stop == null || bus.FirstStop != stop)
             return;
 
-        for (int i = manifest.Count - 1; i >= 0; i--)
+        if (busManifests.TryGetValue(bus, out List<BusPassengerRecord> manifest))
+        {
+            for (int i = manifest.Count - 1; i >= 0; i--)
         {
             BusPassengerRecord record = manifest[i];
             if (record == null || record.Agent == null)
@@ -209,11 +242,127 @@ public class PassengerCoordinator : MonoBehaviour
                 manifest.RemoveAt(i);
         }
 
-        if (manifest.Count == 0)
-        {
-            bus.StopReached -= HandleBusStopReached;
-            busManifests.Remove(bus);
+            if (manifest.Count == 0)
+                busManifests.Remove(bus);
         }
+
+        BoardWaitingReturnPassengers(bus);
+    }
+
+    private void BoardWaitingReturnPassengers(BusController bus)
+    {
+        if (bus == null || waitingReturnPassengers.Count == 0 ||
+            bus.AvailablePassengerCapacity <= 0)
+            return;
+
+        List<AirlinePassengerAgent> onboardReturnPassengers;
+        if (!returnPassengersByBus.TryGetValue(bus, out onboardReturnPassengers))
+        {
+            onboardReturnPassengers = new List<AirlinePassengerAgent>();
+            returnPassengersByBus.Add(bus, onboardReturnPassengers);
+        }
+
+        while (bus.AvailablePassengerCapacity > 0 && waitingReturnPassengers.Count > 0)
+        {
+            AirlinePassengerAgent passenger = waitingReturnPassengers.Dequeue();
+            if (passenger == null)
+                continue;
+
+            waitingReturnPassengerSet.Remove(passenger);
+            if (passenger.State != AirlinePassengerAgent.JourneyState.WaitingForBus)
+                continue;
+
+            if (!bus.TryBoardPassenger(passenger))
+            {
+                waitingReturnPassengers.Enqueue(passenger);
+                waitingReturnPassengerSet.Add(passenger);
+                break;
+            }
+
+            onboardReturnPassengers.Add(passenger);
+        }
+
+        if (onboardReturnPassengers.Count == 0)
+            returnPassengersByBus.Remove(bus);
+    }
+
+    private void HandleBusJourneyCompleted(BusController bus)
+    {
+        if (bus == null)
+            return;
+
+        if (returnPassengersByBus.TryGetValue(bus, out List<AirlinePassengerAgent> passengers))
+        {
+            for (int i = 0; i < passengers.Count; i++)
+                if (passengers[i] != null)
+                    passengers[i].CompleteReturnBusJourney();
+            returnPassengersByBus.Remove(bus);
+        }
+
+        bus.StopReached -= HandleBusStopReached;
+        bus.JourneyCompleted -= HandleBusJourneyCompleted;
+        subscribedBuses.Remove(bus);
+    }
+
+    private void HandlePassengersDeboarded(AircraftTurnaroundController turnaround)
+    {
+        if (turnaround == null || airlinePassengerPrefab == null || busSpawner == null ||
+            gateRegistry == null)
+            return;
+
+        AircraftFlightIdentity identity = turnaround.GetComponent<AircraftFlightIdentity>();
+        AircraftStats stats = turnaround.GetComponent<AircraftStats>();
+        if (identity == null || !identity.IsInitialized || identity.Definition == null ||
+            stats == null || stats.IncomingPassengers <= 0 ||
+            (identity.Definition.OperationType != FlightOperationType.PassengerOnly &&
+             identity.Definition.OperationType != FlightOperationType.CargoAndPassengers))
+            return;
+
+        string gateId = identity.HasActualGate
+            ? identity.ActualGateStableId
+            : identity.PlannedGateStableId;
+        if (!gateRegistry.TryGetGate(gateId, out AircraftGate gate) || gate == null)
+            return;
+
+        PlacedBuilding firstStop = busSpawner.GetNextFirstStop();
+        if (firstStop == null)
+            return;
+
+        int passengerCount = stats.IncomingPassengers;
+        for (int i = 0; i < passengerCount; i++)
+        {
+            float angle = i * 2.39996323f;
+            Vector3 offset = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * 0.65f;
+            GameObject passengerObject = Instantiate(
+                airlinePassengerPrefab, gate.transform.position + offset, Quaternion.identity);
+            AirlinePassengerAgent passenger = passengerObject.GetComponent<AirlinePassengerAgent>();
+
+            if (passenger == null || !passenger.Initialize(
+                identity.OperationId, PassengerIdentity.TransportMode.Bus))
+            {
+                Destroy(passengerObject);
+                continue;
+            }
+
+            passenger.ReachedBusStop += HandlePassengerReachedBusStop;
+            Vector3 stopOffset = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * 1.5f;
+            if (!passenger.WalkToBusStop(firstStop.transform.position + stopOffset))
+            {
+                passenger.ReachedBusStop -= HandlePassengerReachedBusStop;
+                Destroy(passengerObject);
+            }
+        }
+    }
+
+    private void HandlePassengerReachedBusStop(AirlinePassengerAgent passenger)
+    {
+        if (passenger == null)
+            return;
+
+        passenger.ReachedBusStop -= HandlePassengerReachedBusStop;
+        if (passenger.State == AirlinePassengerAgent.JourneyState.WaitingForBus &&
+            waitingReturnPassengerSet.Add(passenger))
+            waitingReturnPassengers.Enqueue(passenger);
     }
 
     private void OnDestroy()
