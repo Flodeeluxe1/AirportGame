@@ -46,7 +46,7 @@ public class ScheduledAircraftSpawner : MonoBehaviour
 
     /// <summary>Returns passenger flights whose one-hour-prior bus assignment matches this fixed timetable departure.</summary>
     public void GetPassengerFlightsForBusDeparture(
-        long busDepartureAbsoluteSecond,
+        double busDepartureAbsoluteSecond,
         float busFrequencyMinutes,
         List<ScheduledPassengerFlight> results)
     {
@@ -57,8 +57,8 @@ public class ScheduledAircraftSpawner : MonoBehaviour
         if (!scheduleLoaded || busFrequencyMinutes <= 0)
             return;
 
-        long intervalSeconds = (long)System.Math.Max(60.0, busFrequencyMinutes * 60.0);
-        long baseDay = (long)System.Math.Floor(busDepartureAbsoluteSecond / (double)SecondsPerDay);
+        double intervalSeconds = System.Math.Max(60.0, busFrequencyMinutes * 60.0);
+        long baseDay = (long)System.Math.Floor(busDepartureAbsoluteSecond / SecondsPerDay);
         HashSet<string> addedOperationIds = new HashSet<string>();
 
         for (long dayOffset = -1; dayOffset <= 1; dayOffset++)
@@ -80,9 +80,9 @@ public class ScheduledAircraftSpawner : MonoBehaviour
                     continue;
 
                 long flightAbsoluteSecond = scheduledDay * SecondsPerDay + scheduled.StartMinute * 60L;
-                long assignedBusDeparture = (long)System.Math.Floor(
-                    (flightAbsoluteSecond - 3600L) / (double)intervalSeconds) * intervalSeconds;
-                if (assignedBusDeparture != busDepartureAbsoluteSecond)
+                double assignedBusDeparture = System.Math.Floor(
+                    (flightAbsoluteSecond - 3600L) / intervalSeconds) * intervalSeconds;
+                if (System.Math.Abs(assignedBusDeparture - busDepartureAbsoluteSecond) > 0.01)
                     continue;
 
                 string operationId = $"{scheduledDay}:{scheduled.Definition.FlightNumber}";
