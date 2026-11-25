@@ -26,6 +26,7 @@ public class PublicTransportManager : MonoBehaviour
         new HashSet<PlacedBuilding>();
 
     public event Action StopsChanged;
+    public event Action BusFrequencyChanged;
 
     public RoadNetwork RoadNetwork => roadNetwork;
     public GridManager GridManager => gridManager;
@@ -123,7 +124,12 @@ public class PublicTransportManager : MonoBehaviour
 
     public void SetBusFrequencyMinutes(float minutes)
     {
-        busFrequencyMinutes = Mathf.Max(1f, minutes);
+        float updatedFrequency = Mathf.Max(1f, minutes);
+        if (Mathf.Approximately(busFrequencyMinutes, updatedFrequency))
+            return;
+
+        busFrequencyMinutes = updatedFrequency;
+        BusFrequencyChanged?.Invoke();
     }
 
     /// <summary>
