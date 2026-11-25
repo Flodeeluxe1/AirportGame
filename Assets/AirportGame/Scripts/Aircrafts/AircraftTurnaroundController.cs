@@ -12,6 +12,8 @@ public enum AircraftTurnaroundTaskStatus
 
 public class AircraftTurnaroundController : MonoBehaviour
 {
+    public static event Action<AircraftTurnaroundController> PassengersDeboarded;
+
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
     private interface ITaskProgress
@@ -1093,6 +1095,9 @@ public class AircraftTurnaroundController : MonoBehaviour
             return;
 
         task.MarkCompleted();
+
+        if (taskType == TaskType.Deboarding)
+            PassengersDeboarded?.Invoke(this);
 
         Log(
             $"{name}: {GetTaskName(taskType)} completed.",
