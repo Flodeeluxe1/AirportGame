@@ -14,9 +14,7 @@ using UnityEngine;
 public class AircraftSSDepartureTaxiController : MonoBehaviour
 {
     private float TaxiSpeedKnots =>
-        GetComponent<AircraftStats>() != null
-            ? GetComponent<AircraftStats>().maxTaxiSpeed
-            : 0f;
+        GetComponent<AircraftStats>()?.maxTaxiSpeed ?? 0f;
 
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
