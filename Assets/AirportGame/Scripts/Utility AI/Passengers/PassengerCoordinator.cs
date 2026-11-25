@@ -245,17 +245,22 @@ public class PassengerCoordinator : MonoBehaviour
             ? ratingManager.AirportRating
             : 50f;
 
-        int bookedPassengers;
-        if (!bookedPassengerCounts.TryGetValue(flightIdentity.OperationId, out bookedPassengers))
+        if (!bookedPassengerCounts.TryGetValue(flightIdentity.OperationId, out int bookedPassengers))
         {
-            bookedPassengers = CalculateBookedPassengers(
-                aircraftStats.maxPassengers,
-                airportRanking,
-                flightIdentity.PlannedStartMinute);
+            bookedPassengers = 0;
+            Debug.LogWarning(
+                $"PassengerCoordinator: No bus manifest was registered for flight {flightIdentity.FlightNumber}; outgoing passenger count is set to zero.",
+                aircraftStats);
         }
 
         aircraftStats.SetOutgoingPassengers(bookedPassengers);
         return true;
+    }
+
+    public void ForgetScheduledFlightPassengerCount(string operationId)
+    {
+        if (!string.IsNullOrWhiteSpace(operationId))
+            bookedPassengerCounts.Remove(operationId);
     }
 
     public int CalculateBookedPassengers(int capacity, float airportRanking, int scheduledStartMinute)
