@@ -16,7 +16,7 @@ public class PublicTransportManager : MonoBehaviour
 
     [Header("Bus Service")]
     [Min(1f)]
-    [SerializeField] private float busFrequencyMinutes = 15f;
+    [SerializeField] private float busFrequencyMinutes = 30f;
     [Min(0)]
     [SerializeField] private int ownedBuses;
     [Min(0)]
