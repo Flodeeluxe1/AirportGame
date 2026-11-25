@@ -91,6 +91,7 @@ public class InteractionController : MonoBehaviour
     private InteractionProvider queuedProvider;
     private InteractionDefinition queuedInteraction;
     private Coroutine interactionRoutine;
+    private bool externallyControlled;
     private double nextDecisionTime;
     private double nextQueuePositionRefresh;
     private Vector3 lastQueueDestination;
@@ -99,6 +100,35 @@ public class InteractionController : MonoBehaviour
 
 
     public string CurrentStatus => currentStatus;
+    public bool IsExternallyControlled => externallyControlled;
+
+    /// <summary>Temporarily hands movement and decisions to a transport system without disabling visitor systems.</summary>
+    public void SetExternallyControlled(bool controlled)
+    {
+        if (externallyControlled == controlled)
+            return;
+
+        externallyControlled = controlled;
+        if (controlled)
+        {
+            if (interactionRoutine != null)
+            {
+                StopCoroutine(interactionRoutine);
+                interactionRoutine = null;
+            }
+
+            ResumeInteractionNeedDecay();
+            ReleaseCurrentReservation();
+            if (movement != null && movement.IsMoving)
+                movement.Stop();
+            currentStatus = "Externally controlled";
+        }
+        else
+        {
+            nextDecisionTime = GameTimeManager.SimulationTime;
+            currentStatus = "Idle";
+        }
+    }
     public string CurrentInteractionName => currentInteractionName;
     public IReadOnlyList<DebugCandidateSnapshot> DebugCandidates => debugCandidates;
 
@@ -238,7 +268,7 @@ public class InteractionController : MonoBehaviour
 
     private void Update()
     {
-        if (needs == null || movement == null)
+        if (externallyControlled || needs == null || movement == null)
             return;
 
         if ((socialController != null && socialController.IsBusy) ||
