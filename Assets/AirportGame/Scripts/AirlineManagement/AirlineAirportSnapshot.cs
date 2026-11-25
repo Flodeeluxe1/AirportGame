@@ -20,6 +20,10 @@ public class AirlineAirportSnapshot
     [Min(0f)]
     public float longestRunwayLengthMeters;
 
+    [Header("Passenger Airport Size")]
+    [Min(0)]
+    public int foundationCellCount;
+
     [Header("Cargo Capacity")]
     [Min(0f)]
     public float cargoStorageCapacity;
