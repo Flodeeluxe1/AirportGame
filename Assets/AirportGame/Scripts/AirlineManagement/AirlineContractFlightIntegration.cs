@@ -157,19 +157,24 @@ public class AirlineContractFlightIntegration : MonoBehaviour
             return;
         }
 
+        if (contract.sourceTemplate == null)
+        {
+            Debug.LogWarning(
+                "Contract " + contract.contractId +
+                " has no source template, so its operation type cannot be resolved.");
+            return;
+        }
+
         FlightOperationType operationType;
-        switch (contract.airline.OperationType)
+        switch (contract.sourceTemplate.OperationType)
         {
             case AirlineOperationType.Passenger:
                 operationType = FlightOperationType.PassengerOnly;
                 break;
 
             case AirlineOperationType.CargoAndPassengers:
-                Debug.LogWarning(
-                    "Contract " + contract.contractId +
-                    " requires cargo + passenger aircraft, which the current " +
-                    "ScheduledAircraftSpawner does not support. Its flights were not added.");
-                return;
+                operationType = FlightOperationType.CargoAndPassengers;
+                break;
 
             default:
                 operationType = FlightOperationType.CargoOnly;
