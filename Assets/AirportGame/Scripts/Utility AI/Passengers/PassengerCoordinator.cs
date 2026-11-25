@@ -80,17 +80,6 @@ public class PassengerCoordinator : MonoBehaviour
         instance = this;
     }
 
-    private void OnEnable()
-    {
-        if (instance == this)
-            AircraftTurnaroundController.PassengersDeboarded += HandlePassengersDeboarded;
-    }
-
-    private void OnDisable()
-    {
-        AircraftTurnaroundController.PassengersDeboarded -= HandlePassengersDeboarded;
-    }
-
     private void Start()
     {
         if (scheduledAircraftSpawner == null)
