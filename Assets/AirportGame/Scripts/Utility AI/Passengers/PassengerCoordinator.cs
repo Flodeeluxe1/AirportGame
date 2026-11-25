@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System;
 using UnityEngine;
 
 /// <summary>
@@ -24,6 +25,14 @@ public class PassengerCoordinator : MonoBehaviour
         new List<ScheduledPassengerFlight>();
     private readonly Dictionary<string, int> bookedPassengerCounts =
         new Dictionary<string, int>();
+    private readonly Dictionary<string, int> registeredPassengerCounts =
+        new Dictionary<string, int>();
+    private readonly List<ScheduledPassengerFlight> registrationFlights =
+        new List<ScheduledPassengerFlight>();
+    private readonly HashSet<string> currentRegistrationIds =
+        new HashSet<string>();
+    private GameTimeManager subscribedGameTimeManager;
+    private bool subscribedToScheduleReload;
     private readonly Dictionary<string, List<AirlinePassengerAgent>> terminalPassengersByOperationId =
         new Dictionary<string, List<AirlinePassengerAgent>>();
     private readonly Dictionary<BusController, List<BusPassengerRecord>> busManifests =
@@ -82,6 +91,8 @@ public class PassengerCoordinator : MonoBehaviour
             gateRegistry = FindAnyObjectByType<AircraftGateRegistry>();
 
         SubscribeToBusSpawner();
+        SubscribeToScheduleAndTime();
+        RefreshScheduledPassengerRegistrations();
         if (busSpawner == null)
             Debug.LogError("PassengerCoordinator: BusSpawner is missing; airline bus manifests cannot be loaded.", this);
 
@@ -89,6 +100,84 @@ public class PassengerCoordinator : MonoBehaviour
             Debug.LogError("PassengerCoordinator: Assign the airline Passenger prefab. SS_Passenger is reserved for sightseeing.", this);
         else if (airlinePassengerPrefab.GetComponent<AirlinePassengerAgent>() == null)
             Debug.LogError("PassengerCoordinator: The assigned Passenger prefab must contain AirlinePassengerAgent.", airlinePassengerPrefab);
+    }
+
+    private void SubscribeToScheduleAndTime()
+    {
+        if (scheduledAircraftSpawner != null && !subscribedToScheduleReload)
+        {
+            scheduledAircraftSpawner.PassengerScheduleReloaded +=
+                HandlePassengerScheduleReloaded;
+            subscribedToScheduleReload = true;
+        }
+
+        if (subscribedGameTimeManager == null)
+            subscribedGameTimeManager = GameTimeManager.Instance;
+        if (subscribedGameTimeManager != null)
+            subscribedGameTimeManager.GameTimeAdvanced -= HandlePassengerRegistrationTimeAdvanced;
+        if (subscribedGameTimeManager != null)
+            subscribedGameTimeManager.GameTimeAdvanced += HandlePassengerRegistrationTimeAdvanced;
+    }
+
+    private void HandlePassengerScheduleReloaded()
+    {
+        RefreshScheduledPassengerRegistrations();
+    }
+
+    private void HandlePassengerRegistrationTimeAdvanced(long previousAbsoluteSecond, long currentAbsoluteSecond)
+    {
+        if (currentAbsoluteSecond / 86400L != previousAbsoluteSecond / 86400L)
+            RefreshScheduledPassengerRegistrations();
+    }
+
+    private void RefreshScheduledPassengerRegistrations()
+    {
+        if (scheduledAircraftSpawner == null || publicTransportManager == null)
+            return;
+
+        long currentDayIndex = GameTimeManager.Instance != null
+            ? GameTimeManager.Instance.CurrentDay - 1
+            : (long)Math.Floor(GameTimeManager.SimulationTime / 86400.0);
+        double now = GameTimeManager.SimulationTime;
+        double intervalSeconds = Math.Max(60.0, publicTransportManager.BusFrequencyMinutes * 60.0);
+        float airportRanking = AirportRatingManager.Instance != null
+            ? AirportRatingManager.Instance.AirportRating
+            : 50f;
+
+        scheduledAircraftSpawner.GetUpcomingPassengerFlights(
+            currentDayIndex, currentDayIndex + 2, registrationFlights);
+
+        currentRegistrationIds.Clear();
+        for (int i = 0; i < registrationFlights.Count; i++)
+        {
+            ScheduledPassengerFlight flight = registrationFlights[i];
+            if (flight == null || string.IsNullOrWhiteSpace(flight.OperationId))
+                continue;
+
+            long flightAbsoluteSecond =
+                flight.ScheduledDayIndex * 86400L + flight.StartMinute * 60L;
+            double assignedBusDeparture =
+                Math.Floor((flightAbsoluteSecond - 3600L) / intervalSeconds) * intervalSeconds;
+            if (assignedBusDeparture + 0.01 < now)
+                continue;
+
+            currentRegistrationIds.Add(flight.OperationId);
+            if (registeredPassengerCounts.ContainsKey(flight.OperationId))
+                continue;
+
+            GameObject aircraftPrefab =
+                flight.Definition.OperationType == FlightOperationType.PassengerOnly
+                    ? scheduledAircraftSpawner.PassengerAircraftPrefab
+                    : scheduledAircraftSpawner.CargoAndPassengersAircraftPrefab;
+            AircraftStats aircraftStats = aircraftPrefab != null
+                ? aircraftPrefab.GetComponent<AircraftStats>()
+                : null;
+            int capacity = aircraftStats != null ? aircraftStats.maxPassengers : 0;
+            registeredPassengerCounts[flight.OperationId] =
+                CalculateBookedPassengers(capacity, airportRanking, flight.StartMinute);
+        }
+
+        RemoveStalePassengerRegistrations(currentRegistrationIds);
     }
 
     private void SubscribeToBusSpawner()
@@ -112,6 +201,12 @@ public class PassengerCoordinator : MonoBehaviour
             busSpawner.BusDispatched -= HandleBusDispatched;
         busSpawnerSubscribed = false;
         AircraftTurnaroundController.PassengersDeboarded -= HandlePassengersDeboarded;
+        if (subscribedToScheduleReload && scheduledAircraftSpawner != null)
+            scheduledAircraftSpawner.PassengerScheduleReloaded -= HandlePassengerScheduleReloaded;
+        subscribedToScheduleReload = false;
+        if (subscribedGameTimeManager != null)
+            subscribedGameTimeManager.GameTimeAdvanced -= HandlePassengerRegistrationTimeAdvanced;
+        subscribedGameTimeManager = null;
 
         foreach (BusController bus in subscribedBuses)
         {
@@ -132,6 +227,7 @@ public class PassengerCoordinator : MonoBehaviour
         {
             AircraftTurnaroundController.PassengersDeboarded += HandlePassengersDeboarded;
             SubscribeToBusSpawner();
+            SubscribeToScheduleAndTime();
 
             foreach (BusController bus in subscribedBuses)
             {
@@ -176,7 +272,9 @@ public class PassengerCoordinator : MonoBehaviour
             airlinePassengerPrefab == null)
             return;
 
-        double departureSecond = GameTimeManager.SimulationTime;
+        double intervalSeconds = Math.Max(60.0, publicTransportManager.BusFrequencyMinutes * 60.0);
+        double now = GameTimeManager.SimulationTime;
+        double departureSecond = Math.Floor(now / intervalSeconds + 1e-7) * intervalSeconds;
         scheduledAircraftSpawner.GetPassengerFlightsForBusDeparture(
             departureSecond,
             publicTransportManager.BusFrequencyMinutes,
@@ -191,19 +289,10 @@ public class PassengerCoordinator : MonoBehaviour
         for (int flightIndex = 0; flightIndex < dispatchFlights.Count; flightIndex++)
         {
             ScheduledPassengerFlight flight = dispatchFlights[flightIndex];
-            GameObject aircraftPrefab = flight.Definition.OperationType == FlightOperationType.PassengerOnly
-                ? scheduledAircraftSpawner.PassengerAircraftPrefab
-                : scheduledAircraftSpawner.CargoAndPassengersAircraftPrefab;
-            AircraftStats aircraftStats = aircraftPrefab != null
-                ? aircraftPrefab.GetComponent<AircraftStats>()
-                : null;
-
-            int aircraftCapacity = aircraftStats != null ? aircraftStats.maxPassengers : 0;
-            float airportRanking = AirportRatingManager.Instance != null
-                ? AirportRatingManager.Instance.AirportRating
-                : 50f;
-            int requestedPassengers = CalculateBookedPassengers(
-                aircraftCapacity, airportRanking, flight.StartMinute);
+            int requestedPassengers =
+                registeredPassengerCounts.TryGetValue(flight.OperationId, out int registeredCount)
+                    ? registeredCount
+                    : 0;
             int passengerCount = Mathf.Min(requestedPassengers, bus.AvailablePassengerCapacity);
             int createdPassengerCount = 0;
 
@@ -489,6 +578,24 @@ public class PassengerCoordinator : MonoBehaviour
     {
         if (!string.IsNullOrWhiteSpace(operationId))
             bookedPassengerCounts.Remove(operationId);
+    }
+
+    private void RemoveStalePassengerRegistrations(HashSet<string> activeOperationIds)
+    {
+        List<string> staleOperationIds = null;
+        foreach (string operationId in registeredPassengerCounts.Keys)
+        {
+            if (activeOperationIds.Contains(operationId))
+                continue;
+            if (staleOperationIds == null)
+                staleOperationIds = new List<string>();
+            staleOperationIds.Add(operationId);
+        }
+
+        if (staleOperationIds == null)
+            return;
+        for (int i = 0; i < staleOperationIds.Count; i++)
+            registeredPassengerCounts.Remove(staleOperationIds[i]);
     }
 
     public int CalculateBookedPassengers(int capacity, float airportRanking, int scheduledStartMinute)
