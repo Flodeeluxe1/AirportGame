@@ -353,7 +353,13 @@ public class PassengerCoordinator : MonoBehaviour
                 continue;
             }
 
-            if (bus.DisembarkPassengerToTerminal(record.Agent, gate.transform.position))
+            float disembarkAngle = i * 2.39996323f;
+            Vector3 disembarkOffset = new Vector3(
+                Mathf.Cos(disembarkAngle), 0f, Mathf.Sin(disembarkAngle)) * 1.5f;
+            Vector3 disembarkPosition = stop.transform.position + disembarkOffset;
+
+            if (bus.DisembarkPassengerToTerminal(
+                record.Agent, disembarkPosition, gate.transform.position))
             {
                 string operationId = record.Agent.FlightOperationId;
                 if (!terminalPassengersByOperationId.TryGetValue(
