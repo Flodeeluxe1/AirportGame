@@ -635,25 +635,14 @@ public class ScheduledAircraftSpawner : MonoBehaviour
         {
             AircraftStats aircraftStats = aircraft.GetComponent<AircraftStats>();
             PassengerCoordinator passengerCoordinator = PassengerCoordinator.Instance;
-            AirportRatingManager ratingManager = AirportRatingManager.Instance;
 
-            if (aircraftStats != null && passengerCoordinator != null)
-            {
-                float airportRanking = ratingManager != null
-                    ? ratingManager.AirportRating
-                    : 50f;
-
-                int bookedPassengers = passengerCoordinator.CalculateBookedPassengers(
-                    aircraftStats.maxPassengers,
-                    airportRanking,
-                    scheduled.StartMinute);
-
-                aircraftStats.SetOutgoingPassengers(bookedPassengers);
-            }
-            else
+            if (aircraftStats == null || passengerCoordinator == null ||
+                !passengerCoordinator.ConfigureScheduledFlightPassengers(
+                    aircraftStats,
+                    identity))
             {
                 LogWarning(
-                    $"Could not calculate booked passengers for flight " +
+                    $"Could not configure booked passengers for flight " +
                     $"{scheduled.Definition.FlightNumber}: " +
                     $"{(aircraftStats == null ? "AircraftStats is missing. " : string.Empty)}" +
                     $"{(passengerCoordinator == null ? "PassengerCoordinator is missing." : string.Empty)}",
