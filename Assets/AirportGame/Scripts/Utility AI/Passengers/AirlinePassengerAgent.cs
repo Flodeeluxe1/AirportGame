@@ -202,12 +202,25 @@ public class AirlinePassengerAgent : MonoBehaviour
     /// <summary>Leaves the bus and resumes normal visitor behaviour while walking to the flight terminal.</summary>
     public bool DisembarkToTerminal(Vector3 terminalPosition)
     {
+        return DisembarkToTerminal(transform.position, terminalPosition);
+    }
+
+    public bool DisembarkToTerminal(
+        Vector3 disembarkPosition,
+        Vector3 terminalPosition)
+    {
         CacheComponents();
         if (state != JourneyState.OnBus || movement == null)
             return false;
 
         Transform busTransform = transform.parent;
         transform.SetParent(null, true);
+
+        // Pedestrian pathfinding starts from walkable pedestrian space, not
+        // the road cell at the bus's transform. Place the passenger at the
+        // stop's pedestrian approach area before requesting the gate route.
+        transform.position = disembarkPosition;
+
         if (interactions != null)
             interactions.SetExternallyControlled(true);
         state = JourneyState.WalkingToTerminal;
