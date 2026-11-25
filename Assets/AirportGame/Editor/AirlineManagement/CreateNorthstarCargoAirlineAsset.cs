@@ -33,8 +33,6 @@ public static class CreateNorthstarCargoAirlineAsset
         SerializedObject serializedAirline = new SerializedObject(airline);
         serializedAirline.FindProperty("airlineId").stringValue = "northstar_cargo";
         serializedAirline.FindProperty("displayName").stringValue = "Northstar Cargo";
-        serializedAirline.FindProperty("operationType").enumValueIndex =
-            (int)AirlineOperationType.Cargo;
 
         serializedAirline.FindProperty("idealLandingAndParkingFee").intValue = 250;
         serializedAirline.FindProperty("maximumAcceptableLandingAndParkingFee").intValue = 750;
