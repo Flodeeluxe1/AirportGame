@@ -3,6 +3,12 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class AircraftStats : MonoBehaviour
 {
+    [Header("Aircraft Operation")]
+    [SerializeField]
+    private FlightOperationType operationType = FlightOperationType.CargoOnly;
+
+    public FlightOperationType OperationType => operationType;
+
     [Header("Passenger Capacity")]
     [Min(0)]
     public int maxPassengers;
