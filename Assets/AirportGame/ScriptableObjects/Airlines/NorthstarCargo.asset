@@ -29,8 +29,8 @@ MonoBehaviour:
   desiredSuitableGateCount: 1
   minimumRunwayLengthMeters: 70
   contractTemplates:
-  - {fileID: 11400000, guid: 07f3d59c5ad5e164db82499267bb4684, type: 2}
-  - {fileID: 11400000, guid: 07f3d59c5ad5e164db82499267bb4684, type: 2}
+  - {fileID: 11400000, guid: 16f5511ed3abb8a4383f5945f4b2f1f9, type: 2}
   - {fileID: 11400000, guid: 648baec2a518d774b8f30cba99db50e0, type: 2}
+  - {fileID: 11400000, guid: 07f3d59c5ad5e164db82499267bb4684, type: 2}
   minimumPreferredAirportReputation: 50
   priceSensitivity: 1.25
