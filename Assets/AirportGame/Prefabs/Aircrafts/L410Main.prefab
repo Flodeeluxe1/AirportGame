@@ -172,7 +172,6 @@ MonoBehaviour:
   maximumRunwayExitLateralDistance: 12
   minimumExitForwardDistance: 0.5
   runwayEndTolerance: 1
-  taxiSpeedKnots: 15
   rotationSpeed: 2
   waypointArrivalDistance: 0.2
   gateArrivalDistance: 0.5
@@ -295,7 +294,6 @@ MonoBehaviour:
   startSearchRadiusCells: 12
   maximumStartCandidates: 10
   runwaySafetyMarginInCells: 1
-  taxiSpeedKnots: 15
   rotationSpeedDegreesPerSecond: 45
   waypointArrivalDistance: 0.15
   modelRotationOffset: {x: 0, y: 0, z: 0}
@@ -396,9 +394,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 29c0e67caadc5d741ba362d0bcf2caa3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PassengerFlightRevenue
-  seatCapacity: 19
-  incomingPassengers: 0
-  bookedPassengers: 0
   departureRevenueRecorded: 0
 --- !u!114 &-7123456789012345678
 MonoBehaviour:
@@ -1462,7 +1457,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AircraftStats
   maxPassengers: 19
-  incomingPassengers: 0
   outgoingPassengers: 0
   maxTaxiSpeed: 15
   currentTaxiSpeed: 0
