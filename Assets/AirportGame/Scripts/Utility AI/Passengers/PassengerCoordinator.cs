@@ -470,16 +470,20 @@ public class PassengerCoordinator : MonoBehaviour
         if (turnaround == null)
             return;
 
-        if (airlinePassengerPrefab == null || busSpawner == null || gateRegistry == null)
+        if (airlinePassengerPrefab == null || gateRegistry == null)
         {
             Debug.LogError(
                 $"PassengerCoordinator: Cannot spawn arriving passengers for {turnaround.name}. " +
                 $"Missing: {(airlinePassengerPrefab == null ? "airline passenger prefab; " : string.Empty)}" +
-                $"{(busSpawner == null ? "BusSpawner; " : string.Empty)}" +
                 $"{(gateRegistry == null ? "AircraftGateRegistry." : string.Empty)}",
                 turnaround);
             return;
         }
+
+        if (busSpawner == null)
+            Debug.LogWarning(
+                $"PassengerCoordinator: BusSpawner is missing; arriving passengers for {turnaround.name} will spawn at the gate but cannot travel to a bus stop.",
+                turnaround);
 
         AircraftFlightIdentity identity = turnaround.GetComponent<AircraftFlightIdentity>();
         AircraftStats stats = turnaround.GetComponent<AircraftStats>();
@@ -508,13 +512,14 @@ public class PassengerCoordinator : MonoBehaviour
             return;
         }
 
-        PlacedBuilding firstStop = busSpawner.GetNextFirstStop();
+        PlacedBuilding firstStop = busSpawner != null
+            ? busSpawner.GetNextFirstStop()
+            : null;
         if (firstStop == null)
         {
-            Debug.LogError(
-                $"PassengerCoordinator: Cannot spawn arriving passengers for flight {identity.FlightNumber} at gate '{gateId}'; BusSpawner has no valid first stop.",
+            Debug.LogWarning(
+                $"PassengerCoordinator: Flight {identity.FlightNumber} passengers will spawn at gate '{gateId}', but cannot be routed because no valid first bus stop is available.",
                 turnaround);
-            return;
         }
 
         if (logToConsole)
@@ -535,6 +540,9 @@ public class PassengerCoordinator : MonoBehaviour
                 Destroy(passengerObject);
                 continue;
             }
+
+            if (firstStop == null)
+                continue;
 
             walkingToBusStopPassengers.Add(passenger);
             passenger.ReachedBusStop += HandlePassengerReachedBusStop;
