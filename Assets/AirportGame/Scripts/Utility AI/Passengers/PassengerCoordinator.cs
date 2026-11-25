@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -11,6 +12,26 @@ public class PassengerCoordinator : MonoBehaviour
     [SerializeField] private float minimumRandomVariation = 0.85f;
     [SerializeField] private float maximumRandomVariation = 1.15f;
     [SerializeField] private bool logToConsole;
+
+    [Header("Airline Bus Transport")]
+    [SerializeField] private GameObject airlinePassengerPrefab;
+    [SerializeField] private ScheduledAircraftSpawner scheduledAircraftSpawner;
+    [SerializeField] private BusSpawner busSpawner;
+    [SerializeField] private PublicTransportManager publicTransportManager;
+    [SerializeField] private AircraftGateRegistry gateRegistry;
+
+    private readonly List<ScheduledPassengerFlight> dispatchFlights =
+        new List<ScheduledPassengerFlight>();
+    private readonly Dictionary<string, int> bookedPassengerCounts =
+        new Dictionary<string, int>();
+    private readonly Dictionary<BusController, List<BusPassengerRecord>> busManifests =
+        new Dictionary<BusController, List<BusPassengerRecord>>();
+
+    private sealed class BusPassengerRecord
+    {
+        public AirlinePassengerAgent Agent;
+        public string GateStableId;
+    }
 
     private static PassengerCoordinator instance;
 
@@ -34,6 +55,147 @@ public class PassengerCoordinator : MonoBehaviour
         }
 
         instance = this;
+    }
+
+    private void Start()
+    {
+        if (scheduledAircraftSpawner == null)
+            scheduledAircraftSpawner = FindAnyObjectByType<ScheduledAircraftSpawner>();
+        if (busSpawner == null)
+            busSpawner = FindAnyObjectByType<BusSpawner>();
+        if (publicTransportManager == null)
+            publicTransportManager = FindAnyObjectByType<PublicTransportManager>();
+        if (gateRegistry == null)
+            gateRegistry = FindAnyObjectByType<AircraftGateRegistry>();
+
+        if (busSpawner != null)
+            busSpawner.BusDispatched += HandleBusDispatched;
+        else
+            Debug.LogError("PassengerCoordinator: BusSpawner is missing; airline bus manifests cannot be loaded.", this);
+
+        if (airlinePassengerPrefab == null)
+            Debug.LogError("PassengerCoordinator: Assign the airline Passenger prefab. SS_Passenger is reserved for sightseeing.", this);
+    }
+
+    private void OnDisable()
+    {
+        if (busSpawner != null)
+            busSpawner.BusDispatched -= HandleBusDispatched;
+
+        foreach (KeyValuePair<BusController, List<BusPassengerRecord>> pair in busManifests)
+            if (pair.Key != null)
+                pair.Key.StopReached -= HandleBusStopReached;
+    }
+
+    private void OnEnable()
+    {
+        if (instance == this && busSpawner != null)
+            busSpawner.BusDispatched += HandleBusDispatched;
+    }
+
+    private void HandleBusDispatched(BusController bus)
+    {
+        if (bus == null || scheduledAircraftSpawner == null ||
+            publicTransportManager == null || airlinePassengerPrefab == null)
+            return;
+
+        long departureSecond = (long)System.Math.Round(GameTimeManager.SimulationTime);
+        scheduledAircraftSpawner.GetPassengerFlightsForBusDeparture(
+            departureSecond,
+            publicTransportManager.BusFrequencyMinutes,
+            dispatchFlights);
+
+        if (dispatchFlights.Count == 0)
+            return;
+
+        List<BusPassengerRecord> manifest = new List<BusPassengerRecord>();
+        busManifests[bus] = manifest;
+        bus.StopReached += HandleBusStopReached;
+
+        for (int flightIndex = 0; flightIndex < dispatchFlights.Count; flightIndex++)
+        {
+            ScheduledPassengerFlight flight = dispatchFlights[flightIndex];
+            GameObject aircraftPrefab = flight.Definition.OperationType == FlightOperationType.PassengerOnly
+                ? scheduledAircraftSpawner.PassengerAircraftPrefab
+                : scheduledAircraftSpawner.CargoAndPassengersAircraftPrefab;
+            AircraftStats aircraftStats = aircraftPrefab != null
+                ? aircraftPrefab.GetComponent<AircraftStats>()
+                : null;
+
+            int aircraftCapacity = aircraftStats != null ? aircraftStats.maxPassengers : 0;
+            float airportRanking = AirportRatingManager.Instance != null
+                ? AirportRatingManager.Instance.AirportRating
+                : 50f;
+            int requestedPassengers = CalculateBookedPassengers(
+                aircraftCapacity, airportRanking, flight.StartMinute);
+            int passengerCount = Mathf.Min(requestedPassengers, bus.AvailablePassengerCapacity);
+            bookedPassengerCounts[flight.OperationId] = passengerCount;
+
+            for (int passengerIndex = 0; passengerIndex < passengerCount; passengerIndex++)
+            {
+                Vector3 spawnPosition = bus.transform.position + Vector3.up * 0.1f;
+                GameObject passengerObject = Instantiate(
+                    airlinePassengerPrefab, spawnPosition, Quaternion.identity);
+                AirlinePassengerAgent agent = passengerObject.GetComponent<AirlinePassengerAgent>();
+
+                if (agent == null || !agent.Initialize(
+                    flight.OperationId, PassengerIdentity.TransportMode.Bus) ||
+                    !bus.TryBoardPassenger(agent))
+                {
+                    if (passengerObject != null)
+                        Destroy(passengerObject);
+                    continue;
+                }
+
+                manifest.Add(new BusPassengerRecord
+                {
+                    Agent = agent,
+                    GateStableId = flight.GateStableId
+                });
+            }
+        }
+
+        if (manifest.Count == 0)
+        {
+            bus.StopReached -= HandleBusStopReached;
+            busManifests.Remove(bus);
+        }
+    }
+
+    private void HandleBusStopReached(BusController bus, PlacedBuilding stop)
+    {
+        if (bus == null || stop == null || bus.FirstStop != stop ||
+            !busManifests.TryGetValue(bus, out List<BusPassengerRecord> manifest))
+            return;
+
+        for (int i = manifest.Count - 1; i >= 0; i--)
+        {
+            BusPassengerRecord record = manifest[i];
+            if (record == null || record.Agent == null)
+            {
+                manifest.RemoveAt(i);
+                continue;
+            }
+
+            if (gateRegistry == null ||
+                !gateRegistry.TryGetGate(record.GateStableId, out AircraftGate gate) ||
+                gate == null)
+            {
+                Debug.LogWarning(
+                    $"PassengerCoordinator: Could not find gate '{record.GateStableId}' for flight {record.Agent.FlightOperationId}; passenger remains on the bus.",
+                    this);
+                continue;
+            }
+
+            if (bus.DisembarkPassengerToTerminal(record.Agent, gate.transform.position))
+                manifest.RemoveAt(i);
+        }
+
+        if (manifest.Count == 0)
+        {
+            bus.StopReached -= HandleBusStopReached;
+            busManifests.Remove(bus);
+        }
     }
 
     private void OnDestroy()
@@ -65,10 +227,14 @@ public class PassengerCoordinator : MonoBehaviour
             ? ratingManager.AirportRating
             : 50f;
 
-        int bookedPassengers = CalculateBookedPassengers(
-            aircraftStats.maxPassengers,
-            airportRanking,
-            flightIdentity.PlannedStartMinute);
+        int bookedPassengers;
+        if (!bookedPassengerCounts.TryGetValue(flightIdentity.OperationId, out bookedPassengers))
+        {
+            bookedPassengers = CalculateBookedPassengers(
+                aircraftStats.maxPassengers,
+                airportRanking,
+                flightIdentity.PlannedStartMinute);
+        }
 
         aircraftStats.SetOutgoingPassengers(bookedPassengers);
         return true;
