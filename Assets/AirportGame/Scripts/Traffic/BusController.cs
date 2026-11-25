@@ -112,14 +112,26 @@ public class BusController : MonoBehaviour
         return true;
     }
 
-    public bool DisembarkPassengerToTerminal(AirlinePassengerAgent passenger, Vector3 terminalPosition)
+    public bool DisembarkPassengerToTerminal(
+        AirlinePassengerAgent passenger,
+        Vector3 disembarkPosition,
+        Vector3 terminalPosition)
     {
         if (passenger == null || !onboardPassengers.Contains(passenger) ||
-            !passenger.DisembarkToTerminal(terminalPosition))
+            !passenger.DisembarkToTerminal(disembarkPosition, terminalPosition))
             return false;
 
         onboardPassengers.Remove(passenger);
         return true;
+    }
+
+    public bool DisembarkPassengerToTerminal(
+        AirlinePassengerAgent passenger,
+        Vector3 terminalPosition)
+    {
+        return DisembarkPassengerToTerminal(
+            passenger, passenger != null ? passenger.transform.position : Vector3.zero,
+            terminalPosition);
     }
 
     public bool IsActiveOnRoad => routeInitialized && stopTimeRemaining <= 0f &&
