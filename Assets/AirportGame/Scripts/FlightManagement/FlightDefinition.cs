@@ -13,7 +13,8 @@ public enum FlightOperationType
 {
     CargoOnly,
     PassengerOnly,
-    CargoAndPassengers
+    CargoAndPassengers,
+    None
 }
 
 [System.Serializable]
@@ -35,6 +36,9 @@ public class FlightDefinition
         {
             switch (OperationType)
             {
+                case FlightOperationType.None:
+                    return "NONE";
+
                 case FlightOperationType.PassengerOnly:
                     return "PAX";
 
