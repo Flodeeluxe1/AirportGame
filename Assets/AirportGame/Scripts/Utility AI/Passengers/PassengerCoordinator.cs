@@ -34,6 +34,8 @@ public class PassengerCoordinator : MonoBehaviour
         new Dictionary<BusController, List<AirlinePassengerAgent>>();
     private readonly HashSet<BusController> subscribedBuses =
         new HashSet<BusController>();
+    private readonly HashSet<AirlinePassengerAgent> walkingToBusStopPassengers =
+        new HashSet<AirlinePassengerAgent>();
     private bool busSpawnerSubscribed;
 
     private sealed class BusPassengerRecord
@@ -116,7 +118,10 @@ public class PassengerCoordinator : MonoBehaviour
             bus.StopReached -= HandleBusStopReached;
             bus.JourneyCompleted -= HandleBusJourneyCompleted;
         }
-        subscribedBuses.Clear();
+
+        foreach (AirlinePassengerAgent passenger in walkingToBusStopPassengers)
+            if (passenger != null)
+                passenger.ReachedBusStop -= HandlePassengerReachedBusStop;
     }
 
     private void OnEnable()
@@ -125,6 +130,18 @@ public class PassengerCoordinator : MonoBehaviour
         {
             AircraftTurnaroundController.PassengersDeboarded += HandlePassengersDeboarded;
             SubscribeToBusSpawner();
+
+            foreach (BusController bus in subscribedBuses)
+            {
+                if (bus == null)
+                    continue;
+                bus.StopReached += HandleBusStopReached;
+                bus.JourneyCompleted += HandleBusJourneyCompleted;
+            }
+
+            foreach (AirlinePassengerAgent passenger in walkingToBusStopPassengers)
+                if (passenger != null)
+                    passenger.ReachedBusStop += HandlePassengerReachedBusStop;
         }
     }
 
@@ -341,11 +358,13 @@ public class PassengerCoordinator : MonoBehaviour
                 continue;
             }
 
+            walkingToBusStopPassengers.Add(passenger);
             passenger.ReachedBusStop += HandlePassengerReachedBusStop;
             Vector3 stopOffset = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * 1.5f;
             if (!passenger.WalkToBusStop(firstStop.transform.position + stopOffset))
             {
                 passenger.ReachedBusStop -= HandlePassengerReachedBusStop;
+                walkingToBusStopPassengers.Remove(passenger);
                 Destroy(passengerObject);
             }
         }
@@ -357,6 +376,7 @@ public class PassengerCoordinator : MonoBehaviour
             return;
 
         passenger.ReachedBusStop -= HandlePassengerReachedBusStop;
+        walkingToBusStopPassengers.Remove(passenger);
         if (passenger.State == AirlinePassengerAgent.JourneyState.WaitingForBus &&
             waitingReturnPassengerSet.Add(passenger))
             waitingReturnPassengers.Enqueue(passenger);
