@@ -24,8 +24,8 @@ public class AirlineAirportSnapshotCollector : MonoBehaviour
     [SerializeField] private List<AirlineInterestRecord> interestResults =
         new List<AirlineInterestRecord>();
 
-    private readonly Dictionary<AirlineDefinition, Dictionary<AirlineOperationType, AirlineInterestResult>> results =
-        new Dictionary<AirlineDefinition, Dictionary<AirlineOperationType, AirlineInterestResult>>();
+    private readonly Dictionary<AirlineDefinition, Dictionary<AirlineContractTemplate, AirlineInterestResult>> results =
+        new Dictionary<AirlineDefinition, Dictionary<AirlineContractTemplate, AirlineInterestResult>>();
 
     private bool foundationCountDirty = true;
     private int cachedFoundationCellCount;
@@ -209,35 +209,33 @@ public class AirlineAirportSnapshotCollector : MonoBehaviour
             if (airline == null)
                 continue;
 
-            HashSet<AirlineOperationType> operationTypes =
-                new HashSet<AirlineOperationType>();
             foreach (AirlineContractTemplate template in airline.ContractTemplates)
             {
-                if (template != null && operationTypes.Add(template.OperationType))
-                    RefreshInterest(airline, template.OperationType);
+                if (template != null)
+                    RefreshInterest(airline, template);
             }
         }
     }
 
     public AirlineInterestResult RefreshInterest(
         AirlineDefinition airline,
-        AirlineOperationType operationType)
+        AirlineContractTemplate template)
     {
-        if (airline == null)
+        if (airline == null || template == null)
             return default;
 
-        AirlineAirportSnapshot snapshot = BuildSnapshot(airline, operationType);
+        AirlineAirportSnapshot snapshot = BuildSnapshot(airline, template.OperationType);
         AirlineInterestResult result =
-            AirlineInterestCalculator.Calculate(airline, snapshot, operationType);
+            AirlineInterestCalculator.Calculate(airline, snapshot, template);
 
-        if (!results.TryGetValue(airline, out Dictionary<AirlineOperationType, AirlineInterestResult> airlineResults))
+        if (!results.TryGetValue(airline, out Dictionary<AirlineContractTemplate, AirlineInterestResult> airlineResults))
         {
-            airlineResults = new Dictionary<AirlineOperationType, AirlineInterestResult>();
+            airlineResults = new Dictionary<AirlineContractTemplate, AirlineInterestResult>();
             results.Add(airline, airlineResults);
         }
-        airlineResults[operationType] = result;
+        airlineResults[template] = result;
 
-        AirlineInterestRecord record = FindRecord(airline, operationType);
+        AirlineInterestRecord record = FindRecord(airline, template);
         if (record == null)
         {
             record = new AirlineInterestRecord();
@@ -245,7 +243,7 @@ public class AirlineAirportSnapshotCollector : MonoBehaviour
         }
 
         record.airline = airline;
-        record.operationType = operationType;
+        record.template = template;
         record.snapshot = snapshot;
         record.result = result;
 
@@ -255,12 +253,12 @@ public class AirlineAirportSnapshotCollector : MonoBehaviour
 
     public bool TryGetInterest(
         AirlineDefinition airline,
-        AirlineOperationType operationType,
+        AirlineContractTemplate template,
         out AirlineInterestResult result)
     {
-        if (airline != null &&
-            results.TryGetValue(airline, out Dictionary<AirlineOperationType, AirlineInterestResult> airlineResults) &&
-            airlineResults.TryGetValue(operationType, out result))
+        if (airline != null && template != null &&
+            results.TryGetValue(airline, out Dictionary<AirlineContractTemplate, AirlineInterestResult> airlineResults) &&
+            airlineResults.TryGetValue(template, out result))
         {
             return true;
         }
@@ -271,15 +269,15 @@ public class AirlineAirportSnapshotCollector : MonoBehaviour
 
     public AirlineInterestResult CalculateInterest(
         AirlineDefinition airline,
-        AirlineOperationType operationType)
+        AirlineContractTemplate template)
     {
-        if (airline == null)
+        if (airline == null || template == null)
             return default;
 
         return AirlineInterestCalculator.Calculate(
             airline,
-            BuildSnapshot(airline, operationType),
-            operationType);
+            BuildSnapshot(airline, template.OperationType),
+            template);
     }
 
     public AirlineAirportSnapshot BuildSnapshot(
@@ -417,13 +415,13 @@ public class AirlineAirportSnapshotCollector : MonoBehaviour
 
     private AirlineInterestRecord FindRecord(
         AirlineDefinition airline,
-        AirlineOperationType operationType)
+        AirlineContractTemplate template)
     {
         foreach (AirlineInterestRecord record in interestResults)
         {
             if (record != null &&
                 record.airline == airline &&
-                record.operationType == operationType)
+                record.template == template)
                 return record;
         }
 
@@ -435,7 +433,7 @@ public class AirlineAirportSnapshotCollector : MonoBehaviour
 public class AirlineInterestRecord
 {
     public AirlineDefinition airline;
-    public AirlineOperationType operationType;
+    public AirlineContractTemplate template;
     public AirlineAirportSnapshot snapshot;
     public AirlineInterestResult result;
 }
