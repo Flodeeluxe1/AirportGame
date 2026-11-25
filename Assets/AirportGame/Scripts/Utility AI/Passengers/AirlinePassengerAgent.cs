@@ -222,6 +222,7 @@ public class AirlinePassengerAgent : MonoBehaviour
         // the road cell at the bus's transform. Place the passenger at the
         // stop's pedestrian approach area before requesting the gate route.
         transform.position = disembarkPosition;
+        movement.AlignFeetToGround(disembarkPosition);
 
         if (interactions != null)
             interactions.SetExternallyControlled(true);
