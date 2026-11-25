@@ -12,9 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3510f664bdb488d4f973069d17c7bab9, type: 3}
   m_Name: NorthstarCargo_Passenger7Day
   m_EditorClassIdentifier: Assembly-CSharp::AirlineContractTemplate
-  templateId: 
-  displayName: Standard Operations Contract
-  operationType: 0
+  templateId: Northstar_Passenger7Day
+  displayName: Northstar
+  operationType: 1
   durationDays: 7
   flightWindows:
   - window: 0
@@ -23,8 +23,8 @@ MonoBehaviour:
     flightsPerDay: 1
   turnaroundMinutes: 60
   minimumGateSize: 0
-  minimumRunwayLengthMeters: 100
-  minimumFoundationCells: 0
+  minimumRunwayLengthMeters: 70
+  minimumFoundationCells: 40
   minimumCargoStorageCapacity: 0
   minimumCargoHandlingThroughputPerHour: 0
   paymentPerCompletedFlight: 500
