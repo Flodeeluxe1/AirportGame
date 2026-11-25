@@ -161,11 +161,11 @@ public class AircraftCleaningVehicleController : MonoBehaviour
             return false;
         }
 
-        PassengerFlightRevenue passengerRevenue =
-            aircraft.GetComponent<PassengerFlightRevenue>();
+        AircraftStats aircraftStats =
+            aircraft.GetComponent<AircraftStats>();
 
         int passengerCount =
-            passengerRevenue != null ? passengerRevenue.IncomingPassengers : 0;
+            aircraftStats != null ? aircraftStats.IncomingPassengers : 0;
 
         parkedAtHome = false;
         assignedAircraft = aircraft;
