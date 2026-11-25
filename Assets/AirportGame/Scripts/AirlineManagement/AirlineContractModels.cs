@@ -11,6 +11,7 @@ public class AirlineContractTerms
     public int turnaroundMinutes;
     public AircraftGateSize minimumGateSize;
     public float minimumRunwayLengthMeters;
+    public int minimumFoundationCells;
     public float minimumCargoStorageCapacity;
     public float minimumCargoHandlingThroughputPerHour;
     public int paymentPerCompletedFlight;
@@ -31,6 +32,7 @@ public class AirlineContractTerms
             turnaroundMinutes = template.TurnaroundMinutes,
             minimumGateSize = template.MinimumGateSize,
             minimumRunwayLengthMeters = template.MinimumRunwayLengthMeters,
+            minimumFoundationCells = template.MinimumFoundationCells,
             minimumCargoStorageCapacity = template.MinimumCargoStorageCapacity,
             minimumCargoHandlingThroughputPerHour =
                 template.MinimumCargoHandlingThroughputPerHour,
