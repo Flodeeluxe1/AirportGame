@@ -54,7 +54,7 @@ public class ScheduledAircraftSpawner : MonoBehaviour
             return;
 
         results.Clear();
-        if (!scheduleLoaded || busFrequencyMinutes <= 0)
+        if (!scheduleLoaded || busFrequencyMinutes <= 0 || !IsAirportOperational())
             return;
 
         double intervalSeconds = System.Math.Max(60.0, busFrequencyMinutes * 60.0);
