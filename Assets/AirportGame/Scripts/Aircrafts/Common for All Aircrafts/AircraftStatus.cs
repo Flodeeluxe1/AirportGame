@@ -52,6 +52,12 @@ public class AircraftStatus : MonoBehaviour
             IsParked = false;
             IsFlying = false;
         }
+        else
+        {
+            AircraftStats stats = GetComponent<AircraftStats>();
+            if (stats != null)
+                stats.SetCurrentTaxiSpeed(0f);
+        }
 
         if (changed)
             NotifyStatusChanged();
