@@ -120,6 +120,7 @@ public class PassengerCoordinator : MonoBehaviour
 
     private void HandlePassengerScheduleReloaded()
     {
+        registeredPassengerCounts.Clear();
         RefreshScheduledPassengerRegistrations();
     }
 
@@ -156,7 +157,7 @@ public class PassengerCoordinator : MonoBehaviour
             long flightAbsoluteSecond =
                 flight.ScheduledDayIndex * 86400L + flight.StartMinute * 60L;
             double assignedBusDeparture =
-                Math.Floor((flightAbsoluteSecond - 3600L) / intervalSeconds) * intervalSeconds;
+                System.Math.Floor((flightAbsoluteSecond - 3600L) / intervalSeconds) * intervalSeconds;
             if (assignedBusDeparture + 0.01 < now)
                 continue;
 
