@@ -2762,6 +2762,7 @@ MonoBehaviour:
   logToConsole: 0
   aircraftPrefab: {fileID: 2387620211239937619, guid: c1be6962e7b8a7b4492d64878a85de86, type: 3}
   passengerAircraftPrefab: {fileID: 3545578725970996442, guid: f37c4f3a3f5f80640bc40e596f3c8532, type: 3}
+  mixedAircraftPrefab: {fileID: 3545578725970996442, guid: d7a4e2c91b6f4a8a9c3e5d7f1b2a6c40, type: 3}
   spawnPoint: {fileID: 1023196800}
   flightCatalog: {fileID: 1712716984}
   gameTimeManager: {fileID: 449210932}
