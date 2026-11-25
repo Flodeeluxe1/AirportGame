@@ -114,7 +114,7 @@ public class PassengerCoordinator : MonoBehaviour
             publicTransportManager == null || airlinePassengerPrefab == null)
             return;
 
-        long departureSecond = (long)System.Math.Round(GameTimeManager.SimulationTime);
+        double departureSecond = GameTimeManager.SimulationTime;
         scheduledAircraftSpawner.GetPassengerFlightsForBusDeparture(
             departureSecond,
             publicTransportManager.BusFrequencyMinutes,
@@ -239,11 +239,6 @@ public class PassengerCoordinator : MonoBehaviour
         {
             return false;
         }
-
-        AirportRatingManager ratingManager = AirportRatingManager.Instance;
-        float airportRanking = ratingManager != null
-            ? ratingManager.AirportRating
-            : 50f;
 
         if (!bookedPassengerCounts.TryGetValue(flightIdentity.OperationId, out int bookedPassengers))
         {
