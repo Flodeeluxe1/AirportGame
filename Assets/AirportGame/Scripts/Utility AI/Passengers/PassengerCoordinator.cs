@@ -1636,9 +1636,13 @@ public class PassengerCoordinator : MonoBehaviour
         float demandTarget = Mathf.Max(1, targetHourlyPassengerDemand);
         float busScore = busTransportWeight *
             Mathf.Clamp01(busCapacityPerHour / demandTarget);
-        // Train and underground capacity inputs are exposed by the shared
-        // model, but are deliberately excluded until their passenger journeys
-        // are implemented. Their weights remain configured for that migration.
+        // Keep calculating potential rail scores for diagnostics and the
+        // future mode allocator, but do not allocate passengers until those
+        // passenger journeys have been implemented.
+        float trainPotentialScore = trainTransportWeight *
+            Mathf.Clamp01(trainCapacityPerHour / demandTarget);
+        float undergroundPotentialScore = undergroundTransportWeight *
+            Mathf.Clamp01(undergroundCapacityPerHour / demandTarget);
         float trainScore = 0f;
         float undergroundScore = 0f;
 
@@ -1676,6 +1680,7 @@ public class PassengerCoordinator : MonoBehaviour
                 $"Bus capacity/h: {busCapacityPerHour:F1} | Train capacity/h: {trainCapacityPerHour:F1} | " +
                 $"Underground capacity/h: {undergroundCapacityPerHour:F1} | " +
                 $"Scores B/T/U/C: {busScore:F2}/{trainScore:F2}/{undergroundScore:F2}/{carScore:F2} | " +
+                $"Potential rail scores T/U: {trainPotentialScore:F2}/{undergroundPotentialScore:F2} | " +
                 $"Parking spaces: {totalParkingSpaces} | Fee/min: {passengerCarParkingFeePerMinute:F2} | " +
                 $"Cars: {carPassengers} | Bus: {totalPassengers - carPassengers}",
                 this);
