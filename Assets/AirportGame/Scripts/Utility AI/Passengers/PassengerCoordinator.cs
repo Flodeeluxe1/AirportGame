@@ -53,6 +53,27 @@ public class PassengerCoordinator : MonoBehaviour
         new HashSet<AirlinePassengerAgent>();
     private bool busSpawnerSubscribed;
 
+    private readonly Queue<IncomingPassengerSpawnJob> incomingPassengerSpawnJobs =
+        new Queue<IncomingPassengerSpawnJob>();
+    private IncomingPassengerSpawnJob activeIncomingPassengerSpawnJob;
+    private float incomingPassengerSpawnIntervalRemaining;
+
+    private sealed class IncomingPassengerSpawnJob
+    {
+        public AircraftTurnaroundController Turnaround;
+        public string OperationId;
+        public string FlightNumber;
+        public int PassengerCount;
+        public int NextPassengerIndex;
+        public int SpawnedCount;
+        public int RoutedCount;
+        public int FailedCount;
+        public AircraftGate Gate;
+        public PlacedBuilding GateFootprint;
+        public PlacedBuilding FirstStop;
+    }
+
+
     private sealed class BusPassengerRecord
     {
         public AirlinePassengerAgent Agent;
@@ -81,6 +102,111 @@ public class PassengerCoordinator : MonoBehaviour
         }
 
         instance = this;
+    }
+
+    private void Update()
+    {
+        if (activeIncomingPassengerSpawnJob == null)
+        {
+            if (incomingPassengerSpawnJobs.Count == 0)
+                return;
+
+            activeIncomingPassengerSpawnJob = incomingPassengerSpawnJobs.Dequeue();
+            incomingPassengerSpawnIntervalRemaining = 1f;
+        }
+
+        incomingPassengerSpawnIntervalRemaining -= GameTimeManager.SimulationDeltaTime;
+        const int maxSpawnsPerUpdate = 32;
+        for (int i = 0; i < maxSpawnsPerUpdate &&
+                        activeIncomingPassengerSpawnJob != null &&
+                        incomingPassengerSpawnIntervalRemaining <= 0f; i++)
+        {
+            SpawnNextIncomingPassenger(activeIncomingPassengerSpawnJob);
+            if (activeIncomingPassengerSpawnJob != null &&
+                activeIncomingPassengerSpawnJob.NextPassengerIndex >=
+                activeIncomingPassengerSpawnJob.PassengerCount)
+            {
+                CompleteIncomingPassengerSpawnJob();
+            }
+
+            if (activeIncomingPassengerSpawnJob != null)
+                incomingPassengerSpawnIntervalRemaining += 1f;
+            else if (incomingPassengerSpawnJobs.Count > 0)
+            {
+                activeIncomingPassengerSpawnJob = incomingPassengerSpawnJobs.Dequeue();
+                incomingPassengerSpawnIntervalRemaining += 1f;
+            }
+        }
+    }
+
+    private void SpawnNextIncomingPassenger(IncomingPassengerSpawnJob job)
+    {
+        int passengerIndex = job.NextPassengerIndex++;
+        if (job.Gate == null)
+        {
+            job.FailedCount++;
+            return;
+        }
+
+        float angle = passengerIndex * 2.39996323f;
+        Vector3 offset = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * 0.65f;
+        Vector3 spawnPosition = job.Gate.transform.position + offset;
+        GameObject passengerObject = Instantiate(
+            airlinePassengerPrefab, spawnPosition, Quaternion.identity);
+        AirlinePassengerAgent passenger = passengerObject.GetComponent<AirlinePassengerAgent>();
+
+        if (passenger == null || !passenger.Initialize(
+            job.OperationId, PassengerIdentity.TransportMode.Bus))
+        {
+            job.FailedCount++;
+            Debug.LogWarning(
+                $"PassengerCoordinator: Failed to initialize arriving passenger {passengerIndex + 1}/{job.PassengerCount} for flight {job.FlightNumber}. " +
+                $"Prefab: '{airlinePassengerPrefab.name}'. Check that it has a working AirlinePassengerAgent.",
+                passengerObject);
+            Destroy(passengerObject);
+            return;
+        }
+
+        job.SpawnedCount++;
+        if (passenger.Movement != null)
+            passenger.Movement.AlignFeetToGround(spawnPosition);
+
+        if (job.FirstStop == null)
+            return;
+
+        walkingToBusStopPassengers.Add(passenger);
+        passenger.ReachedBusStop += HandlePassengerReachedBusStop;
+        Vector3 stopOffset = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * 1.5f;
+        if (!passenger.WalkToBusStop(
+                job.FirstStop.transform.position + stopOffset,
+                job.GateFootprint,
+                job.FirstStop))
+        {
+            passenger.ReachedBusStop -= HandlePassengerReachedBusStop;
+            walkingToBusStopPassengers.Remove(passenger);
+            job.FailedCount++;
+            Debug.LogWarning(
+                $"PassengerCoordinator: Passenger for flight {job.FlightNumber} spawned at gate '{job.Gate.name}' but could not start walking to bus stop '{job.FirstStop.name}'.",
+                passengerObject);
+            Destroy(passengerObject);
+            return;
+        }
+
+        job.RoutedCount++;
+    }
+
+    private void CompleteIncomingPassengerSpawnJob()
+    {
+        IncomingPassengerSpawnJob job = activeIncomingPassengerSpawnJob;
+        if (job == null)
+            return;
+
+        Debug.Log(
+            $"PassengerCoordinator: Arriving passenger result for flight {job.FlightNumber}: " +
+            $"requested {job.PassengerCount}, spawned {job.SpawnedCount}, walking to bus stop {job.RoutedCount}, failed {job.FailedCount}.",
+            job.Turnaround);
+
+        activeIncomingPassengerSpawnJob = null;
     }
 
     private void Start()
@@ -619,7 +745,7 @@ public class PassengerCoordinator : MonoBehaviour
         }
 
         if (logToConsole)
-            Debug.Log($"PassengerCoordinator: Spawning {stats.IncomingPassengers} arriving passenger(s) for flight {identity.FlightNumber} at gate '{gateId}'.", turnaround);
+            Debug.Log($"PassengerCoordinator: Queued {stats.IncomingPassengers} arriving passenger(s) for flight {identity.FlightNumber} at gate '{gateId}'. They will spawn one per second.", turnaround);
 
         PlacedBuilding gateFootprint = gate.GetComponent<PlacedBuilding>();
         if (gateFootprint == null)
@@ -632,66 +758,16 @@ public class PassengerCoordinator : MonoBehaviour
                 gate);
         }
 
-        int passengerCount = stats.IncomingPassengers;
-        int spawnedCount = 0;
-        int routedCount = 0;
-        int failedCount = 0;
-        for (int i = 0; i < passengerCount; i++)
+        incomingPassengerSpawnJobs.Enqueue(new IncomingPassengerSpawnJob
         {
-            float angle = i * 2.39996323f;
-            Vector3 offset = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * 0.65f;
-            GameObject passengerObject = Instantiate(
-                airlinePassengerPrefab, gate.transform.position + offset, Quaternion.identity);
-            AirlinePassengerAgent passenger = passengerObject.GetComponent<AirlinePassengerAgent>();
-
-            if (passenger == null || !passenger.Initialize(
-                identity.OperationId, PassengerIdentity.TransportMode.Bus))
-            {
-                failedCount++;
-                Debug.LogWarning(
-                    $"PassengerCoordinator: Failed to initialize arriving passenger {i + 1}/{passengerCount} for flight {identity.FlightNumber}. " +
-                    $"Prefab: '{airlinePassengerPrefab.name}'. Check that it has a working AirlinePassengerAgent.",
-                    passengerObject);
-                Destroy(passengerObject);
-                continue;
-            }
-
-            spawnedCount++;
-
-            // Gate transforms can sit at the building pivot rather than the
-            // pedestrian floor. Align the passenger's collider feet to the
-            // gate's ground height before starting the walk to the bus stop.
-            if (passenger.Movement != null)
-                passenger.Movement.AlignFeetToGround(gate.transform.position + offset);
-
-            if (firstStop == null)
-                continue;
-
-            walkingToBusStopPassengers.Add(passenger);
-            passenger.ReachedBusStop += HandlePassengerReachedBusStop;
-            Vector3 stopOffset = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * 1.5f;
-            if (!passenger.WalkToBusStop(
-                    firstStop.transform.position + stopOffset,
-                    gateFootprint,
-                    firstStop))
-            {
-                passenger.ReachedBusStop -= HandlePassengerReachedBusStop;
-                walkingToBusStopPassengers.Remove(passenger);
-                failedCount++;
-                Debug.LogWarning(
-                    $"PassengerCoordinator: Passenger for flight {identity.FlightNumber} spawned at gate '{gateId}' but could not start walking to bus stop '{firstStop.name}'.",
-                    passengerObject);
-                Destroy(passengerObject);
-                continue;
-            }
-
-            routedCount++;
-        }
-
-        Debug.Log(
-            $"PassengerCoordinator: Arriving passenger result for flight {identity.FlightNumber}: " +
-            $"requested {passengerCount}, spawned {spawnedCount}, walking to bus stop {routedCount}, failed {failedCount}.",
-            turnaround);
+            Turnaround = turnaround,
+            OperationId = identity.OperationId,
+            FlightNumber = identity.FlightNumber,
+            PassengerCount = stats.IncomingPassengers,
+            Gate = gate,
+            GateFootprint = gateFootprint,
+            FirstStop = firstStop
+        });
     }
 
     private void HandlePassengerReachedBusStop(AirlinePassengerAgent passenger)
