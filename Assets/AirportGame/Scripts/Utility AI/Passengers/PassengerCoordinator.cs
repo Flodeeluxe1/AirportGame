@@ -224,6 +224,7 @@ public class PassengerCoordinator : MonoBehaviour
                 continue;
             bus.StopReached -= HandleBusStopReached;
             bus.JourneyCompleted -= HandleBusJourneyCompleted;
+            bus.StopServiceCompleted -= HandleBusStopServiceCompleted;
         }
 
         foreach (AirlinePassengerAgent passenger in walkingToBusStopPassengers)
@@ -272,6 +273,7 @@ public class PassengerCoordinator : MonoBehaviour
 
         bus.StopReached += HandleBusStopReached;
         bus.JourneyCompleted += HandleBusJourneyCompleted;
+        bus.StopServiceCompleted += HandleBusStopServiceCompleted;
     }
 
     private void HandleBusDispatched(BusController bus)
@@ -425,38 +427,29 @@ public class PassengerCoordinator : MonoBehaviour
     private void BoardWaitingReturnPassengers(BusController bus)
     {
         if (bus == null || waitingReturnPassengers.Count == 0 ||
-            bus.AvailablePassengerCapacity <= 0)
+            !bus.IsBoardingOpen)
             return;
 
-        List<AirlinePassengerAgent> onboardReturnPassengers;
-        if (!returnPassengersByBus.TryGetValue(bus, out onboardReturnPassengers))
-        {
-            onboardReturnPassengers = new List<AirlinePassengerAgent>();
-            returnPassengersByBus.Add(bus, onboardReturnPassengers);
-        }
-
-        while (bus.AvailablePassengerCapacity > 0 && waitingReturnPassengers.Count > 0)
+        int passengersToCheck = waitingReturnPassengers.Count;
+        while (passengersToCheck-- > 0 && bus.IsBoardingOpen &&
+               waitingReturnPassengers.Count > 0)
         {
             AirlinePassengerAgent passenger = waitingReturnPassengers.Dequeue();
             if (passenger == null)
                 continue;
 
-            waitingReturnPassengerSet.Remove(passenger);
             if (passenger.State != AirlinePassengerAgent.JourneyState.WaitingForBus)
-                continue;
-
-            if (!bus.TryBoardPassenger(passenger))
             {
-                waitingReturnPassengers.Enqueue(passenger);
-                waitingReturnPassengerSet.Add(passenger);
-                break;
+                waitingReturnPassengerSet.Remove(passenger);
+                continue;
             }
 
-            onboardReturnPassengers.Add(passenger);
+            if (!QueueReturnPassengerForBus(bus, passenger))
+            {
+                waitingReturnPassengers.Enqueue(passenger);
+                break;
+            }
         }
-
-        if (onboardReturnPassengers.Count == 0)
-            returnPassengersByBus.Remove(bus);
     }
 
     private void HandleBusJourneyCompleted(BusController bus)
@@ -660,9 +653,49 @@ public class PassengerCoordinator : MonoBehaviour
 
         passenger.ReachedBusStop -= HandlePassengerReachedBusStop;
         walkingToBusStopPassengers.Remove(passenger);
-        if (passenger.State == AirlinePassengerAgent.JourneyState.WaitingForBus &&
-            waitingReturnPassengerSet.Add(passenger))
+        if (passenger.State != AirlinePassengerAgent.JourneyState.WaitingForBus ||
+            waitingReturnPassengerSet.Contains(passenger))
+            return;
+
+        // If a bus is still boarding at the stop, late arrivals join that
+        // bus immediately. Otherwise they wait for the next bus.
+        foreach (BusController bus in subscribedBuses)
+        {
+            if (bus == null || !bus.IsBoardingOpen)
+                continue;
+
+            if (QueueReturnPassengerForBus(bus, passenger))
+                return;
+        }
+
+        if (waitingReturnPassengerSet.Add(passenger))
             waitingReturnPassengers.Enqueue(passenger);
+    }
+
+    private bool QueueReturnPassengerForBus(
+        BusController bus,
+        AirlinePassengerAgent passenger)
+    {
+        if (bus == null || passenger == null ||
+            !bus.QueuePassengerForBoarding(passenger))
+            return false;
+
+        waitingReturnPassengerSet.Add(passenger);
+        if (!returnPassengersByBus.TryGetValue(
+            bus, out List<AirlinePassengerAgent> onboardReturnPassengers))
+        {
+            onboardReturnPassengers = new List<AirlinePassengerAgent>();
+            returnPassengersByBus.Add(bus, onboardReturnPassengers);
+        }
+
+        onboardReturnPassengers.Add(passenger);
+        return true;
+    }
+
+    private void HandleBusStopServiceCompleted(BusController bus)
+    {
+        // The bus has closed boarding. Passengers who arrive from this point
+        // remain in the shared waiting queue for the next bus.
     }
 
     private void OnDestroy()
