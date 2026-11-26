@@ -511,7 +511,7 @@ public class PassengerCoordinator : MonoBehaviour
             ? PassengerIdentity.TransportMode.Car
             : PassengerIdentity.TransportMode.Bus;
         if (passenger == null || !passenger.Initialize(
-            job.OperationId, transportMode))
+            job.OperationId, transportMode, true))
         {
             job.FailedCount++;
             job.NextPassengerIndex++;
