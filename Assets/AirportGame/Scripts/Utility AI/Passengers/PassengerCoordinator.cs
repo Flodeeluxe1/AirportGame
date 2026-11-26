@@ -31,7 +31,6 @@ public class PassengerCoordinator : MonoBehaviour
     [SerializeField] private PublicTransportManager publicTransportManager;
     [SerializeField] private TrafficTestSpawner trafficSpawner;
     [SerializeField] private GameObject airlinePassengerCarPrefab;
-    [SerializeField] private FoundationSystem foundationSystem;
     [SerializeField] private GridManager gridManager;
     [SerializeField] private RoadNetwork roadNetwork;
 
@@ -479,7 +478,6 @@ public class PassengerCoordinator : MonoBehaviour
         if (pedestrianPathfinder == null)
             pedestrianPathfinder = FindAnyObjectByType<PedestrianPathfinder>();
         ResolvePassengerRoadsideDependencies();
-        SubscribeToFoundationChanges();
         if (trafficSpawner == null)
             trafficSpawner = FindAnyObjectByType<TrafficTestSpawner>();
         if (airlinePassengerCarPrefab == null)
@@ -682,8 +680,6 @@ public class PassengerCoordinator : MonoBehaviour
     private void OnDisable()
     {
         ParkingSpace.AvailabilityChanged -= HandleParkingAvailabilityChanged;
-        if (foundationSystem != null)
-            foundationSystem.FoundationTilesChanged -= InvalidatePassengerRoadsideDropoff;
         PlacedBuilding.BuildingChanged -= HandleParkingBuildingChanged;
         if (busSpawnerSubscribed && busSpawner != null)
             busSpawner.BusDispatched -= HandleBusDispatched;
@@ -739,7 +735,6 @@ public class PassengerCoordinator : MonoBehaviour
     {
         ParkingSpace.AvailabilityChanged += HandleParkingAvailabilityChanged;
         ResolvePassengerRoadsideDependencies();
-        SubscribeToFoundationChanges();
         PlacedBuilding.BuildingChanged += HandleParkingBuildingChanged;
         if (instance == this)
         {
@@ -1509,21 +1504,10 @@ public class PassengerCoordinator : MonoBehaviour
 
     private void ResolvePassengerRoadsideDependencies()
     {
-        if (foundationSystem == null)
-            foundationSystem = FindAnyObjectByType<FoundationSystem>();
         if (gridManager == null)
             gridManager = FindAnyObjectByType<GridManager>();
         if (roadNetwork == null)
             roadNetwork = FindAnyObjectByType<RoadNetwork>();
-    }
-
-    private void SubscribeToFoundationChanges()
-    {
-        if (foundationSystem == null)
-            return;
-
-        foundationSystem.FoundationTilesChanged -= InvalidatePassengerRoadsideDropoff;
-        foundationSystem.FoundationTilesChanged += InvalidatePassengerRoadsideDropoff;
     }
 
     private void InvalidatePassengerRoadsideDropoff()
@@ -1536,18 +1520,6 @@ public class PassengerCoordinator : MonoBehaviour
         ResolvePassengerRoadsideDependencies();
         position = Vector3.zero;
 
-        if (foundationSystem == null || gridManager == null ||
-            roadNetwork == null || trafficSpawner == null)
-        {
-            Debug.LogWarning(
-                "PassengerCoordinator: Cannot find passenger roadside drop-off because a dependency is missing. " +
-                $"FoundationSystem={(foundationSystem != null ? foundationSystem.name : "NULL")}, " +
-                $"GridManager={(gridManager != null ? gridManager.name : "NULL")}, " +
-                $"RoadNetwork={(roadNetwork != null ? roadNetwork.name : "NULL")}, " +
-                $"TrafficSpawner={(trafficSpawner != null ? trafficSpawner.name : "NULL")}.",
-                this);
-            return false;
-        }
 
         if (hasCachedPassengerRoadsideDropoffPosition &&
             cachedRoadTopologyVersion == roadNetwork.TopologyVersion)
@@ -1562,16 +1534,30 @@ public class PassengerCoordinator : MonoBehaviour
         RoadNetwork.RoadPathTree reachableRoads =
             roadNetwork.BuildForwardPathTree(entryCell);
         List<Vector2Int> roadPositions = roadNetwork.GetRoadPositions();
-        int foundationCount = 0;
-        foreach (Vector2Int ignored in foundationSystem.FoundationPositions)
-            foundationCount++;
+        List<Vector2Int> terminalFoundationCells = new List<Vector2Int>();
+        IReadOnlyList<PlacedBuilding> placedBuildings = PlacedBuilding.ActiveBuildings;
+        for (int i = 0; i < placedBuildings.Count; i++)
+        {
+            PlacedBuilding building = placedBuildings[i];
+            if (building == null || building.Definition == null ||
+                building.Definition.id != "floor.foundation.raw")
+                continue;
 
+            for (int x = 0; x < Mathf.Max(1, building.Width); x++)
+            {
+                for (int z = 0; z < Mathf.Max(1, building.Depth); z++)
+                    terminalFoundationCells.Add(building.Origin + new Vector2Int(x, z));
+            }
+        }
+
+        int foundationCount = terminalFoundationCells.Count;
         if (foundationCount == 0)
         {
             Debug.LogWarning(
-                "PassengerCoordinator: No terminal foundation tiles were found. " +
-                $"FoundationSystem='{foundationSystem.name}'.",
-                foundationSystem);
+                "PassengerCoordinator: No placed terminal foundation buildings were found. " +
+                "Expected BuildableDefinition id 'floor.foundation.raw'. " +
+                $"Active placed buildings={placedBuildings.Count}.",
+                this);
             return false;
         }
 
@@ -1588,8 +1574,9 @@ public class PassengerCoordinator : MonoBehaviour
             reachableRoadCount++;
             Vector2Int roadCenterCell = roadCell + Vector2Int.one;
             float nearestFoundationDistance = float.MaxValue;
-            foreach (Vector2Int foundationCell in foundationSystem.FoundationPositions)
+            for (int foundationIndex = 0; foundationIndex < terminalFoundationCells.Count; foundationIndex++)
             {
+                Vector2Int foundationCell = terminalFoundationCells[foundationIndex];
                 float dx = roadCenterCell.x - (foundationCell.x + 0.5f);
                 float dz = roadCenterCell.y - (foundationCell.y + 0.5f);
                 float distance = dx * dx + dz * dz;
@@ -1850,6 +1837,10 @@ public class PassengerCoordinator : MonoBehaviour
 
     private void HandleParkingBuildingChanged(PlacedBuilding building)
     {
+        // Placed foundation tiles are the authoritative terminal footprint.
+        // Any placement/removal may change the nearest valid roadside stop.
+        InvalidatePassengerRoadsideDropoff();
+
         if (building != null && building.GetComponent<ParkingSpace>() != null)
             TrySpawnPendingIncomingCarPickups();
     }
