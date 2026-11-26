@@ -216,7 +216,7 @@ public class BusController : MonoBehaviour
             terminalPosition);
     }
 
-    public bool IsActiveOnRoad => routeInitialized && stopTimeRemaining <= 0f &&
+    public bool IsActiveOnRoad => routeInitialized && !boardingServiceActive &&
                                   pathIndex < route.Count;
     public float CurrentSpeed => currentSpeed;
     public string CurrentStatus => debugState;
