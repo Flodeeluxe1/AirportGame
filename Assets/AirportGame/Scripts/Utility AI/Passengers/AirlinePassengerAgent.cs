@@ -40,7 +40,7 @@ public class AirlinePassengerAgent : MonoBehaviour
     private PassengerJourneyController passengerJourney;
     private Vector3 busStopPosition;
     private PlacedBuilding busStopGateFootprint;
-    private PlacedBuilding busStopFootprint;
+    private PlacedBuilding waitingBusStopFootprint;
     private Renderer[] passengerRenderers;
     private bool[] rendererEnabledBeforeBoarding;
     private Collider[] passengerColliders;
@@ -255,7 +255,7 @@ public class AirlinePassengerAgent : MonoBehaviour
 
         busStopPosition = stopPosition;
         busStopGateFootprint = gateFootprint;
-        busStopFootprint = busStopFootprint;
+        waitingBusStopFootprint = busStopFootprint;
 
         if (interactions != null)
             interactions.SetJourneyInteractions(
@@ -306,7 +306,7 @@ public class AirlinePassengerAgent : MonoBehaviour
             true,
             busStopPosition,
             busStopGateFootprint,
-            busStopFootprint);
+            waitingBusStopFootprint);
     }
 
     public void PauseWaitingForBusNeedsForBoarding()
