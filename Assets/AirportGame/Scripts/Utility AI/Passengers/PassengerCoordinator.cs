@@ -248,6 +248,7 @@ public class PassengerCoordinator : MonoBehaviour
                     continue;
                 bus.StopReached += HandleBusStopReached;
                 bus.JourneyCompleted += HandleBusJourneyCompleted;
+                bus.StopServiceCompleted += HandleBusStopServiceCompleted;
             }
 
             List<AirlinePassengerAgent> alreadyWaiting = new List<AirlinePassengerAgent>();
