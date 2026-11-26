@@ -538,10 +538,10 @@ public class PassengerCoordinator : MonoBehaviour
 
     private void HandlePassengerRegistrationTimeAdvanced(long previousAbsoluteSecond, long currentAbsoluteSecond)
     {
-        ProcessScheduledOutgoingCarDispatches(previousAbsoluteSecond, currentAbsoluteSecond);
-
         if (currentAbsoluteSecond / 86400L != previousAbsoluteSecond / 86400L)
             RefreshScheduledPassengerRegistrations();
+
+        ProcessScheduledOutgoingCarDispatches(previousAbsoluteSecond, currentAbsoluteSecond);
     }
 
     private void ProcessScheduledOutgoingCarDispatches(
@@ -1448,7 +1448,7 @@ public class PassengerCoordinator : MonoBehaviour
     private int EnsureOutgoingCarDropoffGroupsSpawned(
         ScheduledPassengerFlight flight)
     {
-        if (flight == null || string.IsNullOrWhiteSpace(flight.OperationId))
+        if (string.IsNullOrWhiteSpace(flight.OperationId))
             return 0;
 
         if (outgoingCarDispatchProcessedOperationIds.Contains(flight.OperationId))
