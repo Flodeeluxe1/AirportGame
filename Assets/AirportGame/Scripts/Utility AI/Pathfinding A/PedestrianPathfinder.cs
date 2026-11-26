@@ -739,7 +739,12 @@ public class PedestrianPathfinder : MonoBehaviour
     /// cells and crosses only permitted grid edges. Used to keep local
     /// pedestrian avoidance from steering through walls or blocked cells.
     /// </summary>
-    public bool CanMoveBetweenWorldPositions(Vector3 fromWorld, Vector3 toWorld, PedestrianAccessProfile accessProfile = null)
+    public bool CanMoveBetweenWorldPositions(
+        Vector3 fromWorld,
+        Vector3 toWorld,
+        PedestrianAccessProfile accessProfile = null,
+        PlacedBuilding allowedStartFootprint = null,
+        PlacedBuilding allowedTargetFootprint = null)
     {
         if (!HasValidReferences())
             return false;
@@ -748,9 +753,16 @@ public class PedestrianPathfinder : MonoBehaviour
         Vector2Int to = gridManager.WorldToGrid(toWorld);
 
         if (from == to)
-            return IsWalkable(from);
+        {
+            return IsWalkableForRoute(
+                to, from, to, false,
+                allowedStartFootprint, allowedTargetFootprint);
+        }
 
-        return HasClearLineOfSight(from, to, accessProfile);
+        return HasClearLineOfSight(
+            from, to, accessProfile, false,
+            from, to,
+            allowedStartFootprint, allowedTargetFootprint);
     }
 
     public bool TryFindPath(
