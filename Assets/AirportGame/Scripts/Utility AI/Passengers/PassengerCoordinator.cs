@@ -255,8 +255,6 @@ public class PassengerCoordinator : MonoBehaviour
                 bus.JourneyCompleted += HandleBusJourneyCompleted;
                 bus.StopServiceCompleted += HandleBusStopServiceCompleted;
                 bus.PassengerBoardingFailed += HandlePassengerBoardingFailed;
-        bus.PassengerDisembarked += HandleBusPassengerDisembarked;
-        bus.DisembarkingCompleted += HandleBusDisembarkingCompleted;
                 bus.PassengerDisembarked += HandleBusPassengerDisembarked;
                 bus.DisembarkingCompleted += HandleBusDisembarkingCompleted;
             }
@@ -286,6 +284,8 @@ public class PassengerCoordinator : MonoBehaviour
         bus.JourneyCompleted += HandleBusJourneyCompleted;
         bus.StopServiceCompleted += HandleBusStopServiceCompleted;
         bus.PassengerBoardingFailed += HandlePassengerBoardingFailed;
+        bus.PassengerDisembarked += HandleBusPassengerDisembarked;
+        bus.DisembarkingCompleted += HandleBusDisembarkingCompleted;
     }
 
     private void HandleBusDispatched(BusController bus)
