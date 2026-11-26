@@ -42,6 +42,17 @@ public enum RoomFurnitureRole
     Book = 128
 }
 
+public enum PassengerJourneyStationRole
+{
+    None,
+    AirlineCheckIn,
+    BaggageDrop,
+    BodySecurity,
+    LuggageSecurity,
+    BoardingGate,
+    BaggageClaim
+}
+
 [System.Flags]
 public enum PublicTransportMode
 {
@@ -163,6 +174,11 @@ public class BuildableDefinition : ScriptableObject
 
     [Header("Room Furniture")]
     public RoomFurnitureRole roomFurnitureRole = RoomFurnitureRole.None;
+
+    [Header("Passenger Journey Station")]
+    [Tooltip("Defines which passenger-journey service this buildable provides.")]
+    public PassengerJourneyStationRole passengerJourneyStationRole =
+        PassengerJourneyStationRole.None;
 
     [Header("Public Transport")]
     [Tooltip("Select the public-transport stop types this buildable provides.")]
