@@ -23,6 +23,47 @@ public class PassengerCoordinator : MonoBehaviour
     [Min(1)] [SerializeField] private int targetParkingSpaceCount = 20;
     [Min(0f)] [SerializeField] private float passengerCarParkingFeePerMinute;
     [Min(0.01f)] [SerializeField] private float referenceParkingCost = 5f;
+    [SerializeField] private bool enableTrainPassengerAssignment;
+    [SerializeField] private bool enableUndergroundPassengerAssignment;
+
+    private ParkingSpace[] cachedParkingSpaces;
+    private bool parkingSpaceCacheDirty = true;
+    private int cachedParkingSpaceCount;
+    private int cachedOccupiedParkingSpaceCount;
+    private int busPassengersTransported;
+    private int carPassengersTransported;
+    private double cumulativeBusWaitSeconds;
+    private int completedBusWaitMeasurements;
+    private readonly Dictionary<AirlinePassengerAgent, double> busWaitStartTimes =
+        new Dictionary<AirlinePassengerAgent, double>();
+    private readonly Dictionary<string, int> pendingOutgoingBusPassengerCounts =
+        new Dictionary<string, int>();
+    private readonly Dictionary<string, string> pendingOutgoingBusGateIds =
+        new Dictionary<string, string>();
+    private readonly Queue<string> pendingOutgoingBusOperationIds =
+        new Queue<string>();
+    private readonly HashSet<string> pendingOutgoingBusQueuedOperationIds =
+        new HashSet<string>();
+
+    public event System.Action TransportStatisticsChanged;
+    public int BusPassengersTransported => busPassengersTransported;
+    public int CarPassengersTransported => carPassengersTransported;
+    public int WaitingForBusPassengers
+    {
+        get
+        {
+            int count = waitingReturnPassengers.Count;
+            foreach (KeyValuePair<string, int> pair in pendingOutgoingBusPassengerCounts)
+                count += Mathf.Max(0, pair.Value);
+            return count;
+        }
+    }
+    public int TotalParkingSpaces => cachedParkingSpaceCount;
+    public int OccupiedParkingSpaces => cachedOccupiedParkingSpaceCount;
+    public float AverageBusWaitMinutes =>
+        completedBusWaitMeasurements > 0
+            ? (float)(cumulativeBusWaitSeconds / completedBusWaitMeasurements / 60.0)
+            : 0f;
 
     [Header("Airline Bus Transport")]
     [SerializeField] private GameObject airlinePassengerPrefab;
@@ -162,7 +203,37 @@ public class PassengerCoordinator : MonoBehaviour
 
     public void SetPassengerCarParkingFeePerMinute(float feePerMinute)
     {
-        passengerCarParkingFeePerMinute = Mathf.Max(0f, feePerMinute);
+        float updatedFee = Mathf.Max(0f, feePerMinute);
+        if (Mathf.Approximately(passengerCarParkingFeePerMinute, updatedFee))
+            return;
+
+        passengerCarParkingFeePerMinute = updatedFee;
+        NotifyTransportStatisticsChanged();
+    }
+
+    private void NotifyTransportStatisticsChanged()
+    {
+        TransportStatisticsChanged?.Invoke();
+    }
+
+    private void RefreshParkingSpaceCache()
+    {
+        if (parkingSpaceCacheDirty || cachedParkingSpaces == null)
+        {
+            cachedParkingSpaces = FindObjectsByType<ParkingSpace>();
+            cachedParkingSpaceCount = cachedParkingSpaces.Length;
+            parkingSpaceCacheDirty = false;
+        }
+
+        int occupied = 0;
+        for (int i = 0; i < cachedParkingSpaces.Length; i++)
+        {
+            ParkingSpace space = cachedParkingSpaces[i];
+            if (space != null && (space.IsOccupied || space.IsReserved))
+                occupied++;
+        }
+
+        cachedOccupiedParkingSpaceCount = occupied;
     }
 
     private static PassengerCoordinator instance;
@@ -473,6 +544,8 @@ public class PassengerCoordinator : MonoBehaviour
             busSpawner = FindAnyObjectByType<BusSpawner>();
         if (publicTransportManager == null)
             publicTransportManager = FindAnyObjectByType<PublicTransportManager>();
+        SubscribeToTransportManager();
+        RefreshParkingSpaceCache();
         if (gateRegistry == null)
             gateRegistry = FindAnyObjectByType<AircraftGateRegistry>();
         if (pedestrianPathfinder == null)
@@ -649,8 +722,10 @@ public class PassengerCoordinator : MonoBehaviour
             int outgoingDemand =
                 CalculateBookedPassengers(capacity, airportRanking, flight.StartMinute);
             registeredPassengerCounts[flight.OperationId] = outgoingDemand;
-            registeredOutgoingCarPassengerCounts[flight.OperationId] =
-                CalculateCarPassengerCount(outgoingDemand);
+            bookedPassengerCounts[flight.OperationId] = outgoingDemand;
+            // The outgoing split is recalculated at dispatch time so recent
+            // changes to bus service, parking supply and fees are respected.
+            registeredOutgoingCarPassengerCounts[flight.OperationId] = 0;
 
             int incomingDemand =
                 CalculateBookedPassengers(capacity, airportRanking, flight.StartMinute);
@@ -660,6 +735,26 @@ public class PassengerCoordinator : MonoBehaviour
         }
 
         RemoveStalePassengerRegistrations(currentRegistrationIds);
+    }
+
+    private bool transportManagerSubscribed;
+
+    private void SubscribeToTransportManager()
+    {
+        if (transportManagerSubscribed || publicTransportManager == null)
+            return;
+
+        publicTransportManager.BusFrequencyChanged += HandleTransportCapacityChanged;
+        publicTransportManager.TrainServiceChanged += HandleTransportCapacityChanged;
+        publicTransportManager.UndergroundServiceChanged += HandleTransportCapacityChanged;
+        publicTransportManager.FleetChanged += HandleTransportCapacityChanged;
+        publicTransportManager.StopsChanged += HandleTransportCapacityChanged;
+        transportManagerSubscribed = true;
+    }
+
+    private void HandleTransportCapacityChanged()
+    {
+        NotifyTransportStatisticsChanged();
     }
 
     private void SubscribeToBusSpawner()
@@ -680,6 +775,15 @@ public class PassengerCoordinator : MonoBehaviour
     private void OnDisable()
     {
         ParkingSpace.AvailabilityChanged -= HandleParkingAvailabilityChanged;
+        if (transportManagerSubscribed && publicTransportManager != null)
+        {
+            publicTransportManager.BusFrequencyChanged -= HandleTransportCapacityChanged;
+            publicTransportManager.TrainServiceChanged -= HandleTransportCapacityChanged;
+            publicTransportManager.UndergroundServiceChanged -= HandleTransportCapacityChanged;
+            publicTransportManager.FleetChanged -= HandleTransportCapacityChanged;
+            publicTransportManager.StopsChanged -= HandleTransportCapacityChanged;
+        }
+        transportManagerSubscribed = false;
         PlacedBuilding.BuildingChanged -= HandleParkingBuildingChanged;
         if (busSpawnerSubscribed && busSpawner != null)
             busSpawner.BusDispatched -= HandleBusDispatched;
@@ -701,6 +805,7 @@ public class PassengerCoordinator : MonoBehaviour
             bus.JourneyCompleted -= HandleBusJourneyCompleted;
             bus.StopServiceCompleted -= HandleBusStopServiceCompleted;
             bus.PassengerBoardingFailed -= HandlePassengerBoardingFailed;
+            bus.PassengerBoarded -= HandleBusPassengerBoarded;
             bus.PassengerDisembarked -= HandleBusPassengerDisembarked;
             bus.DisembarkingCompleted -= HandleBusDisembarkingCompleted;
         }
@@ -734,6 +839,7 @@ public class PassengerCoordinator : MonoBehaviour
     private void OnEnable()
     {
         ParkingSpace.AvailabilityChanged += HandleParkingAvailabilityChanged;
+        parkingSpaceCacheDirty = true;
         ResolvePassengerRoadsideDependencies();
         PlacedBuilding.BuildingChanged += HandleParkingBuildingChanged;
         if (instance == this)
@@ -832,6 +938,7 @@ public class PassengerCoordinator : MonoBehaviour
         bus.JourneyCompleted += HandleBusJourneyCompleted;
         bus.StopServiceCompleted += HandleBusStopServiceCompleted;
         bus.PassengerBoardingFailed += HandlePassengerBoardingFailed;
+        bus.PassengerBoarded += HandleBusPassengerBoarded;
         bus.PassengerDisembarked += HandleBusPassengerDisembarked;
         bus.DisembarkingCompleted += HandleBusDisembarkingCompleted;
     }
@@ -991,6 +1098,9 @@ public class PassengerCoordinator : MonoBehaviour
             return;
         }
 
+        busPassengersTransported++;
+        NotifyTransportStatisticsChanged();
+
         if (busManifests.TryGetValue(bus, out List<BusPassengerRecord> manifest))
         {
             for (int i = manifest.Count - 1; i >= 0; i--)
@@ -1089,6 +1199,7 @@ public class PassengerCoordinator : MonoBehaviour
         bus.JourneyCompleted -= HandleBusJourneyCompleted;
         bus.StopServiceCompleted -= HandleBusStopServiceCompleted;
         bus.PassengerBoardingFailed -= HandlePassengerBoardingFailed;
+        bus.PassengerBoarded -= HandleBusPassengerBoarded;
         bus.PassengerDisembarked -= HandleBusPassengerDisembarked;
         bus.DisembarkingCompleted -= HandleBusDisembarkingCompleted;
         subscribedBuses.Remove(bus);
@@ -1150,10 +1261,9 @@ public class PassengerCoordinator : MonoBehaviour
         }
 
         int incomingCarCount =
-            registeredIncomingCarPassengerCounts.TryGetValue(
-                identity.OperationId, out int assignedCarCount)
-                ? assignedCarCount
-                : 0;
+            CalculateCarPassengerCount(stats.IncomingPassengers);
+        registeredIncomingCarPassengerCounts[identity.OperationId] =
+            incomingCarCount;
         int incomingBusCount =
             Mathf.Max(0, stats.IncomingPassengers - incomingCarCount);
 
@@ -1217,7 +1327,11 @@ public class PassengerCoordinator : MonoBehaviour
         }
 
         if (waitingReturnPassengerSet.Add(passenger))
+        {
+            busWaitStartTimes[passenger] = GameTimeManager.SimulationTime;
             waitingReturnPassengers.Enqueue(passenger);
+            NotifyTransportStatisticsChanged();
+        }
     }
 
     private bool QueueReturnPassengerForBus(
@@ -1227,6 +1341,9 @@ public class PassengerCoordinator : MonoBehaviour
         if (bus == null || passenger == null ||
             !bus.QueuePassengerForBoarding(passenger))
             return false;
+
+        if (!busWaitStartTimes.ContainsKey(passenger))
+            busWaitStartTimes[passenger] = GameTimeManager.SimulationTime;
 
         waitingReturnPassengerSet.Add(passenger);
         if (!returnPassengersByBus.TryGetValue(
@@ -1238,6 +1355,24 @@ public class PassengerCoordinator : MonoBehaviour
 
         onboardReturnPassengers.Add(passenger);
         return true;
+    }
+
+    private void HandleBusPassengerBoarded(
+        BusController bus,
+        AirlinePassengerAgent passenger)
+    {
+        if (passenger == null)
+            return;
+
+        if (busWaitStartTimes.TryGetValue(passenger, out double waitStartedAt))
+        {
+            cumulativeBusWaitSeconds += System.Math.Max(
+                0.0, GameTimeManager.SimulationTime - waitStartedAt);
+            completedBusWaitMeasurements++;
+            busWaitStartTimes.Remove(passenger);
+        }
+
+        NotifyTransportStatisticsChanged();
     }
 
     private void HandleBusStopServiceCompleted(BusController bus)
@@ -1381,33 +1516,33 @@ public class PassengerCoordinator : MonoBehaviour
         if (totalPassengers <= 0)
             return 0;
 
-        float busCapacityPerHour = 0f;
-        if (publicTransportManager != null &&
-            publicTransportManager.ActiveBuses > 0 &&
-            publicTransportManager.RegisteredStopCount > 0)
-        {
-            float frequency = Mathf.Max(1f, publicTransportManager.BusFrequencyMinutes);
-            busCapacityPerHour =
-                (60f / frequency) * Mathf.Max(1, busCapacityPerDeparture);
-        }
-
-        float busScore = busTransportWeight *
-            Mathf.Clamp01(busCapacityPerHour / Mathf.Max(1, targetHourlyPassengerDemand));
-
+        float busCapacityPerHour = publicTransportManager != null
+            ? publicTransportManager.GetServiceCapacityPerHour(
+                PassengerIdentity.TransportMode.Bus, busCapacityPerDeparture)
+            : 0f;
         float trainCapacityPerHour = publicTransportManager != null
-            ? publicTransportManager.TrainCapacityPerHour
+            ? publicTransportManager.GetServiceCapacityPerHour(
+                PassengerIdentity.TransportMode.Train, busCapacityPerDeparture)
             : 0f;
         float undergroundCapacityPerHour = publicTransportManager != null
-            ? publicTransportManager.UndergroundCapacityPerHour
+            ? publicTransportManager.GetServiceCapacityPerHour(
+                PassengerIdentity.TransportMode.Underground, busCapacityPerDeparture)
             : 0f;
 
-        float trainScore = trainTransportWeight *
-            Mathf.Clamp01(trainCapacityPerHour / Mathf.Max(1, targetHourlyPassengerDemand));
-        float undergroundScore = undergroundTransportWeight *
-            Mathf.Clamp01(undergroundCapacityPerHour / Mathf.Max(1, targetHourlyPassengerDemand));
+        float demandTarget = Mathf.Max(1, targetHourlyPassengerDemand);
+        float busScore = busTransportWeight *
+            Mathf.Clamp01(busCapacityPerHour / demandTarget);
+        // Capacity inputs are ready for future service implementations, but
+        // these modes stay out of live allocation until their journeys exist.
+        float trainScore = enableTrainPassengerAssignment
+            ? trainTransportWeight * Mathf.Clamp01(trainCapacityPerHour / demandTarget)
+            : 0f;
+        float undergroundScore = enableUndergroundPassengerAssignment
+            ? undergroundTransportWeight * Mathf.Clamp01(undergroundCapacityPerHour / demandTarget)
+            : 0f;
 
-        ParkingSpace[] parkingSpaces = FindObjectsByType<ParkingSpace>();
-        int totalParkingSpaces = parkingSpaces != null ? parkingSpaces.Length : 0;
+        RefreshParkingSpaceCache();
+        int totalParkingSpaces = cachedParkingSpaceCount;
         float parkingCapacityFactor = Mathf.Clamp01(
             (float)totalParkingSpaces / Mathf.Max(1, targetParkingSpaceCount));
 
@@ -1424,7 +1559,11 @@ public class PassengerCoordinator : MonoBehaviour
 
         float totalScore = busScore + trainScore + undergroundScore + carScore;
         if (totalScore <= 0.0001f)
+        {
+            // If no public-transport service can carry passengers, use cars
+            // as the fallback; their vehicles can use the roadside drop-off.
             return totalPassengers;
+        }
 
         int carPassengers = Mathf.RoundToInt(
             totalPassengers * carScore / totalScore);
@@ -1433,10 +1572,11 @@ public class PassengerCoordinator : MonoBehaviour
         {
             Debug.Log(
                 $"Passenger transport split | Demand: {totalPassengers} | " +
-                $"Bus score: {busScore:F2} | Train score: {trainScore:F2} | " +
-                $"Underground score: {undergroundScore:F2} | Car score: {carScore:F2} | " +
+                $"Bus capacity/h: {busCapacityPerHour:F1} | Train capacity/h: {trainCapacityPerHour:F1} | " +
+                $"Underground capacity/h: {undergroundCapacityPerHour:F1} | " +
+                $"Scores B/T/U/C: {busScore:F2}/{trainScore:F2}/{undergroundScore:F2}/{carScore:F2} | " +
                 $"Parking spaces: {totalParkingSpaces} | Fee/min: {passengerCarParkingFeePerMinute:F2} | " +
-                $"Cars: {carPassengers} | PT: {totalPassengers - carPassengers}",
+                $"Cars: {carPassengers} | Bus: {totalPassengers - carPassengers}",
                 this);
         }
 
@@ -1488,17 +1628,21 @@ public class PassengerCoordinator : MonoBehaviour
                 ? alreadySpawned
                 : 0;
 
-        int requestedPassengers =
-            registeredOutgoingCarPassengerCounts.TryGetValue(
+        int totalPassengers =
+            registeredPassengerCounts.TryGetValue(
                 flight.OperationId, out int registeredCount)
                 ? registeredCount
                 : 0;
+        int requestedPassengers = CalculateCarPassengerCount(totalPassengers);
+        registeredOutgoingCarPassengerCounts[flight.OperationId] =
+            requestedPassengers;
         int spawnedPassengers =
             SpawnOutgoingCarDropoffGroups(flight, requestedPassengers);
 
         outgoingCarDispatchProcessedOperationIds.Add(flight.OperationId);
         spawnedOutgoingCarPassengerCounts[flight.OperationId] = spawnedPassengers;
-        bookedPassengerCounts[flight.OperationId] = spawnedPassengers;
+        // Keep the full flight demand. Car failures fall back into the bus queue.
+        bookedPassengerCounts[flight.OperationId] = totalPassengers;
         return spawnedPassengers;
     }
 
@@ -1815,7 +1959,10 @@ public class PassengerCoordinator : MonoBehaviour
                 terminalPassengersByOperationId.Add(group.OperationId, passengers);
             }
             passengers.Add(passenger);
+            carPassengersTransported++;
         }
+
+        NotifyTransportStatisticsChanged();
     }
 
     private void ReduceBookedOutgoingPassengers(string operationId, int amount)
@@ -1842,6 +1989,8 @@ public class PassengerCoordinator : MonoBehaviour
 
     private void HandleParkingAvailabilityChanged()
     {
+        RefreshParkingSpaceCache();
+        NotifyTransportStatisticsChanged();
         TrySpawnPendingIncomingCarPickups();
     }
 
@@ -1850,6 +1999,9 @@ public class PassengerCoordinator : MonoBehaviour
         // Placed foundation tiles are the authoritative terminal footprint.
         // Any placement/removal may change the nearest valid roadside stop.
         InvalidatePassengerRoadsideDropoff();
+        parkingSpaceCacheDirty = true;
+        RefreshParkingSpaceCache();
+        NotifyTransportStatisticsChanged();
 
         if (building != null && building.GetComponent<ParkingSpace>() != null)
             TrySpawnPendingIncomingCarPickups();
@@ -1857,10 +2009,10 @@ public class PassengerCoordinator : MonoBehaviour
 
     private bool HasFreePassengerParkingSpace()
     {
-        ParkingSpace[] spaces = FindObjectsByType<ParkingSpace>();
-        for (int i = 0; i < spaces.Length; i++)
+        RefreshParkingSpaceCache();
+        for (int i = 0; i < cachedParkingSpaces.Length; i++)
         {
-            ParkingSpace space = spaces[i];
+            ParkingSpace space = cachedParkingSpaces[i];
             if (space != null && !space.IsOccupied && !space.IsReserved)
                 return true;
         }
@@ -1988,6 +2140,9 @@ public class PassengerCoordinator : MonoBehaviour
         for (int i = 0; i < group.Passengers.Count; i++)
             if (group.Passengers[i] != null)
                 remainingPassengers++;
+
+        carPassengersTransported++;
+        NotifyTransportStatisticsChanged();
 
         if (group.BoardedCount >= remainingPassengers &&
             group.Vehicle.IsParked)
