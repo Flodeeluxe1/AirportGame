@@ -872,6 +872,10 @@ public class PassengerCoordinator : MonoBehaviour
     {
         ParkingSpace.AvailabilityChanged += HandleParkingAvailabilityChanged;
         parkingSpaceCacheDirty = true;
+        if (publicTransportManager == null)
+            publicTransportManager = FindAnyObjectByType<PublicTransportManager>();
+        SubscribeToTransportManager();
+        RefreshParkingSpaceCache();
         ResolvePassengerRoadsideDependencies();
         PlacedBuilding.BuildingChanged += HandleParkingBuildingChanged;
         if (instance == this)
