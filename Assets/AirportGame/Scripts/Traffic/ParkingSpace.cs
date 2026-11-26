@@ -4,6 +4,7 @@ using UnityEngine;
 
 public class ParkingSpace : MonoBehaviour
 {
+    public static event System.Action AvailabilityChanged;
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
 
@@ -99,6 +100,7 @@ public class ParkingSpace : MonoBehaviour
         }
 
         waitingVehicles.Add(vehicle);
+        AvailabilityChanged?.Invoke();
 
         RefreshDebugQueueStatus(
             $"RESERVED: {vehicle.name} joined the queue.");
@@ -176,6 +178,7 @@ public class ParkingSpace : MonoBehaviour
         waitingVehicles.Remove(vehicle);
 
         parkedVehicle = vehicle;
+        AvailabilityChanged?.Invoke();
 
         occupiedUntil = holdUntilReleased
             ? double.PositiveInfinity
@@ -203,6 +206,7 @@ public class ParkingSpace : MonoBehaviour
 
         parkedVehicle = null;
         occupiedUntil = 0f;
+        AvailabilityChanged?.Invoke();
 
         RefreshDebugQueueStatus(
             $"PARKING RELEASED by {vehicle.name}.");
@@ -225,6 +229,7 @@ public class ParkingSpace : MonoBehaviour
 
         if (wasReserved)
         {
+            AvailabilityChanged?.Invoke();
             RefreshDebugQueueStatus(
                 $"RESERVATION CANCELLED for {vehicle.name}.");
 
