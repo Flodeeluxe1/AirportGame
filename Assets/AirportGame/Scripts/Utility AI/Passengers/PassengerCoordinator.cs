@@ -503,9 +503,15 @@ public class PassengerCoordinator : MonoBehaviour
                 "PassengerCoordinator: Incoming car pickups require the shared TrafficTestSpawner and passenger car prefab. The car prefab is normally read from SightseeingPassengerManager.",
                 this);
 
+        if (airlinePassengerPrefab != null &&
+            airlinePassengerPrefab.GetComponent<AirlinePassengerAgent>() == null)
+        {
+            Debug.LogError(
+                "PassengerCoordinator: The assigned Passenger prefab must contain AirlinePassengerAgent.",
+                airlinePassengerPrefab);
+        }
+
         TrySpawnPendingIncomingCarPickups();
-        else if (airlinePassengerPrefab.GetComponent<AirlinePassengerAgent>() == null)
-            Debug.LogError("PassengerCoordinator: The assigned Passenger prefab must contain AirlinePassengerAgent.", airlinePassengerPrefab);
     }
 
     private void SubscribeToScheduleAndTime()
