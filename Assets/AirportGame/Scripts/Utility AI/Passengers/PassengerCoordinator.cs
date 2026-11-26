@@ -768,8 +768,7 @@ public class PassengerCoordinator : MonoBehaviour
                 createdPassengerCount++;
             }
 
-            registeredPassengerCounts[flight.OperationId] =
-                Mathf.Max(0, requestedPassengers - createdPassengerCount);
+            bookedPassengerCounts[flight.OperationId] = createdPassengerCount;
         }
 
         if (manifest.Count == 0)
