@@ -1549,6 +1549,8 @@ public class PassengerCoordinator : MonoBehaviour
 
         Vector2Int entryCell = roadNetwork.GetRoadAnchor(
             gridManager.WorldToGrid(trafficSpawner.transform.position));
+        RoadNetwork.RoadPathTree reachableRoads =
+            roadNetwork.BuildForwardPathTree(entryCell);
         List<Vector2Int> roadPositions = roadNetwork.GetRoadPositions();
         float bestDistance = float.MaxValue;
         bool found = false;
@@ -1556,7 +1558,7 @@ public class PassengerCoordinator : MonoBehaviour
         foreach (Vector2Int roadCell in roadPositions)
         {
             // Only choose road modules the passenger spawner can actually reach.
-            if (roadNetwork.FindPath(entryCell, roadCell).Count == 0)
+            if (reachableRoads.GetPath(roadCell).Count == 0)
                 continue;
 
             Vector2Int roadCenterCell = roadCell + Vector2Int.one;
