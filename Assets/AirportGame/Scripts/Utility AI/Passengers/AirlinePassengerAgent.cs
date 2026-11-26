@@ -105,7 +105,7 @@ public class AirlinePassengerAgent : MonoBehaviour
     private void Update()
     {
         if (state == JourneyState.ProcessingDepartureJourney &&
-            (interactions == null || !interactions.IsHandlingInteraction) &&
+            interactions != null && !interactions.IsHandlingInteraction &&
             GameTimeManager.SimulationTime >= nextDepartureStationRetryTime)
         {
             BeginNextDepartureStage();
@@ -662,6 +662,9 @@ public class AirlinePassengerAgent : MonoBehaviour
 
         if (interactions != null)
             interactions.SetExternallyControlled(true);
+
+        if (passengerJourney != null)
+            passengerJourney.CompleteDepartureJourney();
 
         transform.SetParent(aircraftTransform, false);
         transform.localPosition = Vector3.zero;
