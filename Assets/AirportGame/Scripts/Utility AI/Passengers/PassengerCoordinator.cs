@@ -1520,6 +1520,16 @@ public class PassengerCoordinator : MonoBehaviour
         ResolvePassengerRoadsideDependencies();
         position = Vector3.zero;
 
+        if (gridManager == null || roadNetwork == null || trafficSpawner == null)
+        {
+            Debug.LogWarning(
+                "PassengerCoordinator: Cannot resolve passenger roadside drop-off because a dependency is missing. " +
+                $"GridManager={(gridManager != null ? gridManager.name : "NULL")}, " +
+                $"RoadNetwork={(roadNetwork != null ? roadNetwork.name : "NULL")}, " +
+                $"TrafficSpawner={(trafficSpawner != null ? trafficSpawner.name : "NULL")}.",
+                this);
+            return false;
+        }
 
         if (hasCachedPassengerRoadsideDropoffPosition &&
             cachedRoadTopologyVersion == roadNetwork.TopologyVersion)
