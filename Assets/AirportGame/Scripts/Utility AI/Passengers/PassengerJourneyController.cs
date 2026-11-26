@@ -58,6 +58,68 @@ public sealed class PassengerJourneyController : MonoBehaviour
     public bool HasLuggage => hasLuggage;
 
     /// <summary>
+    /// Finds the nearest active building providing the requested passenger
+    /// journey service. The buildable role identifies the service while the
+    /// existing InteractionProvider supplies availability and interaction data.
+    /// </summary>
+    public static bool TryFindNearestStation(
+        PassengerJourneyStationRole role,
+        Vector3 worldPosition,
+        out InteractionProvider provider,
+        out PlacedBuilding building)
+    {
+        provider = null;
+        building = null;
+
+        if (role == PassengerJourneyStationRole.None)
+            return false;
+
+        float nearestDistanceSquared = float.PositiveInfinity;
+        IReadOnlyList<PlacedBuilding> buildings = PlacedBuilding.ActiveBuildings;
+
+        for (int i = 0; i < buildings.Count; i++)
+        {
+            PlacedBuilding candidateBuilding = buildings[i];
+            if (candidateBuilding == null ||
+                candidateBuilding.Definition == null ||
+                candidateBuilding.Definition.passengerJourneyStationRole != role)
+                continue;
+
+            InteractionProvider candidateProvider =
+                candidateBuilding.GetComponent<InteractionProvider>();
+            if (candidateProvider == null || !candidateProvider.InteractionsEnabled)
+                continue;
+
+            bool hasAvailableInteraction = false;
+            var definitions = candidateProvider.Interactions;
+            for (int interactionIndex = 0;
+                 interactionIndex < definitions.Count;
+                 interactionIndex++)
+            {
+                if (candidateProvider.CanOffer(definitions[interactionIndex]))
+                {
+                    hasAvailableInteraction = true;
+                    break;
+                }
+            }
+
+            if (!hasAvailableInteraction)
+                continue;
+
+            float distanceSquared =
+                (candidateProvider.InteractionPosition - worldPosition).sqrMagnitude;
+            if (distanceSquared >= nearestDistanceSquared)
+                continue;
+
+            nearestDistanceSquared = distanceSquared;
+            provider = candidateProvider;
+            building = candidateBuilding;
+        }
+
+        return provider != null;
+    }
+
+    /// <summary>
     /// Starts an arriving passenger's journey after they have been created
     /// from aircraft deboarding. Baggage claim is only mandatory when luggage
     /// is present; passengers without luggage proceed directly to transport.
