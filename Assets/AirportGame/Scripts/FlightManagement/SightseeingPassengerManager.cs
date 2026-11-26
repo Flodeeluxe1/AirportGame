@@ -72,6 +72,9 @@ public class SightseeingPassengerManager : MonoBehaviour
         public long carSpawnEventId;
     }
 
+    public GameObject PassengerCarPrefab => passengerCarPrefab;
+    public TrafficTestSpawner TrafficSpawner => trafficSpawner;
+
     private readonly List<FlightGroup> activeGroups = new List<FlightGroup>();
     private bool subscribedToSpawner;
     private bool subscribedToGameTime;
