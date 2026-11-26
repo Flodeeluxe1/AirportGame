@@ -236,6 +236,71 @@ public class TrafficTestSpawner : MonoBehaviour
     }
 
     /// <summary>
+    /// Spawns an outbound passenger car. It parks for the requested duration
+    /// when a space is immediately free; otherwise it stops at the supplied
+    /// roadside point for the short fallback duration.
+    /// </summary>
+    public TrafficTestVehicle SpawnPassengerArrivalVehicle(
+        GameObject vehiclePrefab,
+        Vector3 roadsideStopPosition,
+        float parkingDurationSeconds,
+        float roadsideDurationSeconds)
+    {
+        if (gridManager == null)
+            gridManager = FindAnyObjectByType<GridManager>();
+
+        if (gridManager == null || exitPoint == null || vehiclePrefab == null)
+        {
+            LogError(
+                "TrafficTestSpawner: Passenger arrival vehicle requires GridManager, Exit Point and vehicle prefab.",
+                this);
+            return null;
+        }
+
+        Vector2Int startCell = gridManager.WorldToGrid(transform.position);
+        Vector2Int exitCell = gridManager.WorldToGrid(exitPoint.position);
+        Vector2Int roadsideCell = gridManager.WorldToGrid(roadsideStopPosition);
+        Vector3 spawnPosition = gridManager.GridToWorldCenter(startCell);
+        spawnPosition.y += spawnHeightOffset;
+
+        GameObject vehicleObject = Instantiate(
+            vehiclePrefab, spawnPosition, transform.rotation);
+        VehicleSpawnID spawnID = vehicleObject.GetComponent<VehicleSpawnID>();
+        TrafficTestVehicle trafficVehicle =
+            vehicleObject.GetComponent<TrafficTestVehicle>();
+
+        if (spawnID == null || trafficVehicle == null)
+        {
+            LogError(
+                "TrafficTestSpawner: Passenger car prefab must contain VehicleSpawnID and TrafficTestVehicle.",
+                vehicleObject);
+            Destroy(vehicleObject);
+            return null;
+        }
+
+        spawnID.InitializeID();
+        trafficVehicle.AlignColliderBottomToGround(
+            spawnPosition.y - spawnHeightOffset);
+        trafficVehicle.InitializePassengerArrivalRoute(
+            startCell, exitCell, roadsideCell,
+            parkingDurationSeconds, roadsideDurationSeconds);
+
+        if (trafficVehicle.CurrentState == TrafficTestVehicle.VehicleState.Idle)
+        {
+            LogWarning(
+                "TrafficTestSpawner: Passenger car could not find a route to parking or roadside drop-off.",
+                vehicleObject);
+            Destroy(vehicleObject);
+            return null;
+        }
+
+        Log(
+            $"PASSENGER ARRIVAL CAR SPAWNED | ID: {spawnID.SpawnID} | Start: {startCell} | Roadside fallback: {roadsideCell}",
+            vehicleObject);
+        return trafficVehicle;
+    }
+
+    /// <summary>
     /// Spawns a traffic vehicle using this spawner's road entry and exit.
     /// Used by systems that need to control when a parked vehicle departs.
     /// </summary>
