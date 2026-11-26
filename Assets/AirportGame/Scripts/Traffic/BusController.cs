@@ -152,7 +152,7 @@ public class BusController : MonoBehaviour
 
     public bool QueuePassengerForBoarding(AirlinePassengerAgent passenger)
     {
-        if (passenger == null || !boardingServiceActive ||
+        if (passenger == null || !boardingServiceActive || disembarkingPhaseActive ||
             AvailablePassengerCapacity <= boardingQueue.Count ||
             boardingQueue.Contains(passenger))
             return false;
