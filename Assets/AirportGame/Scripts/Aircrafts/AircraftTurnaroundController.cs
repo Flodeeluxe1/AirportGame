@@ -493,9 +493,6 @@ public class AircraftTurnaroundController : MonoBehaviour
         if (deltaGameSeconds > 0f)
         {
 
-            bool tickDeboarding =
-                deboarding.Status == AircraftTurnaroundTaskStatus.InProgress;
-
             bool tickBaggageUnloading =
                 !incomingBaggageTransferControlled &&
                 baggageUnloading.Status ==
@@ -519,9 +516,6 @@ public class AircraftTurnaroundController : MonoBehaviour
             bool tickBoarding =
                 boarding.Status == AircraftTurnaroundTaskStatus.InProgress &&
                 !externalBoardingControlled;
-
-            if (tickDeboarding)
-                AdvanceTask(TaskType.Deboarding, deltaGameSeconds);
 
             if (tickBaggageUnloading)
                 AdvanceTask(TaskType.BaggageUnloading, deltaGameSeconds);
