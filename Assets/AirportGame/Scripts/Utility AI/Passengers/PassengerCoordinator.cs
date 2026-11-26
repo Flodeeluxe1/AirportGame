@@ -337,6 +337,7 @@ public class PassengerCoordinator : MonoBehaviour
         if (job.Turnaround == null)
         {
             job.FailedCount++;
+            job.NextPassengerIndex++;
             return;
         }
 
@@ -356,6 +357,7 @@ public class PassengerCoordinator : MonoBehaviour
             job.OperationId, transportMode))
         {
             job.FailedCount++;
+            job.NextPassengerIndex++;
             Debug.LogWarning(
                 $"PassengerCoordinator: Failed to initialize arriving passenger {passengerIndex + 1}/{job.PassengerCount} for flight {job.FlightNumber}. " +
                 $"Prefab: '{airlinePassengerPrefab.name}'. Check that it has a working AirlinePassengerAgent.",
@@ -494,6 +496,9 @@ public class PassengerCoordinator : MonoBehaviour
     private void HandlePassengerScheduleReloaded()
     {
         registeredPassengerCounts.Clear();
+        bookedPassengerCounts.Clear();
+        registeredIncomingPassengerCounts.Clear();
+        registeredIncomingCarPassengerCounts.Clear();
         RefreshScheduledPassengerRegistrations();
     }
 
@@ -607,6 +612,18 @@ public class PassengerCoordinator : MonoBehaviour
         foreach (AirlinePassengerAgent passenger in walkingToBusStopPassengers)
             if (passenger != null)
                 passenger.ReachedBusStop -= HandlePassengerReachedBusStop;
+
+        foreach (KeyValuePair<TrafficTestVehicle, IncomingCarPickupGroup> pair in incomingCarGroupsByVehicle)
+        {
+            if (pair.Key == null)
+                continue;
+            pair.Key.Parked -= HandleIncomingPickupCarParked;
+            pair.Key.Exited -= HandleIncomingPickupCarExited;
+        }
+
+        foreach (KeyValuePair<AirlinePassengerAgent, IncomingCarPickupGroup> pair in incomingCarGroupsByPassenger)
+            if (pair.Key != null)
+                pair.Key.ReachedCarPickup -= HandlePassengerReachedIncomingCar;
     }
 
     private void OnEnable()
