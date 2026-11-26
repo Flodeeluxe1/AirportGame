@@ -26,6 +26,7 @@ public class PassengerCoordinator : MonoBehaviour
 
     private ParkingSpace[] cachedParkingSpaces;
     private bool parkingSpaceCacheDirty = true;
+    private bool parkingOccupancyDirty = true;
     private int cachedParkingSpaceCount;
     private int cachedOccupiedParkingSpaceCount;
     private int busPassengersTransported;
@@ -58,8 +59,23 @@ public class PassengerCoordinator : MonoBehaviour
             return count;
         }
     }
-    public int TotalParkingSpaces => cachedParkingSpaceCount;
-    public int OccupiedParkingSpaces => cachedOccupiedParkingSpaceCount;
+    public int TotalParkingSpaces
+    {
+        get
+        {
+            EnsureParkingSpaceCache();
+            return cachedParkingSpaceCount;
+        }
+    }
+    public int OccupiedParkingSpaces
+    {
+        get
+        {
+            if (parkingOccupancyDirty)
+                RefreshParkingSpaceCache();
+            return cachedOccupiedParkingSpaceCount;
+        }
+    }
     public float AverageBusWaitMinutes =>
         completedBusWaitMeasurements > 0
             ? (float)(cumulativeBusWaitSeconds / completedBusWaitMeasurements / 60.0)
@@ -253,6 +269,7 @@ public class PassengerCoordinator : MonoBehaviour
         }
 
         cachedOccupiedParkingSpaceCount = occupied;
+        parkingOccupancyDirty = false;
     }
 
     private static PassengerCoordinator instance;
@@ -873,6 +890,7 @@ public class PassengerCoordinator : MonoBehaviour
     {
         ParkingSpace.AvailabilityChanged += HandleParkingAvailabilityChanged;
         parkingSpaceCacheDirty = true;
+        parkingOccupancyDirty = true;
         if (publicTransportManager == null)
             publicTransportManager = FindAnyObjectByType<PublicTransportManager>();
         SubscribeToTransportManager();
@@ -2093,7 +2111,7 @@ public class PassengerCoordinator : MonoBehaviour
 
     private void HandleParkingAvailabilityChanged()
     {
-        RefreshParkingSpaceCache();
+        parkingOccupancyDirty = true;
         NotifyTransportStatisticsChanged();
         TrySpawnPendingIncomingCarPickups();
     }
@@ -2104,6 +2122,7 @@ public class PassengerCoordinator : MonoBehaviour
         // Any placement/removal may change the nearest valid roadside stop.
         InvalidatePassengerRoadsideDropoff();
         parkingSpaceCacheDirty = true;
+        parkingOccupancyDirty = true;
         RefreshParkingSpaceCache();
         NotifyTransportStatisticsChanged();
 
