@@ -83,6 +83,8 @@ public class PassengerTransportUIController : MonoBehaviour
     private void OnDisable()
     {
         UnsubscribeFromReferences();
+        passengerCoordinator = null;
+        publicTransportManager = null;
     }
 
     private void OnDestroy()
@@ -115,7 +117,9 @@ public class PassengerTransportUIController : MonoBehaviour
         PublicTransportManager manager =
             passengerCoordinator != null
                 ? passengerCoordinator.TransportManager
-                : FindAnyObjectByType<PublicTransportManager>();
+                : null;
+        if (manager == null)
+            manager = FindAnyObjectByType<PublicTransportManager>();
 
         if (manager == publicTransportManager)
             return;
