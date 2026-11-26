@@ -513,10 +513,6 @@ public class AircraftTurnaroundController : MonoBehaviour
                 baggageLoading.Status ==
                     AircraftTurnaroundTaskStatus.InProgress;
 
-            bool tickBoarding =
-                boarding.Status == AircraftTurnaroundTaskStatus.InProgress &&
-                !externalBoardingControlled;
-
             if (tickBaggageUnloading)
                 AdvanceTask(TaskType.BaggageUnloading, deltaGameSeconds);
 
@@ -526,8 +522,6 @@ public class AircraftTurnaroundController : MonoBehaviour
             if (tickBaggageLoading)
                 AdvanceTask(TaskType.BaggageLoading, deltaGameSeconds);
 
-            if (tickBoarding)
-                AdvanceTask(TaskType.Boarding, deltaGameSeconds);
         }
 
         if (setReadyToDepartAutomatically)
