@@ -31,8 +31,13 @@ public class PassengerCoordinator : MonoBehaviour
     [SerializeField] private PublicTransportManager publicTransportManager;
     [SerializeField] private TrafficTestSpawner trafficSpawner;
     [SerializeField] private GameObject airlinePassengerCarPrefab;
-    [Tooltip("Road cell in front of the terminal used when no parking space is immediately free.")]
-    [SerializeField] private Transform passengerRoadsideDropoffPoint;
+    [SerializeField] private FoundationSystem foundationSystem;
+    [SerializeField] private GridManager gridManager;
+    [SerializeField] private RoadNetwork roadNetwork;
+
+    private Vector3 cachedPassengerRoadsideDropoffPosition;
+    private bool hasCachedPassengerRoadsideDropoffPosition;
+    private int cachedRoadTopologyVersion = -1;
     [SerializeField] private AircraftGateRegistry gateRegistry;
     [SerializeField] private PedestrianPathfinder pedestrianPathfinder;
 
@@ -473,6 +478,8 @@ public class PassengerCoordinator : MonoBehaviour
             gateRegistry = FindAnyObjectByType<AircraftGateRegistry>();
         if (pedestrianPathfinder == null)
             pedestrianPathfinder = FindAnyObjectByType<PedestrianPathfinder>();
+        ResolvePassengerRoadsideDependencies();
+        SubscribeToFoundationChanges();
         if (trafficSpawner == null)
             trafficSpawner = FindAnyObjectByType<TrafficTestSpawner>();
         if (airlinePassengerCarPrefab == null)
@@ -675,6 +682,8 @@ public class PassengerCoordinator : MonoBehaviour
     private void OnDisable()
     {
         ParkingSpace.AvailabilityChanged -= HandleParkingAvailabilityChanged;
+        if (foundationSystem != null)
+            foundationSystem.FoundationTilesChanged -= InvalidatePassengerRoadsideDropoff;
         PlacedBuilding.BuildingChanged -= HandleParkingBuildingChanged;
         if (busSpawnerSubscribed && busSpawner != null)
             busSpawner.BusDispatched -= HandleBusDispatched;
@@ -729,6 +738,8 @@ public class PassengerCoordinator : MonoBehaviour
     private void OnEnable()
     {
         ParkingSpace.AvailabilityChanged += HandleParkingAvailabilityChanged;
+        ResolvePassengerRoadsideDependencies();
+        SubscribeToFoundationChanges();
         PlacedBuilding.BuildingChanged += HandleParkingBuildingChanged;
         if (instance == this)
         {
@@ -1496,6 +1507,87 @@ public class PassengerCoordinator : MonoBehaviour
         return spawnedPassengers;
     }
 
+    private void ResolvePassengerRoadsideDependencies()
+    {
+        if (foundationSystem == null)
+            foundationSystem = FindAnyObjectByType<FoundationSystem>();
+        if (gridManager == null)
+            gridManager = FindAnyObjectByType<GridManager>();
+        if (roadNetwork == null)
+            roadNetwork = FindAnyObjectByType<RoadNetwork>();
+    }
+
+    private void SubscribeToFoundationChanges()
+    {
+        if (foundationSystem == null)
+            return;
+
+        foundationSystem.FoundationTilesChanged -= InvalidatePassengerRoadsideDropoff;
+        foundationSystem.FoundationTilesChanged += InvalidatePassengerRoadsideDropoff;
+    }
+
+    private void InvalidatePassengerRoadsideDropoff()
+    {
+        hasCachedPassengerRoadsideDropoffPosition = false;
+    }
+
+    private bool TryGetPassengerRoadsideDropoffPosition(out Vector3 position)
+    {
+        ResolvePassengerRoadsideDependencies();
+        position = Vector3.zero;
+
+        if (foundationSystem == null || gridManager == null ||
+            roadNetwork == null || trafficSpawner == null)
+            return false;
+
+        if (hasCachedPassengerRoadsideDropoffPosition &&
+            cachedRoadTopologyVersion == roadNetwork.TopologyVersion)
+        {
+            position = cachedPassengerRoadsideDropoffPosition;
+            return true;
+        }
+
+        Vector2Int entryCell = roadNetwork.GetRoadAnchor(
+            gridManager.WorldToGrid(trafficSpawner.transform.position));
+        List<Vector2Int> roadPositions = roadNetwork.GetRoadPositions();
+        float bestDistance = float.MaxValue;
+        bool found = false;
+
+        foreach (Vector2Int roadCell in roadPositions)
+        {
+            // Only choose road modules the passenger spawner can actually reach.
+            if (roadNetwork.FindPath(entryCell, roadCell).Count == 0)
+                continue;
+
+            Vector2Int roadCenterCell = roadCell + Vector2Int.one;
+            float nearestFoundationDistance = float.MaxValue;
+            foreach (Vector2Int foundationCell in foundationSystem.FoundationPositions)
+            {
+                float dx = roadCenterCell.x - (foundationCell.x + 0.5f);
+                float dz = roadCenterCell.y - (foundationCell.y + 0.5f);
+                float distance = dx * dx + dz * dz;
+                if (distance < nearestFoundationDistance)
+                    nearestFoundationDistance = distance;
+            }
+
+            if (nearestFoundationDistance >= bestDistance)
+                continue;
+
+            bestDistance = nearestFoundationDistance;
+            cachedPassengerRoadsideDropoffPosition =
+                roadNetwork.GetRoadCenterWorldPosition(roadCell, gridManager);
+            found = true;
+        }
+
+        if (!found)
+            return false;
+
+        cachedRoadTopologyVersion = roadNetwork.TopologyVersion;
+        hasCachedPassengerRoadsideDropoffPosition = true;
+        position = cachedPassengerRoadsideDropoffPosition;
+        return true;
+    }
+
     private int SpawnOutgoingCarDropoffGroups(
         ScheduledPassengerFlight flight,
         int requestedPassengers)
@@ -1504,13 +1596,14 @@ public class PassengerCoordinator : MonoBehaviour
             return 0;
 
         if (trafficSpawner == null || airlinePassengerPrefab == null ||
-            airlinePassengerCarPrefab == null || passengerRoadsideDropoffPoint == null ||
+            airlinePassengerCarPrefab == null ||
+            !TryGetPassengerRoadsideDropoffPosition(out Vector3 roadsideDropoffPosition) ||
             gateRegistry == null ||
             !gateRegistry.TryGetGate(flight.GateStableId, out AircraftGate gate) ||
             gate == null)
         {
             Debug.LogWarning(
-                $"PassengerCoordinator: Outbound car passengers for flight {flight.FlightNumber} could not be dispatched. Assign the passenger car prefab, traffic spawner, gate registry and a roadside drop-off point; affected passengers will fall back to the bus manifest.",
+                $"PassengerCoordinator: Outbound car passengers for flight {flight.FlightNumber} could not be dispatched. Assign the passenger car prefab and traffic spawner, and ensure the terminal foundation and road network are available; affected passengers will fall back to the bus manifest.",
                 this);
             return 0;
         }
@@ -1527,7 +1620,7 @@ public class PassengerCoordinator : MonoBehaviour
 
             TrafficTestVehicle car = trafficSpawner.SpawnPassengerArrivalVehicle(
                 airlinePassengerCarPrefab,
-                passengerRoadsideDropoffPoint.position,
+                roadsideDropoffPosition,
                 Random.Range(120f, 900f),
                 120f);
 
