@@ -31,6 +31,7 @@ public class PassengerCoordinator : MonoBehaviour
     [SerializeField] private PublicTransportManager publicTransportManager;
     [SerializeField] private TrafficTestSpawner trafficSpawner;
     [SerializeField] private GameObject airlinePassengerCarPrefab;
+    [SerializeField] private Transform passengerRoadsideDropoffPoint;
     [SerializeField] private AircraftGateRegistry gateRegistry;
     [SerializeField] private PedestrianPathfinder pedestrianPathfinder;
 
@@ -43,6 +44,8 @@ public class PassengerCoordinator : MonoBehaviour
     private readonly Dictionary<string, int> registeredIncomingPassengerCounts =
         new Dictionary<string, int>();
     private readonly Dictionary<string, int> registeredIncomingCarPassengerCounts =
+        new Dictionary<string, int>();
+    private readonly Dictionary<string, int> registeredOutgoingCarPassengerCounts =
         new Dictionary<string, int>();
     private readonly List<ScheduledPassengerFlight> registrationFlights =
         new List<ScheduledPassengerFlight>();
@@ -70,6 +73,8 @@ public class PassengerCoordinator : MonoBehaviour
         new Queue<IncomingCarPickupGroup>();
     private readonly Dictionary<TrafficTestVehicle, IncomingCarPickupGroup> incomingCarGroupsByVehicle =
         new Dictionary<TrafficTestVehicle, IncomingCarPickupGroup>();
+    private readonly Dictionary<TrafficTestVehicle, OutgoingCarDropoffGroup> outgoingCarGroupsByVehicle =
+        new Dictionary<TrafficTestVehicle, OutgoingCarDropoffGroup>();
     private readonly Dictionary<AirlinePassengerAgent, IncomingCarPickupGroup> incomingCarGroupsByPassenger =
         new Dictionary<AirlinePassengerAgent, IncomingCarPickupGroup>();
     private bool spawningIncomingCar;
@@ -126,6 +131,16 @@ public class PassengerCoordinator : MonoBehaviour
         public PlacedBuilding GateFootprint;
         public TrafficTestVehicle Vehicle;
         public int BoardedCount;
+    }
+
+    private sealed class OutgoingCarDropoffGroup
+    {
+        public string OperationId;
+        public AircraftGate Gate;
+        public PlacedBuilding GateFootprint;
+        public int PassengerCount;
+        public TrafficTestVehicle Vehicle;
+        public bool PassengersSpawned;
     }
 
     private sealed class BusPassengerRecord
@@ -510,6 +525,7 @@ public class PassengerCoordinator : MonoBehaviour
         bookedPassengerCounts.Clear();
         registeredIncomingPassengerCounts.Clear();
         registeredIncomingCarPassengerCounts.Clear();
+        registeredOutgoingCarPassengerCounts.Clear();
         RefreshScheduledPassengerRegistrations();
     }
 
@@ -565,6 +581,8 @@ public class PassengerCoordinator : MonoBehaviour
             int outgoingDemand =
                 CalculateBookedPassengers(capacity, airportRanking, flight.StartMinute);
             registeredPassengerCounts[flight.OperationId] = outgoingDemand;
+            registeredOutgoingCarPassengerCounts[flight.OperationId] =
+                CalculateCarPassengerCount(outgoingDemand);
 
             int incomingDemand =
                 CalculateBookedPassengers(capacity, airportRanking, flight.StartMinute);
@@ -622,6 +640,15 @@ public class PassengerCoordinator : MonoBehaviour
         foreach (AirlinePassengerAgent passenger in walkingToBusStopPassengers)
             if (passenger != null)
                 passenger.ReachedBusStop -= HandlePassengerReachedBusStop;
+
+        foreach (KeyValuePair<TrafficTestVehicle, OutgoingCarDropoffGroup> pair in outgoingCarGroupsByVehicle)
+        {
+            if (pair.Key == null)
+                continue;
+            pair.Key.Parked -= HandleOutgoingPassengerCarParked;
+            pair.Key.RoadsideDropoffStarted -= HandleOutgoingPassengerCarRoadsideDropoff;
+            pair.Key.Exited -= HandleOutgoingPassengerCarExited;
+        }
 
         foreach (KeyValuePair<TrafficTestVehicle, IncomingCarPickupGroup> pair in incomingCarGroupsByVehicle)
         {
@@ -741,7 +768,17 @@ public class PassengerCoordinator : MonoBehaviour
                 registeredPassengerCounts.TryGetValue(flight.OperationId, out int registeredCount)
                     ? registeredCount
                     : 0;
-            int passengerCount = Mathf.Min(requestedPassengers, bus.AvailablePassengerCapacity);
+            int requestedCarPassengers =
+                registeredOutgoingCarPassengerCounts.TryGetValue(
+                    flight.OperationId, out int registeredCarCount)
+                    ? registeredCarCount
+                    : 0;
+            int spawnedCarPassengers =
+                SpawnOutgoingCarDropoffGroups(flight, requestedCarPassengers);
+            int requestedBusPassengers =
+                Mathf.Max(0, requestedPassengers - spawnedCarPassengers);
+            int passengerCount =
+                Mathf.Min(requestedBusPassengers, bus.AvailablePassengerCapacity);
             int createdPassengerCount = 0;
 
             for (int passengerIndex = 0; passengerIndex < passengerCount; passengerIndex++)
@@ -778,7 +815,8 @@ public class PassengerCoordinator : MonoBehaviour
                 createdPassengerCount++;
             }
 
-            bookedPassengerCounts[flight.OperationId] = createdPassengerCount;
+            bookedPassengerCounts[flight.OperationId] =
+                createdPassengerCount + spawnedCarPassengers;
         }
 
         if (manifest.Count == 0)
@@ -1238,6 +1276,7 @@ public class PassengerCoordinator : MonoBehaviour
             registeredPassengerCounts.Remove(staleOperationIds[i]);
             registeredIncomingPassengerCounts.Remove(staleOperationIds[i]);
             registeredIncomingCarPassengerCounts.Remove(staleOperationIds[i]);
+            registeredOutgoingCarPassengerCounts.Remove(staleOperationIds[i]);
         }
     }
 
@@ -1339,6 +1378,150 @@ public class PassengerCoordinator : MonoBehaviour
         }
 
         TrySpawnPendingIncomingCarPickups();
+    }
+
+    private int SpawnOutgoingCarDropoffGroups(
+        ScheduledPassengerFlight flight,
+        int requestedPassengers)
+    {
+        if (requestedPassengers <= 0 || trafficSpawner == null ||
+            airlinePassengerCarPrefab == null || passengerRoadsideDropoffPoint == null ||
+            gateRegistry == null ||
+            !gateRegistry.TryGetGate(flight.GateStableId, out AircraftGate gate) ||
+            gate == null)
+            return 0;
+
+        PlacedBuilding gateFootprint = gate.GetComponent<PlacedBuilding>();
+        if (gateFootprint == null)
+            gateFootprint = gate.GetComponentInParent<PlacedBuilding>();
+
+        int assignedPassengers = 0;
+        while (assignedPassengers < requestedPassengers)
+        {
+            int groupSize = Mathf.Min(
+                Random.Range(1, 5), requestedPassengers - assignedPassengers);
+
+            TrafficTestVehicle car = trafficSpawner.SpawnPassengerArrivalVehicle(
+                airlinePassengerCarPrefab,
+                passengerRoadsideDropoffPoint.position,
+                Random.Range(120f, 901f),
+                120f);
+
+            if (car == null)
+            {
+                Debug.LogWarning(
+                    $"PassengerCoordinator: Could not spawn an outbound passenger car for flight {flight.FlightNumber}. Remaining car passengers will use the bus manifest.",
+                    this);
+                break;
+            }
+
+            OutgoingCarDropoffGroup group = new OutgoingCarDropoffGroup
+            {
+                OperationId = flight.OperationId,
+                Gate = gate,
+                GateFootprint = gateFootprint,
+                PassengerCount = groupSize,
+                Vehicle = car
+            };
+
+            outgoingCarGroupsByVehicle.Add(car, group);
+            car.Parked += HandleOutgoingPassengerCarParked;
+            car.RoadsideDropoffStarted += HandleOutgoingPassengerCarRoadsideDropoff;
+            car.Exited += HandleOutgoingPassengerCarExited;
+            assignedPassengers += groupSize;
+        }
+
+        return assignedPassengers;
+    }
+
+    private void HandleOutgoingPassengerCarParked(TrafficTestVehicle car)
+    {
+        HandleOutgoingPassengerCarArrived(car, true);
+    }
+
+    private void HandleOutgoingPassengerCarRoadsideDropoff(TrafficTestVehicle car)
+    {
+        HandleOutgoingPassengerCarArrived(car, false);
+    }
+
+    private void HandleOutgoingPassengerCarArrived(
+        TrafficTestVehicle car,
+        bool isParked)
+    {
+        if (car == null ||
+            !outgoingCarGroupsByVehicle.TryGetValue(
+                car, out OutgoingCarDropoffGroup group) ||
+            group.PassengersSpawned)
+            return;
+
+        group.PassengersSpawned = true;
+        PlacedBuilding carFootprint = isParked && car.CurrentParkingSpace != null
+            ? car.CurrentParkingSpace.GetComponent<PlacedBuilding>()
+            : null;
+
+        for (int i = 0; i < group.PassengerCount; i++)
+        {
+            Vector3 spawnPosition = car.transform.position + Vector3.up * 0.1f;
+            GameObject passengerObject = Instantiate(
+                airlinePassengerPrefab, spawnPosition, Quaternion.identity);
+            AirlinePassengerAgent passenger =
+                passengerObject.GetComponent<AirlinePassengerAgent>();
+
+            if (passenger == null ||
+                !passenger.Initialize(
+                    group.OperationId, PassengerIdentity.TransportMode.Car))
+            {
+                Destroy(passengerObject);
+                ReduceBookedOutgoingPassengers(group.OperationId, 1);
+                continue;
+            }
+
+            if (passenger.Movement != null)
+                passenger.Movement.AlignFeetToGround(spawnPosition);
+
+            if (!passenger.WalkToTerminalFromCar(
+                group.Gate.transform.position,
+                carFootprint,
+                group.GateFootprint))
+            {
+                Debug.LogWarning(
+                    $"PassengerCoordinator: Outbound car passenger for flight {group.OperationId} could not find a walking route to gate {group.Gate.name}.",
+                    passenger);
+                passenger.AbandonJourney();
+                Destroy(passengerObject);
+                ReduceBookedOutgoingPassengers(group.OperationId, 1);
+                continue;
+            }
+
+            if (!terminalPassengersByOperationId.TryGetValue(
+                group.OperationId, out List<AirlinePassengerAgent> passengers))
+            {
+                passengers = new List<AirlinePassengerAgent>();
+                terminalPassengersByOperationId.Add(group.OperationId, passengers);
+            }
+            passengers.Add(passenger);
+        }
+    }
+
+    private void ReduceBookedOutgoingPassengers(string operationId, int amount)
+    {
+        if (amount <= 0 ||
+            !bookedPassengerCounts.TryGetValue(operationId, out int booked))
+            return;
+
+        bookedPassengerCounts[operationId] = Mathf.Max(0, booked - amount);
+    }
+
+    private void HandleOutgoingPassengerCarExited(TrafficTestVehicle car)
+    {
+        if (car == null ||
+            !outgoingCarGroupsByVehicle.Remove(
+                car, out OutgoingCarDropoffGroup group))
+            return;
+
+        car.Parked -= HandleOutgoingPassengerCarParked;
+        car.RoadsideDropoffStarted -= HandleOutgoingPassengerCarRoadsideDropoff;
+        car.Exited -= HandleOutgoingPassengerCarExited;
     }
 
     private void HandleParkingAvailabilityChanged()
