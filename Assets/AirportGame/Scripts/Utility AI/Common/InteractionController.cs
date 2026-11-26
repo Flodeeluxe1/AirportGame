@@ -107,7 +107,20 @@ public class InteractionController : MonoBehaviour
     public bool IsExternallyControlled => externallyControlled;
     public bool IsHandlingInteraction =>
         journeyInteractionsEnabled &&
+        !HasReachedJourneyDestination() &&
         (reservedProvider != null || queuedProvider != null || interactionRoutine != null);
+
+    private bool HasReachedJourneyDestination()
+    {
+        if (!journeyInteractionsEnabled || movement == null || movement.IsMoving)
+            return false;
+
+        Vector3 current = transform.position;
+        Vector3 destination = journeyDestination;
+        current.y = 0f;
+        destination.y = 0f;
+        return (current - destination).sqrMagnitude <= 0.0625f;
+    }
 
     /// <summary>Temporarily hands movement and decisions to a transport system without disabling visitor systems.</summary>
     public void SetExternallyControlled(bool controlled)
@@ -750,6 +763,14 @@ public class InteractionController : MonoBehaviour
         }
 
         if (reservedProvider == null || reservedInteraction == null)
+            return;
+
+        // A passenger can arrive at its mandatory transport destination while
+        // an optional interaction is reserved. Only treat an Arrived event as
+        // interaction arrival when the movement controller confirms that the
+        // passenger reached this provider's approach point.
+        if (journeyInteractionsEnabled &&
+            !movement.IsAtInteractionApproach(reservedProvider))
             return;
 
         float distance =
