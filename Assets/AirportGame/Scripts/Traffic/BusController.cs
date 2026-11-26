@@ -84,6 +84,7 @@ public class BusController : MonoBehaviour
     public event Action<BusController> JourneyCompleted;
     public event Action<BusController> StopServiceCompleted;
     public event Action<BusController, AirlinePassengerAgent> PassengerBoarded;
+    public event Action<BusController, AirlinePassengerAgent> PassengerBoardingFailed;
 
     public PlacedBuilding FirstStop => initialFirstStop;
     public int PassengerCapacity => Mathf.Max(1, maxPassengerCapacity);
@@ -101,8 +102,13 @@ public class BusController : MonoBehaviour
         get
         {
             RemoveDestroyedPassengers();
-            return Mathf.Max(0, PassengerCapacity - onboardPassengers.Count);
+            return GetAvailablePassengerCapacity();
         }
+    }
+
+    private int GetAvailablePassengerCapacity()
+    {
+        return Mathf.Max(0, PassengerCapacity - onboardPassengers.Count);
     }
 
     private void RemoveDestroyedPassengers()
@@ -114,8 +120,14 @@ public class BusController : MonoBehaviour
 
     public bool TryBoardPassenger(AirlinePassengerAgent passenger)
     {
+        RemoveDestroyedPassengers();
+        return TryBoardPassengerWithoutCleanup(passenger);
+    }
+
+    private bool TryBoardPassengerWithoutCleanup(AirlinePassengerAgent passenger)
+    {
         if (passenger == null || onboardPassengers.Contains(passenger) ||
-            AvailablePassengerCapacity <= 0 || !passenger.BoardBus(transform))
+            GetAvailablePassengerCapacity() <= 0 || !passenger.BoardBus(transform))
             return false;
 
         onboardPassengers.Add(passenger);
@@ -141,7 +153,10 @@ public class BusController : MonoBehaviour
         if (!boardingServiceActive)
             return;
 
-        if (AvailablePassengerCapacity <= 0)
+        // Prune destroyed passengers once per boarding update rather than
+        // rescanning the onboard list for every passenger processed this frame.
+        RemoveDestroyedPassengers();
+        if (GetAvailablePassengerCapacity() <= 0)
         {
             FinishStopBoarding();
             return;
@@ -158,13 +173,20 @@ public class BusController : MonoBehaviour
                             boardingIntervalRemaining <= 0f; i++)
             {
                 AirlinePassengerAgent passenger = boardingQueue.Dequeue();
-                if (passenger != null && TryBoardPassenger(passenger))
+                if (passenger != null)
                 {
-                    stopTimeRemaining = Mathf.Max(0f, stopDwellSeconds);
-                    PassengerBoarded?.Invoke(this, passenger);
+                    if (TryBoardPassengerWithoutCleanup(passenger))
+                    {
+                        stopTimeRemaining = Mathf.Max(0f, stopDwellSeconds);
+                        PassengerBoarded?.Invoke(this, passenger);
+                    }
+                    else
+                    {
+                        PassengerBoardingFailed?.Invoke(this, passenger);
+                    }
                 }
 
-                if (AvailablePassengerCapacity <= 0)
+                if (GetAvailablePassengerCapacity() <= 0)
                 {
                     FinishStopBoarding();
                     return;
