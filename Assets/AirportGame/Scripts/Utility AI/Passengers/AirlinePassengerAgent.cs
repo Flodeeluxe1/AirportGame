@@ -215,19 +215,21 @@ public class AirlinePassengerAgent : MonoBehaviour
             return false;
         }
 
-        if (interactions != null)
-            interactions.SetExternallyControlled(true);
-
         if (passengerJourney != null &&
             !passengerJourney.BeginTransport(
                 PassengerJourneyController.TransportDestination.BusStop))
             return false;
+
+        if (interactions != null)
+            interactions.SetExternallyControlled(true);
 
         state = JourneyState.WalkingToBusStop;
         if (!movement.MoveToAllowingOccupiedEndpoints(
                 stopPosition, gateFootprint, busStopFootprint))
         {
             state = JourneyState.Uninitialized;
+            if (passengerJourney != null)
+                passengerJourney.CancelTransport();
             if (interactions != null)
                 interactions.SetExternallyControlled(false);
             return false;
@@ -293,6 +295,8 @@ public class AirlinePassengerAgent : MonoBehaviour
         HideWhileOnBus();
 
         state = JourneyState.OnBus;
+        if (passengerJourney != null)
+            passengerJourney.CompleteTransportJourney();
         return true;
     }
 
@@ -337,19 +341,21 @@ public class AirlinePassengerAgent : MonoBehaviour
             state == JourneyState.Completed || state == JourneyState.Abandoned)
             return false;
 
-        if (interactions != null)
-            interactions.SetExternallyControlled(true);
-
         if (passengerJourney != null &&
             !passengerJourney.BeginTransport(
                 PassengerJourneyController.TransportDestination.PickupCar))
             return false;
+
+        if (interactions != null)
+            interactions.SetExternallyControlled(true);
 
         state = JourneyState.WalkingToCarPickup;
         if (!movement.MoveToAllowingOccupiedEndpoints(
                 pickupPosition, gateFootprint, parkingFootprint))
         {
             state = JourneyState.Uninitialized;
+            if (passengerJourney != null)
+                passengerJourney.CancelTransport();
             if (interactions != null)
                 interactions.SetExternallyControlled(false);
             return false;
