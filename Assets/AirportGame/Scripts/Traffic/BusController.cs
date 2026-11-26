@@ -25,7 +25,10 @@ public class BusController : MonoBehaviour
     [SerializeField, Min(1)] private int turnCurveResolution = 8;
 
     [Header("Stop Service")]
-    [Min(0f)] [SerializeField] private float stopDwellSeconds = 5f;
+    [Tooltip("Time to wait after the most recent passenger boards before departing.")]
+    [Min(0f)] [SerializeField] private float stopDwellSeconds = 30f;
+    [Tooltip("Seconds between boarding passengers.")]
+    [Min(0.01f)] [SerializeField] private float boardingIntervalSeconds = 1f;
 
     [Header("Passenger Capacity")]
     [Min(1)] [SerializeField] private int maxPassengerCapacity = 50;
@@ -49,6 +52,10 @@ public class BusController : MonoBehaviour
     private readonly List<PlacedBuilding> orderedStops = new List<PlacedBuilding>();
     private PlacedBuilding initialFirstStop;
     private readonly List<AirlinePassengerAgent> onboardPassengers = new List<AirlinePassengerAgent>();
+    private readonly Queue<AirlinePassengerAgent> boardingQueue =
+        new Queue<AirlinePassengerAgent>();
+    private float boardingIntervalRemaining;
+    private bool boardingServiceActive;
     private readonly List<Vector3> smoothedMovementWaypoints =
         new List<Vector3>();
     private readonly List<int> smoothedRouteIndices = new List<int>();
@@ -75,6 +82,8 @@ public class BusController : MonoBehaviour
 
     public event Action<BusController, PlacedBuilding> StopReached;
     public event Action<BusController> JourneyCompleted;
+    public event Action<BusController> StopServiceCompleted;
+    public event Action<BusController, AirlinePassengerAgent> PassengerBoarded;
 
     public PlacedBuilding FirstStop => initialFirstStop;
     public int PassengerCapacity => Mathf.Max(1, maxPassengerCapacity);
@@ -86,6 +95,7 @@ public class BusController : MonoBehaviour
             return onboardPassengers.Count;
         }
     }
+    public bool IsBoardingOpen => boardingServiceActive && AvailablePassengerCapacity > boardingQueue.Count;
     public int AvailablePassengerCapacity
     {
         get
@@ -110,6 +120,74 @@ public class BusController : MonoBehaviour
 
         onboardPassengers.Add(passenger);
         return true;
+    }
+
+    public bool QueuePassengerForBoarding(AirlinePassengerAgent passenger)
+    {
+        if (passenger == null || !boardingServiceActive ||
+            AvailablePassengerCapacity <= boardingQueue.Count ||
+            boardingQueue.Contains(passenger))
+            return false;
+
+        bool wasEmpty = boardingQueue.Count == 0;
+        boardingQueue.Enqueue(passenger);
+        if (wasEmpty)
+            boardingIntervalRemaining = Mathf.Max(0.01f, boardingIntervalSeconds);
+        return true;
+    }
+
+    private void ProcessStopBoarding(float deltaTime)
+    {
+        if (!boardingServiceActive)
+            return;
+
+        if (AvailablePassengerCapacity <= 0)
+        {
+            FinishStopBoarding();
+            return;
+        }
+
+        if (boardingQueue.Count > 0)
+        {
+            boardingIntervalRemaining -= deltaTime;
+            if (boardingIntervalRemaining > 0f)
+                return;
+
+            AirlinePassengerAgent passenger = boardingQueue.Dequeue();
+            if (passenger != null && TryBoardPassenger(passenger))
+            {
+                stopTimeRemaining = Mathf.Max(0f, stopDwellSeconds);
+                PassengerBoarded?.Invoke(this, passenger);
+            }
+
+            if (AvailablePassengerCapacity <= 0)
+            {
+                FinishStopBoarding();
+                return;
+            }
+
+            if (boardingQueue.Count > 0)
+                boardingIntervalRemaining = Mathf.Max(0.01f, boardingIntervalSeconds);
+            else
+                boardingIntervalRemaining = 0f;
+            return;
+        }
+
+        stopTimeRemaining = Mathf.Max(0f, stopTimeRemaining - deltaTime);
+        if (stopTimeRemaining <= 0f)
+            FinishStopBoarding();
+    }
+
+    private void FinishStopBoarding()
+    {
+        if (!boardingServiceActive)
+            return;
+
+        boardingServiceActive = false;
+        boardingQueue.Clear();
+        stopTimeRemaining = 0f;
+        debugState = "Departing bus stop";
+        StopServiceCompleted?.Invoke(this);
     }
 
     public bool DisembarkPassengerToTerminal(
@@ -219,14 +297,11 @@ public class BusController : MonoBehaviour
             RebuildRemainingJourney();
         }
 
-        if (stopTimeRemaining > 0f)
+        if (boardingServiceActive)
         {
             currentSpeed = 0f;
             debugCurrentSpeed = 0f;
-            stopTimeRemaining = Mathf.Max(
-                0f, stopTimeRemaining - GameTimeManager.SimulationDeltaTime);
-            if (stopTimeRemaining <= 0f)
-                debugState = "Departing bus stop";
+            ProcessStopBoarding(GameTimeManager.SimulationDeltaTime);
             return;
         }
 
@@ -334,8 +409,10 @@ public class BusController : MonoBehaviour
         {
             completedStopRoadCells.Add(route[reachedRouteIndex]);
             currentSpeed = 0f;
-            stopTimeRemaining = stopDwellSeconds;
-            debugState = "At bus stop";
+            boardingServiceActive = true;
+            boardingIntervalRemaining = Mathf.Max(0.01f, boardingIntervalSeconds);
+            stopTimeRemaining = Mathf.Max(0f, stopDwellSeconds);
+            debugState = "Boarding passengers";
             for (int stopIndex = 0; stopIndex < orderedStops.Count; stopIndex++)
             {
                 if (stopIndex < orderedStopPathIndices.Count &&
