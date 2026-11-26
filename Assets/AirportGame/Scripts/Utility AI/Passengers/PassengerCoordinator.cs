@@ -1277,6 +1277,14 @@ public class PassengerCoordinator : MonoBehaviour
                 continue;
             }
 
+            // Keep the passenger's FIFO place while they briefly leave the stop
+            // to satisfy a need. They can board on a later bus once they return.
+            if (!passenger.CanBoardBus)
+            {
+                waitingReturnPassengers.Enqueue(passenger);
+                continue;
+            }
+
             if (!QueueReturnPassengerForBus(bus, passenger))
             {
                 waitingReturnPassengers.Enqueue(passenger);
@@ -1476,9 +1484,13 @@ public class PassengerCoordinator : MonoBehaviour
         BusController bus,
         AirlinePassengerAgent passenger)
     {
-        if (bus == null || passenger == null ||
+        if (bus == null || passenger == null || !passenger.CanBoardBus ||
             !bus.QueuePassengerForBoarding(passenger))
             return false;
+
+        // Once assigned to an open bus, stop optional detours so the passenger
+        // stays at the stop and is ready for the bus's boarding callback.
+        passenger.PauseWaitingForBusNeedsForBoarding();
 
         if (!busWaitStartTimes.ContainsKey(passenger))
             busWaitStartTimes[passenger] = GameTimeManager.SimulationTime;
@@ -1552,6 +1564,7 @@ public class PassengerCoordinator : MonoBehaviour
             waitingReturnPassengerSet.Remove(passenger);
             if (waitingReturnPassengerSet.Add(passenger))
             {
+                passenger.ResumeWaitingForBusNeeds();
                 waitingReturnPassengers.Enqueue(passenger);
                 NotifyTransportStatisticsChanged();
             }
