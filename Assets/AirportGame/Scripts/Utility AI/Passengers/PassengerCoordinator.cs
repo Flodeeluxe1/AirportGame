@@ -391,8 +391,16 @@ public class PassengerCoordinator : MonoBehaviour
                 continue;
             }
 
+            PlacedBuilding gateFootprint = gate.GetComponent<PlacedBuilding>();
+            if (gateFootprint == null)
+                gateFootprint = gate.GetComponentInParent<PlacedBuilding>();
+
             if (bus.DisembarkPassengerToTerminal(
-                record.Agent, disembarkPosition, gate.transform.position))
+                record.Agent,
+                disembarkPosition,
+                gate.transform.position,
+                stop,
+                gateFootprint))
             {
                 string operationId = record.Agent.FlightOperationId;
                 if (!terminalPassengersByOperationId.TryGetValue(
