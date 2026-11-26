@@ -31,6 +31,11 @@ public class PassengerCoordinator : MonoBehaviour
     private int cachedOccupiedParkingSpaceCount;
     private int busPassengersTransported;
     private int carPassengersTransported;
+    private double cumulativeBusPeakLoadRatio;
+    private int completedBusLoadMeasurements;
+    private float lastBusPeakLoadPercent;
+    private readonly Dictionary<BusController, int> busPeakLoads =
+        new Dictionary<BusController, int>();
     private double cumulativeBusWaitSeconds;
     private int completedBusWaitMeasurements;
     private readonly Dictionary<AirlinePassengerAgent, double> busWaitStartTimes =
@@ -49,6 +54,18 @@ public class PassengerCoordinator : MonoBehaviour
     public event System.Action TransportStatisticsChanged;
     public int BusPassengersTransported => busPassengersTransported;
     public int CarPassengersTransported => carPassengersTransported;
+    public int TotalPassengersTransported => busPassengersTransported + carPassengersTransported;
+    public float BusModeSharePercent => TotalPassengersTransported > 0
+        ? busPassengersTransported * 100f / TotalPassengersTransported
+        : 0f;
+    public float CarModeSharePercent => TotalPassengersTransported > 0
+        ? carPassengersTransported * 100f / TotalPassengersTransported
+        : 0f;
+    public float AverageBusPeakLoadPercent => completedBusLoadMeasurements > 0
+        ? (float)(cumulativeBusPeakLoadRatio / completedBusLoadMeasurements * 100.0)
+        : 0f;
+    public float LastBusPeakLoadPercent => lastBusPeakLoadPercent;
+    public int CompletedBusLoadMeasurements => completedBusLoadMeasurements;
     public int WaitingForBusPassengers
     {
         get
@@ -1037,6 +1054,7 @@ public class PassengerCoordinator : MonoBehaviour
         LoadPendingOutgoingBusPassengers(bus, manifest);
         if (manifest.Count > 0)
             busManifests[bus] = manifest;
+        busPeakLoads[bus] = bus.OnboardPassengerCount;
 
         NotifyTransportStatisticsChanged();
     }
@@ -1272,6 +1290,16 @@ public class PassengerCoordinator : MonoBehaviour
         if (bus == null)
             return;
 
+        if (busPeakLoads.TryGetValue(bus, out int peakLoad))
+        {
+            lastBusPeakLoadPercent = Mathf.Clamp(
+                peakLoad * 100f / Mathf.Max(1, bus.PassengerCapacity), 0f, 100f);
+            cumulativeBusPeakLoadRatio += lastBusPeakLoadPercent / 100.0;
+            completedBusLoadMeasurements++;
+            busPeakLoads.Remove(bus);
+            NotifyTransportStatisticsChanged();
+        }
+
         // Homebound passengers are delivered when the bus reaches its exit.
         // Do not return early: an unfinished departing manifest must also be
         // cleaned up, and the bus event subscriptions must always be released.
@@ -1474,6 +1502,13 @@ public class PassengerCoordinator : MonoBehaviour
     {
         if (passenger == null)
             return;
+
+        if (bus != null && busPeakLoads.TryGetValue(bus, out int peakLoad))
+        {
+            int currentLoad = bus.OnboardPassengerCount;
+            if (currentLoad > peakLoad)
+                busPeakLoads[bus] = currentLoad;
+        }
 
         waitingReturnPassengerSet.Remove(passenger);
         if (busWaitStartTimes.TryGetValue(passenger, out double waitStartedAt))
