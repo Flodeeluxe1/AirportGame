@@ -324,7 +324,6 @@ public class PassengerCoordinator : MonoBehaviour
                 $"Prefab: '{airlinePassengerPrefab.name}'. Check that it has a working AirlinePassengerAgent.",
                 passengerObject);
             Destroy(passengerObject);
-            job.FailedCount++;
             return;
         }
 
@@ -363,7 +362,7 @@ public class PassengerCoordinator : MonoBehaviour
             walkingToBusStopPassengers.Remove(passenger);
             job.FailedCount++;
             Debug.LogWarning(
-                $"PassengerCoordinator: Passenger for flight {job.FlightNumber} spawned at gate '{job.Gate.name}' but could not start walking to bus stop '{job.FirstStop.name}'.",
+                $"PassengerCoordinator: Passenger for flight {job.FlightNumber} spawned at '{(job.Gate != null ? job.Gate.name : job.Turnaround.name)}' but could not start walking to bus stop '{job.FirstStop.name}'.",
                 passengerObject);
             return;
         }
@@ -912,9 +911,13 @@ public class PassengerCoordinator : MonoBehaviour
                 turnaround);
         }
 
-        PlacedBuilding gateFootprint = gate.GetComponent<PlacedBuilding>();
-        if (gateFootprint == null)
-            gateFootprint = gate.GetComponentInParent<PlacedBuilding>();
+        PlacedBuilding gateFootprint = null;
+        if (gate != null)
+        {
+            gateFootprint = gate.GetComponent<PlacedBuilding>();
+            if (gateFootprint == null)
+                gateFootprint = gate.GetComponentInParent<PlacedBuilding>();
+        }
 
         IncomingPassengerSpawnJob job = new IncomingPassengerSpawnJob
         {
