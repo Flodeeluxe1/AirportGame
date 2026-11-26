@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -233,16 +234,22 @@ public class AirlinePassengerAgent : MonoBehaviour
             case PassengerJourneyController.JourneyStage.DeparturesArea:
                 if (!passengerJourney.BeginBoardingGateJourney())
                     return;
+                goto case PassengerJourneyController.JourneyStage.TravellingToBoardingGate;
 
+            case PassengerJourneyController.JourneyStage.TravellingToBoardingGate:
                 state = JourneyState.WalkingToTerminal;
                 if (!movement.MoveToAllowingOccupiedEndpoints(
                         departureGatePosition, null, departureGateFootprint))
                 {
-                    passengerJourney.ReachBoardingGate();
-                    state = JourneyState.AtTerminal;
+                    state = JourneyState.ProcessingDepartureJourney;
+                    nextDepartureStationRetryTime = GameTimeManager.SimulationTime + 10d;
                     Debug.LogWarning(
-                        $"AirlinePassengerAgent: No route to boarding gate for {flightOperationId}.",
+                        $"AirlinePassengerAgent: No route to boarding gate for {flightOperationId}; will retry.",
                         this);
+                }
+                else
+                {
+                    nextDepartureStationRetryTime = double.PositiveInfinity;
                 }
                 return;
             default:
