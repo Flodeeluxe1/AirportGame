@@ -661,6 +661,7 @@ public class PassengerCoordinator : MonoBehaviour
         pendingOutgoingBusOperationIds.Clear();
         pendingOutgoingBusQueuedOperationIds.Clear();
         RefreshScheduledPassengerRegistrations();
+        NotifyTransportStatisticsChanged();
     }
 
     private void HandlePassengerRegistrationTimeAdvanced(long previousAbsoluteSecond, long currentAbsoluteSecond)
@@ -1510,7 +1511,10 @@ public class PassengerCoordinator : MonoBehaviour
         if (passenger.State == AirlinePassengerAgent.JourneyState.WaitingForBus)
         {
             if (waitingReturnPassengerSet.Add(passenger))
+            {
                 waitingReturnPassengers.Enqueue(passenger);
+                NotifyTransportStatisticsChanged();
+            }
         }
         else
         {
@@ -1621,6 +1625,8 @@ public class PassengerCoordinator : MonoBehaviour
             pendingOutgoingBusGateIds.Remove(staleOperationIds[i]);
             pendingOutgoingBusQueuedOperationIds.Remove(staleOperationIds[i]);
         }
+
+        NotifyTransportStatisticsChanged();
     }
 
     private int CalculateCarPassengerCount(int totalPassengers)
