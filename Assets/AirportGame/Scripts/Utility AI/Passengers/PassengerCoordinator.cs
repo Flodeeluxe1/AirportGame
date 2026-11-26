@@ -80,11 +80,11 @@ public class PassengerCoordinator : MonoBehaviour
     private sealed class IncomingPassengerSpawnJob
     {
         public AircraftTurnaroundController Turnaround;
+        public string OperationId;
         public string FlightNumber;
-        public readonly List<AirlinePassengerAgent> Passengers =
-            new List<AirlinePassengerAgent>();
+        public int PassengerCount;
         public int NextPassengerIndex;
-        public int DeboardedCount;
+        public int SpawnedCount;
         public int RoutedCount;
         public int FailedCount;
         public AircraftGate Gate;
@@ -145,7 +145,7 @@ public class PassengerCoordinator : MonoBehaviour
                 SpawnNextIncomingPassenger(activeIncomingPassengerSpawnJob);
                 if (activeIncomingPassengerSpawnJob != null &&
                     activeIncomingPassengerSpawnJob.NextPassengerIndex >=
-                    activeIncomingPassengerSpawnJob.Passengers.Count)
+                    activeIncomingPassengerSpawnJob.PassengerCount)
                 {
                     CompleteIncomingPassengerSpawnJob();
                 }
@@ -298,27 +298,43 @@ public class PassengerCoordinator : MonoBehaviour
         outgoingPassengerBoardingJobs.Enqueue(job);
     }
 
-    private void DeboardNextPassenger(IncomingPassengerSpawnJob job)
+    private void SpawnNextIncomingPassenger(IncomingPassengerSpawnJob job)
     {
         int passengerIndex = job.NextPassengerIndex++;
-        AirlinePassengerAgent passenger = job.Passengers[passengerIndex];
-        if (passenger == null ||
-            !passenger.DeboardAircraft(
-                job.Gate != null
-                    ? job.Gate.transform.position
-                    : job.Turnaround.transform.position))
+        if (job.Gate == null)
         {
             job.FailedCount++;
             return;
         }
 
-        job.DeboardedCount++;
+        Vector3 spawnPosition = job.Gate.transform.position;
+        GameObject passengerObject = Instantiate(
+            airlinePassengerPrefab, spawnPosition, Quaternion.identity);
+        AirlinePassengerAgent passenger =
+            passengerObject.GetComponent<AirlinePassengerAgent>();
 
-        if (job.FirstStop == null || pedestrianPathfinder == null)
+        if (passenger == null || !passenger.Initialize(
+            job.OperationId, PassengerIdentity.TransportMode.Bus))
+        {
+            job.FailedCount++;
+            Debug.LogWarning(
+                $"PassengerCoordinator: Failed to initialize arriving passenger {passengerIndex + 1}/{job.PassengerCount} for flight {job.FlightNumber}. " +
+                $"Prefab: '{airlinePassengerPrefab.name}'. Check that it has a working AirlinePassengerAgent.",
+                passengerObject);
+            Destroy(passengerObject);
+            return;
+        }
+
+        job.SpawnedCount++;
+        if (passenger.Movement != null)
+            passenger.Movement.AlignFeetToGround(spawnPosition);
+
+        if (job.FirstStop == null)
             return;
 
         Vector3 waitingPosition;
-        if (!pedestrianPathfinder.TryFindBusStopWaitingPosition(
+        if (pedestrianPathfinder == null ||
+            !pedestrianPathfinder.TryFindBusStopWaitingPosition(
                 job.FirstStop.transform.position,
                 Random.Range(-2.5f, 2.5f),
                 Random.Range(1.1f, 2.2f),
@@ -327,8 +343,8 @@ public class PassengerCoordinator : MonoBehaviour
         {
             job.FailedCount++;
             Debug.LogWarning(
-                $"PassengerCoordinator: Deboarded passenger for flight {job.FlightNumber}, but no walkable waiting position could be found at bus stop '{job.FirstStop.name}'. The passenger remains visible at the gate.",
-                passenger);
+                $"PassengerCoordinator: Arriving passenger for flight {job.FlightNumber} was created but no walkable waiting position could be found at bus stop '{job.FirstStop.name}'.",
+                passengerObject);
             return;
         }
 
@@ -343,8 +359,8 @@ public class PassengerCoordinator : MonoBehaviour
             walkingToBusStopPassengers.Remove(passenger);
             job.FailedCount++;
             Debug.LogWarning(
-                $"PassengerCoordinator: Deboarded passenger for flight {job.FlightNumber}, but could not start walking to bus stop '{job.FirstStop.name}'. The passenger remains visible at the gate.",
-                passenger);
+                $"PassengerCoordinator: Passenger for flight {job.FlightNumber} spawned at gate '{job.Gate.name}' but could not start walking to bus stop '{job.FirstStop.name}'.",
+                passengerObject);
             return;
         }
 
@@ -358,8 +374,8 @@ public class PassengerCoordinator : MonoBehaviour
             return;
 
         Debug.Log(
-            $"PassengerCoordinator: Real passenger deboarding result for flight {job.FlightNumber}: " +
-            $"onboard {job.Passengers.Count}, deboarded {job.DeboardedCount}, walking to bus stop {job.RoutedCount}, failed {job.FailedCount}.",
+            $"PassengerCoordinator: Arriving passenger result for flight {job.FlightNumber}: " +
+            $"requested {job.PassengerCount}, spawned {job.SpawnedCount}, walking to bus stop {job.RoutedCount}, failed {job.FailedCount}.",
             job.Turnaround);
 
         activeIncomingPassengerSpawnJob = null;
@@ -835,45 +851,23 @@ public class PassengerCoordinator : MonoBehaviour
             turnaround.GetComponent<AircraftFlightIdentity>();
         AircraftStats stats = turnaround.GetComponent<AircraftStats>();
 
-        if (identity == null || !identity.IsInitialized ||
+        if (airlinePassengerPrefab == null || gateRegistry == null ||
+            identity == null || !identity.IsInitialized ||
             identity.Definition == null || stats == null ||
             (identity.Definition.OperationType != FlightOperationType.PassengerOnly &&
              identity.Definition.OperationType != FlightOperationType.CargoAndPassengers))
         {
-            Debug.LogWarning(
-                $"PassengerCoordinator: Cannot resolve a valid passenger flight for aircraft '{turnaround.name}'. Completing deboarding without a passenger manifest.",
+            Debug.LogError(
+                $"PassengerCoordinator: Cannot start real passenger deboarding for '{turnaround.name}'. Check the airline passenger prefab, gate registry, flight identity and aircraft stats.",
                 turnaround);
             turnaround.CompleteExternalDeboarding();
             return;
         }
 
-        AirlinePassengerAgent[] onboardPassengers =
-            turnaround.GetComponentsInChildren<AirlinePassengerAgent>(true);
-
-        IncomingPassengerSpawnJob job = new IncomingPassengerSpawnJob
-        {
-            Turnaround = turnaround,
-            FlightNumber = identity.FlightNumber
-        };
-
-        for (int i = 0; i < onboardPassengers.Length; i++)
-        {
-            AirlinePassengerAgent passenger = onboardPassengers[i];
-            if (passenger != null &&
-                passenger.State == AirlinePassengerAgent.JourneyState.OnAircraft)
-            {
-                job.Passengers.Add(passenger);
-            }
-        }
-
-        // The actual hidden agents attached to this aircraft are the source
-        // of truth. Never create replacement passengers from a random count.
-        stats.SetIncomingPassengers(job.Passengers.Count);
-
-        if (job.Passengers.Count == 0)
+        if (stats.IncomingPassengers <= 0)
         {
             if (logToConsole)
-                Debug.Log($"PassengerCoordinator: Flight {identity.FlightNumber} has no real onboard passenger agents to deboard.", turnaround);
+                Debug.Log($"PassengerCoordinator: Flight {identity.FlightNumber} has no incoming passengers to deboard.", turnaround);
             turnaround.CompleteExternalDeboarding();
             return;
         }
@@ -882,36 +876,43 @@ public class PassengerCoordinator : MonoBehaviour
             ? identity.ActualGateStableId
             : identity.PlannedGateStableId;
 
-        if (gateRegistry != null &&
-            !string.IsNullOrEmpty(gateId) &&
-            gateRegistry.TryGetGate(gateId, out AircraftGate gate) &&
-            gate != null)
+        if (!gateRegistry.TryGetGate(gateId, out AircraftGate gate) || gate == null)
         {
-            job.Gate = gate;
-            job.GateFootprint = gate.GetComponent<PlacedBuilding>();
-            if (job.GateFootprint == null)
-                job.GateFootprint = gate.GetComponentInParent<PlacedBuilding>();
-        }
-        else
-        {
-            Debug.LogWarning(
-                $"PassengerCoordinator: Could not resolve gate '{gateId}' for flight {identity.FlightNumber}. Real passengers will deboard at the aircraft position.",
+            Debug.LogError(
+                $"PassengerCoordinator: Cannot resolve gate '{gateId}' for arriving flight {identity.FlightNumber}.",
                 turnaround);
+            turnaround.CompleteExternalDeboarding();
+            return;
         }
 
-        job.FirstStop = busSpawner != null
+        PlacedBuilding firstStop = busSpawner != null
             ? busSpawner.GetNextFirstStop()
             : null;
 
-        if (job.FirstStop == null)
+        if (firstStop == null)
         {
             Debug.LogWarning(
-                $"PassengerCoordinator: No first bus stop is available for flight {identity.FlightNumber}. Passengers will become visible at the gate but cannot be routed to a bus stop.",
+                $"PassengerCoordinator: No first bus stop is available for flight {identity.FlightNumber}. Passengers will still deboard visibly at the gate.",
                 turnaround);
         }
 
+        PlacedBuilding gateFootprint = gate.GetComponent<PlacedBuilding>();
+        if (gateFootprint == null)
+            gateFootprint = gate.GetComponentInParent<PlacedBuilding>();
+
+        IncomingPassengerSpawnJob job = new IncomingPassengerSpawnJob
+        {
+            Turnaround = turnaround,
+            OperationId = identity.OperationId,
+            FlightNumber = identity.FlightNumber,
+            PassengerCount = stats.IncomingPassengers,
+            Gate = gate,
+            GateFootprint = gateFootprint,
+            FirstStop = firstStop
+        };
+
         if (logToConsole)
-            Debug.Log($"PassengerCoordinator: Starting real deboarding for flight {identity.FlightNumber}: {job.Passengers.Count} onboard passenger(s), one per simulated second.", turnaround);
+            Debug.Log($"PassengerCoordinator: Starting deboarding for flight {identity.FlightNumber}: {job.PassengerCount} real passenger agent(s), one per simulated second.", turnaround);
 
         incomingPassengerSpawnJobs.Enqueue(job);
     }
