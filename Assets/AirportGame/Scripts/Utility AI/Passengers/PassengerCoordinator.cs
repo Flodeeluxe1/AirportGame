@@ -132,6 +132,13 @@ public class PassengerCoordinator : MonoBehaviour
         public string GateStableId;
     }
 
+    public float PassengerCarParkingFeePerMinute => passengerCarParkingFeePerMinute;
+
+    public void SetPassengerCarParkingFeePerMinute(float feePerMinute)
+    {
+        passengerCarParkingFeePerMinute = Mathf.Max(0f, feePerMinute);
+    }
+
     private static PassengerCoordinator instance;
 
     public static PassengerCoordinator Instance
@@ -472,6 +479,8 @@ public class PassengerCoordinator : MonoBehaviour
             Debug.LogWarning(
                 "PassengerCoordinator: Incoming car pickups require the shared TrafficTestSpawner and passenger car prefab. The car prefab is normally read from SightseeingPassengerManager.",
                 this);
+
+        TrySpawnPendingIncomingCarPickups();
         else if (airlinePassengerPrefab.GetComponent<AirlinePassengerAgent>() == null)
             Debug.LogError("PassengerCoordinator: The assigned Passenger prefab must contain AirlinePassengerAgent.", airlinePassengerPrefab);
     }
@@ -1006,14 +1015,22 @@ public class PassengerCoordinator : MonoBehaviour
                 turnaround);
         }
 
-        PlacedBuilding firstStop = busSpawner != null
+        int incomingCarCount =
+            registeredIncomingCarPassengerCounts.TryGetValue(
+                identity.OperationId, out int assignedCarCount)
+                ? assignedCarCount
+                : 0;
+        int incomingBusCount =
+            Mathf.Max(0, stats.IncomingPassengers - incomingCarCount);
+
+        PlacedBuilding firstStop = incomingBusCount > 0 && busSpawner != null
             ? busSpawner.GetNextFirstStop()
             : null;
 
-        if (firstStop == null)
+        if (incomingBusCount > 0 && firstStop == null)
         {
             Debug.LogWarning(
-                $"PassengerCoordinator: No first bus stop is available for flight {identity.FlightNumber}. Passengers will still deboard visibly at the gate.",
+                $"PassengerCoordinator: No first bus stop is available for flight {identity.FlightNumber}. Bus-assigned passengers will still deboard visibly at the gate.",
                 turnaround);
         }
 
@@ -1024,12 +1041,6 @@ public class PassengerCoordinator : MonoBehaviour
             if (gateFootprint == null)
                 gateFootprint = gate.GetComponentInParent<PlacedBuilding>();
         }
-
-        int incomingCarCount =
-            registeredIncomingCarPassengerCounts.TryGetValue(
-                identity.OperationId, out int assignedCarCount)
-                ? assignedCarCount
-                : 0;
 
         IncomingPassengerSpawnJob job = new IncomingPassengerSpawnJob
         {
