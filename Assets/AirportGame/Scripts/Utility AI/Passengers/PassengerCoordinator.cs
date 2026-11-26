@@ -702,6 +702,18 @@ public class PassengerCoordinator : MonoBehaviour
             for (int i = 0; i < alreadyWaiting.Count; i++)
                 HandlePassengerReachedBusStop(alreadyWaiting[i]);
 
+            foreach (KeyValuePair<TrafficTestVehicle, OutgoingCarDropoffGroup> pair in outgoingCarGroupsByVehicle)
+            {
+                if (pair.Key == null)
+                    continue;
+                pair.Key.Parked -= HandleOutgoingPassengerCarParked;
+                pair.Key.RoadsideDropoffStarted -= HandleOutgoingPassengerCarRoadsideDropoff;
+                pair.Key.Exited -= HandleOutgoingPassengerCarExited;
+                pair.Key.Parked += HandleOutgoingPassengerCarParked;
+                pair.Key.RoadsideDropoffStarted += HandleOutgoingPassengerCarRoadsideDropoff;
+                pair.Key.Exited += HandleOutgoingPassengerCarExited;
+            }
+
             foreach (KeyValuePair<TrafficTestVehicle, IncomingCarPickupGroup> pair in incomingCarGroupsByVehicle)
             {
                 if (pair.Key == null)
@@ -1515,10 +1527,11 @@ public class PassengerCoordinator : MonoBehaviour
     private void HandleOutgoingPassengerCarExited(TrafficTestVehicle car)
     {
         if (car == null ||
-            !outgoingCarGroupsByVehicle.Remove(
+            !outgoingCarGroupsByVehicle.TryGetValue(
                 car, out OutgoingCarDropoffGroup group))
             return;
 
+        outgoingCarGroupsByVehicle.Remove(car);
         car.Parked -= HandleOutgoingPassengerCarParked;
         car.RoadsideDropoffStarted -= HandleOutgoingPassengerCarRoadsideDropoff;
         car.Exited -= HandleOutgoingPassengerCarExited;
