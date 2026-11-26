@@ -11,6 +11,8 @@ public class TrafficTestVehicle : MonoBehaviour
     {
         Idle,
         DrivingToParking,
+        DrivingToRoadsideDropoff,
+        WaitingAtRoadsideDropoff,
         WaitingForParking,
         AligningParkingApproach,
         ApproachingParkingEntry,
@@ -55,6 +57,11 @@ public class TrafficTestVehicle : MonoBehaviour
 
     [Header("Parking")]
     [SerializeField] private float parkingDuration = 5f;
+    private bool requireImmediatelyFreeParking;
+    private bool roadsideFallbackEnabled;
+    private Vector2Int roadsideDropoffCell;
+    private float roadsideDropoffDuration;
+    private double roadsideDepartureTime;
 
     [Tooltip("Distance outside the parking edge for the straight entry approach.")]
     [SerializeField] private float parkingEntryClearance = 0.75f;
@@ -105,6 +112,7 @@ public class TrafficTestVehicle : MonoBehaviour
     public bool IsParked => state == VehicleState.Parked;
 
     public event Action<TrafficTestVehicle> Parked;
+    public event Action<TrafficTestVehicle> RoadsideDropoffStarted;
     public event Action<TrafficTestVehicle> Exited;
 
     // Intersection reservation currently held by this vehicle.
@@ -157,9 +165,34 @@ public class TrafficTestVehicle : MonoBehaviour
         this.startCell = startCell;
         this.exitCell = exitCell;
         this.holdAtParking = holdAtParking;
+        requireImmediatelyFreeParking = false;
+        roadsideFallbackEnabled = false;
 
         currentSpeed = speed;
+        StartRoute();
+    }
 
+    /// <summary>
+    /// Routes an arriving passenger car to a free parking space. If none is
+    /// free immediately, it stops at the configured roadside drop-off cell
+    /// for the short fallback duration and then exits.
+    /// </summary>
+    public void InitializePassengerArrivalRoute(
+        Vector2Int startCell,
+        Vector2Int exitCell,
+        Vector2Int roadsideCell,
+        float parkingDurationSeconds,
+        float roadsideDurationSeconds)
+    {
+        this.startCell = startCell;
+        this.exitCell = exitCell;
+        parkingDuration = Mathf.Max(0f, parkingDurationSeconds);
+        holdAtParking = false;
+        requireImmediatelyFreeParking = true;
+        roadsideFallbackEnabled = true;
+        roadsideDropoffCell = roadsideCell;
+        roadsideDropoffDuration = Mathf.Max(0f, roadsideDurationSeconds);
+        currentSpeed = speed;
         StartRoute();
     }
 
@@ -221,9 +254,14 @@ public class TrafficTestVehicle : MonoBehaviour
 
         if (!TryFindParkingSpace())
         {
+            if (roadsideFallbackEnabled)
+            {
+                BeginRoadsideDropoffRoute();
+                return;
+            }
+
             Log(
                 $"TRAFFIC NO PARKING CANDIDATE | Start: {startCell}");
-
             state = VehicleState.Idle;
             return;
         }
@@ -278,6 +316,7 @@ public class TrafficTestVehicle : MonoBehaviour
         switch (state)
         {
             case VehicleState.DrivingToParking:
+            case VehicleState.DrivingToRoadsideDropoff:
             case VehicleState.DrivingToExit:
                 MoveAlongPath();
                 break;
@@ -304,6 +343,10 @@ public class TrafficTestVehicle : MonoBehaviour
 
             case VehicleState.Parked:
                 UpdateParking();
+                break;
+
+            case VehicleState.WaitingAtRoadsideDropoff:
+                UpdateRoadsideDropoff();
                 break;
 
             case VehicleState.LeavingParking:
@@ -378,6 +421,9 @@ public class TrafficTestVehicle : MonoBehaviour
             parkingApproachCell = bestFreeApproach;
             return true;
         }
+
+        if (requireImmediatelyFreeParking)
+            return false;
 
         ParkingSpace bestFutureSpace = null;
         Vector2Int bestFutureApproach = Vector2Int.zero;
@@ -680,6 +726,58 @@ public class TrafficTestVehicle : MonoBehaviour
             $"Center: {parkingCenterPosition}");
 
         return true;
+    }
+
+    private void BeginRoadsideDropoffRoute()
+    {
+        if (roadNetwork == null || gridManager == null ||
+            !roadNetwork.IsRoad(roadsideDropoffCell))
+        {
+            LogError("TrafficTestVehicle: Roadside drop-off cell is not a valid road cell.");
+            state = VehicleState.Idle;
+            return;
+        }
+
+        path = roadNetwork.FindPath(startCell, roadsideDropoffCell);
+        if (path == null || path.Count == 0)
+        {
+            LogError("TrafficTestVehicle: No road route to roadside drop-off point.");
+            state = VehicleState.Idle;
+            return;
+        }
+
+        Log($"TRAFFIC ROADSIDE DROPOFF ROUTE | Start: {startCell} | Stop: {roadsideDropoffCell}");
+        InitializeSmoothedMovementPath();
+        state = VehicleState.DrivingToRoadsideDropoff;
+        if (path.Count == 1)
+            HandleRoadPathFinished();
+    }
+
+    private void UpdateRoadsideDropoff()
+    {
+        if (GameTimeManager.SimulationTime < roadsideDepartureTime)
+            return;
+
+        if (intersectionManager != null)
+            intersectionManager.CancelRequest(this);
+        hasIntersectionReservation = false;
+        waitingForIntersection = false;
+        reservedIntersectionPathIndex = -1;
+        requestedIntersectionPathIndex = -1;
+
+        path = roadNetwork.FindPath(roadsideDropoffCell, exitCell);
+        if (path == null || path.Count == 0)
+        {
+            LogError("TrafficTestVehicle: No road route from roadside drop-off to exit.");
+            state = VehicleState.Idle;
+            return;
+        }
+
+        Log($"TRAFFIC ROADSIDE DROPOFF COMPLETE | Exit: {exitCell}");
+        InitializeSmoothedMovementPath();
+        state = VehicleState.DrivingToExit;
+        if (path.Count == 1)
+            HandleRoadPathFinished();
     }
 
     private void BeginParkingEntry()
@@ -1461,6 +1559,16 @@ public class TrafficTestVehicle : MonoBehaviour
 
     private void HandleRoadPathFinished()
     {
+        if (state == VehicleState.DrivingToRoadsideDropoff)
+        {
+            state = VehicleState.WaitingAtRoadsideDropoff;
+            roadsideDepartureTime =
+                GameTimeManager.SimulationTime + roadsideDropoffDuration;
+            currentSpeed = 0f;
+            RoadsideDropoffStarted?.Invoke(this);
+            return;
+        }
+
         if (state == VehicleState.DrivingToParking)
         {
             BeginParkingEntry();
