@@ -52,7 +52,7 @@ public class PassengerCoordinator : MonoBehaviour
     {
         get
         {
-            int count = waitingReturnPassengers.Count;
+            int count = waitingReturnPassengerSet.Count;
             foreach (KeyValuePair<string, int> pair in pendingOutgoingBusPassengerCounts)
                 count += Mathf.Max(0, pair.Value);
             return count;
@@ -1069,7 +1069,6 @@ public class PassengerCoordinator : MonoBehaviour
                 Agent = agent,
                 GateStableId = gateStableId
             });
-            busPassengersTransported++;
             remaining--;
             if (remaining > 0)
             {
@@ -1419,6 +1418,7 @@ public class PassengerCoordinator : MonoBehaviour
         }
 
         onboardReturnPassengers.Add(passenger);
+        NotifyTransportStatisticsChanged();
         return true;
     }
 
@@ -1429,6 +1429,7 @@ public class PassengerCoordinator : MonoBehaviour
         if (passenger == null)
             return;
 
+        waitingReturnPassengerSet.Remove(passenger);
         if (busWaitStartTimes.TryGetValue(passenger, out double waitStartedAt))
         {
             cumulativeBusWaitSeconds += System.Math.Max(
