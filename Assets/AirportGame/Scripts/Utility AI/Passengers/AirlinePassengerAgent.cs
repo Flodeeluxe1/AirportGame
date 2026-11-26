@@ -283,27 +283,6 @@ public class AirlinePassengerAgent : MonoBehaviour
         return true;
     }
 
-    /// <summary>Leaves the aircraft, becomes visible, and returns to pedestrian control.</summary>
-    public bool DeboardAircraft(Vector3 disembarkPosition)
-    {
-        CacheComponents();
-        if (state != JourneyState.OnAircraft)
-            return false;
-
-        transform.SetParent(null, true);
-        RestoreAfterBus();
-        transform.position = disembarkPosition;
-
-        if (movement != null)
-            movement.AlignFeetToGround(disembarkPosition);
-
-        state = JourneyState.Uninitialized;
-        if (interactions != null)
-            interactions.SetExternallyControlled(false);
-
-        return true;
-    }
-
     /// <summary>Leaves the bus and resumes normal visitor behaviour while walking to the flight terminal.</summary>
     public bool DisembarkToTerminal(Vector3 terminalPosition)
     {
