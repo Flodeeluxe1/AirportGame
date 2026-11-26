@@ -200,6 +200,20 @@ public class PassengerCoordinator : MonoBehaviour
     }
 
     public float PassengerCarParkingFeePerMinute => passengerCarParkingFeePerMinute;
+    public PublicTransportManager TransportManager => publicTransportManager;
+    public float BusServiceCapacityPerHour =>
+        publicTransportManager != null
+            ? publicTransportManager.GetServiceCapacityPerHour(
+                PassengerIdentity.TransportMode.Bus, busCapacityPerDeparture)
+            : 0f;
+    public float TrainServiceCapacityPerHour =>
+        publicTransportManager != null
+            ? publicTransportManager.TrainCapacityPerHour
+            : 0f;
+    public float UndergroundServiceCapacityPerHour =>
+        publicTransportManager != null
+            ? publicTransportManager.UndergroundCapacityPerHour
+            : 0f;
 
     public void SetPassengerCarParkingFeePerMinute(float feePerMinute)
     {
