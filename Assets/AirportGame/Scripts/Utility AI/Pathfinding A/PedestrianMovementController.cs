@@ -95,6 +95,8 @@ public class PedestrianMovementController : MonoBehaviour
     private Renderer[] alignmentRenderers;
     private InteractionProvider lastApproachProvider;
     private Vector3 lastApproachPosition;
+    private PlacedBuilding allowedStartFootprint;
+    private PlacedBuilding allowedTargetFootprint;
 
     public bool IsMoving => isMoving;
     public bool HasPath => movementPath.Count > 0;
@@ -565,6 +567,8 @@ public class PedestrianMovementController : MonoBehaviour
     {
         StopInternal("Calculating route");
         lastApproachProvider = null;
+        this.allowedStartFootprint = allowedStartFootprint;
+        this.allowedTargetFootprint = allowedTargetFootprint;
 
         if (pathfinder == null)
             ResolvePathfinder();
@@ -607,6 +611,8 @@ public class PedestrianMovementController : MonoBehaviour
     {
         StopInternal("Calculating nearby approach route");
         lastApproachProvider = null;
+        allowedStartFootprint = null;
+        allowedTargetFootprint = targetBuilding;
 
         if (pathfinder == null)
             ResolvePathfinder();
@@ -910,7 +916,9 @@ public class PedestrianMovementController : MonoBehaviour
             !pathfinder.CanMoveBetweenWorldPositions(
                 transform.position,
                 nextPosition,
-                AccessProfile))
+                AccessProfile,
+                allowedStartFootprint,
+                allowedTargetFootprint))
         {
             currentAvoidanceOffset = Vector3.Lerp(
                 currentAvoidanceOffset,
@@ -924,7 +932,9 @@ public class PedestrianMovementController : MonoBehaviour
             if (!pathfinder.CanMoveBetweenWorldPositions(
                     transform.position,
                     nextPosition,
-                    AccessProfile))
+                    AccessProfile,
+                    allowedStartFootprint,
+                    allowedTargetFootprint))
             {
                 return false;
             }
