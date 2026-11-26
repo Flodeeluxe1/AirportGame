@@ -252,8 +252,8 @@ public class PassengerTransportUIController : MonoBehaviour
         totalPassengersLabel = AddMetric(journeyCard, "Total passengers transported");
         busPassengersLabel = AddMetric(journeyCard, "Bus passengers (mode share)");
         carPassengersLabel = AddMetric(journeyCard, "Car passengers (mode share)");
-        waitingPassengersLabel = AddMetric(journeyCard, "Waiting for a bus");
-        averageWaitLabel = AddMetric(journeyCard, "Average bus waiting time");
+        waitingPassengersLabel = AddMetric(journeyCard, "Waiting for a bus (incl. queued outbound)");
+        averageWaitLabel = AddMetric(journeyCard, "Average wait (completed waits)");
         window.Add(journeyCard);
 
         AddSectionTitle("SERVICE CAPACITY");
@@ -395,6 +395,6 @@ public class PassengerTransportUIController : MonoBehaviour
             $"{passengerCoordinator.UndergroundServiceCapacityPerHour:F0} passengers/hour";
 
         statusLabel.text =
-            "Live passenger totals cover completed bus and car journeys. Train and underground capacity inputs are prepared, but passenger assignment remains disabled until those journeys are implemented.";
+            "Mode share is based on recorded passenger movements. Bus utilisation is average peak onboard load across completed bus trips. Waiting includes incoming passengers at stops and outbound passengers queued for bus capacity. Train and underground figures are potential capacity only; passenger journeys are not implemented yet.";
     }
 }
