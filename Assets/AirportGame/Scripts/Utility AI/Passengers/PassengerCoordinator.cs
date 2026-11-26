@@ -47,6 +47,10 @@ public class PassengerCoordinator : MonoBehaviour
         new Dictionary<string, int>();
     private readonly Dictionary<string, int> registeredOutgoingCarPassengerCounts =
         new Dictionary<string, int>();
+    private readonly Dictionary<string, int> spawnedOutgoingCarPassengerCounts =
+        new Dictionary<string, int>();
+    private readonly HashSet<string> outgoingCarDispatchProcessedOperationIds =
+        new HashSet<string>();
     private readonly List<ScheduledPassengerFlight> registrationFlights =
         new List<ScheduledPassengerFlight>();
     private readonly HashSet<string> currentRegistrationIds =
@@ -483,6 +487,7 @@ public class PassengerCoordinator : MonoBehaviour
         SubscribeToBusSpawner();
         SubscribeToScheduleAndTime();
         RefreshScheduledPassengerRegistrations();
+        DispatchOutgoingCarsForCurrentDeparture();
         if (busSpawner == null)
             Debug.LogError("PassengerCoordinator: BusSpawner is missing; airline bus manifests cannot be loaded.", this);
 
@@ -526,13 +531,64 @@ public class PassengerCoordinator : MonoBehaviour
         registeredIncomingPassengerCounts.Clear();
         registeredIncomingCarPassengerCounts.Clear();
         registeredOutgoingCarPassengerCounts.Clear();
+        spawnedOutgoingCarPassengerCounts.Clear();
+        outgoingCarDispatchProcessedOperationIds.Clear();
         RefreshScheduledPassengerRegistrations();
     }
 
     private void HandlePassengerRegistrationTimeAdvanced(long previousAbsoluteSecond, long currentAbsoluteSecond)
     {
+        ProcessScheduledOutgoingCarDispatches(previousAbsoluteSecond, currentAbsoluteSecond);
+
         if (currentAbsoluteSecond / 86400L != previousAbsoluteSecond / 86400L)
             RefreshScheduledPassengerRegistrations();
+    }
+
+    private void ProcessScheduledOutgoingCarDispatches(
+        long previousAbsoluteSecond,
+        long currentAbsoluteSecond)
+    {
+        if (scheduledAircraftSpawner == null || publicTransportManager == null)
+            return;
+
+        double intervalSeconds = System.Math.Max(
+            60.0, publicTransportManager.BusFrequencyMinutes * 60.0);
+        double nextDeparture =
+            (System.Math.Floor(previousAbsoluteSecond / intervalSeconds) + 1.0) *
+            intervalSeconds;
+
+        while (nextDeparture <= currentAbsoluteSecond)
+        {
+            scheduledAircraftSpawner.GetPassengerFlightsForBusDeparture(
+                nextDeparture,
+                publicTransportManager.BusFrequencyMinutes,
+                dispatchFlights);
+
+            for (int i = 0; i < dispatchFlights.Count; i++)
+                EnsureOutgoingCarDropoffGroupsSpawned(dispatchFlights[i]);
+
+            nextDeparture += intervalSeconds;
+        }
+    }
+
+    private void DispatchOutgoingCarsForCurrentDeparture()
+    {
+        if (scheduledAircraftSpawner == null || publicTransportManager == null)
+            return;
+
+        double intervalSeconds = System.Math.Max(
+            60.0, publicTransportManager.BusFrequencyMinutes * 60.0);
+        double departureSecond =
+            System.Math.Floor(GameTimeManager.SimulationTime / intervalSeconds) *
+            intervalSeconds;
+
+        scheduledAircraftSpawner.GetPassengerFlightsForBusDeparture(
+            departureSecond,
+            publicTransportManager.BusFrequencyMinutes,
+            dispatchFlights);
+
+        for (int i = 0; i < dispatchFlights.Count; i++)
+            EnsureOutgoingCarDropoffGroupsSpawned(dispatchFlights[i]);
     }
 
     private void RefreshScheduledPassengerRegistrations()
@@ -780,13 +836,8 @@ public class PassengerCoordinator : MonoBehaviour
                 registeredPassengerCounts.TryGetValue(flight.OperationId, out int registeredCount)
                     ? registeredCount
                     : 0;
-            int requestedCarPassengers =
-                registeredOutgoingCarPassengerCounts.TryGetValue(
-                    flight.OperationId, out int registeredCarCount)
-                    ? registeredCarCount
-                    : 0;
             int spawnedCarPassengers =
-                SpawnOutgoingCarDropoffGroups(flight, requestedCarPassengers);
+                EnsureOutgoingCarDropoffGroupsSpawned(flight);
             int requestedBusPassengers =
                 Mathf.Max(0, requestedPassengers - spawnedCarPassengers);
             int passengerCount =
@@ -1289,6 +1340,8 @@ public class PassengerCoordinator : MonoBehaviour
             registeredIncomingPassengerCounts.Remove(staleOperationIds[i]);
             registeredIncomingCarPassengerCounts.Remove(staleOperationIds[i]);
             registeredOutgoingCarPassengerCounts.Remove(staleOperationIds[i]);
+            spawnedOutgoingCarPassengerCounts.Remove(staleOperationIds[i]);
+            outgoingCarDispatchProcessedOperationIds.Remove(staleOperationIds[i]);
         }
     }
 
@@ -1390,6 +1443,32 @@ public class PassengerCoordinator : MonoBehaviour
         }
 
         TrySpawnPendingIncomingCarPickups();
+    }
+
+    private int EnsureOutgoingCarDropoffGroupsSpawned(
+        ScheduledPassengerFlight flight)
+    {
+        if (flight == null || string.IsNullOrWhiteSpace(flight.OperationId))
+            return 0;
+
+        if (outgoingCarDispatchProcessedOperationIds.Contains(flight.OperationId))
+            return spawnedOutgoingCarPassengerCounts.TryGetValue(
+                flight.OperationId, out int alreadySpawned)
+                ? alreadySpawned
+                : 0;
+
+        int requestedPassengers =
+            registeredOutgoingCarPassengerCounts.TryGetValue(
+                flight.OperationId, out int registeredCount)
+                ? registeredCount
+                : 0;
+        int spawnedPassengers =
+            SpawnOutgoingCarDropoffGroups(flight, requestedPassengers);
+
+        outgoingCarDispatchProcessedOperationIds.Add(flight.OperationId);
+        spawnedOutgoingCarPassengerCounts[flight.OperationId] = spawnedPassengers;
+        bookedPassengerCounts[flight.OperationId] = spawnedPassengers;
+        return spawnedPassengers;
     }
 
     private int SpawnOutgoingCarDropoffGroups(
