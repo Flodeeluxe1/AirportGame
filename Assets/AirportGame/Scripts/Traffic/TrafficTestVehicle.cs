@@ -7,6 +7,13 @@ public class TrafficTestVehicle : MonoBehaviour
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
 
+    public enum IntendedPurpose
+    {
+        GeneralTraffic,
+        Departing,
+        Arriving
+    }
+
     public enum VehicleState
     {
         Idle,
@@ -72,6 +79,7 @@ public class TrafficTestVehicle : MonoBehaviour
     private TrafficFollowing trafficFollowing;
 
     [Header("Debug - Runtime Information")]
+    public string debugIntendedPurpose = "GeneralTraffic";
     public string debugState = "Idle";
     public float debugCurrentSpeed;
 
@@ -105,7 +113,15 @@ public class TrafficTestVehicle : MonoBehaviour
     private float currentSpeed;
     private bool holdAtParking;
 
+    private IntendedPurpose intendedPurpose = IntendedPurpose.GeneralTraffic;
     private VehicleState state = VehicleState.Idle;
+    public IntendedPurpose CurrentIntendedPurpose => intendedPurpose;
+
+    public void SetIntendedPurpose(IntendedPurpose purpose)
+    {
+        intendedPurpose = purpose;
+        debugIntendedPurpose = purpose.ToString();
+    }
     public VehicleState CurrentState => state;
     public ParkingSpace CurrentParkingSpace => parkingSpace;
     public Vector3 ParkingPosition => parkingCenterPosition;
@@ -186,6 +202,7 @@ public class TrafficTestVehicle : MonoBehaviour
     {
         this.startCell = startCell;
         this.exitCell = exitCell;
+        SetIntendedPurpose(IntendedPurpose.Departing);
         parkingDuration = Mathf.Max(0f, parkingDurationSeconds);
         holdAtParking = false;
         requireImmediatelyFreeParking = true;
@@ -359,6 +376,7 @@ public class TrafficTestVehicle : MonoBehaviour
 
     private void RefreshDebugInformation()
     {
+        debugIntendedPurpose = intendedPurpose.ToString();
         debugState = state.ToString();
         debugCurrentSpeed = currentSpeed;
     }
