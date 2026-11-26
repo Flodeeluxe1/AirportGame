@@ -115,10 +115,14 @@ public class BusController : MonoBehaviour
     public bool DisembarkPassengerToTerminal(
         AirlinePassengerAgent passenger,
         Vector3 disembarkPosition,
-        Vector3 terminalPosition)
+        Vector3 terminalPosition,
+        PlacedBuilding busStopFootprint = null,
+        PlacedBuilding gateFootprint = null)
     {
         if (passenger == null || !onboardPassengers.Contains(passenger) ||
-            !passenger.DisembarkToTerminal(disembarkPosition, terminalPosition))
+            !passenger.DisembarkToTerminal(
+                disembarkPosition, terminalPosition,
+                busStopFootprint, gateFootprint))
             return false;
 
         onboardPassengers.Remove(passenger);
