@@ -58,6 +58,21 @@ public class PassengerCoordinator : MonoBehaviour
     private IncomingPassengerSpawnJob activeIncomingPassengerSpawnJob;
     private float incomingPassengerSpawnIntervalRemaining;
 
+    private readonly Queue<OutgoingPassengerBoardingJob> outgoingPassengerBoardingJobs =
+        new Queue<OutgoingPassengerBoardingJob>();
+    private OutgoingPassengerBoardingJob activeOutgoingPassengerBoardingJob;
+    private float outgoingPassengerBoardingIntervalRemaining;
+
+    private sealed class OutgoingPassengerBoardingJob
+    {
+        public AircraftTurnaroundController Turnaround;
+        public Transform AircraftTransform;
+        public readonly List<AirlinePassengerAgent> Passengers =
+            new List<AirlinePassengerAgent>();
+        public int NextPassengerIndex;
+        public int BoardedCount;
+    }
+
     private sealed class IncomingPassengerSpawnJob
     {
         public AircraftTurnaroundController Turnaround;
@@ -106,37 +121,151 @@ public class PassengerCoordinator : MonoBehaviour
 
     private void Update()
     {
-        if (activeIncomingPassengerSpawnJob == null)
-        {
-            if (incomingPassengerSpawnJobs.Count == 0)
-                return;
+        float deltaGameSeconds = GameTimeManager.SimulationDeltaTime;
 
+        if (activeIncomingPassengerSpawnJob == null &&
+            incomingPassengerSpawnJobs.Count > 0)
+        {
             activeIncomingPassengerSpawnJob = incomingPassengerSpawnJobs.Dequeue();
             incomingPassengerSpawnIntervalRemaining = 1f;
         }
 
-        incomingPassengerSpawnIntervalRemaining -= GameTimeManager.SimulationDeltaTime;
-        const int maxSpawnsPerUpdate = 32;
-        for (int i = 0; i < maxSpawnsPerUpdate &&
-                        activeIncomingPassengerSpawnJob != null &&
-                        incomingPassengerSpawnIntervalRemaining <= 0f; i++)
+        if (activeIncomingPassengerSpawnJob != null)
         {
-            SpawnNextIncomingPassenger(activeIncomingPassengerSpawnJob);
-            if (activeIncomingPassengerSpawnJob != null &&
-                activeIncomingPassengerSpawnJob.NextPassengerIndex >=
-                activeIncomingPassengerSpawnJob.PassengerCount)
+            incomingPassengerSpawnIntervalRemaining -= deltaGameSeconds;
+            const int maxSpawnsPerUpdate = 32;
+            for (int i = 0; i < maxSpawnsPerUpdate &&
+                            activeIncomingPassengerSpawnJob != null &&
+                            incomingPassengerSpawnIntervalRemaining <= 0f; i++)
             {
-                CompleteIncomingPassengerSpawnJob();
-            }
+                SpawnNextIncomingPassenger(activeIncomingPassengerSpawnJob);
+                if (activeIncomingPassengerSpawnJob != null &&
+                    activeIncomingPassengerSpawnJob.NextPassengerIndex >=
+                    activeIncomingPassengerSpawnJob.PassengerCount)
+                {
+                    CompleteIncomingPassengerSpawnJob();
+                }
 
-            if (activeIncomingPassengerSpawnJob != null)
-                incomingPassengerSpawnIntervalRemaining += 1f;
-            else if (incomingPassengerSpawnJobs.Count > 0)
-            {
-                activeIncomingPassengerSpawnJob = incomingPassengerSpawnJobs.Dequeue();
-                incomingPassengerSpawnIntervalRemaining += 1f;
+                if (activeIncomingPassengerSpawnJob != null)
+                    incomingPassengerSpawnIntervalRemaining += 1f;
+                else if (incomingPassengerSpawnJobs.Count > 0)
+                {
+                    activeIncomingPassengerSpawnJob = incomingPassengerSpawnJobs.Dequeue();
+                    incomingPassengerSpawnIntervalRemaining += 1f;
+                }
             }
         }
+
+        ProcessOutgoingPassengerBoarding(deltaGameSeconds);
+    }
+
+    private void ProcessOutgoingPassengerBoarding(float deltaGameSeconds)
+    {
+        if (activeOutgoingPassengerBoardingJob == null)
+        {
+            if (outgoingPassengerBoardingJobs.Count == 0)
+                return;
+
+            activeOutgoingPassengerBoardingJob =
+                outgoingPassengerBoardingJobs.Dequeue();
+            outgoingPassengerBoardingIntervalRemaining = 1f;
+        }
+
+        outgoingPassengerBoardingIntervalRemaining -= deltaGameSeconds;
+        const int maxBoardingsPerUpdate = 32;
+        for (int i = 0; i < maxBoardingsPerUpdate &&
+                        activeOutgoingPassengerBoardingJob != null &&
+                        outgoingPassengerBoardingIntervalRemaining <= 0f; i++)
+        {
+            OutgoingPassengerBoardingJob job =
+                activeOutgoingPassengerBoardingJob;
+            AirlinePassengerAgent passenger =
+                job.Passengers[job.NextPassengerIndex++];
+
+            if (passenger != null &&
+                passenger.BoardAircraft(job.AircraftTransform))
+            {
+                job.BoardedCount++;
+            }
+
+            if (job.NextPassengerIndex >= job.Passengers.Count)
+            {
+                if (job.Turnaround != null)
+                    job.Turnaround.CompleteExternalBoarding();
+
+                activeOutgoingPassengerBoardingJob = null;
+                if (outgoingPassengerBoardingJobs.Count > 0)
+                {
+                    activeOutgoingPassengerBoardingJob =
+                        outgoingPassengerBoardingJobs.Dequeue();
+                    outgoingPassengerBoardingIntervalRemaining += 1f;
+                }
+            }
+            else
+            {
+                outgoingPassengerBoardingIntervalRemaining += 1f;
+            }
+        }
+    }
+
+    private void HandlePassengersBoardingStarted(
+        AircraftTurnaroundController turnaround)
+    {
+        if (turnaround == null)
+            return;
+
+        AircraftFlightIdentity identity =
+            turnaround.GetComponent<AircraftFlightIdentity>();
+        AircraftStats stats = turnaround.GetComponent<AircraftStats>();
+
+        if (identity == null || !identity.IsInitialized ||
+            stats == null || stats.OutgoingPassengers <= 0 ||
+            !terminalPassengersByOperationId.TryGetValue(
+                identity.OperationId,
+                out List<AirlinePassengerAgent> terminalPassengers))
+        {
+            turnaround.CompleteExternalBoarding();
+            return;
+        }
+
+        OutgoingPassengerBoardingJob job =
+            new OutgoingPassengerBoardingJob
+            {
+                Turnaround = turnaround,
+                AircraftTransform = turnaround.transform
+            };
+
+        int requestedPassengers = stats.OutgoingPassengers;
+        for (int i = 0; i < terminalPassengers.Count &&
+                        job.Passengers.Count < requestedPassengers; i++)
+        {
+            AirlinePassengerAgent passenger = terminalPassengers[i];
+            if (passenger != null &&
+                passenger.State == AirlinePassengerAgent.JourneyState.AtTerminal)
+            {
+                job.Passengers.Add(passenger);
+            }
+        }
+
+        terminalPassengersByOperationId.Remove(identity.OperationId);
+
+        if (job.Passengers.Count == 0)
+        {
+            Debug.LogWarning(
+                $"PassengerCoordinator: No terminal passengers were ready to board flight {identity.FlightNumber}; completing its boarding task without passenger objects.",
+                turnaround);
+            turnaround.CompleteExternalBoarding();
+            return;
+        }
+
+        if (job.Passengers.Count < requestedPassengers)
+        {
+            Debug.LogWarning(
+                $"PassengerCoordinator: Flight {identity.FlightNumber} has {requestedPassengers} booked passenger(s), but only {job.Passengers.Count} passenger object(s) reached the terminal. Boarding the available passengers.",
+                turnaround);
+        }
+
+        outgoingPassengerBoardingJobs.Enqueue(job);
     }
 
     private void SpawnNextIncomingPassenger(IncomingPassengerSpawnJob job)
@@ -350,6 +479,7 @@ public class PassengerCoordinator : MonoBehaviour
             busSpawner.BusDispatched -= HandleBusDispatched;
         busSpawnerSubscribed = false;
         AircraftTurnaroundController.PassengersDeboarded -= HandlePassengersDeboarded;
+        AircraftTurnaroundController.PassengersBoardingStarted -= HandlePassengersBoardingStarted;
         if (subscribedToScheduleReload && scheduledAircraftSpawner != null)
             scheduledAircraftSpawner.PassengerScheduleReloaded -= HandlePassengerScheduleReloaded;
         subscribedToScheduleReload = false;
@@ -379,6 +509,7 @@ public class PassengerCoordinator : MonoBehaviour
         if (instance == this)
         {
             AircraftTurnaroundController.PassengersDeboarded += HandlePassengersDeboarded;
+            AircraftTurnaroundController.PassengersBoardingStarted += HandlePassengersBoardingStarted;
             if (logToConsole)
                 Debug.Log("PassengerCoordinator: Subscribed to AircraftTurnaroundController.PassengersDeboarded.", this);
             SubscribeToBusSpawner();
