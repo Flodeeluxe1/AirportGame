@@ -500,7 +500,7 @@ public class PassengerCoordinator : MonoBehaviour
 
         if (trafficSpawner == null || airlinePassengerCarPrefab == null)
             Debug.LogWarning(
-                "PassengerCoordinator: Incoming car pickups require the shared TrafficTestSpawner and passenger car prefab. The car prefab is normally read from SightseeingPassengerManager.",
+                "PassengerCoordinator: Passenger car traffic requires the shared TrafficTestSpawner and passenger car prefab. The car prefab is normally read from SightseeingPassengerManager.",
                 this);
 
         if (airlinePassengerPrefab != null &&
@@ -1503,8 +1503,9 @@ public class PassengerCoordinator : MonoBehaviour
         if (requestedPassengers <= 0)
             return 0;
 
-        if (trafficSpawner == null || airlinePassengerCarPrefab == null ||
-            passengerRoadsideDropoffPoint == null || gateRegistry == null ||
+        if (trafficSpawner == null || airlinePassengerPrefab == null ||
+            airlinePassengerCarPrefab == null || passengerRoadsideDropoffPoint == null ||
+            gateRegistry == null ||
             !gateRegistry.TryGetGate(flight.GateStableId, out AircraftGate gate) ||
             gate == null)
         {
