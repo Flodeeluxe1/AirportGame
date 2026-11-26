@@ -2207,6 +2207,8 @@ public class PassengerCoordinator : MonoBehaviour
                     break;
                 }
 
+                car.SetIntendedPurpose(
+                    TrafficTestVehicle.IntendedPurpose.Arriving);
                 group.Vehicle = car;
                 incomingCarGroupsByVehicle.Add(car, group);
                 car.Parked += HandleIncomingPickupCarParked;
