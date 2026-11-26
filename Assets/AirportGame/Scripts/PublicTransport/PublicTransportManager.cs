@@ -22,11 +22,18 @@ public class PublicTransportManager : MonoBehaviour
     [Min(0)]
     [SerializeField] private int activeBuses;
 
+    // Populated by their service managers when train and underground
+    // transport are implemented. Zero means that the service is unavailable.
+    private float trainCapacityPerHour;
+    private float undergroundCapacityPerHour;
+
     private readonly HashSet<PlacedBuilding> registeredStops =
         new HashSet<PlacedBuilding>();
 
     public event Action StopsChanged;
     public event Action BusFrequencyChanged;
+    public event Action TrainServiceChanged;
+    public event Action UndergroundServiceChanged;
 
     public RoadNetwork RoadNetwork => roadNetwork;
     public GridManager GridManager => gridManager;
@@ -35,6 +42,8 @@ public class PublicTransportManager : MonoBehaviour
     public int ActiveBuses => activeBuses;
     public int InactiveBuses => Mathf.Max(0, ownedBuses - activeBuses);
     public int RegisteredStopCount => registeredStops.Count;
+    public float TrainCapacityPerHour => trainCapacityPerHour;
+    public float UndergroundCapacityPerHour => undergroundCapacityPerHour;
 
     public IReadOnlyCollection<PlacedBuilding> RegisteredStops =>
         registeredStops;
@@ -130,6 +139,38 @@ public class PublicTransportManager : MonoBehaviour
 
         busFrequencyMinutes = updatedFrequency;
         BusFrequencyChanged?.Invoke();
+    }
+
+    /// <summary>
+    /// Updates the estimated passenger capacity provided by train service.
+    /// The train system can call this whenever its timetable or train capacity changes.
+    /// </summary>
+    public void SetTrainService(float frequencyMinutes, int maxTrainCapacity)
+    {
+        float capacity = frequencyMinutes > 0f && maxTrainCapacity > 0
+            ? (60f / frequencyMinutes) * maxTrainCapacity
+            : 0f;
+        if (Mathf.Approximately(trainCapacityPerHour, capacity))
+            return;
+
+        trainCapacityPerHour = capacity;
+        TrainServiceChanged?.Invoke();
+    }
+
+    /// <summary>
+    /// Updates the estimated passenger capacity provided by underground service.
+    /// The underground system can call this whenever its timetable or train capacity changes.
+    /// </summary>
+    public void SetUndergroundService(float frequencyMinutes, int maxTrainCapacity)
+    {
+        float capacity = frequencyMinutes > 0f && maxTrainCapacity > 0
+            ? (60f / frequencyMinutes) * maxTrainCapacity
+            : 0f;
+        if (Mathf.Approximately(undergroundCapacityPerHour, capacity))
+            return;
+
+        undergroundCapacityPerHour = capacity;
+        UndergroundServiceChanged?.Invoke();
     }
 
     /// <summary>
