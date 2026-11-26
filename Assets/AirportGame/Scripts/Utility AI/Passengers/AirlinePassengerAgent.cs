@@ -19,6 +19,7 @@ public class AirlinePassengerAgent : MonoBehaviour
         OnBus,
         WalkingToTerminal,
         AtTerminal,
+        OnAircraft,
         Completed,
         Abandoned
     }
@@ -256,6 +257,29 @@ public class AirlinePassengerAgent : MonoBehaviour
         HideWhileOnBus();
 
         state = JourneyState.OnBus;
+        return true;
+    }
+
+    /// <summary>Boards the assigned aircraft and becomes invisible for the flight.</summary>
+    public bool BoardAircraft(Transform aircraftTransform)
+    {
+        CacheComponents();
+        if (aircraftTransform == null ||
+            state != JourneyState.AtTerminal)
+            return false;
+
+        if (movement != null && movement.IsMoving)
+            movement.Stop();
+
+        if (interactions != null)
+            interactions.SetExternallyControlled(true);
+
+        transform.SetParent(aircraftTransform, false);
+        transform.localPosition = Vector3.zero;
+        transform.localRotation = Quaternion.identity;
+        HideWhileOnBus();
+
+        state = JourneyState.OnAircraft;
         return true;
     }
 
