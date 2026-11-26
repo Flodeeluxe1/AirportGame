@@ -193,12 +193,22 @@ public class PassengerCoordinator : MonoBehaviour
 
             if (passenger == null)
             {
-                job.NextPassengerIndex++;
+                Debug.LogError(
+                    $"PassengerCoordinator: An outbound passenger for flight {job.OperationId} was destroyed before boarding. The boarding task remains incomplete.",
+                    job.Turnaround);
+                outgoingPassengerBoardingIntervalRemaining = 0f;
+                return;
             }
-            else if (passenger.State == AirlinePassengerAgent.JourneyState.AtTerminal)
+
+            if (passenger.State == AirlinePassengerAgent.JourneyState.AtTerminal)
             {
-                if (passenger.BoardAircraft(job.AircraftTransform))
-                    job.BoardedCount++;
+                if (!passenger.BoardAircraft(job.AircraftTransform))
+                {
+                    outgoingPassengerBoardingIntervalRemaining = 0f;
+                    return;
+                }
+
+                job.BoardedCount++;
                 job.NextPassengerIndex++;
             }
             else if (passenger.State == AirlinePassengerAgent.JourneyState.OnAircraft)
@@ -206,18 +216,10 @@ public class PassengerCoordinator : MonoBehaviour
                 job.BoardedCount++;
                 job.NextPassengerIndex++;
             }
-            else if (passenger.State == AirlinePassengerAgent.JourneyState.Completed ||
-                     passenger.State == AirlinePassengerAgent.JourneyState.Abandoned)
-            {
-                Debug.LogWarning(
-                    $"PassengerCoordinator: Passenger for flight {job.OperationId} could not board because its journey ended before reaching the aircraft.",
-                    passenger);
-                job.NextPassengerIndex++;
-            }
             else
             {
-                // Wait for this specific passenger to arrive at the gate.
-                // Do not skip them or complete the turnaround while they are walking.
+                // Wait for this specific passenger to reach the gate.
+                // Do not skip, or complete the turnaround before they board.
                 outgoingPassengerBoardingIntervalRemaining = 0f;
                 return;
             }
