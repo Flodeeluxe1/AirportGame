@@ -548,7 +548,7 @@ public class PassengerCoordinator : MonoBehaviour
             AircraftTurnaroundController.PassengersDeboardingStarted += HandlePassengersDeboardingStarted;
             AircraftTurnaroundController.PassengersBoardingStarted += HandlePassengersBoardingStarted;
             if (logToConsole)
-                Debug.Log("PassengerCoordinator: Subscribed to AircraftTurnaroundController.PassengersDeboarded.", this);
+                Debug.Log("PassengerCoordinator: Subscribed to aircraft passenger deboarding and boarding events.", this);
             SubscribeToBusSpawner();
             SubscribeToScheduleAndTime();
 
