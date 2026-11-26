@@ -310,6 +310,114 @@ public class PedestrianPathfinder : MonoBehaviour
         return true;
     }
 
+    /// <summary>
+    /// Selects a varied pedestrian waiting position on the side of a bus stop
+    /// sign opposite the nearest road cell. Road cells are never valid results.
+    /// The lateral offset spreads passengers along the pavement parallel to the road.
+    /// </summary>
+    public bool TryFindBusStopWaitingPosition(
+        Vector3 stopSignPosition,
+        float lateralOffset,
+        float distanceFromSign,
+        int maximumSearchRadius,
+        out Vector3 waitingWorldPosition)
+    {
+        waitingWorldPosition = stopSignPosition;
+        if (!HasValidReferences() || roadNetwork == null)
+            return false;
+
+        Vector2Int signCell = gridManager.WorldToGrid(stopSignPosition);
+        Vector2Int nearestRoadCell = default;
+        float nearestRoadDistance = float.MaxValue;
+        bool foundRoad = false;
+        const int roadSearchRadius = 6;
+
+        for (int x = -roadSearchRadius; x <= roadSearchRadius; x++)
+        {
+            for (int y = -roadSearchRadius; y <= roadSearchRadius; y++)
+            {
+                Vector2Int candidate = signCell + new Vector2Int(x, y);
+                if (!gridManager.IsInsideGrid(candidate) || !roadNetwork.IsRoad(candidate))
+                    continue;
+
+                Vector3 roadWorld = gridManager.GridToWorldCenter(candidate);
+                float distance = HorizontalDistanceSquared(stopSignPosition, roadWorld);
+                if (distance >= nearestRoadDistance)
+                    continue;
+
+                nearestRoadDistance = distance;
+                nearestRoadCell = candidate;
+                foundRoad = true;
+            }
+        }
+
+        if (!foundRoad)
+            return false;
+
+        Vector3 roadPosition = gridManager.GridToWorldCenter(nearestRoadCell);
+        Vector3 awayFromRoad = stopSignPosition - roadPosition;
+        awayFromRoad.y = 0f;
+        if (awayFromRoad.sqrMagnitude < 0.0001f)
+            return false;
+        awayFromRoad.Normalize();
+
+        Vector3 alongRoad = Vector3.Cross(Vector3.up, awayFromRoad).normalized;
+        Vector3 desiredPosition = stopSignPosition +
+                                  alongRoad * lateralOffset +
+                                  awayFromRoad * Mathf.Max(0.25f, distanceFromSign);
+        Vector2Int originCell = gridManager.WorldToGrid(desiredPosition);
+        Vector2Int bestCell = default;
+        float bestDistance = float.MaxValue;
+        bool found = false;
+
+        maximumSearchRadius = Mathf.Max(0, maximumSearchRadius);
+        for (int radius = 0; radius <= maximumSearchRadius; radius++)
+        {
+            int minX = originCell.x - radius;
+            int maxX = originCell.x + radius;
+            int minY = originCell.y - radius;
+            int maxY = originCell.y + radius;
+
+            for (int x = minX; x <= maxX; x++)
+            {
+                for (int y = minY; y <= maxY; y++)
+                {
+                    if (radius > 0 && x != minX && x != maxX &&
+                        y != minY && y != maxY)
+                        continue;
+
+                    Vector2Int candidate = new Vector2Int(x, y);
+                    if (!IsWalkable(candidate) || IsRoadCell(candidate))
+                        continue;
+
+                    Vector3 candidateWorld = gridManager.GridToWorldCenter(candidate);
+                    Vector3 fromSign = candidateWorld - stopSignPosition;
+                    fromSign.y = 0f;
+                    if (Vector3.Dot(fromSign, awayFromRoad) <= 0.1f)
+                        continue;
+
+                    float distance = HorizontalDistanceSquared(desiredPosition, candidateWorld);
+                    if (distance >= bestDistance)
+                        continue;
+
+                    bestDistance = distance;
+                    bestCell = candidate;
+                    found = true;
+                }
+            }
+
+            if (found)
+                break;
+        }
+
+        if (!found)
+            return false;
+
+        waitingWorldPosition = gridManager.GridToWorldCenter(bestCell);
+        waitingWorldPosition.y += pathHeightOffset;
+        return true;
+    }
+
     private static float HorizontalDistanceSquared(Vector3 a, Vector3 b)
     {
         float dx = a.x - b.x;
