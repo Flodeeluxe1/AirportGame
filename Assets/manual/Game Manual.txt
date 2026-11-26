@@ -540,3 +540,290 @@ They are not included in the airport save data.
 ============================================================
 END OF CURRENT MANUAL
 ============================================================
+
+
+============================================================
+11. PASSENGER TRANSPORT
+============================================================
+
+Passenger transport connects scheduled passenger flights with the airport's
+road network, bus service and parking facilities.
+
+Passenger arrivals and departures are generated independently from one another.
+The game does not simulate passengers travelling between airports or match an
+outbound passenger with a later return flight.
+
+The transport system currently assigns passengers to:
+- Bus.
+- Car.
+
+Train and underground service capacity can be configured and displayed, but
+passengers are not assigned to those modes yet. Their passenger journeys are
+planned for a later update.
+
+PASSENGER DEMAND
+
+Each scheduled passenger flight receives its own passenger manifest.
+The number of passengers depends on aircraft capacity, airport rating, the
+scheduled time of day and a random variation.
+
+The current formula is:
+
+Ranking Occupancy =
+Base Occupancy + (0.005625 × Airport Rating)
+
+Expected Passengers =
+Aircraft Passenger Capacity
+× Ranking Occupancy
+× Time-of-Day Multiplier
+× Random Variation
+
+Booked Passengers = rounded Expected Passengers, limited to aircraft capacity.
+
+The default Base Occupancy is 0.30.
+Airport Rating is limited to the range 0–100.
+Random Variation is between 0.85 and 1.15.
+
+This means that a higher airport rating increases expected passenger demand.
+The scheduled time of the flight also affects demand through the time-of-day
+multiplier. Random variation makes otherwise similar flights differ slightly.
+
+The final passenger count cannot be lower than zero or higher than the
+aircraft's passenger capacity.
+
+HOW PASSENGERS ARE SPLIT BETWEEN BUS AND CAR
+
+After a passenger count is determined, the transport system calculates
+weighted scores for the available transport modes.
+
+The default transport weights are:
+- Bus: 1.
+- Car: 1.
+- Train: 1 (prepared for future use).
+- Underground: 1 (prepared for future use).
+
+A weight changes the influence of a mode. A mode with no available service
+receives no effective share, regardless of its configured weight.
+
+BUS SCORE
+
+The bus service capacity per hour is based on the bus departure interval and
+the passenger capacity of the bus prefab.
+
+Bus Capacity Per Hour =
+Passenger Capacity Per Bus × (60 / Bus Frequency in Minutes)
+
+Bus capacity is treated as zero when there is no active bus service or no
+registered bus stop.
+
+The bus demand target is 150 passengers per hour by default.
+
+Bus Score =
+Bus Weight × clamp(Bus Capacity Per Hour / Target Hourly Demand, 0, 1)
+
+A more frequent service or a bus with more seats increases the bus score.
+Once service capacity reaches the target hourly demand, the capacity factor
+is capped at 1.
+
+CAR SCORE
+
+Car demand considers the total number of parking spaces and the parking fee.
+
+Parking Capacity Factor =
+clamp(Total Parking Spaces / Target Parking Space Count, 0, 1)
+
+The default target parking space count is 20.
+
+The system estimates the cost of a typical passenger car stay using an
+expected parking duration of 8.5 game minutes.
+
+Expected Parking Cost =
+Passenger Parking Fee Per Minute × 8.5
+
+Parking Price Factor =
+1 / (1 + Expected Parking Cost / Reference Parking Cost)
+
+The default Reference Parking Cost is 5.
+
+Car Score =
+Car Weight × Parking Capacity Factor × Parking Price Factor
+
+More parking spaces increase the car score, up to the configured target.
+Higher parking fees reduce it. If there are no parking spaces, the parking
+capacity factor is zero.
+
+CURRENT MODE ASSIGNMENT
+
+The current passenger assignment uses the bus and car scores. Train and
+underground scores are deliberately held at zero until those passenger
+journeys are implemented.
+
+Total Transport Score =
+Bus Score + Car Score
+
+Bus Share =
+Bus Score / Total Transport Score
+
+Car Share =
+Car Score / Total Transport Score
+
+The shares are converted into passenger counts for the flight manifest.
+The resulting counts are kept within the flight's total passenger demand.
+
+If no transport score is available but car transport is enabled, passengers
+can fall back to car transport. This allows passenger arrivals to continue
+even when bus service is unavailable. A car that cannot be spawned
+successfully is returned to the bus demand queue.
+
+The split is recalculated when passenger manifests are processed, so changes
+to bus service, parking supply or parking fees can affect later passenger
+groups. It is not a permanent percentage chosen when the airport is first
+built.
+
+BUS PASSENGER JOURNEYS
+
+For an arriving flight, bus passengers are created at the aircraft gate and
+walk to a registered bus stop. They wait there until a bus arrives with
+available capacity.
+
+When a bus is dispatched, waiting passengers are loaded up to the available
+seats. Passengers are detached from the bus at the destination stop and walk
+on foot to the terminal.
+
+For a departing flight, the passenger system collects the bus demand for
+scheduled flights that fall within each bus departure interval. The demand
+is stored in a FIFO queue, preserving the order of the flight manifests.
+
+A bus can carry only as many passengers as its actual passenger capacity.
+If demand is greater than the capacity available on that departure, the
+remaining passengers stay in the logical queue for a later bus. They are
+not discarded simply because one bus is full.
+
+The outbound queue currently tracks passenger demand in the transport
+system; it does not yet create visible pedestrian crowds waiting at the
+bus depot.
+
+CAR PASSENGER JOURNEYS
+
+Passengers assigned to car transport are grouped into cars.
+Each car carries a random group of 1–4 passengers, limited by the number
+of passengers still to be assigned.
+
+DEPARTING PASSENGERS
+
+A car bringing passengers to the airport:
+1. Enters through the airport road network.
+2. Checks whether a parking space is immediately available.
+3. If a space is available, the car parks for a random 2–15 game minutes.
+4. If no space is available, the car stops at the roadside drop-off point
+   for 2 game minutes, then leaves the airport.
+5. The passengers leave the car at the parking or roadside drop-off point.
+6. They walk to their assigned aircraft gate and join the normal boarding
+   process.
+
+The car's road journey and parking or roadside waiting period are separate
+from the passengers' walking and boarding. The vehicle can leave without
+waiting for the aircraft to depart.
+
+ARRIVING PASSENGERS
+
+Passengers assigned to car transport are collected by pickup cars.
+A pickup car is spawned only when a parking space is available.
+It waits in the parking area until its assigned passengers have completed
+deboarding and are ready for pickup.
+
+The passengers board their pickup car, and the car leaves using the road
+network. This incoming pickup behaviour is separate from the departing
+passenger drop-off behaviour.
+
+PASSENGER AND VEHICLE SPAWNING
+
+Passenger manifests are processed in small timed batches rather than
+creating every passenger in one frame. This spreads spawning work over
+game time and helps avoid large frame-time spikes.
+
+Passengers assigned to bus transport are routed to bus stops or bus
+departures. Passengers assigned to car transport are associated with a
+specific car group. Outbound car passengers spawn beside their car and
+walk to the gate. Incoming car passengers are collected after aircraft
+deboarding has finished.
+
+If a passenger cannot be initialized or routed successfully, that passenger
+is not counted as successfully delivered to the next stage of the journey.
+This prevents the aircraft boarding process from waiting for passengers
+who could not be created or routed.
+
+TRANSPORT STATISTICS
+
+The Transport panel shows the current transport performance.
+
+Passenger journeys:
+- Total passengers transported.
+- Bus passengers and their percentage of recorded bus/car movements.
+- Car passengers and their percentage of recorded bus/car movements.
+- Passengers waiting for a bus, including outbound demand in the logical
+  queue.
+- Average completed bus waiting time.
+
+Service capacity:
+- Active and owned buses.
+- Bus departure frequency and registered stops.
+- Estimated bus passenger capacity per hour.
+- Train and underground capacity per hour, where configured.
+- Average peak bus load across completed bus trips.
+- Peak load of the most recently completed bus trip.
+
+Parking:
+- Total parking spaces.
+- Occupied or reserved parking spaces.
+- Parking utilisation percentage.
+- Passenger car parking fee per simulated minute.
+
+The mode-share percentages are based on recorded passenger movements, not
+on the current number of passengers inside the airport.
+
+Bus utilisation is calculated from each completed bus trip's peak onboard
+load:
+
+Bus Peak Load Percentage =
+Peak Passengers Onboard / Bus Passenger Capacity × 100
+
+Average Bus Peak Load =
+Average of the recorded peak load percentages from completed bus trips.
+
+Parking Utilisation =
+Occupied or Reserved Parking Spaces / Total Parking Spaces × 100
+
+Average Bus Wait =
+Total Completed Passenger Waiting Time / Number of Completed Waits
+
+The waiting count includes both arriving passengers physically waiting at
+bus stops and departing passenger demand still queued for bus capacity.
+The average wait is based on completed passenger waits.
+
+Train and underground capacity figures are capacity estimates only. They
+do not mean that passengers can currently use those services.
+
+BUILDING AND OPERATING YOUR TRANSPORT NETWORK
+
+To support bus passengers:
+- Place and connect bus stops as required by the road and public transport
+  systems.
+- Maintain an active bus fleet.
+- Set a bus departure frequency that matches expected passenger demand.
+- Use buses with sufficient passenger capacity.
+- Monitor the Transport panel for waiting passengers and bus peak load.
+
+To support car passengers:
+- Provide parking spaces near the terminal where possible.
+- Consider the passenger parking fee when balancing car demand.
+- Keep the airport road network connected to the passenger car entry,
+  parking and exit routes.
+- Ensure the passenger car prefab and traffic systems are available.
+
+A shortage of parking reduces the calculated car share. Cars can still use
+the roadside drop-off fallback when no parking space is free, but that
+fallback is not a replacement for adequate parking capacity.
+
+The transport system is still being developed. Visible outbound bus queues
+and passenger journeys by train and underground are not implemented yet.
