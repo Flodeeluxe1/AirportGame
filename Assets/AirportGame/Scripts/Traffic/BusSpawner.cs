@@ -34,8 +34,10 @@ public class BusSpawner : MonoBehaviour
     private long scheduledDispatchEventId;
     private bool hasScheduledDispatchEvent;
     private bool initialized;
+    private int cachedBusPassengerCapacity = 50;
 
     public event Action<BusController> BusDispatched;
+    public int PassengerCapacityPerBus => cachedBusPassengerCapacity;
 
     public int ActiveBusCount
     {
@@ -48,6 +50,13 @@ public class BusSpawner : MonoBehaviour
 
     private void Awake()
     {
+        if (busPrefab != null)
+        {
+            BusController prefabController = busPrefab.GetComponent<BusController>();
+            if (prefabController != null)
+                cachedBusPassengerCapacity = prefabController.PassengerCapacity;
+        }
+
         if (gridManager == null)
             gridManager = FindAnyObjectByType<GridManager>();
         if (roadNetwork == null)
