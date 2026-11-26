@@ -769,6 +769,15 @@ public class PassengerCoordinator : MonoBehaviour
                 pair.Key.Parked += HandleOutgoingPassengerCarParked;
                 pair.Key.RoadsideDropoffStarted += HandleOutgoingPassengerCarRoadsideDropoff;
                 pair.Key.Exited += HandleOutgoingPassengerCarExited;
+
+                if (!pair.Value.PassengersSpawned)
+                {
+                    if (pair.Key.IsParked)
+                        HandleOutgoingPassengerCarParked(pair.Key);
+                    else if (pair.Key.CurrentState ==
+                             TrafficTestVehicle.VehicleState.WaitingAtRoadsideDropoff)
+                        HandleOutgoingPassengerCarRoadsideDropoff(pair.Key);
+                }
             }
 
             foreach (KeyValuePair<TrafficTestVehicle, IncomingCarPickupGroup> pair in incomingCarGroupsByVehicle)
@@ -779,6 +788,8 @@ public class PassengerCoordinator : MonoBehaviour
                 pair.Key.Exited -= HandleIncomingPickupCarExited;
                 pair.Key.Parked += HandleIncomingPickupCarParked;
                 pair.Key.Exited += HandleIncomingPickupCarExited;
+                if (pair.Key.IsParked)
+                    HandleIncomingPickupCarParked(pair.Key);
             }
 
             foreach (KeyValuePair<AirlinePassengerAgent, IncomingCarPickupGroup> pair in incomingCarGroupsByPassenger)
@@ -787,6 +798,8 @@ public class PassengerCoordinator : MonoBehaviour
                     continue;
                 pair.Key.ReachedCarPickup -= HandlePassengerReachedIncomingCar;
                 pair.Key.ReachedCarPickup += HandlePassengerReachedIncomingCar;
+                if (pair.Key.State == AirlinePassengerAgent.JourneyState.AtCarPickup)
+                    HandlePassengerReachedIncomingCar(pair.Key);
             }
 
             TrySpawnPendingIncomingCarPickups();
