@@ -536,9 +536,14 @@ public class PedestrianMovementController : MonoBehaviour
     /// to be occupied by their associated building (for example a gate or stop).
     /// Occupied cells elsewhere remain blocked.
     /// </summary>
-    public bool MoveToAllowingOccupiedEndpoints(Vector3 worldDestination)
+    public bool MoveToAllowingOccupiedEndpoints(
+        Vector3 worldDestination,
+        PlacedBuilding allowedStartFootprint = null,
+        PlacedBuilding allowedTargetFootprint = null)
     {
-        return MoveToWorldPosition(worldDestination, true, true);
+        return MoveToWorldPosition(
+            worldDestination, true, true,
+            allowedStartFootprint, allowedTargetFootprint);
     }
 
     /// <summary>
@@ -554,7 +559,9 @@ public class PedestrianMovementController : MonoBehaviour
     private bool MoveToWorldPosition(
         Vector3 worldDestination,
         bool notifyOnImmediateFailure,
-        bool allowOccupiedEndpoints)
+        bool allowOccupiedEndpoints,
+        PlacedBuilding allowedStartFootprint = null,
+        PlacedBuilding allowedTargetFootprint = null)
     {
         StopInternal("Calculating route");
         lastApproachProvider = null;
@@ -574,7 +581,9 @@ public class PedestrianMovementController : MonoBehaviour
         target.y = transform.position.y;
 
         List<Vector3> calculatedPath =
-            pathfinder.FindWorldPath(transform.position, target, AccessProfile, allowOccupiedEndpoints);
+            pathfinder.FindWorldPath(
+                transform.position, target, AccessProfile, allowOccupiedEndpoints,
+                allowedStartFootprint, allowedTargetFootprint);
 
         if (calculatedPath == null || calculatedPath.Count == 0)
         {
