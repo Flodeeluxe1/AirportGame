@@ -28,6 +28,7 @@ public class PassengerTransportUIController : MonoBehaviour
     private PassengerCoordinator passengerCoordinator;
     private PublicTransportManager publicTransportManager;
     private bool windowOpen;
+    private bool refreshPending;
 
     private static readonly Color WindowColor =
         new Color32(27, 32, 39, 250);
@@ -164,7 +165,15 @@ public class PassengerTransportUIController : MonoBehaviour
     private void HandleStatisticsChanged()
     {
         if (windowOpen)
-            RefreshWindow();
+            refreshPending = true;
+    }
+
+    private void Update()
+    {
+        if (!windowOpen || !refreshPending)
+            return;
+
+        RefreshWindow();
     }
 
     private void CreateOpenButton()
@@ -324,6 +333,7 @@ public class PassengerTransportUIController : MonoBehaviour
 
     private void RefreshWindow()
     {
+        refreshPending = false;
         if (statusLabel == null)
             return;
 
