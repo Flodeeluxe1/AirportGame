@@ -749,8 +749,6 @@ public class TrafficTestVehicle : MonoBehaviour
         Log($"TRAFFIC ROADSIDE DROPOFF ROUTE | Start: {startCell} | Stop: {roadsideDropoffCell}");
         InitializeSmoothedMovementPath();
         state = VehicleState.DrivingToRoadsideDropoff;
-        if (path.Count == 1)
-            HandleRoadPathFinished();
     }
 
     private void UpdateRoadsideDropoff()
