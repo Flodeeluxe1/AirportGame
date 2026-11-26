@@ -1678,7 +1678,7 @@ public class PassengerCoordinator : MonoBehaviour
         {
             // If no public-transport service can carry passengers, use cars
             // as the fallback; their vehicles can use the roadside drop-off.
-            return totalPassengers;
+            return carTransportWeight > 0f ? totalPassengers : 0;
         }
 
         int carPassengers = Mathf.RoundToInt(
