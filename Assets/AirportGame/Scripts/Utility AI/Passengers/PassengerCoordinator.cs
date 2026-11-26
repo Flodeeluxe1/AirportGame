@@ -1528,7 +1528,7 @@ public class PassengerCoordinator : MonoBehaviour
             TrafficTestVehicle car = trafficSpawner.SpawnPassengerArrivalVehicle(
                 airlinePassengerCarPrefab,
                 passengerRoadsideDropoffPoint.position,
-                Random.Range(120f, 901f),
+                Random.Range(120f, 900f),
                 120f);
 
             if (car == null)
