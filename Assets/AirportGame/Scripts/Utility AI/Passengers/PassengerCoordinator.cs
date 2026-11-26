@@ -23,8 +23,6 @@ public class PassengerCoordinator : MonoBehaviour
     [Min(1)] [SerializeField] private int targetParkingSpaceCount = 20;
     [Min(0f)] [SerializeField] private float passengerCarParkingFeePerMinute;
     [Min(0.01f)] [SerializeField] private float referenceParkingCost = 5f;
-    [SerializeField] private bool enableTrainPassengerAssignment;
-    [SerializeField] private bool enableUndergroundPassengerAssignment;
 
     private ParkingSpace[] cachedParkingSpaces;
     private bool parkingSpaceCacheDirty = true;
@@ -202,26 +200,6 @@ public class PassengerCoordinator : MonoBehaviour
     }
 
     public float PassengerCarParkingFeePerMinute => passengerCarParkingFeePerMinute;
-    public bool TrainPassengerAssignmentEnabled => enableTrainPassengerAssignment;
-    public bool UndergroundPassengerAssignmentEnabled => enableUndergroundPassengerAssignment;
-
-    public void SetTrainPassengerAssignmentEnabled(bool enabled)
-    {
-        if (enableTrainPassengerAssignment == enabled)
-            return;
-
-        enableTrainPassengerAssignment = enabled;
-        NotifyTransportStatisticsChanged();
-    }
-
-    public void SetUndergroundPassengerAssignmentEnabled(bool enabled)
-    {
-        if (enableUndergroundPassengerAssignment == enabled)
-            return;
-
-        enableUndergroundPassengerAssignment = enabled;
-        NotifyTransportStatisticsChanged();
-    }
     public PublicTransportManager TransportManager => publicTransportManager;
     private int EffectiveBusCapacityPerDeparture =>
         busSpawner != null
@@ -1673,14 +1651,11 @@ public class PassengerCoordinator : MonoBehaviour
         float demandTarget = Mathf.Max(1, targetHourlyPassengerDemand);
         float busScore = busTransportWeight *
             Mathf.Clamp01(busCapacityPerHour / demandTarget);
-        // Capacity inputs are ready for future service implementations, but
-        // these modes stay out of live allocation until their journeys exist.
-        float trainScore = enableTrainPassengerAssignment
-            ? trainTransportWeight * Mathf.Clamp01(trainCapacityPerHour / demandTarget)
-            : 0f;
-        float undergroundScore = enableUndergroundPassengerAssignment
-            ? undergroundTransportWeight * Mathf.Clamp01(undergroundCapacityPerHour / demandTarget)
-            : 0f;
+        // Train and underground capacity inputs are exposed by the shared
+        // model, but are deliberately excluded until their passenger journeys
+        // are implemented. Their weights remain configured for that migration.
+        float trainScore = 0f;
+        float undergroundScore = 0f;
 
         EnsureParkingSpaceCache();
         int totalParkingSpaces = cachedParkingSpaceCount;
