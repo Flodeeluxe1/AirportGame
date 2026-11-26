@@ -273,6 +273,36 @@ public class AirlinePassengerAgent : MonoBehaviour
         return true;
     }
 
+    /// <summary>
+    /// Starts an outbound passenger at a car drop-off point and walks them
+    /// towards their assigned aircraft gate/terminal destination.
+    /// </summary>
+    public bool WalkToTerminalFromCar(
+        Vector3 terminalPosition,
+        PlacedBuilding carFootprint = null,
+        PlacedBuilding gateFootprint = null)
+    {
+        CacheComponents();
+        if (movement == null || state == JourneyState.OnCar ||
+            state == JourneyState.Completed || state == JourneyState.Abandoned)
+            return false;
+
+        if (interactions != null)
+            interactions.SetExternallyControlled(true);
+
+        state = JourneyState.WalkingToTerminal;
+        if (!movement.MoveToAllowingOccupiedEndpoints(
+                terminalPosition, carFootprint, gateFootprint))
+        {
+            state = JourneyState.Uninitialized;
+            if (interactions != null)
+                interactions.SetExternallyControlled(false);
+            return false;
+        }
+
+        return true;
+    }
+
     /// <summary>Walks from the arrival gate to the assigned parked pickup car.</summary>
     public bool WalkToCarPickup(
         Vector3 pickupPosition,
