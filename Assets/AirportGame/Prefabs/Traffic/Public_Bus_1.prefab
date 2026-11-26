@@ -212,12 +212,19 @@ MonoBehaviour:
   rotationSpeed: 10
   heightOffset: 0.2
   waypointTolerance: 0.08
+  turningRadiusInCells: 2
+  turnCurveResolution: 8
   stopDwellSeconds: 30
   boardingIntervalSeconds: 1
   maxPassengerCapacity: 50
   intersectionLookAheadModules: 1
   intersectionClearModules: 2
   debugState: Waiting for journey
+  debugCurrentSpeed: 0
+  debugBlockingCollider: None
+  debugBlockingVehicleState: None
+  debugBlockingDistance: 0
+  debugTrafficDecision: Not tested
   debugPathIndex: 0
   debugPathLength: 0
 --- !u!114 &8649479552319239630
@@ -232,7 +239,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d4a1c9e8b7f64a2d9c3e5f1a8b6d0c42, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TrafficFollowing
-  desiredFollowingDistance: 2.5
+  desiredFollowingDistance: 4.5
   routeMatchTolerance: 1.25
   acceleration: 4
   braking: 8

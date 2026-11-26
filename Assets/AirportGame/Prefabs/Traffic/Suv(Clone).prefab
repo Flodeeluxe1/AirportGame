@@ -296,18 +296,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d4a1c9e8b7f64a2d9c3e5f1a8b6d0c42, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TrafficFollowing
-  trafficLayer:
-    serializedVersion: 2
-    m_Bits: 128
-  detectionDistance: 4
-  safeFollowingDistance: 2
-  rayOriginHeight: 0.15
-  rayOriginForwardOffset: 1.72
-  sideSensorInterval: 0.1
-  captureRaycastDebugInfo: 0
+  desiredFollowingDistance: 4.5
+  routeMatchTolerance: 1.25
   acceleration: 4
   braking: 8
-  debugRaycastSummary: Not tested
 --- !u!114 &1669014086914449271
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -315,7 +307,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2154428240389558112}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 31e2fdefd1f606a4295bc97849d4440b, type: 3}
   m_Name: 

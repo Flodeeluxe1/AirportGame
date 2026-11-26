@@ -94,18 +94,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d4a1c9e8b7f64a2d9c3e5f1a8b6d0c42, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TrafficFollowing
-  trafficLayer:
-    serializedVersion: 2
-    m_Bits: 128
-  detectionDistance: 3
-  safeFollowingDistance: 1
-  rayOriginHeight: 0.15
-  rayOriginForwardOffset: 2.18
-  sideSensorInterval: 0.1
-  captureRaycastDebugInfo: 0
+  desiredFollowingDistance: 4.5
+  routeMatchTolerance: 1.25
   acceleration: 2
   braking: 4
-  debugRaycastSummary: Not tested
 --- !u!1001 &5802615123071589599
 PrefabInstance:
   m_ObjectHideFlags: 0
