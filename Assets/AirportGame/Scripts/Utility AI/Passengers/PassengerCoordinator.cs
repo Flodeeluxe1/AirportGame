@@ -1572,13 +1572,34 @@ public class PassengerCoordinator : MonoBehaviour
             return;
 
         group.PassengersSpawned = true;
+        if (group.Gate == null)
+        {
+            ReduceBookedOutgoingPassengers(group.OperationId, group.PassengerCount);
+            Debug.LogWarning(
+                $"PassengerCoordinator: Gate was removed before outbound passengers for flight {group.OperationId} could leave their car.",
+                car);
+            return;
+        }
+
         PlacedBuilding carFootprint = isParked && car.CurrentParkingSpace != null
             ? car.CurrentParkingSpace.GetComponent<PlacedBuilding>()
             : null;
 
         for (int i = 0; i < group.PassengerCount; i++)
         {
-            Vector3 spawnPosition = car.transform.position + Vector3.up * 0.1f;
+            Vector3 desiredPosition =
+                car.transform.position + car.transform.right * 1.5f;
+            Vector3 passengerGroundPosition = desiredPosition;
+            if (pedestrianPathfinder != null &&
+                !pedestrianPathfinder.TryFindNearestWalkablePosition(
+                    desiredPosition, 8, out passengerGroundPosition))
+            {
+                ReduceBookedOutgoingPassengers(group.OperationId, 1);
+                continue;
+            }
+
+            Vector3 spawnPosition =
+                passengerGroundPosition + Vector3.up * 0.1f;
             GameObject passengerObject = Instantiate(
                 airlinePassengerPrefab, spawnPosition, Quaternion.identity);
             AirlinePassengerAgent passenger =
