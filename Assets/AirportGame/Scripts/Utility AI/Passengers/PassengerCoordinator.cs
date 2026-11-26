@@ -200,6 +200,26 @@ public class PassengerCoordinator : MonoBehaviour
     }
 
     public float PassengerCarParkingFeePerMinute => passengerCarParkingFeePerMinute;
+    public bool TrainPassengerAssignmentEnabled => enableTrainPassengerAssignment;
+    public bool UndergroundPassengerAssignmentEnabled => enableUndergroundPassengerAssignment;
+
+    public void SetTrainPassengerAssignmentEnabled(bool enabled)
+    {
+        if (enableTrainPassengerAssignment == enabled)
+            return;
+
+        enableTrainPassengerAssignment = enabled;
+        NotifyTransportStatisticsChanged();
+    }
+
+    public void SetUndergroundPassengerAssignmentEnabled(bool enabled)
+    {
+        if (enableUndergroundPassengerAssignment == enabled)
+            return;
+
+        enableUndergroundPassengerAssignment = enabled;
+        NotifyTransportStatisticsChanged();
+    }
     public PublicTransportManager TransportManager => publicTransportManager;
     public float BusServiceCapacityPerHour =>
         publicTransportManager != null
