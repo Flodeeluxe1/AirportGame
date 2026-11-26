@@ -54,8 +54,21 @@ public class BusController : MonoBehaviour
     private readonly List<AirlinePassengerAgent> onboardPassengers = new List<AirlinePassengerAgent>();
     private readonly Queue<AirlinePassengerAgent> boardingQueue =
         new Queue<AirlinePassengerAgent>();
+    private readonly Queue<DisembarkRequest> disembarkingQueue =
+        new Queue<DisembarkRequest>();
     private float boardingIntervalRemaining;
+    private float disembarkingIntervalRemaining;
     private bool boardingServiceActive;
+    private bool disembarkingPhaseActive;
+
+    private struct DisembarkRequest
+    {
+        public AirlinePassengerAgent Passenger;
+        public Vector3 DisembarkPosition;
+        public Vector3 TerminalPosition;
+        public PlacedBuilding BusStopFootprint;
+        public PlacedBuilding GateFootprint;
+    }
     private readonly List<Vector3> smoothedMovementWaypoints =
         new List<Vector3>();
     private readonly List<int> smoothedRouteIndices = new List<int>();
@@ -85,6 +98,8 @@ public class BusController : MonoBehaviour
     public event Action<BusController> StopServiceCompleted;
     public event Action<BusController, AirlinePassengerAgent> PassengerBoarded;
     public event Action<BusController, AirlinePassengerAgent> PassengerBoardingFailed;
+    public event Action<BusController, AirlinePassengerAgent, bool> PassengerDisembarked;
+    public event Action<BusController> DisembarkingCompleted;
 
     public PlacedBuilding FirstStop => initialFirstStop;
     public int PassengerCapacity => Mathf.Max(1, maxPassengerCapacity);
@@ -96,7 +111,8 @@ public class BusController : MonoBehaviour
             return onboardPassengers.Count;
         }
     }
-    public bool IsBoardingOpen => boardingServiceActive && AvailablePassengerCapacity > boardingQueue.Count;
+    public bool IsBoardingOpen => boardingServiceActive && !disembarkingPhaseActive &&
+                                  AvailablePassengerCapacity > boardingQueue.Count;
     public int AvailablePassengerCapacity
     {
         get
@@ -148,10 +164,92 @@ public class BusController : MonoBehaviour
         return true;
     }
 
+    public bool QueuePassengerForDisembarking(
+        AirlinePassengerAgent passenger,
+        Vector3 disembarkPosition,
+        Vector3 terminalPosition,
+        PlacedBuilding busStopFootprint = null,
+        PlacedBuilding gateFootprint = null)
+    {
+        if (passenger == null || !boardingServiceActive ||
+            !disembarkingPhaseActive || passenger.State != AirlinePassengerAgent.JourneyState.OnBus)
+            return false;
+
+        foreach (DisembarkRequest queued in disembarkingQueue)
+            if (queued.Passenger == passenger)
+                return false;
+
+        disembarkingQueue.Enqueue(new DisembarkRequest
+        {
+            Passenger = passenger,
+            DisembarkPosition = disembarkPosition,
+            TerminalPosition = terminalPosition,
+            BusStopFootprint = busStopFootprint,
+            GateFootprint = gateFootprint
+        });
+        return true;
+    }
+
+    private void CompleteDisembarkingPhase()
+    {
+        if (!disembarkingPhaseActive)
+            return;
+
+        disembarkingPhaseActive = false;
+        boardingIntervalRemaining = Mathf.Max(0.01f, boardingIntervalSeconds);
+        stopTimeRemaining = Mathf.Max(0f, stopDwellSeconds);
+        debugState = "Boarding passengers";
+        DisembarkingCompleted?.Invoke(this);
+    }
+
+    private void ProcessStopDisembarking(float deltaTime)
+    {
+        if (!disembarkingPhaseActive)
+            return;
+
+        if (disembarkingQueue.Count == 0)
+        {
+            CompleteDisembarkingPhase();
+            return;
+        }
+
+        disembarkingIntervalRemaining -= deltaTime;
+        float interval = Mathf.Max(0.01f, boardingIntervalSeconds);
+        const int maxDisembarkingsPerUpdate = 32;
+
+        for (int i = 0; i < maxDisembarkingsPerUpdate &&
+                        disembarkingQueue.Count > 0 &&
+                        disembarkingIntervalRemaining <= 0f; i++)
+        {
+            DisembarkRequest request = disembarkingQueue.Dequeue();
+            AirlinePassengerAgent passenger = request.Passenger;
+            bool succeeded = passenger != null &&
+                DisembarkPassengerToTerminal(
+                    passenger,
+                    request.DisembarkPosition,
+                    request.TerminalPosition,
+                    request.BusStopFootprint,
+                    request.GateFootprint);
+            PassengerDisembarked?.Invoke(this, passenger, succeeded);
+
+            if (disembarkingQueue.Count > 0)
+                disembarkingIntervalRemaining += interval;
+        }
+
+        if (disembarkingQueue.Count == 0)
+            CompleteDisembarkingPhase();
+    }
+
     private void ProcessStopBoarding(float deltaTime)
     {
         if (!boardingServiceActive)
             return;
+
+        if (disembarkingPhaseActive)
+        {
+            ProcessStopDisembarking(deltaTime);
+            return;
+        }
 
         // Prune destroyed passengers once per boarding update rather than
         // rescanning the onboard list for every passenger processed this frame.
@@ -214,6 +312,8 @@ public class BusController : MonoBehaviour
             return;
 
         boardingServiceActive = false;
+        disembarkingPhaseActive = false;
+        disembarkingQueue.Clear();
         boardingQueue.Clear();
         stopTimeRemaining = 0f;
         debugState = "Departing bus stop";
@@ -440,9 +540,11 @@ public class BusController : MonoBehaviour
             completedStopRoadCells.Add(route[reachedRouteIndex]);
             currentSpeed = 0f;
             boardingServiceActive = true;
+            disembarkingPhaseActive = true;
+            disembarkingIntervalRemaining = Mathf.Max(0.01f, boardingIntervalSeconds);
             boardingIntervalRemaining = Mathf.Max(0.01f, boardingIntervalSeconds);
             stopTimeRemaining = Mathf.Max(0f, stopDwellSeconds);
-            debugState = "Boarding passengers";
+            debugState = "Deboarding passengers";
             for (int stopIndex = 0; stopIndex < orderedStops.Count; stopIndex++)
             {
                 if (stopIndex < orderedStopPathIndices.Count &&
