@@ -15,6 +15,7 @@ GameObject:
   - component: {fileID: -8786692194654866576}
   - component: {fileID: 362024171542107623}
   - component: {fileID: -5306766738131380520}
+  - component: {fileID: -8095341953686272610}
   - component: {fileID: 1618146539823908488}
   - component: {fileID: 4538715317622249873}
   - component: {fileID: -7906548610408018250}
@@ -164,6 +165,22 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AirlinePassengerAgent
   flightOperationId: 
   state: 0
+--- !u!114 &-8095341953686272610
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3345817600321289670}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d43a6d7f0e2f4d0a9c5e1b7a8f3d2c61, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PassengerJourneyController
+  direction: 0
+  currentStage: 0
+  transportDestination: 0
+  hasLuggage: 0
 --- !u!114 &1618146539823908488
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -771,10 +788,10 @@ MonoBehaviour:
     boredom: 0.7
     departureUrgency: 1.5
     hygiene: 0.9
-  thirst: 100
+  thirst: 14.7
   hunger: 100
-  bladder: 100
-  energy: 100
+  bladder: 13.7
+  energy: 12.6
   social: 100
   entertainment: 100
   comfort: 100

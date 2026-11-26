@@ -18,8 +18,8 @@ MonoBehaviour:
   placementType: 0
   allowedSurfaces: 2
   requiredSurface: 1
-  width: 1
-  depth: 1
+  width: 3
+  depth: 3
   edgeLength: 1
   requiresExistingWall: 0
   isWallMounted: 0
@@ -34,3 +34,5 @@ MonoBehaviour:
   category: 3
   icon: {fileID: 2800000, guid: b64bc1fb45d73d7449308310b262cc2b, type: 3}
   roomFurnitureRole: 0
+  passengerJourneyStationRole: 3
+  publicTransportModes: 0

@@ -34,3 +34,5 @@ MonoBehaviour:
   category: 3
   icon: {fileID: 2800000, guid: c65fd1d0b868e9448b9bebcde990e0f0, type: 3}
   roomFurnitureRole: 0
+  passengerJourneyStationRole: 5
+  publicTransportModes: 0
