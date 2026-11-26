@@ -221,10 +221,15 @@ public class PassengerCoordinator : MonoBehaviour
         NotifyTransportStatisticsChanged();
     }
     public PublicTransportManager TransportManager => publicTransportManager;
+    private int EffectiveBusCapacityPerDeparture =>
+        busSpawner != null
+            ? Mathf.Max(1, busSpawner.PassengerCapacityPerBus)
+            : Mathf.Max(1, busCapacityPerDeparture);
+
     public float BusServiceCapacityPerHour =>
         publicTransportManager != null
             ? publicTransportManager.GetServiceCapacityPerHour(
-                PassengerIdentity.TransportMode.Bus, busCapacityPerDeparture)
+                PassengerIdentity.TransportMode.Bus, EffectiveBusCapacityPerDeparture)
             : 0f;
     public float TrainServiceCapacityPerHour =>
         publicTransportManager != null
@@ -1636,15 +1641,15 @@ public class PassengerCoordinator : MonoBehaviour
 
         float busCapacityPerHour = publicTransportManager != null
             ? publicTransportManager.GetServiceCapacityPerHour(
-                PassengerIdentity.TransportMode.Bus, busCapacityPerDeparture)
+                PassengerIdentity.TransportMode.Bus, EffectiveBusCapacityPerDeparture)
             : 0f;
         float trainCapacityPerHour = publicTransportManager != null
             ? publicTransportManager.GetServiceCapacityPerHour(
-                PassengerIdentity.TransportMode.Train, busCapacityPerDeparture)
+                PassengerIdentity.TransportMode.Train, EffectiveBusCapacityPerDeparture)
             : 0f;
         float undergroundCapacityPerHour = publicTransportManager != null
             ? publicTransportManager.GetServiceCapacityPerHour(
-                PassengerIdentity.TransportMode.Underground, busCapacityPerDeparture)
+                PassengerIdentity.TransportMode.Underground, EffectiveBusCapacityPerDeparture)
             : 0f;
 
         float demandTarget = Mathf.Max(1, targetHourlyPassengerDemand);
