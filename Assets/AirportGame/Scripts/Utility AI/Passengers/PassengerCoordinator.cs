@@ -465,7 +465,10 @@ public class PassengerCoordinator : MonoBehaviour
         {
             for (int i = 0; i < passengers.Count; i++)
                 if (passengers[i] != null)
+                {
+                    waitingReturnPassengerSet.Remove(passengers[i]);
                     passengers[i].CompleteReturnBusJourney();
+                }
             returnPassengersByBus.Remove(bus);
         }
 
@@ -490,6 +493,7 @@ public class PassengerCoordinator : MonoBehaviour
 
         bus.StopReached -= HandleBusStopReached;
         bus.JourneyCompleted -= HandleBusJourneyCompleted;
+        bus.StopServiceCompleted -= HandleBusStopServiceCompleted;
         subscribedBuses.Remove(bus);
     }
 
