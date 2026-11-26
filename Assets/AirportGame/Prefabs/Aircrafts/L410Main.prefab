@@ -229,7 +229,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7ee889bd93e678145a77cbff86ae978e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AircraftTurnaroundController
-  logToConsole: 0
+  logToConsole: 1
   gameTimeManager: {fileID: 0}
   loadingManifest: {fileID: 0}
   deboarding:
