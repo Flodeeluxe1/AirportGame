@@ -18,6 +18,7 @@ public class AirlinePassengerAgent : MonoBehaviour
         Boarding,
         OnBus,
         WalkingToTerminal,
+        ProcessingDepartureJourney,
         AtTerminal,
         WalkingToCarPickup,
         AtCarPickup,
@@ -38,6 +39,9 @@ public class AirlinePassengerAgent : MonoBehaviour
     private EnvironmentScoreMonitor environmentMonitor;
     private AirportVisitorExperience visitorExperience;
     private PassengerJourneyController passengerJourney;
+    private Vector3 departureGatePosition;
+    private PlacedBuilding departureGateFootprint;
+    private double nextDepartureStationRetryTime;
     private Vector3 busStopPosition;
     private PlacedBuilding busStopGateFootprint;
     private PlacedBuilding waitingBusStopFootprint;
@@ -79,12 +83,32 @@ public class AirlinePassengerAgent : MonoBehaviour
         CacheComponents();
         if (movement != null)
             movement.Arrived += HandleMovementArrived;
+        if (interactions != null)
+        {
+            interactions.MandatoryInteractionCompleted += HandleMandatoryInteractionCompleted;
+            interactions.MandatoryInteractionFailed += HandleMandatoryInteractionFailed;
+        }
     }
 
     private void OnDisable()
     {
         if (movement != null)
             movement.Arrived -= HandleMovementArrived;
+        if (interactions != null)
+        {
+            interactions.MandatoryInteractionCompleted -= HandleMandatoryInteractionCompleted;
+            interactions.MandatoryInteractionFailed -= HandleMandatoryInteractionFailed;
+        }
+    }
+
+    private void Update()
+    {
+        if (state == JourneyState.ProcessingDepartureJourney &&
+            (interactions == null || !interactions.IsHandlingInteraction) &&
+            GameTimeManager.SimulationTime >= nextDepartureStationRetryTime)
+        {
+            BeginNextDepartureStage();
+        }
     }
 
     private void HandleMovementArrived()
@@ -103,6 +127,14 @@ public class AirlinePassengerAgent : MonoBehaviour
         {
             if (interactions != null && interactions.IsHandlingInteraction)
                 return;
+
+            if (passengerJourney != null &&
+                passengerJourney.Direction == PassengerJourneyController.JourneyDirection.Departure)
+            {
+                if (passengerJourney.CurrentStage ==
+                    PassengerJourneyController.JourneyStage.TravellingToBoardingGate)
+                    passengerJourney.ReachBoardingGate();
+            }
 
             state = JourneyState.AtTerminal;
             if (interactions != null)
@@ -128,6 +160,131 @@ public class AirlinePassengerAgent : MonoBehaviour
                 passengerJourney.ReachTransport();
             ReachedCarPickup?.Invoke(this);
         }
+    }
+
+    private void HandleMandatoryInteractionCompleted(
+        InteractionProvider provider,
+        InteractionDefinition definition)
+    {
+        if (passengerJourney == null ||
+            passengerJourney.Direction != PassengerJourneyController.JourneyDirection.Departure)
+            return;
+
+        switch (passengerJourney.CurrentStage)
+        {
+            case PassengerJourneyController.JourneyStage.CheckIn:
+                passengerJourney.CompleteCheckIn();
+                break;
+            case PassengerJourneyController.JourneyStage.BaggageDrop:
+                passengerJourney.CompleteBaggageDrop();
+                break;
+            case PassengerJourneyController.JourneyStage.BodySecurity:
+                passengerJourney.CompleteBodySecurity();
+                break;
+            case PassengerJourneyController.JourneyStage.LuggageSecurity:
+                passengerJourney.CompleteLuggageSecurity();
+                break;
+            default:
+                return;
+        }
+
+        BeginNextDepartureStage();
+    }
+
+    private void HandleMandatoryInteractionFailed(
+        InteractionProvider provider,
+        InteractionDefinition definition,
+        string reason)
+    {
+        if (passengerJourney == null ||
+            passengerJourney.Direction != PassengerJourneyController.JourneyDirection.Departure)
+            return;
+
+        nextDepartureStationRetryTime = GameTimeManager.SimulationTime + 10d;
+        Debug.LogWarning(
+            $"AirlinePassengerAgent: Could not complete departure stage " +
+            $"{passengerJourney.CurrentStage} for {flightOperationId}: {reason}",
+            this);
+    }
+
+    private void BeginNextDepartureStage()
+    {
+        if (passengerJourney == null || interactions == null ||
+            movement == null || state == JourneyState.Completed ||
+            state == JourneyState.Abandoned)
+            return;
+
+        PassengerJourneyStationRole requiredRole;
+
+        switch (passengerJourney.CurrentStage)
+        {
+            case PassengerJourneyController.JourneyStage.CheckIn:
+                requiredRole = PassengerJourneyStationRole.AirlineCheckIn;
+                break;
+            case PassengerJourneyController.JourneyStage.BaggageDrop:
+                requiredRole = PassengerJourneyStationRole.BaggageDrop;
+                break;
+            case PassengerJourneyController.JourneyStage.BodySecurity:
+                requiredRole = PassengerJourneyStationRole.BodySecurity;
+                break;
+            case PassengerJourneyController.JourneyStage.LuggageSecurity:
+                requiredRole = PassengerJourneyStationRole.LuggageSecurity;
+                break;
+            case PassengerJourneyController.JourneyStage.DeparturesArea:
+                if (!passengerJourney.BeginBoardingGateJourney())
+                    return;
+
+                state = JourneyState.WalkingToTerminal;
+                if (!movement.MoveToAllowingOccupiedEndpoints(
+                        departureGatePosition, null, departureGateFootprint))
+                {
+                    passengerJourney.ReachBoardingGate();
+                    state = JourneyState.AtTerminal;
+                    Debug.LogWarning(
+                        $"AirlinePassengerAgent: No route to boarding gate for {flightOperationId}.",
+                        this);
+                }
+                return;
+            default:
+                return;
+        }
+
+        if (!PassengerJourneyController.TryFindNearestStation(
+                requiredRole, transform.position,
+                out InteractionProvider provider,
+                out PlacedBuilding stationBuilding))
+        {
+            nextDepartureStationRetryTime = GameTimeManager.SimulationTime + 10d;
+            Debug.LogWarning(
+                $"AirlinePassengerAgent: No available {requiredRole} station for {flightOperationId}.",
+                this);
+            return;
+        }
+
+        InteractionDefinition selectedDefinition = null;
+        IReadOnlyList<InteractionDefinition> definitions = provider.Interactions;
+        for (int i = 0; i < definitions.Count; i++)
+        {
+            if (provider.CanOffer(definitions[i]))
+            {
+                selectedDefinition = definitions[i];
+                break;
+            }
+        }
+
+        if (selectedDefinition == null ||
+            !interactions.BeginMandatoryInteraction(
+                provider, selectedDefinition, null, stationBuilding))
+        {
+            nextDepartureStationRetryTime = GameTimeManager.SimulationTime + 10d;
+            Debug.LogWarning(
+                $"AirlinePassengerAgent: Could not start {requiredRole} interaction for {flightOperationId}.",
+                this);
+            return;
+        }
+
+        state = JourneyState.ProcessingDepartureJourney;
+        nextDepartureStationRetryTime = double.PositiveInfinity;
     }
 
     private void CacheComponents()
@@ -213,12 +370,14 @@ public class AirlinePassengerAgent : MonoBehaviour
 
         flightOperationId = operationId;
         identity.Initialize(transportMode);
+        if (passengerJourney == null)
+            passengerJourney = gameObject.AddComponent<PassengerJourneyController>();
+
         if (isArrivingPassenger)
-        {
-            if (passengerJourney == null)
-                passengerJourney = gameObject.AddComponent<PassengerJourneyController>();
             passengerJourney.InitializeArrival(false);
-        }
+        else
+            passengerJourney.InitializeDeparture(false);
+
         needs.ResetForNewVisit();
 
         // These visitor systems must start with the passenger, just as they do
@@ -378,6 +537,21 @@ public class AirlinePassengerAgent : MonoBehaviour
             state == JourneyState.Completed || state == JourneyState.Abandoned)
             return false;
 
+        departureGatePosition = terminalPosition;
+        departureGateFootprint = gateFootprint;
+
+        if (passengerJourney != null &&
+            passengerJourney.Direction == PassengerJourneyController.JourneyDirection.Departure)
+        {
+            if (interactions != null)
+                interactions.SetExternallyControlled(false);
+
+            state = JourneyState.ProcessingDepartureJourney;
+            nextDepartureStationRetryTime = GameTimeManager.SimulationTime;
+            BeginNextDepartureStage();
+            return state == JourneyState.ProcessingDepartureJourney;
+        }
+
         if (interactions != null)
             interactions.SetJourneyInteractions(
                 true, terminalPosition, carFootprint, gateFootprint);
@@ -527,6 +701,21 @@ public class AirlinePassengerAgent : MonoBehaviour
 
         if (passengerCollider != null)
             transform.position += Vector3.up * passengerCollider.bounds.extents.y;
+
+        departureGatePosition = terminalPosition;
+        departureGateFootprint = gateFootprint;
+
+        if (passengerJourney != null &&
+            passengerJourney.Direction == PassengerJourneyController.JourneyDirection.Departure)
+        {
+            if (interactions != null)
+                interactions.SetExternallyControlled(false);
+
+            state = JourneyState.ProcessingDepartureJourney;
+            nextDepartureStationRetryTime = GameTimeManager.SimulationTime;
+            BeginNextDepartureStage();
+            return true;
+        }
 
         if (interactions != null)
             interactions.SetExternallyControlled(true);
