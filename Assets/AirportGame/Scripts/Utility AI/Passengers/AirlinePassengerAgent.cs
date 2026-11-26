@@ -124,7 +124,10 @@ public class AirlinePassengerAgent : MonoBehaviour
         return true;
     }
 
-    public bool WalkToBusStop(Vector3 stopPosition)
+    public bool WalkToBusStop(
+        Vector3 stopPosition,
+        PlacedBuilding gateFootprint = null,
+        PlacedBuilding busStopFootprint = null)
     {
         CacheComponents();
 
@@ -138,7 +141,8 @@ public class AirlinePassengerAgent : MonoBehaviour
             interactions.SetExternallyControlled(true);
 
         state = JourneyState.WalkingToBusStop;
-        if (!movement.MoveToAllowingOccupiedEndpoints(stopPosition))
+        if (!movement.MoveToAllowingOccupiedEndpoints(
+                stopPosition, gateFootprint, busStopFootprint))
         {
             state = JourneyState.Uninitialized;
             if (interactions != null)
