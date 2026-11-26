@@ -38,6 +38,9 @@ public class AirlinePassengerAgent : MonoBehaviour
     private EnvironmentScoreMonitor environmentMonitor;
     private AirportVisitorExperience visitorExperience;
     private PassengerJourneyController passengerJourney;
+    private Vector3 busStopPosition;
+    private PlacedBuilding busStopGateFootprint;
+    private PlacedBuilding busStopFootprint;
     private Renderer[] passengerRenderers;
     private bool[] rendererEnabledBeforeBoarding;
     private Collider[] passengerColliders;
@@ -50,6 +53,21 @@ public class AirlinePassengerAgent : MonoBehaviour
     public JourneyState State => state;
     public UtilityNeeds Needs => needs;
     public PedestrianMovementController Movement => movement;
+    public bool CanBoardBus
+    {
+        get
+        {
+            if (state != JourneyState.WaitingForBus || movement == null ||
+                movement.IsMoving || (interactions != null && interactions.IsHandlingInteraction))
+                return false;
+
+            Vector3 current = transform.position;
+            Vector3 stop = busStopPosition;
+            current.y = 0f;
+            stop.y = 0f;
+            return (current - stop).sqrMagnitude <= 0.25f;
+        }
+    }
 
     private void Awake()
     {
@@ -235,6 +253,10 @@ public class AirlinePassengerAgent : MonoBehaviour
                 PassengerJourneyController.TransportDestination.BusStop))
             return false;
 
+        busStopPosition = stopPosition;
+        busStopGateFootprint = gateFootprint;
+        busStopFootprint = busStopFootprint;
+
         if (interactions != null)
             interactions.SetJourneyInteractions(
                 true, stopPosition, gateFootprint, busStopFootprint);
@@ -268,12 +290,32 @@ public class AirlinePassengerAgent : MonoBehaviour
             state = JourneyState.WaitingForBus;
             if (passengerJourney != null)
                 passengerJourney.ReachTransport();
-            if (interactions != null)
-            {
-                interactions.StopJourneyInteractions();
-                interactions.SetExternallyControlled(true);
-            }
+
+            // Keep need-driven interactions active while the passenger waits.
+            // Their mandatory destination remains this exact bus-stop position.
+            ResumeWaitingForBusNeeds();
         }
+    }
+
+    public void ResumeWaitingForBusNeeds()
+    {
+        if (state != JourneyState.WaitingForBus || interactions == null)
+            return;
+
+        interactions.SetJourneyInteractions(
+            true,
+            busStopPosition,
+            busStopGateFootprint,
+            busStopFootprint);
+    }
+
+    public void PauseWaitingForBusNeedsForBoarding()
+    {
+        if (state != JourneyState.WaitingForBus || interactions == null)
+            return;
+
+        interactions.StopJourneyInteractions();
+        interactions.SetExternallyControlled(true);
     }
 
     public void BeginBoarding()
