@@ -535,6 +535,8 @@ public class PassengerCoordinator : MonoBehaviour
         bus.JourneyCompleted -= HandleBusJourneyCompleted;
         bus.StopServiceCompleted -= HandleBusStopServiceCompleted;
         bus.PassengerBoardingFailed -= HandlePassengerBoardingFailed;
+        bus.PassengerDisembarked -= HandleBusPassengerDisembarked;
+        bus.DisembarkingCompleted -= HandleBusDisembarkingCompleted;
         subscribedBuses.Remove(bus);
     }
 
