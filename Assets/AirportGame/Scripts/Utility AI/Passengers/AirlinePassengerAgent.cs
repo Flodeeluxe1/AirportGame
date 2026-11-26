@@ -37,6 +37,7 @@ public class AirlinePassengerAgent : MonoBehaviour
     private InteractionController interactions;
     private EnvironmentScoreMonitor environmentMonitor;
     private AirportVisitorExperience visitorExperience;
+    private PassengerJourneyController passengerJourney;
     private Renderer[] passengerRenderers;
     private bool[] rendererEnabledBeforeBoarding;
     private Collider[] passengerColliders;
@@ -88,6 +89,8 @@ public class AirlinePassengerAgent : MonoBehaviour
         if (state == JourneyState.WalkingToCarPickup)
         {
             state = JourneyState.AtCarPickup;
+            if (passengerJourney != null)
+                passengerJourney.ReachTransport();
             if (interactions != null)
                 interactions.SetExternallyControlled(true);
             ReachedCarPickup?.Invoke(this);
@@ -108,6 +111,8 @@ public class AirlinePassengerAgent : MonoBehaviour
             environmentMonitor = GetComponent<EnvironmentScoreMonitor>();
         if (visitorExperience == null)
             visitorExperience = GetComponent<AirportVisitorExperience>();
+        if (passengerJourney == null)
+            passengerJourney = GetComponent<PassengerJourneyController>();
 
         if (passengerRenderers == null)
         {
@@ -160,7 +165,10 @@ public class AirlinePassengerAgent : MonoBehaviour
     /// Initializes a passenger for one scheduled flight. The operation ID
     /// prevents passengers from different flights being mixed in a bus group.
     /// </summary>
-    public bool Initialize(string operationId, PassengerIdentity.TransportMode transportMode)
+    public bool Initialize(
+        string operationId,
+        PassengerIdentity.TransportMode transportMode,
+        bool isArrivingPassenger = false)
     {
         CacheComponents();
 
@@ -172,6 +180,12 @@ public class AirlinePassengerAgent : MonoBehaviour
 
         flightOperationId = operationId;
         identity.Initialize(transportMode);
+        if (isArrivingPassenger)
+        {
+            if (passengerJourney == null)
+                passengerJourney = gameObject.AddComponent<PassengerJourneyController>();
+            passengerJourney.InitializeArrival(false);
+        }
         needs.ResetForNewVisit();
 
         // These visitor systems must start with the passenger, just as they do
@@ -204,6 +218,11 @@ public class AirlinePassengerAgent : MonoBehaviour
         if (interactions != null)
             interactions.SetExternallyControlled(true);
 
+        if (passengerJourney != null &&
+            !passengerJourney.BeginTransport(
+                PassengerJourneyController.TransportDestination.BusStop))
+            return false;
+
         state = JourneyState.WalkingToBusStop;
         if (!movement.MoveToAllowingOccupiedEndpoints(
                 stopPosition, gateFootprint, busStopFootprint))
@@ -226,6 +245,8 @@ public class AirlinePassengerAgent : MonoBehaviour
                 movement.Stop();
 
             state = JourneyState.WaitingForBus;
+            if (passengerJourney != null)
+                passengerJourney.ReachTransport();
             if (interactions != null)
                 interactions.SetExternallyControlled(true);
         }
@@ -245,6 +266,8 @@ public class AirlinePassengerAgent : MonoBehaviour
                 movement.Stop();
 
             state = JourneyState.OnBus;
+            if (passengerJourney != null)
+                passengerJourney.CompleteTransportJourney();
         }
     }
 
@@ -317,6 +340,11 @@ public class AirlinePassengerAgent : MonoBehaviour
         if (interactions != null)
             interactions.SetExternallyControlled(true);
 
+        if (passengerJourney != null &&
+            !passengerJourney.BeginTransport(
+                PassengerJourneyController.TransportDestination.PickupCar))
+            return false;
+
         state = JourneyState.WalkingToCarPickup;
         if (!movement.MoveToAllowingOccupiedEndpoints(
                 pickupPosition, gateFootprint, parkingFootprint))
@@ -346,6 +374,8 @@ public class AirlinePassengerAgent : MonoBehaviour
         transform.localRotation = Quaternion.identity;
         HideWhileOnBus();
         state = JourneyState.OnCar;
+        if (passengerJourney != null)
+            passengerJourney.CompleteTransportJourney();
         return true;
     }
 
