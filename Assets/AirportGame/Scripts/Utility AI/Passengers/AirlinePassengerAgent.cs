@@ -73,6 +73,9 @@ public class AirlinePassengerAgent : MonoBehaviour
     {
         if (state == JourneyState.WalkingToBusStop)
         {
+            if (interactions != null && interactions.IsHandlingInteraction)
+                return;
+
             BeginWaitingForBus();
             ReachedBusStop?.Invoke(this);
             return;
@@ -88,7 +91,15 @@ public class AirlinePassengerAgent : MonoBehaviour
 
         if (state == JourneyState.WalkingToCarPickup)
         {
+            if (interactions != null && interactions.IsHandlingInteraction)
+                return;
+
             state = JourneyState.AtCarPickup;
+            if (interactions != null)
+            {
+                interactions.StopJourneyInteractions();
+                interactions.SetExternallyControlled(true);
+            }
             if (passengerJourney != null)
                 passengerJourney.ReachTransport();
             if (interactions != null)
@@ -221,7 +232,8 @@ public class AirlinePassengerAgent : MonoBehaviour
             return false;
 
         if (interactions != null)
-            interactions.SetExternallyControlled(true);
+            interactions.SetJourneyInteractions(
+                true, stopPosition, gateFootprint, busStopFootprint);
 
         state = JourneyState.WalkingToBusStop;
         if (!movement.MoveToAllowingOccupiedEndpoints(
@@ -231,7 +243,10 @@ public class AirlinePassengerAgent : MonoBehaviour
             if (passengerJourney != null)
                 passengerJourney.CancelTransport();
             if (interactions != null)
+            {
+                interactions.StopJourneyInteractions();
                 interactions.SetExternallyControlled(false);
+            }
             return false;
         }
 
@@ -250,7 +265,10 @@ public class AirlinePassengerAgent : MonoBehaviour
             if (passengerJourney != null)
                 passengerJourney.ReachTransport();
             if (interactions != null)
+            {
+                interactions.StopJourneyInteractions();
                 interactions.SetExternallyControlled(true);
+            }
         }
     }
 
@@ -347,7 +365,8 @@ public class AirlinePassengerAgent : MonoBehaviour
             return false;
 
         if (interactions != null)
-            interactions.SetExternallyControlled(true);
+            interactions.SetJourneyInteractions(
+                true, pickupPosition, gateFootprint, parkingFootprint);
 
         state = JourneyState.WalkingToCarPickup;
         if (!movement.MoveToAllowingOccupiedEndpoints(
@@ -357,7 +376,10 @@ public class AirlinePassengerAgent : MonoBehaviour
             if (passengerJourney != null)
                 passengerJourney.CancelTransport();
             if (interactions != null)
+            {
+                interactions.StopJourneyInteractions();
                 interactions.SetExternallyControlled(false);
+            }
             return false;
         }
         return true;
