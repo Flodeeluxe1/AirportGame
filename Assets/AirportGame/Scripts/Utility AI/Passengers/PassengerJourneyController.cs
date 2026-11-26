@@ -17,10 +17,23 @@ public sealed class PassengerJourneyController : MonoBehaviour
     {
         Uninitialized,
         Aircraft,
+
+        // Arrival stages.
         BaggageClaim,
         AwaitingTransport,
         TravellingToTransport,
         AtTransport,
+
+        // Departure stages.
+        CheckIn,
+        BaggageDrop,
+        BodySecurity,
+        LuggageSecurity,
+        DeparturesArea,
+        BoardingGate,
+        TravellingToBoardingGate,
+        AtBoardingGate,
+
         Completed
     }
 
@@ -56,6 +69,15 @@ public sealed class PassengerJourneyController : MonoBehaviour
         transportDestination = TransportDestination.None;
         currentStage = JourneyStage.Aircraft;
         AdvancePastAircraft();
+    }
+
+    /// <summary>Starts a departing passenger at the check-in stage.</summary>
+    public void InitializeDeparture(bool passengerHasLuggage)
+    {
+        direction = JourneyDirection.Departure;
+        hasLuggage = passengerHasLuggage;
+        transportDestination = TransportDestination.None;
+        currentStage = JourneyStage.CheckIn;
     }
 
     /// <summary>
@@ -117,8 +139,85 @@ public sealed class PassengerJourneyController : MonoBehaviour
 
     public void CompleteTransportJourney()
     {
-        if (currentStage == JourneyStage.AtTransport ||
-            currentStage == JourneyStage.TravellingToTransport)
+        if (direction == JourneyDirection.Arrival &&
+            (currentStage == JourneyStage.AtTransport ||
+             currentStage == JourneyStage.TravellingToTransport))
             currentStage = JourneyStage.Completed;
+    }
+
+    public bool CompleteCheckIn()
+    {
+        if (direction != JourneyDirection.Departure ||
+            currentStage != JourneyStage.CheckIn)
+            return false;
+
+        currentStage = hasLuggage
+            ? JourneyStage.BaggageDrop
+            : JourneyStage.BodySecurity;
+        return true;
+    }
+
+    public bool CompleteBaggageDrop()
+    {
+        if (direction != JourneyDirection.Departure ||
+            !hasLuggage ||
+            currentStage != JourneyStage.BaggageDrop)
+            return false;
+
+        currentStage = JourneyStage.BodySecurity;
+        return true;
+    }
+
+    public bool CompleteBodySecurity()
+    {
+        if (direction != JourneyDirection.Departure ||
+            currentStage != JourneyStage.BodySecurity)
+            return false;
+
+        currentStage = hasLuggage
+            ? JourneyStage.LuggageSecurity
+            : JourneyStage.DeparturesArea;
+        return true;
+    }
+
+    public bool CompleteLuggageSecurity()
+    {
+        if (direction != JourneyDirection.Departure ||
+            !hasLuggage ||
+            currentStage != JourneyStage.LuggageSecurity)
+            return false;
+
+        currentStage = JourneyStage.DeparturesArea;
+        return true;
+    }
+
+    public bool BeginBoardingGateJourney()
+    {
+        if (direction != JourneyDirection.Departure ||
+            currentStage != JourneyStage.DeparturesArea)
+            return false;
+
+        currentStage = JourneyStage.TravellingToBoardingGate;
+        return true;
+    }
+
+    public bool ReachBoardingGate()
+    {
+        if (direction != JourneyDirection.Departure ||
+            currentStage != JourneyStage.TravellingToBoardingGate)
+            return false;
+
+        currentStage = JourneyStage.AtBoardingGate;
+        return true;
+    }
+
+    public bool CompleteDepartureJourney()
+    {
+        if (direction != JourneyDirection.Departure ||
+            currentStage != JourneyStage.AtBoardingGate)
+            return false;
+
+        currentStage = JourneyStage.Completed;
+        return true;
     }
 }
