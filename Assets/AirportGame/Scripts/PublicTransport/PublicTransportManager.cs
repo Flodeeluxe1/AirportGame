@@ -34,10 +34,35 @@ public class PublicTransportManager : MonoBehaviour
     public event Action BusFrequencyChanged;
     public event Action TrainServiceChanged;
     public event Action UndergroundServiceChanged;
+    public event Action FleetChanged;
 
     public RoadNetwork RoadNetwork => roadNetwork;
     public GridManager GridManager => gridManager;
     public float BusFrequencyMinutes => busFrequencyMinutes;
+    public float BusCapacityPerHour(int capacityPerDeparture)
+    {
+        if (activeBuses <= 0 || registeredStops.Count == 0)
+            return 0f;
+
+        return (60f / Mathf.Max(1f, busFrequencyMinutes)) * Mathf.Max(1, capacityPerDeparture);
+    }
+
+    public float GetServiceCapacityPerHour(
+        PassengerIdentity.TransportMode mode,
+        int busCapacityPerDeparture)
+    {
+        switch (mode)
+        {
+            case PassengerIdentity.TransportMode.Bus:
+                return BusCapacityPerHour(busCapacityPerDeparture);
+            case PassengerIdentity.TransportMode.Train:
+                return trainCapacityPerHour;
+            case PassengerIdentity.TransportMode.Underground:
+                return undergroundCapacityPerHour;
+            default:
+                return 0f;
+        }
+    }
     public int OwnedBuses => ownedBuses;
     public int ActiveBuses => activeBuses;
     public int InactiveBuses => Mathf.Max(0, ownedBuses - activeBuses);
@@ -185,6 +210,7 @@ public class PublicTransportManager : MonoBehaviour
 
         ownedBuses = newOwnedBuses;
         activeBuses = newActiveBuses;
+        FleetChanged?.Invoke();
         return true;
     }
 }
