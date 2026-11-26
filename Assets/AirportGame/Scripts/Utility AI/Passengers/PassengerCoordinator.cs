@@ -67,8 +67,12 @@ public class PassengerCoordinator : MonoBehaviour
     {
         public AircraftTurnaroundController Turnaround;
         public Transform AircraftTransform;
+        public string OperationId;
+        public int RequestedPassengerCount;
         public readonly List<AirlinePassengerAgent> Passengers =
             new List<AirlinePassengerAgent>();
+        public readonly HashSet<AirlinePassengerAgent> AddedPassengers =
+            new HashSet<AirlinePassengerAgent>();
         public int NextPassengerIndex;
         public int BoardedCount;
     }
@@ -171,39 +175,59 @@ public class PassengerCoordinator : MonoBehaviour
             outgoingPassengerBoardingIntervalRemaining = 1f;
         }
 
+        OutgoingPassengerBoardingJob job =
+            activeOutgoingPassengerBoardingJob;
+
+        CollectPassengersForBoarding(job);
+        if (job.Passengers.Count < job.RequestedPassengerCount)
+            return;
+
         outgoingPassengerBoardingIntervalRemaining -= deltaGameSeconds;
         const int maxBoardingsPerUpdate = 32;
         for (int i = 0; i < maxBoardingsPerUpdate &&
                         activeOutgoingPassengerBoardingJob != null &&
                         outgoingPassengerBoardingIntervalRemaining <= 0f; i++)
         {
-            OutgoingPassengerBoardingJob job =
-                activeOutgoingPassengerBoardingJob;
             AirlinePassengerAgent passenger =
                 job.Passengers[job.NextPassengerIndex];
 
-            if (passenger != null &&
-                passenger.State == AirlinePassengerAgent.JourneyState.WalkingToTerminal)
+            if (passenger == null)
             {
-                // Keep the current passenger in the queue until they physically
-                // reach the gate. Do not count a walking passenger as boarded.
+                job.NextPassengerIndex++;
+            }
+            else if (passenger.State == AirlinePassengerAgent.JourneyState.AtTerminal)
+            {
+                if (passenger.BoardAircraft(job.AircraftTransform))
+                    job.BoardedCount++;
+                job.NextPassengerIndex++;
+            }
+            else if (passenger.State == AirlinePassengerAgent.JourneyState.OnAircraft)
+            {
+                job.BoardedCount++;
+                job.NextPassengerIndex++;
+            }
+            else if (passenger.State == AirlinePassengerAgent.JourneyState.Completed ||
+                     passenger.State == AirlinePassengerAgent.JourneyState.Abandoned)
+            {
+                Debug.LogWarning(
+                    $"PassengerCoordinator: Passenger for flight {job.OperationId} could not board because its journey ended before reaching the aircraft.",
+                    passenger);
+                job.NextPassengerIndex++;
+            }
+            else
+            {
+                // Wait for this specific passenger to arrive at the gate.
+                // Do not skip them or complete the turnaround while they are walking.
                 outgoingPassengerBoardingIntervalRemaining = 0f;
                 return;
             }
 
-            job.NextPassengerIndex++;
-            if (passenger != null &&
-                passenger.State == AirlinePassengerAgent.JourneyState.AtTerminal &&
-                passenger.BoardAircraft(job.AircraftTransform))
-            {
-                job.BoardedCount++;
-            }
-
-            if (job.NextPassengerIndex >= job.Passengers.Count)
+            if (job.NextPassengerIndex >= job.RequestedPassengerCount)
             {
                 if (job.Turnaround != null)
                     job.Turnaround.CompleteExternalBoarding();
 
+                terminalPassengersByOperationId.Remove(job.OperationId);
                 activeOutgoingPassengerBoardingJob = null;
                 if (outgoingPassengerBoardingJobs.Count > 0)
                 {
@@ -219,6 +243,23 @@ public class PassengerCoordinator : MonoBehaviour
         }
     }
 
+    private void CollectPassengersForBoarding(OutgoingPassengerBoardingJob job)
+    {
+        if (job == null ||
+            !terminalPassengersByOperationId.TryGetValue(
+                job.OperationId,
+                out List<AirlinePassengerAgent> terminalPassengers))
+            return;
+
+        for (int i = 0; i < terminalPassengers.Count &&
+                        job.Passengers.Count < job.RequestedPassengerCount; i++)
+        {
+            AirlinePassengerAgent passenger = terminalPassengers[i];
+            if (passenger != null && job.AddedPassengers.Add(passenger))
+                job.Passengers.Add(passenger);
+        }
+    }
+
     private void HandlePassengersBoardingStarted(
         AircraftTurnaroundController turnaround)
     {
@@ -230,10 +271,13 @@ public class PassengerCoordinator : MonoBehaviour
         AircraftStats stats = turnaround.GetComponent<AircraftStats>();
 
         if (identity == null || !identity.IsInitialized ||
-            stats == null || stats.OutgoingPassengers <= 0 ||
-            !terminalPassengersByOperationId.TryGetValue(
-                identity.OperationId,
-                out List<AirlinePassengerAgent> terminalPassengers))
+            stats == null)
+        {
+            turnaround.CompleteExternalBoarding();
+            return;
+        }
+
+        if (stats.OutgoingPassengers <= 0)
         {
             turnaround.CompleteExternalBoarding();
             return;
@@ -243,40 +287,12 @@ public class PassengerCoordinator : MonoBehaviour
             new OutgoingPassengerBoardingJob
             {
                 Turnaround = turnaround,
-                AircraftTransform = turnaround.transform
+                AircraftTransform = turnaround.transform,
+                OperationId = identity.OperationId,
+                RequestedPassengerCount = stats.OutgoingPassengers
             };
 
-        int requestedPassengers = stats.OutgoingPassengers;
-        for (int i = 0; i < terminalPassengers.Count &&
-                        job.Passengers.Count < requestedPassengers; i++)
-        {
-            AirlinePassengerAgent passenger = terminalPassengers[i];
-            if (passenger != null &&
-                (passenger.State == AirlinePassengerAgent.JourneyState.AtTerminal ||
-                 passenger.State == AirlinePassengerAgent.JourneyState.WalkingToTerminal))
-            {
-                job.Passengers.Add(passenger);
-            }
-        }
-
-        terminalPassengersByOperationId.Remove(identity.OperationId);
-
-        if (job.Passengers.Count == 0)
-        {
-            Debug.LogWarning(
-                $"PassengerCoordinator: No terminal passengers were ready to board flight {identity.FlightNumber}; completing its boarding task without passenger objects.",
-                turnaround);
-            turnaround.CompleteExternalBoarding();
-            return;
-        }
-
-        if (job.Passengers.Count < requestedPassengers)
-        {
-            Debug.LogWarning(
-                $"PassengerCoordinator: Flight {identity.FlightNumber} has {requestedPassengers} booked passenger(s), but only {job.Passengers.Count} passenger object(s) reached the terminal. Boarding the available passengers.",
-                turnaround);
-        }
-
+        CollectPassengersForBoarding(job);
         outgoingPassengerBoardingJobs.Enqueue(job);
     }
 
@@ -866,6 +882,7 @@ public class PassengerCoordinator : MonoBehaviour
                 $"AircraftStats: {(stats == null ? "MISSING" : "present")}; OperationType: {operationType}. " +
                 "Expected an initialized PassengerOnly or CargoAndPassengers flight.",
                 turnaround);
+            turnaround.CompleteExternalDeboarding();
             return;
         }
 
