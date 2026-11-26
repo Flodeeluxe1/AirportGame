@@ -40,6 +40,8 @@ public class PassengerCoordinator : MonoBehaviour
         new Dictionary<string, int>();
     private readonly Dictionary<string, string> pendingOutgoingBusGateIds =
         new Dictionary<string, string>();
+    private readonly Dictionary<string, double> pendingOutgoingBusQueueStartTimes =
+        new Dictionary<string, double>();
     private readonly Queue<string> pendingOutgoingBusOperationIds =
         new Queue<string>();
     private readonly HashSet<string> pendingOutgoingBusQueuedOperationIds =
@@ -663,6 +665,7 @@ public class PassengerCoordinator : MonoBehaviour
         outgoingCarDispatchProcessedOperationIds.Clear();
         pendingOutgoingBusPassengerCounts.Clear();
         pendingOutgoingBusGateIds.Clear();
+        pendingOutgoingBusQueueStartTimes.Clear();
         pendingOutgoingBusOperationIds.Clear();
         pendingOutgoingBusQueuedOperationIds.Clear();
         RefreshScheduledPassengerRegistrations();
@@ -1064,6 +1067,8 @@ public class PassengerCoordinator : MonoBehaviour
 
         pendingOutgoingBusPassengerCounts[flight.OperationId] = passengerCount;
         pendingOutgoingBusGateIds[flight.OperationId] = flight.GateStableId;
+        pendingOutgoingBusQueueStartTimes[flight.OperationId] =
+            GameTimeManager.SimulationTime;
         pendingOutgoingBusOperationIds.Enqueue(flight.OperationId);
         NotifyTransportStatisticsChanged();
     }
@@ -1083,6 +1088,7 @@ public class PassengerCoordinator : MonoBehaviour
                 pendingOutgoingBusQueuedOperationIds.Remove(operationId);
                 pendingOutgoingBusPassengerCounts.Remove(operationId);
                 pendingOutgoingBusGateIds.Remove(operationId);
+                pendingOutgoingBusQueueStartTimes.Remove(operationId);
                 continue;
             }
 
@@ -1118,6 +1124,13 @@ public class PassengerCoordinator : MonoBehaviour
                 Agent = agent,
                 GateStableId = gateStableId
             });
+            if (pendingOutgoingBusQueueStartTimes.TryGetValue(
+                operationId, out double queuedAt))
+            {
+                cumulativeBusWaitSeconds += System.Math.Max(
+                    0.0, GameTimeManager.SimulationTime - queuedAt);
+                completedBusWaitMeasurements++;
+            }
             remaining--;
             if (remaining > 0)
             {
@@ -1127,6 +1140,7 @@ public class PassengerCoordinator : MonoBehaviour
             {
                 pendingOutgoingBusPassengerCounts.Remove(operationId);
                 pendingOutgoingBusGateIds.Remove(operationId);
+                pendingOutgoingBusQueueStartTimes.Remove(operationId);
                 pendingOutgoingBusQueuedOperationIds.Remove(operationId);
                 pendingOutgoingBusOperationIds.Dequeue();
             }
@@ -1631,6 +1645,7 @@ public class PassengerCoordinator : MonoBehaviour
             outgoingCarDispatchProcessedOperationIds.Remove(staleOperationIds[i]);
             pendingOutgoingBusPassengerCounts.Remove(staleOperationIds[i]);
             pendingOutgoingBusGateIds.Remove(staleOperationIds[i]);
+            pendingOutgoingBusQueueStartTimes.Remove(staleOperationIds[i]);
             pendingOutgoingBusQueuedOperationIds.Remove(staleOperationIds[i]);
         }
 
