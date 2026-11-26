@@ -137,6 +137,7 @@ public class InteractionController : MonoBehaviour
         if (controlled)
         {
             journeyInteractionsEnabled = false;
+            mandatoryInteractionActive = false;
             if (interactionRoutine != null)
             {
                 StopCoroutine(interactionRoutine);
@@ -419,6 +420,7 @@ public class InteractionController : MonoBehaviour
         }
 
         ResumeInteractionNeedDecay();
+        mandatoryInteractionActive = false;
         ReleaseCurrentReservation();
         currentStatus = "Disabled";
     }
