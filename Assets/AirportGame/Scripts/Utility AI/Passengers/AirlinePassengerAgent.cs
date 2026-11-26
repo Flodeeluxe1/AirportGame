@@ -33,6 +33,10 @@ public class AirlinePassengerAgent : MonoBehaviour
     private InteractionController interactions;
     private EnvironmentScoreMonitor environmentMonitor;
     private AirportVisitorExperience visitorExperience;
+    private Renderer[] passengerRenderers;
+    private bool[] rendererEnabledBeforeBoarding;
+    private Collider[] passengerColliders;
+    private bool[] colliderEnabledBeforeBoarding;
 
     public event System.Action<AirlinePassengerAgent> ReachedBusStop;
 
@@ -90,6 +94,52 @@ public class AirlinePassengerAgent : MonoBehaviour
             environmentMonitor = GetComponent<EnvironmentScoreMonitor>();
         if (visitorExperience == null)
             visitorExperience = GetComponent<AirportVisitorExperience>();
+
+        if (passengerRenderers == null)
+        {
+            passengerRenderers = GetComponentsInChildren<Renderer>(true);
+            rendererEnabledBeforeBoarding = new bool[passengerRenderers.Length];
+        }
+
+        if (passengerColliders == null)
+        {
+            passengerColliders = GetComponentsInChildren<Collider>(true);
+            colliderEnabledBeforeBoarding = new bool[passengerColliders.Length];
+        }
+    }
+
+    private void HideWhileOnBus()
+    {
+        for (int i = 0; i < passengerRenderers.Length; i++)
+        {
+            Renderer passengerRenderer = passengerRenderers[i];
+            if (passengerRenderer == null)
+                continue;
+
+            rendererEnabledBeforeBoarding[i] = passengerRenderer.enabled;
+            passengerRenderer.enabled = false;
+        }
+
+        for (int i = 0; i < passengerColliders.Length; i++)
+        {
+            Collider passengerCollider = passengerColliders[i];
+            if (passengerCollider == null)
+                continue;
+
+            colliderEnabledBeforeBoarding[i] = passengerCollider.enabled;
+            passengerCollider.enabled = false;
+        }
+    }
+
+    private void RestoreAfterBus()
+    {
+        for (int i = 0; i < passengerRenderers.Length; i++)
+            if (passengerRenderers[i] != null)
+                passengerRenderers[i].enabled = rendererEnabledBeforeBoarding[i];
+
+        for (int i = 0; i < passengerColliders.Length; i++)
+            if (passengerColliders[i] != null)
+                passengerColliders[i].enabled = colliderEnabledBeforeBoarding[i];
     }
 
     /// <summary>
@@ -198,7 +248,13 @@ public class AirlinePassengerAgent : MonoBehaviour
         if (interactions != null)
             interactions.SetExternallyControlled(true);
 
-        transform.SetParent(busTransform, true);
+        // Passengers are represented by the bus while travelling. Parent at
+        // the bus prefab root pivot instead of preserving their queue positions.
+        transform.SetParent(busTransform, false);
+        transform.localPosition = Vector3.zero;
+        transform.localRotation = Quaternion.identity;
+        HideWhileOnBus();
+
         state = JourneyState.OnBus;
         return true;
     }
@@ -223,6 +279,7 @@ public class AirlinePassengerAgent : MonoBehaviour
         // left the bus must never be re-parented to it: otherwise the bus
         // carries the passenger to its road exit and destroys the passenger.
         transform.SetParent(null, true);
+        RestoreAfterBus();
 
         // Pedestrian pathfinding starts from walkable pedestrian space, not
         // the road cell at the bus's transform. Place the passenger at the
