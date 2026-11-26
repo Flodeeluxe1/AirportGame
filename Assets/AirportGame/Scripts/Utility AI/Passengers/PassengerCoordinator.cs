@@ -250,7 +250,7 @@ public class PassengerCoordinator : MonoBehaviour
         TransportStatisticsChanged?.Invoke();
     }
 
-    private void RefreshParkingSpaceCache()
+    private void EnsureParkingSpaceCache()
     {
         if (parkingSpaceCacheDirty || cachedParkingSpaces == null)
         {
@@ -258,7 +258,11 @@ public class PassengerCoordinator : MonoBehaviour
             cachedParkingSpaceCount = cachedParkingSpaces.Length;
             parkingSpaceCacheDirty = false;
         }
+    }
 
+    private void RefreshParkingSpaceCache()
+    {
+        EnsureParkingSpaceCache();
         int occupied = 0;
         for (int i = 0; i < cachedParkingSpaces.Length; i++)
         {
@@ -1649,7 +1653,7 @@ public class PassengerCoordinator : MonoBehaviour
             ? undergroundTransportWeight * Mathf.Clamp01(undergroundCapacityPerHour / demandTarget)
             : 0f;
 
-        RefreshParkingSpaceCache();
+        EnsureParkingSpaceCache();
         int totalParkingSpaces = cachedParkingSpaceCount;
         float parkingCapacityFactor = Mathf.Clamp01(
             (float)totalParkingSpaces / Mathf.Max(1, targetParkingSpaceCount));
@@ -2117,7 +2121,7 @@ public class PassengerCoordinator : MonoBehaviour
 
     private bool HasFreePassengerParkingSpace()
     {
-        RefreshParkingSpaceCache();
+        EnsureParkingSpaceCache();
         for (int i = 0; i < cachedParkingSpaces.Length; i++)
         {
             ParkingSpace space = cachedParkingSpaces[i];
