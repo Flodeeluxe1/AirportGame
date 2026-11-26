@@ -792,6 +792,8 @@ public class PassengerCoordinator : MonoBehaviour
                     HandleIncomingPickupCarParked(pair.Key);
             }
 
+            List<AirlinePassengerAgent> alreadyAtCarPickup =
+                new List<AirlinePassengerAgent>();
             foreach (KeyValuePair<AirlinePassengerAgent, IncomingCarPickupGroup> pair in incomingCarGroupsByPassenger)
             {
                 if (pair.Key == null)
@@ -799,8 +801,11 @@ public class PassengerCoordinator : MonoBehaviour
                 pair.Key.ReachedCarPickup -= HandlePassengerReachedIncomingCar;
                 pair.Key.ReachedCarPickup += HandlePassengerReachedIncomingCar;
                 if (pair.Key.State == AirlinePassengerAgent.JourneyState.AtCarPickup)
-                    HandlePassengerReachedIncomingCar(pair.Key);
+                    alreadyAtCarPickup.Add(pair.Key);
             }
+
+            for (int i = 0; i < alreadyAtCarPickup.Count; i++)
+                HandlePassengerReachedIncomingCar(alreadyAtCarPickup[i]);
 
             TrySpawnPendingIncomingCarPickups();
         }
