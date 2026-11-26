@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -93,6 +94,7 @@ public class InteractionController : MonoBehaviour
     private Coroutine interactionRoutine;
     private bool externallyControlled;
     private bool journeyInteractionsEnabled;
+    private bool mandatoryInteractionActive;
     private Vector3 journeyDestination;
     private PlacedBuilding journeyAllowedStartFootprint;
     private PlacedBuilding journeyAllowedTargetFootprint;
@@ -105,8 +107,11 @@ public class InteractionController : MonoBehaviour
 
     public string CurrentStatus => currentStatus;
     public bool IsExternallyControlled => externallyControlled;
+    public event Action<InteractionProvider, InteractionDefinition> MandatoryInteractionCompleted;
+    public event Action<InteractionProvider, InteractionDefinition, string> MandatoryInteractionFailed;
+
     public bool IsHandlingInteraction =>
-        journeyInteractionsEnabled &&
+        (journeyInteractionsEnabled || mandatoryInteractionActive) &&
         !HasReachedJourneyDestination() &&
         (reservedProvider != null || queuedProvider != null || interactionRoutine != null);
 
@@ -171,6 +176,93 @@ public class InteractionController : MonoBehaviour
     public void StopJourneyInteractions()
     {
         journeyInteractionsEnabled = false;
+    }
+
+    /// <summary>
+    /// Starts a specific journey-stage interaction, bypassing utility scoring
+    /// while retaining the provider's normal reservation and queue behaviour.
+    /// </summary>
+    public bool BeginMandatoryInteraction(
+        InteractionProvider provider,
+        InteractionDefinition definition,
+        PlacedBuilding allowedStartFootprint = null,
+        PlacedBuilding allowedTargetFootprint = null)
+    {
+        if (externallyControlled || needs == null || movement == null ||
+            provider == null || definition == null ||
+            reservedProvider != null || queuedProvider != null ||
+            interactionRoutine != null || !provider.CanOffer(definition))
+        {
+            return false;
+        }
+
+        journeyInteractionsEnabled = false;
+        journeyAllowedStartFootprint = allowedStartFootprint;
+        journeyAllowedTargetFootprint = allowedTargetFootprint;
+        mandatoryInteractionActive = true;
+
+        if (provider.Queue != null && provider.Queue.QueueEnabled)
+        {
+            float travelTime = movement.EstimateTravelTime(provider);
+            if (float.IsInfinity(travelTime) || float.IsNaN(travelTime) ||
+                !provider.Queue.TryJoin(this, definition, travelTime))
+            {
+                FailMandatoryInteraction(provider, definition,
+                    "Could not join mandatory interaction queue");
+                return false;
+            }
+
+            queuedProvider = provider;
+            queuedInteraction = definition;
+            currentInteractionName = definition.DisplayName;
+            nextQueuePositionRefresh = 0f;
+            UpdateQueueState();
+            return true;
+        }
+
+        if (!provider.TryReserve(this, definition))
+        {
+            FailMandatoryInteraction(provider, definition,
+                "Mandatory interaction reservation unavailable");
+            return false;
+        }
+
+        reservedProvider = provider;
+        reservedInteraction = definition;
+        currentInteractionName = definition.DisplayName;
+
+        if (!movement.TryMoveTo(provider))
+        {
+            FailMandatoryInteraction(provider, definition,
+                "No path to mandatory interaction");
+            return false;
+        }
+
+        currentStatus = "Walking to " + currentInteractionName;
+        return true;
+    }
+
+    private void FailMandatoryInteraction(
+        InteractionProvider provider,
+        InteractionDefinition definition,
+        string reason)
+    {
+        bool wasMandatory = mandatoryInteractionActive;
+        mandatoryInteractionActive = false;
+        if (queuedProvider != null && queuedProvider.Queue != null)
+            queuedProvider.Queue.Leave(this);
+        else if (reservedProvider != null && reservedInteraction != null)
+            reservedProvider.ReleaseReservation(this, reservedInteraction);
+
+        queuedProvider = null;
+        queuedInteraction = null;
+        reservedProvider = null;
+        reservedInteraction = null;
+        currentInteractionName = string.Empty;
+        currentStatus = reason;
+
+        if (wasMandatory)
+            MandatoryInteractionFailed?.Invoke(provider, definition, reason);
     }
 
     private void ResumeJourneyRoute()
@@ -862,6 +954,15 @@ public class InteractionController : MonoBehaviour
         }
 
         nextDecisionTime = GameTimeManager.SimulationTime + decisionInterval;
+
+        if (mandatoryInteractionActive)
+        {
+            mandatoryInteractionActive = false;
+            MandatoryInteractionCompleted?.Invoke(
+                completedProvider, completedInteraction);
+            yield break;
+        }
+
         ResumeJourneyRoute();
     }
 
@@ -911,6 +1012,10 @@ public class InteractionController : MonoBehaviour
 
     private void CancelQueuedInteraction(string reason)
     {
+        bool wasMandatory = mandatoryInteractionActive;
+        InteractionProvider failedProvider = queuedProvider;
+        InteractionDefinition failedDefinition = queuedInteraction;
+        mandatoryInteractionActive = false;
         ResumeInteractionNeedDecay();
 
         if (interactionRoutine != null)
@@ -932,11 +1037,18 @@ public class InteractionController : MonoBehaviour
         currentInteractionName = string.Empty;
         currentStatus = reason;
         nextDecisionTime = GameTimeManager.SimulationTime + decisionInterval;
-        ResumeJourneyRoute();
+        if (wasMandatory)
+            MandatoryInteractionFailed?.Invoke(failedProvider, failedDefinition, reason);
+        else
+            ResumeJourneyRoute();
     }
 
     private void CancelCurrentInteraction(string reason)
     {
+        bool wasMandatory = mandatoryInteractionActive;
+        InteractionProvider failedProvider = reservedProvider;
+        InteractionDefinition failedDefinition = reservedInteraction;
+        mandatoryInteractionActive = false;
         ResumeInteractionNeedDecay();
 
         if (interactionRoutine != null)
@@ -951,7 +1063,10 @@ public class InteractionController : MonoBehaviour
         ReleaseCurrentReservation();
         currentStatus = reason;
         nextDecisionTime = GameTimeManager.SimulationTime + decisionInterval;
-        ResumeJourneyRoute();
+        if (wasMandatory)
+            MandatoryInteractionFailed?.Invoke(failedProvider, failedDefinition, reason);
+        else
+            ResumeJourneyRoute();
     }
 
     private void ReleaseCurrentReservation()
