@@ -14,7 +14,9 @@ public class PassengerCoordinator : MonoBehaviour
     [SerializeField] private bool logToConsole;
 
     [Header("Passenger Transport Distribution")]
+    [Min(0f)] [SerializeField] private float trainTransportWeight = 1f;
     [Min(0f)] [SerializeField] private float busTransportWeight = 1f;
+    [Min(0f)] [SerializeField] private float undergroundTransportWeight = 1f;
     [Min(0f)] [SerializeField] private float carTransportWeight = 1f;
     [Min(1)] [SerializeField] private int busCapacityPerDeparture = 50;
     [Min(1)] [SerializeField] private int targetHourlyPassengerDemand = 150;
@@ -1257,10 +1259,17 @@ public class PassengerCoordinator : MonoBehaviour
         float busScore = busTransportWeight *
             Mathf.Clamp01(busCapacityPerHour / Mathf.Max(1, targetHourlyPassengerDemand));
 
-        // Train and underground are intentionally zero until their service
-        // managers exist. They will use the same frequency * capacity formula.
-        const float trainScore = 0f;
-        const float undergroundScore = 0f;
+        float trainCapacityPerHour = publicTransportManager != null
+            ? publicTransportManager.TrainCapacityPerHour
+            : 0f;
+        float undergroundCapacityPerHour = publicTransportManager != null
+            ? publicTransportManager.UndergroundCapacityPerHour
+            : 0f;
+
+        float trainScore = trainTransportWeight *
+            Mathf.Clamp01(trainCapacityPerHour / Mathf.Max(1, targetHourlyPassengerDemand));
+        float undergroundScore = undergroundTransportWeight *
+            Mathf.Clamp01(undergroundCapacityPerHour / Mathf.Max(1, targetHourlyPassengerDemand));
 
         ParkingSpace[] parkingSpaces = FindObjectsByType<ParkingSpace>();
         int totalParkingSpaces = parkingSpaces != null ? parkingSpaces.Length : 0;
