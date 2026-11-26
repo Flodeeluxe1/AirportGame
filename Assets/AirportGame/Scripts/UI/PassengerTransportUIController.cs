@@ -14,6 +14,7 @@ public class PassengerTransportUIController : MonoBehaviour
     private VisualElement window;
     private Button openButton;
     private Label statusLabel;
+    private Label totalPassengersLabel;
     private Label busPassengersLabel;
     private Label carPassengersLabel;
     private Label waitingPassengersLabel;
@@ -22,6 +23,7 @@ public class PassengerTransportUIController : MonoBehaviour
     private Label parkingFeeLabel;
     private Label busServiceLabel;
     private Label busCapacityLabel;
+    private Label busUtilisationLabel;
     private Label trainCapacityLabel;
     private Label undergroundCapacityLabel;
 
@@ -247,8 +249,9 @@ public class PassengerTransportUIController : MonoBehaviour
 
         AddSectionTitle("PASSENGER JOURNEYS");
         VisualElement journeyCard = CreateCard();
-        busPassengersLabel = AddMetric(journeyCard, "Bus passengers transported");
-        carPassengersLabel = AddMetric(journeyCard, "Car passengers transported");
+        totalPassengersLabel = AddMetric(journeyCard, "Total passengers transported");
+        busPassengersLabel = AddMetric(journeyCard, "Bus passengers (mode share)");
+        carPassengersLabel = AddMetric(journeyCard, "Car passengers (mode share)");
         waitingPassengersLabel = AddMetric(journeyCard, "Waiting for a bus");
         averageWaitLabel = AddMetric(journeyCard, "Average bus waiting time");
         window.Add(journeyCard);
@@ -257,6 +260,7 @@ public class PassengerTransportUIController : MonoBehaviour
         VisualElement serviceCard = CreateCard();
         busServiceLabel = AddMetric(serviceCard, "Bus fleet and frequency");
         busCapacityLabel = AddMetric(serviceCard, "Bus capacity per hour");
+        busUtilisationLabel = AddMetric(serviceCard, "Average bus peak load");
         trainCapacityLabel = AddMetric(serviceCard, "Train capacity per hour");
         undergroundCapacityLabel = AddMetric(serviceCard, "Underground capacity per hour");
         window.Add(serviceCard);
@@ -346,10 +350,12 @@ public class PassengerTransportUIController : MonoBehaviour
         }
 
         PublicTransportManager manager = publicTransportManager;
+        totalPassengersLabel.text =
+            passengerCoordinator.TotalPassengersTransported.ToString("N0");
         busPassengersLabel.text =
-            passengerCoordinator.BusPassengersTransported.ToString("N0");
+            $"{passengerCoordinator.BusPassengersTransported:N0} ({passengerCoordinator.BusModeSharePercent:F1}%)";
         carPassengersLabel.text =
-            passengerCoordinator.CarPassengersTransported.ToString("N0");
+            $"{passengerCoordinator.CarPassengersTransported:N0} ({passengerCoordinator.CarModeSharePercent:F1}%)";
         waitingPassengersLabel.text =
             passengerCoordinator.WaitingForBusPassengers.ToString("N0");
         averageWaitLabel.text =
@@ -357,8 +363,11 @@ public class PassengerTransportUIController : MonoBehaviour
 
         int totalSpaces = passengerCoordinator.TotalParkingSpaces;
         int occupiedSpaces = passengerCoordinator.OccupiedParkingSpaces;
+        float parkingUtilisation = totalSpaces > 0
+            ? occupiedSpaces * 100f / totalSpaces
+            : 0f;
         parkingLabel.text =
-            $"{occupiedSpaces:N0} / {totalSpaces:N0} occupied";
+            $"{occupiedSpaces:N0} / {totalSpaces:N0} ({parkingUtilisation:F1}%)";
         parkingFeeLabel.text =
             $"{passengerCoordinator.PassengerCarParkingFeePerMinute:F2} / simulated min";
 
@@ -367,6 +376,7 @@ public class PassengerTransportUIController : MonoBehaviour
             statusLabel.text = "PublicTransportManager is not available.";
             busServiceLabel.text = "Unavailable";
             busCapacityLabel.text = "0 passengers/hour";
+            busUtilisationLabel.text = "No completed bus trips";
             trainCapacityLabel.text = "0 passengers/hour";
             undergroundCapacityLabel.text = "0 passengers/hour";
             return;
@@ -376,6 +386,9 @@ public class PassengerTransportUIController : MonoBehaviour
             $"{manager.ActiveBuses:N0} active / {manager.OwnedBuses:N0} owned · every {manager.BusFrequencyMinutes:F0} min · {manager.RegisteredStopCount:N0} stops";
         busCapacityLabel.text =
             $"{passengerCoordinator.BusServiceCapacityPerHour:F0} passengers/hour";
+        busUtilisationLabel.text = passengerCoordinator.CompletedBusLoadMeasurements > 0
+            ? $"{passengerCoordinator.AverageBusPeakLoadPercent:F1}% avg · last {passengerCoordinator.LastBusPeakLoadPercent:F1}% · {passengerCoordinator.CompletedBusLoadMeasurements:N0} trips"
+            : "No completed bus trips yet";
         trainCapacityLabel.text =
             $"{passengerCoordinator.TrainServiceCapacityPerHour:F0} passengers/hour";
         undergroundCapacityLabel.text =
