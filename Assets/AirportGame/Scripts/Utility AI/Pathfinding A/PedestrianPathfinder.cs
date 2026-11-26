@@ -112,14 +112,16 @@ public class PedestrianPathfinder : MonoBehaviour
         Vector2Int start,
         Vector2Int target,
         PedestrianAccessProfile accessProfile = null,
-        bool allowOccupiedEndpoints = false)
+        bool allowOccupiedEndpoints = false,
+        PlacedBuilding allowedStartFootprint = null,
+        PlacedBuilding allowedTargetFootprint = null)
     {
         long performanceTimingStart = System.Diagnostics.Stopwatch.GetTimestamp();
         try
         {
         if (!HasValidReferences() ||
-            !(allowOccupiedEndpoints ? IsWalkableEndpoint(start) : IsWalkable(start)) ||
-            !(allowOccupiedEndpoints ? IsWalkableEndpoint(target) : IsWalkable(target)))
+            !(IsWalkableForRoute(start, start, target, allowOccupiedEndpoints, allowedStartFootprint, allowedTargetFootprint)) ||
+            !(IsWalkableForRoute(target, start, target, allowOccupiedEndpoints, allowedStartFootprint, allowedTargetFootprint)))
         {
             return new List<Vector2Int>();
         }
@@ -183,7 +185,7 @@ public class PedestrianPathfinder : MonoBehaviour
                 Vector2Int next = current + NeighborOffsets[neighborOrder[i]];
 
                 if (closedSet.Contains(next) ||
-                    !CanMoveBetween(current, next, accessProfile, allowOccupiedEndpoints && next == target))
+                    !CanMoveBetween(current, next, accessProfile, allowOccupiedEndpoints && next == target, start, target, allowedStartFootprint, allowedTargetFootprint))
                 {
                     continue;
                 }
@@ -322,7 +324,9 @@ public class PedestrianPathfinder : MonoBehaviour
         Vector3 startWorld,
         Vector3 targetWorld,
         PedestrianAccessProfile accessProfile = null,
-        bool allowOccupiedEndpoints = false)
+        bool allowOccupiedEndpoints = false,
+        PlacedBuilding allowedStartFootprint = null,
+        PlacedBuilding allowedTargetFootprint = null)
     {
         List<Vector3> worldPath = new List<Vector3>();
 
@@ -333,9 +337,13 @@ public class PedestrianPathfinder : MonoBehaviour
             gridManager.WorldToGrid(startWorld),
             gridManager.WorldToGrid(targetWorld),
             accessProfile,
-            allowOccupiedEndpoints);
+            allowOccupiedEndpoints,
+            allowedStartFootprint,
+            allowedTargetFootprint);
 
-        return ConvertGridPathToWorld(SmoothPath(gridPath, accessProfile, allowOccupiedEndpoints));
+        return ConvertGridPathToWorld(SmoothPath(
+            gridPath, accessProfile, allowOccupiedEndpoints,
+            allowedStartFootprint, allowedTargetFootprint));
     }
 
     /// <summary>
@@ -629,7 +637,12 @@ public class PedestrianPathfinder : MonoBehaviour
     /// collision-safe straight segment can connect the remaining cells.
     /// A limited look-ahead preserves the overall shape of randomized routes.
     /// </summary>
-    private List<Vector2Int> SmoothPath(List<Vector2Int> path, PedestrianAccessProfile accessProfile, bool allowOccupiedEndpoints = false)
+    private List<Vector2Int> SmoothPath(
+        List<Vector2Int> path,
+        PedestrianAccessProfile accessProfile,
+        bool allowOccupiedEndpoints = false,
+        PlacedBuilding allowedStartFootprint = null,
+        PlacedBuilding allowedTargetFootprint = null)
     {
         if (path == null || path.Count <= 2 || smoothingLookAheadCells <= 1)
             return path;
@@ -654,7 +667,9 @@ public class PedestrianPathfinder : MonoBehaviour
                     path[anchorIndex],
                     path[candidateIndex],
                     accessProfile,
-                    allowOccupiedEndpoints && candidateIndex == path.Count - 1))
+                    allowOccupiedEndpoints && candidateIndex == path.Count - 1,
+                    path[0], path[path.Count - 1],
+                    allowedStartFootprint, allowedTargetFootprint))
                 {
                     chosenIndex = candidateIndex;
                     break;
@@ -672,7 +687,14 @@ public class PedestrianPathfinder : MonoBehaviour
     /// Uses a grid traversal between cell centres and validates every
     /// crossed step with the same walkability, wall and corner rules as A*.
     /// </summary>
-    private bool HasClearLineOfSight(Vector2Int from, Vector2Int to, PedestrianAccessProfile accessProfile = null, bool allowOccupiedDestination = false)
+    private bool HasClearLineOfSight(
+        Vector2Int from, Vector2Int to,
+        PedestrianAccessProfile accessProfile = null,
+        bool allowOccupiedDestination = false,
+        Vector2Int routeStart = default,
+        Vector2Int routeTarget = default,
+        PlacedBuilding allowedStartFootprint = null,
+        PlacedBuilding allowedTargetFootprint = null)
     {
         int deltaX = Mathf.Abs(to.x - from.x);
         int deltaY = Mathf.Abs(to.y - from.y);
@@ -699,7 +721,11 @@ public class PedestrianPathfinder : MonoBehaviour
                 next.y += stepY;
             }
 
-            if (!CanMoveBetween(current, next, accessProfile, allowOccupiedDestination && next == to))
+            if (!CanMoveBetween(
+                current, next, accessProfile,
+                allowOccupiedDestination && next == to,
+                routeStart, routeTarget,
+                allowedStartFootprint, allowedTargetFootprint))
                 return false;
 
             current = next;
@@ -779,6 +805,49 @@ public class PedestrianPathfinder : MonoBehaviour
         return true;
     }
 
+    private bool IsWalkableForRoute(
+        Vector2Int cell,
+        Vector2Int routeStart,
+        Vector2Int routeTarget,
+        bool allowOccupiedDestination,
+        PlacedBuilding allowedStartFootprint,
+        PlacedBuilding allowedTargetFootprint)
+    {
+        if (IsInsideFootprint(cell, allowedStartFootprint) ||
+            IsInsideFootprint(cell, allowedTargetFootprint))
+        {
+            if (!HasValidReferences() || !gridManager.IsInsideGrid(cell))
+                return false;
+
+            BuildSurface surface = gridSurface.GetSurface(cell);
+            return surface == BuildSurface.Grass ||
+                   surface == BuildSurface.Foundation ||
+                   surface == BuildSurface.Tarmac ||
+                   surface == BuildSurface.PedestrianTarmac ||
+                   surface == BuildSurface.Road;
+        }
+
+        if (allowOccupiedDestination && cell == routeTarget)
+            return IsWalkableEndpoint(cell);
+
+        if (allowOccupiedDestination && cell == routeStart)
+            return IsWalkableEndpoint(cell);
+
+        return IsWalkable(cell);
+    }
+
+    private static bool IsInsideFootprint(Vector2Int cell, PlacedBuilding building)
+    {
+        if (building == null || building.IsEdgeBuilding || building.IsSurfacePlaced)
+            return false;
+
+        Vector2Int origin = building.Origin;
+        return cell.x >= origin.x &&
+               cell.y >= origin.y &&
+               cell.x < origin.x + Mathf.Max(1, building.Width) &&
+               cell.y < origin.y + Mathf.Max(1, building.Depth);
+    }
+
     // The first and last cells represent the pedestrian's departure and
     // destination points. They may be inside an occupied gate/stop footprint,
     // so ignore cell occupancy and obstacle flags for these two cells only.
@@ -801,9 +870,15 @@ public class PedestrianPathfinder : MonoBehaviour
         Vector2Int from,
         Vector2Int to,
         PedestrianAccessProfile accessProfile,
-        bool allowOccupiedDestination = false)
+        bool allowOccupiedDestination = false,
+        Vector2Int routeStart = default,
+        Vector2Int routeTarget = default,
+        PlacedBuilding allowedStartFootprint = null,
+        PlacedBuilding allowedTargetFootprint = null)
     {
-        if (!(allowOccupiedDestination ? IsWalkableEndpoint(to) : IsWalkable(to)))
+        if (!IsWalkableForRoute(
+                to, routeStart, routeTarget, allowOccupiedDestination,
+                allowedStartFootprint, allowedTargetFootprint))
             return false;
 
         Vector2Int difference = to - from;
@@ -819,8 +894,8 @@ public class PedestrianPathfinder : MonoBehaviour
             Vector2Int verticalCell =
                 from + new Vector2Int(0, difference.y);
 
-            if (!IsWalkable(horizontalCell) ||
-                !IsWalkable(verticalCell))
+            if (!IsWalkableForRoute(horizontalCell, routeStart, routeTarget, false, allowedStartFootprint, allowedTargetFootprint) ||
+                !IsWalkableForRoute(verticalCell, routeStart, routeTarget, false, allowedStartFootprint, allowedTargetFootprint))
             {
                 return false;
             }
