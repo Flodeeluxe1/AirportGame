@@ -16,6 +16,10 @@ public class FoundationSystem : MonoBehaviour
     private readonly Dictionary<Vector2Int, GameObject> foundationTiles =
         new Dictionary<Vector2Int, GameObject>();
 
+    public event System.Action FoundationTilesChanged;
+
+    public IEnumerable<Vector2Int> FoundationPositions => foundationTiles.Keys;
+
     private void Awake()
     {
         if (gridManager == null)
@@ -68,6 +72,7 @@ public class FoundationSystem : MonoBehaviour
 
         foundationTiles[position] =
             tile;
+        FoundationTilesChanged?.Invoke();
     }
 
     public void RemoveTile(Vector2Int position)
@@ -85,6 +90,7 @@ public class FoundationSystem : MonoBehaviour
         }
 
         foundationTiles.Remove(position);
+        FoundationTilesChanged?.Invoke();
     }
 
     public void CreateTiles(
@@ -125,6 +131,7 @@ public class FoundationSystem : MonoBehaviour
 
     public void Clear()
     {
+        bool hadTiles = foundationTiles.Count > 0;
         foreach (
             KeyValuePair<Vector2Int, GameObject> entry
             in foundationTiles)
@@ -136,6 +143,8 @@ public class FoundationSystem : MonoBehaviour
         }
 
         foundationTiles.Clear();
+        if (hadTiles)
+            FoundationTilesChanged?.Invoke();
     }
 
     private void Log(object message, UnityEngine.Object context = null) { if (!logToConsole) return; if (context != null) Debug.Log(message, context); else Debug.Log(message); }
