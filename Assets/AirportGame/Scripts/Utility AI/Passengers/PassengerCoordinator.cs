@@ -554,7 +554,6 @@ public class PassengerCoordinator : MonoBehaviour
             int outgoingDemand =
                 CalculateBookedPassengers(capacity, airportRanking, flight.StartMinute);
             registeredPassengerCounts[flight.OperationId] = outgoingDemand;
-            bookedPassengerCounts[flight.OperationId] = outgoingDemand;
 
             int incomingDemand =
                 CalculateBookedPassengers(capacity, airportRanking, flight.StartMinute);
