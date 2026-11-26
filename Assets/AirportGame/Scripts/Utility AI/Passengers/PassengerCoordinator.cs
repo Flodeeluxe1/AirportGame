@@ -618,6 +618,10 @@ public class PassengerCoordinator : MonoBehaviour
         registeredOutgoingCarPassengerCounts.Clear();
         spawnedOutgoingCarPassengerCounts.Clear();
         outgoingCarDispatchProcessedOperationIds.Clear();
+        pendingOutgoingBusPassengerCounts.Clear();
+        pendingOutgoingBusGateIds.Clear();
+        pendingOutgoingBusOperationIds.Clear();
+        pendingOutgoingBusQueuedOperationIds.Clear();
         RefreshScheduledPassengerRegistrations();
     }
 
@@ -650,7 +654,14 @@ public class PassengerCoordinator : MonoBehaviour
                 dispatchFlights);
 
             for (int i = 0; i < dispatchFlights.Count; i++)
-                EnsureOutgoingCarDropoffGroupsSpawned(dispatchFlights[i]);
+            {
+                ScheduledPassengerFlight flight = dispatchFlights[i];
+                int totalDemand = registeredPassengerCounts.TryGetValue(
+                    flight.OperationId, out int demand) ? demand : 0;
+                int carPassengers = EnsureOutgoingCarDropoffGroupsSpawned(flight);
+                QueueOutgoingBusPassengers(
+                    flight, Mathf.Max(0, totalDemand - carPassengers));
+            }
 
             nextDeparture += intervalSeconds;
         }
@@ -673,7 +684,14 @@ public class PassengerCoordinator : MonoBehaviour
             dispatchFlights);
 
         for (int i = 0; i < dispatchFlights.Count; i++)
-            EnsureOutgoingCarDropoffGroupsSpawned(dispatchFlights[i]);
+        {
+            ScheduledPassengerFlight flight = dispatchFlights[i];
+            int totalDemand = registeredPassengerCounts.TryGetValue(
+                flight.OperationId, out int demand) ? demand : 0;
+            int carPassengers = EnsureOutgoingCarDropoffGroupsSpawned(flight);
+            QueueOutgoingBusPassengers(
+                flight, Mathf.Max(0, totalDemand - carPassengers));
+        }
     }
 
     private void RefreshScheduledPassengerRegistrations()
@@ -859,6 +877,7 @@ public class PassengerCoordinator : MonoBehaviour
                 bus.JourneyCompleted += HandleBusJourneyCompleted;
                 bus.StopServiceCompleted += HandleBusStopServiceCompleted;
                 bus.PassengerBoardingFailed += HandlePassengerBoardingFailed;
+                bus.PassengerBoarded += HandleBusPassengerBoarded;
                 bus.PassengerDisembarked += HandleBusPassengerDisembarked;
                 bus.DisembarkingCompleted += HandleBusDisembarkingCompleted;
             }
@@ -949,79 +968,123 @@ public class PassengerCoordinator : MonoBehaviour
             return;
 
         SubscribeToBus(bus);
-        if (scheduledAircraftSpawner == null || publicTransportManager == null ||
-            airlinePassengerPrefab == null)
+        if (airlinePassengerPrefab == null)
             return;
 
-        double intervalSeconds = System.Math.Max(60.0, publicTransportManager.BusFrequencyMinutes * 60.0);
-        double now = GameTimeManager.SimulationTime;
-        double departureSecond = System.Math.Floor(now / intervalSeconds + 1e-7) * intervalSeconds;
-        scheduledAircraftSpawner.GetPassengerFlightsForBusDeparture(
-            departureSecond,
-            publicTransportManager.BusFrequencyMinutes,
-            dispatchFlights);
-
-        if (dispatchFlights.Count == 0)
-            return;
-
-        List<BusPassengerRecord> manifest = new List<BusPassengerRecord>();
-        busManifests[bus] = manifest;
-
-        for (int flightIndex = 0; flightIndex < dispatchFlights.Count; flightIndex++)
+        if (scheduledAircraftSpawner != null && publicTransportManager != null)
         {
-            ScheduledPassengerFlight flight = dispatchFlights[flightIndex];
-            int requestedPassengers =
-                registeredPassengerCounts.TryGetValue(flight.OperationId, out int registeredCount)
-                    ? registeredCount
-                    : 0;
-            int spawnedCarPassengers =
-                EnsureOutgoingCarDropoffGroupsSpawned(flight);
-            int requestedBusPassengers =
-                Mathf.Max(0, requestedPassengers - spawnedCarPassengers);
-            int passengerCount =
-                Mathf.Min(requestedBusPassengers, bus.AvailablePassengerCapacity);
-            int createdPassengerCount = 0;
+            double intervalSeconds = System.Math.Max(
+                60.0, publicTransportManager.BusFrequencyMinutes * 60.0);
+            double now = GameTimeManager.SimulationTime;
+            double departureSecond =
+                System.Math.Floor(now / intervalSeconds + 1e-7) * intervalSeconds;
+            scheduledAircraftSpawner.GetPassengerFlightsForBusDeparture(
+                departureSecond,
+                publicTransportManager.BusFrequencyMinutes,
+                dispatchFlights);
 
-            for (int passengerIndex = 0; passengerIndex < passengerCount; passengerIndex++)
+            for (int i = 0; i < dispatchFlights.Count; i++)
             {
-                Vector3 spawnPosition = bus.transform.position + Vector3.up * 0.1f;
-                GameObject passengerObject = Instantiate(
-                    airlinePassengerPrefab, spawnPosition, Quaternion.identity);
-                AirlinePassengerAgent agent = passengerObject.GetComponent<AirlinePassengerAgent>();
-
-                if (agent == null || !agent.Initialize(
-                    flight.OperationId, PassengerIdentity.TransportMode.Bus))
-                {
-                    Destroy(passengerObject);
-                    continue;
-                }
-
-                // Passenger prefab pivots and collider bottoms vary. Align the
-                // feet to the bus spawn height before parenting the passenger.
-                if (agent.Movement != null)
-                    agent.Movement.AlignFeetToGround(spawnPosition);
-
-                if (!bus.TryBoardPassenger(agent))
-                {
-                    if (passengerObject != null)
-                        Destroy(passengerObject);
-                    continue;
-                }
-
-                manifest.Add(new BusPassengerRecord
-                {
-                    Agent = agent,
-                    GateStableId = flight.GateStableId
-                });
-                createdPassengerCount++;
+                ScheduledPassengerFlight flight = dispatchFlights[i];
+                int totalDemand = registeredPassengerCounts.TryGetValue(
+                    flight.OperationId, out int demand) ? demand : 0;
+                int carPassengers = EnsureOutgoingCarDropoffGroupsSpawned(flight);
+                QueueOutgoingBusPassengers(
+                    flight, Mathf.Max(0, totalDemand - carPassengers));
             }
-
-            bookedPassengerCounts[flight.OperationId] =
-                createdPassengerCount + spawnedCarPassengers;
         }
 
-        if (manifest.Count == 0)
-            busManifests.Remove(bus);
+        // Older flight manifests are served first. Overflow remains queued
+        // until a later timetable departure has capacity.
+        List<BusPassengerRecord> manifest = new List<BusPassengerRecord>();
+        LoadPendingOutgoingBusPassengers(bus, manifest);
+        if (manifest.Count > 0)
+            busManifests[bus] = manifest;
+
+        NotifyTransportStatisticsChanged();
+    }
+
+    private void QueueOutgoingBusPassengers(
+        ScheduledPassengerFlight flight,
+        int passengerCount)
+    {
+        if (passengerCount <= 0 ||
+            string.IsNullOrWhiteSpace(flight.OperationId) ||
+            !pendingOutgoingBusQueuedOperationIds.Add(flight.OperationId))
+            return;
+
+        pendingOutgoingBusPassengerCounts[flight.OperationId] = passengerCount;
+        pendingOutgoingBusGateIds[flight.OperationId] = flight.GateStableId;
+        pendingOutgoingBusOperationIds.Enqueue(flight.OperationId);
+        NotifyTransportStatisticsChanged();
+    }
+
+    private void LoadPendingOutgoingBusPassengers(
+        BusController bus,
+        List<BusPassengerRecord> manifest)
+    {
+        while (bus != null && bus.AvailablePassengerCapacity > 0 &&
+               pendingOutgoingBusOperationIds.Count > 0)
+        {
+            string operationId = pendingOutgoingBusOperationIds.Peek();
+            if (!pendingOutgoingBusPassengerCounts.TryGetValue(
+                operationId, out int remaining) || remaining <= 0)
+            {
+                pendingOutgoingBusOperationIds.Dequeue();
+                pendingOutgoingBusQueuedOperationIds.Remove(operationId);
+                pendingOutgoingBusPassengerCounts.Remove(operationId);
+                pendingOutgoingBusGateIds.Remove(operationId);
+                continue;
+            }
+
+            pendingOutgoingBusGateIds.TryGetValue(
+                operationId, out string gateStableId);
+            Vector3 spawnPosition = bus.transform.position + Vector3.up * 0.1f;
+            GameObject passengerObject = Instantiate(
+                airlinePassengerPrefab, spawnPosition, Quaternion.identity);
+            AirlinePassengerAgent agent =
+                passengerObject.GetComponent<AirlinePassengerAgent>();
+
+            if (agent == null || !agent.Initialize(
+                operationId, PassengerIdentity.TransportMode.Bus))
+            {
+                Destroy(passengerObject);
+                Debug.LogWarning(
+                    $"PassengerCoordinator: Could not create a queued bus passenger for flight {operationId}; they will remain queued for the next bus.",
+                    this);
+                break;
+            }
+
+            if (agent.Movement != null)
+                agent.Movement.AlignFeetToGround(spawnPosition);
+
+            if (!bus.TryBoardPassenger(agent))
+            {
+                Destroy(passengerObject);
+                break;
+            }
+
+            manifest.Add(new BusPassengerRecord
+            {
+                Agent = agent,
+                GateStableId = gateStableId
+            });
+            busPassengersTransported++;
+            remaining--;
+            if (remaining > 0)
+            {
+                pendingOutgoingBusPassengerCounts[operationId] = remaining;
+            }
+            else
+            {
+                pendingOutgoingBusPassengerCounts.Remove(operationId);
+                pendingOutgoingBusGateIds.Remove(operationId);
+                pendingOutgoingBusQueuedOperationIds.Remove(operationId);
+                pendingOutgoingBusOperationIds.Dequeue();
+            }
+        }
+
+        NotifyTransportStatisticsChanged();
     }
 
     private void HandleBusStopReached(BusController bus, PlacedBuilding stop)
@@ -1171,9 +1234,11 @@ public class PassengerCoordinator : MonoBehaviour
                 if (passengers[i] != null)
                 {
                     waitingReturnPassengerSet.Remove(passengers[i]);
+                    busPassengersTransported++;
                     passengers[i].CompleteReturnBusJourney();
                 }
             returnPassengersByBus.Remove(bus);
+            NotifyTransportStatisticsChanged();
         }
 
         if (busManifests.TryGetValue(bus, out List<BusPassengerRecord> unfinishedManifest))
@@ -1508,6 +1573,9 @@ public class PassengerCoordinator : MonoBehaviour
             registeredOutgoingCarPassengerCounts.Remove(staleOperationIds[i]);
             spawnedOutgoingCarPassengerCounts.Remove(staleOperationIds[i]);
             outgoingCarDispatchProcessedOperationIds.Remove(staleOperationIds[i]);
+            pendingOutgoingBusPassengerCounts.Remove(staleOperationIds[i]);
+            pendingOutgoingBusGateIds.Remove(staleOperationIds[i]);
+            pendingOutgoingBusQueuedOperationIds.Remove(staleOperationIds[i]);
         }
     }
 
