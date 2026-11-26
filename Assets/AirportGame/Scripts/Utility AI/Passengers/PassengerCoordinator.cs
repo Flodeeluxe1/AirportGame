@@ -1515,6 +1515,9 @@ public class PassengerCoordinator : MonoBehaviour
         // state where another bus can accept them.
         if (passenger.State == AirlinePassengerAgent.JourneyState.WaitingForBus)
         {
+            // Remove the marker created when this passenger first joined the
+            // queue so a failed boarding attempt can enqueue them again.
+            waitingReturnPassengerSet.Remove(passenger);
             if (waitingReturnPassengerSet.Add(passenger))
             {
                 waitingReturnPassengers.Enqueue(passenger);
