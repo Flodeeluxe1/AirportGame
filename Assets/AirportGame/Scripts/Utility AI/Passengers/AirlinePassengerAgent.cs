@@ -102,8 +102,6 @@ public class AirlinePassengerAgent : MonoBehaviour
             }
             if (passengerJourney != null)
                 passengerJourney.ReachTransport();
-            if (interactions != null)
-                interactions.SetExternallyControlled(true);
             ReachedCarPickup?.Invoke(this);
         }
     }
