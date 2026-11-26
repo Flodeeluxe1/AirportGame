@@ -12,8 +12,11 @@ public enum AircraftTurnaroundTaskStatus
 
 public class AircraftTurnaroundController : MonoBehaviour
 {
+    public static event Action<AircraftTurnaroundController> PassengersDeboardingStarted;
     public static event Action<AircraftTurnaroundController> PassengersDeboarded;
     public static event Action<AircraftTurnaroundController> PassengersBoardingStarted;
+
+    private const float DeboardingStartDelaySeconds = 120f;
 
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
@@ -365,7 +368,16 @@ public class AircraftTurnaroundController : MonoBehaviour
     private bool externalCleaningControlled;
 
     [SerializeField, HideInInspector]
+    private bool externalDeboardingControlled;
+
+    [SerializeField, HideInInspector]
     private bool externalBoardingControlled;
+
+    [SerializeField, HideInInspector]
+    private float deboardingStartDelayRemaining;
+
+    [SerializeField, HideInInspector]
+    private bool deboardingStartPending;
 
     [SerializeField, HideInInspector]
     private float cleaningVehicleRequestRetryTimer;
@@ -466,6 +478,17 @@ public class AircraftTurnaroundController : MonoBehaviour
         }
 
         float deltaGameSeconds = GameTimeManager.SimulationDeltaTime;
+
+        if (deboardingStartPending && deltaGameSeconds > 0f)
+        {
+            deboardingStartDelayRemaining -= deltaGameSeconds;
+            if (deboardingStartDelayRemaining <= 0f)
+            {
+                deboardingStartPending = false;
+                deboardingStartDelayRemaining = 0f;
+                StartTask(TaskType.Deboarding);
+            }
+        }
 
         if (deltaGameSeconds > 0f)
         {
@@ -598,7 +621,10 @@ public class AircraftTurnaroundController : MonoBehaviour
         }
         else
         {
-            StartTask(TaskType.Deboarding);
+            // Deboarding begins two in-game minutes after the aircraft parks.
+            // Its completion is driven by the actual passenger spawn/deboarding job.
+            deboardingStartPending = true;
+            deboardingStartDelayRemaining = DeboardingStartDelaySeconds;
         }
 
         StartTask(TaskType.BaggageUnloading);
@@ -931,6 +957,16 @@ public class AircraftTurnaroundController : MonoBehaviour
     /// Keeps boarding under passenger-coordinator control until every
     /// terminal passenger has boarded the aircraft.
     /// </summary>
+    public void CompleteExternalDeboarding()
+    {
+        if (!externalDeboardingControlled ||
+            deboarding.Status != AircraftTurnaroundTaskStatus.InProgress)
+            return;
+
+        externalDeboardingControlled = false;
+        CompleteTask(TaskType.Deboarding);
+    }
+
     public void CompleteExternalBoarding()
     {
         if (!externalBoardingControlled ||
@@ -1082,14 +1118,15 @@ public class AircraftTurnaroundController : MonoBehaviour
 
         task.StartTask();
 
-        if (taskType == TaskType.Boarding)
+        if (taskType == TaskType.Deboarding)
         {
-            int listenerCount = PassengersBoardingStarted != null
-                ? PassengersBoardingStarted.GetInvocationList().Length
-                : 0;
-            externalBoardingControlled = listenerCount > 0;
-            if (externalBoardingControlled)
-                PassengersBoardingStarted?.Invoke(this);
+            externalDeboardingControlled = true;
+            PassengersDeboardingStarted?.Invoke(this);
+        }
+        else if (taskType == TaskType.Boarding)
+        {
+            externalBoardingControlled = true;
+            PassengersBoardingStarted?.Invoke(this);
         }
 
         Log(
@@ -1105,11 +1142,15 @@ public class AircraftTurnaroundController : MonoBehaviour
              incomingBaggageTransferControlled) ||
             (taskType == TaskType.BaggageLoading &&
              outgoingBaggageTransferControlled);
+        bool externallyControlledPassengers =
+            taskType == TaskType.Deboarding ||
+            taskType == TaskType.Boarding;
 
         // Fueling and externally controlled baggage tasks are completed
         // only by their corresponding airport vehicles.
         if (taskType != TaskType.Fueling &&
             !externallyControlledBaggage &&
+            !externallyControlledPassengers &&
             task.DurationSeconds <= 0f)
         {
             CompleteTask(taskType);
@@ -1124,6 +1165,9 @@ public class AircraftTurnaroundController : MonoBehaviour
             return;
 
         task.MarkCompleted();
+
+        if (taskType == TaskType.Deboarding)
+            externalDeboardingControlled = false;
 
         if (taskType == TaskType.Boarding)
             externalBoardingControlled = false;
@@ -1255,6 +1299,9 @@ public class AircraftTurnaroundController : MonoBehaviour
     private void DebugResetTurnaround()
     {
         turnaroundStarted = false;
+        deboardingStartPending = false;
+        deboardingStartDelayRemaining = 0f;
+        externalDeboardingControlled = false;
         externalFuelingControlled = false;
         fuelTruckRequestRetryTimer = 0f;
         externalCleaningControlled = false;
