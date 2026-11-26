@@ -180,9 +180,20 @@ public class PassengerCoordinator : MonoBehaviour
             OutgoingPassengerBoardingJob job =
                 activeOutgoingPassengerBoardingJob;
             AirlinePassengerAgent passenger =
-                job.Passengers[job.NextPassengerIndex++];
+                job.Passengers[job.NextPassengerIndex];
 
             if (passenger != null &&
+                passenger.State == AirlinePassengerAgent.JourneyState.WalkingToTerminal)
+            {
+                // Keep the current passenger in the queue until they physically
+                // reach the gate. Do not count a walking passenger as boarded.
+                outgoingPassengerBoardingIntervalRemaining = 0f;
+                return;
+            }
+
+            job.NextPassengerIndex++;
+            if (passenger != null &&
+                passenger.State == AirlinePassengerAgent.JourneyState.AtTerminal &&
                 passenger.BoardAircraft(job.AircraftTransform))
             {
                 job.BoardedCount++;
@@ -241,7 +252,8 @@ public class PassengerCoordinator : MonoBehaviour
         {
             AirlinePassengerAgent passenger = terminalPassengers[i];
             if (passenger != null &&
-                passenger.State == AirlinePassengerAgent.JourneyState.AtTerminal)
+                (passenger.State == AirlinePassengerAgent.JourneyState.AtTerminal ||
+                 passenger.State == AirlinePassengerAgent.JourneyState.WalkingToTerminal))
             {
                 job.Passengers.Add(passenger);
             }
@@ -347,6 +359,8 @@ public class PassengerCoordinator : MonoBehaviour
             job.Turnaround);
 
         activeIncomingPassengerSpawnJob = null;
+        if (job.Turnaround != null)
+            job.Turnaround.CompleteExternalDeboarding();
     }
 
     private void Start()
@@ -478,7 +492,7 @@ public class PassengerCoordinator : MonoBehaviour
         if (busSpawnerSubscribed && busSpawner != null)
             busSpawner.BusDispatched -= HandleBusDispatched;
         busSpawnerSubscribed = false;
-        AircraftTurnaroundController.PassengersDeboarded -= HandlePassengersDeboarded;
+        AircraftTurnaroundController.PassengersDeboardingStarted -= HandlePassengersDeboardingStarted;
         AircraftTurnaroundController.PassengersBoardingStarted -= HandlePassengersBoardingStarted;
         if (subscribedToScheduleReload && scheduledAircraftSpawner != null)
             scheduledAircraftSpawner.PassengerScheduleReloaded -= HandlePassengerScheduleReloaded;
@@ -508,7 +522,7 @@ public class PassengerCoordinator : MonoBehaviour
     {
         if (instance == this)
         {
-            AircraftTurnaroundController.PassengersDeboarded += HandlePassengersDeboarded;
+            AircraftTurnaroundController.PassengersDeboardingStarted += HandlePassengersDeboardingStarted;
             AircraftTurnaroundController.PassengersBoardingStarted += HandlePassengersBoardingStarted;
             if (logToConsole)
                 Debug.Log("PassengerCoordinator: Subscribed to AircraftTurnaroundController.PassengersDeboarded.", this);
@@ -808,7 +822,7 @@ public class PassengerCoordinator : MonoBehaviour
         subscribedBuses.Remove(bus);
     }
 
-    private void HandlePassengersDeboarded(AircraftTurnaroundController turnaround)
+    private void HandlePassengersDeboardingStarted(AircraftTurnaroundController turnaround)
     {
         if (turnaround == null)
         {
@@ -817,7 +831,7 @@ public class PassengerCoordinator : MonoBehaviour
         }
 
         if (logToConsole)
-            Debug.Log($"PassengerCoordinator: Deboarding event received from '{turnaround.name}'. Checking aircraft components and passenger configuration.", turnaround);
+            Debug.Log($"PassengerCoordinator: Deboarding started for '{turnaround.name}'. Preparing real arriving passenger agents.", turnaround);
 
         if (airlinePassengerPrefab == null || gateRegistry == null)
         {
@@ -826,6 +840,7 @@ public class PassengerCoordinator : MonoBehaviour
                 $"Missing: {(airlinePassengerPrefab == null ? "airline passenger prefab; " : string.Empty)}" +
                 $"{(gateRegistry == null ? "AircraftGateRegistry." : string.Empty)}",
                 turnaround);
+            turnaround.CompleteExternalDeboarding();
             return;
         }
 
@@ -862,6 +877,7 @@ public class PassengerCoordinator : MonoBehaviour
             Debug.LogWarning(
                 $"PassengerCoordinator: Flight {identity.FlightNumber} completed deboarding with 0 incoming passengers; no passengers will spawn. Check its scheduled passenger demand configuration.",
                 turnaround);
+            turnaround.CompleteExternalDeboarding();
             return;
         }
 
@@ -873,6 +889,7 @@ public class PassengerCoordinator : MonoBehaviour
             Debug.LogError(
                 $"PassengerCoordinator: Cannot spawn arriving passengers for flight {identity.FlightNumber}; gate '{gateId}' could not be resolved.",
                 turnaround);
+            turnaround.CompleteExternalDeboarding();
             return;
         }
 
