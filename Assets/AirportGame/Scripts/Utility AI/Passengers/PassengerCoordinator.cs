@@ -762,8 +762,9 @@ public class PassengerCoordinator : MonoBehaviour
             int incomingDemand =
                 CalculateBookedPassengers(capacity, airportRanking, flight.StartMinute);
             registeredIncomingPassengerCounts[flight.OperationId] = incomingDemand;
-            registeredIncomingCarPassengerCounts[flight.OperationId] =
-                CalculateCarPassengerCount(incomingDemand);
+            // Recalculate the inbound split when the aircraft arrives, using
+            // the parking and public-transport infrastructure at that time.
+            registeredIncomingCarPassengerCounts[flight.OperationId] = 0;
         }
 
         RemoveStalePassengerRegistrations(currentRegistrationIds);
