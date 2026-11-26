@@ -572,6 +572,17 @@ public class PassengerCoordinator : MonoBehaviour
         if (logToConsole)
             Debug.Log($"PassengerCoordinator: Spawning {stats.IncomingPassengers} arriving passenger(s) for flight {identity.FlightNumber} at gate '{gateId}'.", turnaround);
 
+        PlacedBuilding gateFootprint = gate.GetComponent<PlacedBuilding>();
+        if (gateFootprint == null)
+            gateFootprint = gate.GetComponentInParent<PlacedBuilding>();
+
+        if (gateFootprint == null)
+        {
+            Debug.LogWarning(
+                $"PassengerCoordinator: Gate '{gateId}' has no PlacedBuilding footprint; passenger routing will use ordinary cell walkability.",
+                gate);
+        }
+
         int passengerCount = stats.IncomingPassengers;
         int spawnedCount = 0;
         int routedCount = 0;
@@ -610,7 +621,10 @@ public class PassengerCoordinator : MonoBehaviour
             walkingToBusStopPassengers.Add(passenger);
             passenger.ReachedBusStop += HandlePassengerReachedBusStop;
             Vector3 stopOffset = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * 1.5f;
-            if (!passenger.WalkToBusStop(firstStop.transform.position + stopOffset))
+            if (!passenger.WalkToBusStop(
+                    firstStop.transform.position + stopOffset,
+                    gateFootprint,
+                    firstStop))
             {
                 passenger.ReachedBusStop -= HandlePassengerReachedBusStop;
                 walkingToBusStopPassengers.Remove(passenger);
