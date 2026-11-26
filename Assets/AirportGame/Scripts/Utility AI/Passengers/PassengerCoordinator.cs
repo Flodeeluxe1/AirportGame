@@ -13,11 +13,22 @@ public class PassengerCoordinator : MonoBehaviour
     [SerializeField] private float maximumRandomVariation = 1.15f;
     [SerializeField] private bool logToConsole;
 
+    [Header("Passenger Transport Distribution")]
+    [Min(0f)] [SerializeField] private float busTransportWeight = 1f;
+    [Min(0f)] [SerializeField] private float carTransportWeight = 1f;
+    [Min(1)] [SerializeField] private int busCapacityPerDeparture = 50;
+    [Min(1)] [SerializeField] private int targetHourlyPassengerDemand = 150;
+    [Min(1)] [SerializeField] private int targetParkingSpaceCount = 20;
+    [Min(0f)] [SerializeField] private float passengerCarParkingFeePerMinute;
+    [Min(0.01f)] [SerializeField] private float referenceParkingCost = 5f;
+
     [Header("Airline Bus Transport")]
     [SerializeField] private GameObject airlinePassengerPrefab;
     [SerializeField] private ScheduledAircraftSpawner scheduledAircraftSpawner;
     [SerializeField] private BusSpawner busSpawner;
     [SerializeField] private PublicTransportManager publicTransportManager;
+    [SerializeField] private TrafficTestSpawner trafficSpawner;
+    [SerializeField] private GameObject airlinePassengerCarPrefab;
     [SerializeField] private AircraftGateRegistry gateRegistry;
     [SerializeField] private PedestrianPathfinder pedestrianPathfinder;
 
@@ -28,6 +39,8 @@ public class PassengerCoordinator : MonoBehaviour
     private readonly Dictionary<string, int> registeredPassengerCounts =
         new Dictionary<string, int>();
     private readonly Dictionary<string, int> registeredIncomingPassengerCounts =
+        new Dictionary<string, int>();
+    private readonly Dictionary<string, int> registeredIncomingCarPassengerCounts =
         new Dictionary<string, int>();
     private readonly List<ScheduledPassengerFlight> registrationFlights =
         new List<ScheduledPassengerFlight>();
@@ -51,6 +64,13 @@ public class PassengerCoordinator : MonoBehaviour
         new HashSet<BusController>();
     private readonly HashSet<AirlinePassengerAgent> walkingToBusStopPassengers =
         new HashSet<AirlinePassengerAgent>();
+    private readonly Queue<IncomingCarPickupGroup> pendingIncomingCarPickups =
+        new Queue<IncomingCarPickupGroup>();
+    private readonly Dictionary<TrafficTestVehicle, IncomingCarPickupGroup> incomingCarGroupsByVehicle =
+        new Dictionary<TrafficTestVehicle, IncomingCarPickupGroup>();
+    private readonly Dictionary<AirlinePassengerAgent, IncomingCarPickupGroup> incomingCarGroupsByPassenger =
+        new Dictionary<AirlinePassengerAgent, IncomingCarPickupGroup>();
+    private bool spawningIncomingCar;
     private bool busSpawnerSubscribed;
 
     private readonly Queue<IncomingPassengerSpawnJob> incomingPassengerSpawnJobs =
@@ -83,6 +103,9 @@ public class PassengerCoordinator : MonoBehaviour
         public string OperationId;
         public string FlightNumber;
         public int PassengerCount;
+        public int CarPassengerCount;
+        public readonly List<AirlinePassengerAgent> CarPassengers =
+            new List<AirlinePassengerAgent>();
         public int NextPassengerIndex;
         public int SpawnedCount;
         public int RoutedCount;
@@ -92,6 +115,16 @@ public class PassengerCoordinator : MonoBehaviour
         public PlacedBuilding FirstStop;
     }
 
+
+    private sealed class IncomingCarPickupGroup
+    {
+        public readonly List<AirlinePassengerAgent> Passengers =
+            new List<AirlinePassengerAgent>();
+        public AircraftGate Gate;
+        public PlacedBuilding GateFootprint;
+        public TrafficTestVehicle Vehicle;
+        public int BoardedCount;
+    }
 
     private sealed class BusPassengerRecord
     {
@@ -315,8 +348,12 @@ public class PassengerCoordinator : MonoBehaviour
         AirlinePassengerAgent passenger =
             passengerObject.GetComponent<AirlinePassengerAgent>();
 
+        bool isCarPassenger = passengerIndex < job.CarPassengerCount;
+        PassengerIdentity.TransportMode transportMode = isCarPassenger
+            ? PassengerIdentity.TransportMode.Car
+            : PassengerIdentity.TransportMode.Bus;
         if (passenger == null || !passenger.Initialize(
-            job.OperationId, PassengerIdentity.TransportMode.Bus))
+            job.OperationId, transportMode))
         {
             job.FailedCount++;
             Debug.LogWarning(
@@ -331,6 +368,12 @@ public class PassengerCoordinator : MonoBehaviour
         job.SpawnedCount++;
         if (passenger.Movement != null)
             passenger.Movement.AlignFeetToGround(spawnPosition);
+
+        if (isCarPassenger)
+        {
+            job.CarPassengers.Add(passenger);
+            return;
+        }
 
         if (job.FirstStop == null)
             return;
@@ -381,6 +424,7 @@ public class PassengerCoordinator : MonoBehaviour
             $"requested {job.PassengerCount}, spawned {job.SpawnedCount}, walking to bus stop {job.RoutedCount}, failed {job.FailedCount}.",
             job.Turnaround);
 
+        QueueIncomingCarPickupGroups(job);
         activeIncomingPassengerSpawnJob = null;
         if (job.Turnaround != null)
             job.Turnaround.CompleteExternalDeboarding();
@@ -398,6 +442,17 @@ public class PassengerCoordinator : MonoBehaviour
             gateRegistry = FindAnyObjectByType<AircraftGateRegistry>();
         if (pedestrianPathfinder == null)
             pedestrianPathfinder = FindAnyObjectByType<PedestrianPathfinder>();
+        if (trafficSpawner == null)
+            trafficSpawner = FindAnyObjectByType<TrafficTestSpawner>();
+        if (airlinePassengerCarPrefab == null)
+        {
+            SightseeingPassengerManager sightseeingManager =
+                FindAnyObjectByType<SightseeingPassengerManager>();
+            if (sightseeingManager != null)
+                airlinePassengerCarPrefab = sightseeingManager.PassengerCarPrefab;
+            if (trafficSpawner == null && sightseeingManager != null)
+                trafficSpawner = sightseeingManager.TrafficSpawner;
+        }
 
         SubscribeToBusSpawner();
         SubscribeToScheduleAndTime();
@@ -486,10 +541,16 @@ public class PassengerCoordinator : MonoBehaviour
                 ? aircraftPrefab.GetComponent<AircraftStats>()
                 : null;
             int capacity = aircraftStats != null ? aircraftStats.maxPassengers : 0;
-            registeredPassengerCounts[flight.OperationId] =
+            int outgoingDemand =
                 CalculateBookedPassengers(capacity, airportRanking, flight.StartMinute);
-            registeredIncomingPassengerCounts[flight.OperationId] =
+            registeredPassengerCounts[flight.OperationId] = outgoingDemand;
+            bookedPassengerCounts[flight.OperationId] = outgoingDemand;
+
+            int incomingDemand =
                 CalculateBookedPassengers(capacity, airportRanking, flight.StartMinute);
+            registeredIncomingPassengerCounts[flight.OperationId] = incomingDemand;
+            registeredIncomingCarPassengerCounts[flight.OperationId] =
+                CalculateCarPassengerCount(incomingDemand);
         }
 
         RemoveStalePassengerRegistrations(currentRegistrationIds);
@@ -512,6 +573,7 @@ public class PassengerCoordinator : MonoBehaviour
 
     private void OnDisable()
     {
+        ParkingSpace.AvailabilityChanged -= HandleParkingAvailabilityChanged;
         if (busSpawnerSubscribed && busSpawner != null)
             busSpawner.BusDispatched -= HandleBusDispatched;
         busSpawnerSubscribed = false;
@@ -543,6 +605,7 @@ public class PassengerCoordinator : MonoBehaviour
 
     private void OnEnable()
     {
+        ParkingSpace.AvailabilityChanged += HandleParkingAvailabilityChanged;
         if (instance == this)
         {
             AircraftTurnaroundController.PassengersDeboardingStarted += HandlePassengersDeboardingStarted;
@@ -661,7 +724,8 @@ public class PassengerCoordinator : MonoBehaviour
                 createdPassengerCount++;
             }
 
-            bookedPassengerCounts[flight.OperationId] = createdPassengerCount;
+            registeredPassengerCounts[flight.OperationId] =
+                Mathf.Max(0, requestedPassengers - createdPassengerCount);
         }
 
         if (manifest.Count == 0)
@@ -919,12 +983,19 @@ public class PassengerCoordinator : MonoBehaviour
                 gateFootprint = gate.GetComponentInParent<PlacedBuilding>();
         }
 
+        int incomingCarCount =
+            registeredIncomingCarPassengerCounts.TryGetValue(
+                identity.OperationId, out int assignedCarCount)
+                ? assignedCarCount
+                : 0;
+
         IncomingPassengerSpawnJob job = new IncomingPassengerSpawnJob
         {
             Turnaround = turnaround,
             OperationId = identity.OperationId,
             FlightNumber = identity.FlightNumber,
             PassengerCount = stats.IncomingPassengers,
+            CarPassengerCount = Mathf.Clamp(incomingCarCount, 0, stats.IncomingPassengers),
             Gate = gate,
             GateFootprint = gateFootprint,
             FirstStop = firstStop
@@ -1111,6 +1182,7 @@ public class PassengerCoordinator : MonoBehaviour
         {
             registeredPassengerCounts.Remove(staleOperationIds[i]);
             registeredIncomingPassengerCounts.Remove(staleOperationIds[i]);
+            registeredIncomingCarPassengerCounts.Remove(staleOperationIds[i]);
         }
     }
 
