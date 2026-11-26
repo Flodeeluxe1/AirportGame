@@ -225,6 +225,7 @@ public class PassengerCoordinator : MonoBehaviour
             bus.StopReached -= HandleBusStopReached;
             bus.JourneyCompleted -= HandleBusJourneyCompleted;
             bus.StopServiceCompleted -= HandleBusStopServiceCompleted;
+            bus.PassengerBoardingFailed -= HandlePassengerBoardingFailed;
         }
 
         foreach (AirlinePassengerAgent passenger in walkingToBusStopPassengers)
@@ -249,6 +250,7 @@ public class PassengerCoordinator : MonoBehaviour
                 bus.StopReached += HandleBusStopReached;
                 bus.JourneyCompleted += HandleBusJourneyCompleted;
                 bus.StopServiceCompleted += HandleBusStopServiceCompleted;
+                bus.PassengerBoardingFailed += HandlePassengerBoardingFailed;
             }
 
             List<AirlinePassengerAgent> alreadyWaiting = new List<AirlinePassengerAgent>();
@@ -275,6 +277,7 @@ public class PassengerCoordinator : MonoBehaviour
         bus.StopReached += HandleBusStopReached;
         bus.JourneyCompleted += HandleBusJourneyCompleted;
         bus.StopServiceCompleted += HandleBusStopServiceCompleted;
+        bus.PassengerBoardingFailed += HandlePassengerBoardingFailed;
     }
 
     private void HandleBusDispatched(BusController bus)
@@ -494,6 +497,7 @@ public class PassengerCoordinator : MonoBehaviour
         bus.StopReached -= HandleBusStopReached;
         bus.JourneyCompleted -= HandleBusJourneyCompleted;
         bus.StopServiceCompleted -= HandleBusStopServiceCompleted;
+        bus.PassengerBoardingFailed -= HandlePassengerBoardingFailed;
         subscribedBuses.Remove(bus);
     }
 
@@ -701,6 +705,34 @@ public class PassengerCoordinator : MonoBehaviour
     {
         // The bus has closed boarding. Passengers who arrive from this point
         // remain in the shared waiting queue for the next bus.
+    }
+
+    private void HandlePassengerBoardingFailed(
+        BusController bus,
+        AirlinePassengerAgent passenger)
+    {
+        if (bus == null || passenger == null)
+            return;
+
+        if (returnPassengersByBus.TryGetValue(
+            bus, out List<AirlinePassengerAgent> assignedPassengers))
+        {
+            assignedPassengers.Remove(passenger);
+            if (assignedPassengers.Count == 0)
+                returnPassengersByBus.Remove(bus);
+        }
+
+        // Keep a passenger in the shared queue only if they are still in a
+        // state where another bus can accept them.
+        if (passenger.State == AirlinePassengerAgent.JourneyState.WaitingForBus)
+        {
+            if (waitingReturnPassengerSet.Add(passenger))
+                waitingReturnPassengers.Enqueue(passenger);
+        }
+        else
+        {
+            waitingReturnPassengerSet.Remove(passenger);
+        }
     }
 
     private void OnDestroy()
