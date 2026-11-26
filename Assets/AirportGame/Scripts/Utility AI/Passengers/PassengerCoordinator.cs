@@ -1186,6 +1186,292 @@ public class PassengerCoordinator : MonoBehaviour
         }
     }
 
+    private int CalculateCarPassengerCount(int totalPassengers)
+    {
+        if (totalPassengers <= 0)
+            return 0;
+
+        float busCapacityPerHour = 0f;
+        if (publicTransportManager != null &&
+            publicTransportManager.ActiveBuses > 0 &&
+            publicTransportManager.RegisteredStopCount > 0)
+        {
+            float frequency = Mathf.Max(1f, publicTransportManager.BusFrequencyMinutes);
+            busCapacityPerHour =
+                (60f / frequency) * Mathf.Max(1, busCapacityPerDeparture);
+        }
+
+        float busScore = busTransportWeight *
+            Mathf.Clamp01(busCapacityPerHour / Mathf.Max(1, targetHourlyPassengerDemand));
+
+        // Train and underground are intentionally zero until their service
+        // managers exist. They will use the same frequency * capacity formula.
+        const float trainScore = 0f;
+        const float undergroundScore = 0f;
+
+        ParkingSpace[] parkingSpaces = FindObjectsByType<ParkingSpace>();
+        int totalParkingSpaces = parkingSpaces != null ? parkingSpaces.Length : 0;
+        float parkingCapacityFactor = Mathf.Clamp01(
+            (float)totalParkingSpaces / Mathf.Max(1, targetParkingSpaceCount));
+
+        // A passenger car is expected to occupy the space for the mean of the
+        // configured 2–15 minute dwell range.
+        const float expectedParkingMinutes = 8.5f;
+        float expectedParkingCost =
+            Mathf.Max(0f, passengerCarParkingFeePerMinute) * expectedParkingMinutes;
+        float parkingPriceFactor = 1f /
+            (1f + expectedParkingCost / Mathf.Max(0.01f, referenceParkingCost));
+
+        float carScore =
+            carTransportWeight * parkingCapacityFactor * parkingPriceFactor;
+
+        float totalScore = busScore + trainScore + undergroundScore + carScore;
+        if (totalScore <= 0.0001f)
+            return totalPassengers;
+
+        int carPassengers = Mathf.RoundToInt(
+            totalPassengers * carScore / totalScore);
+
+        if (logToConsole)
+        {
+            Debug.Log(
+                $"Passenger transport split | Demand: {totalPassengers} | " +
+                $"Bus score: {busScore:F2} | Train score: {trainScore:F2} | " +
+                $"Underground score: {undergroundScore:F2} | Car score: {carScore:F2} | " +
+                $"Parking spaces: {totalParkingSpaces} | Fee/min: {passengerCarParkingFeePerMinute:F2} | " +
+                $"Cars: {carPassengers} | PT: {totalPassengers - carPassengers}",
+                this);
+        }
+
+        return Mathf.Clamp(carPassengers, 0, totalPassengers);
+    }
+
+    private void QueueIncomingCarPickupGroups(IncomingPassengerSpawnJob job)
+    {
+        if (job == null || job.CarPassengers.Count == 0)
+            return;
+
+        int nextPassenger = 0;
+        while (nextPassenger < job.CarPassengers.Count)
+        {
+            int groupSize = Random.Range(1, 5);
+            int remaining = job.CarPassengers.Count - nextPassenger;
+            groupSize = Mathf.Min(groupSize, remaining);
+
+            IncomingCarPickupGroup group = new IncomingCarPickupGroup
+            {
+                Gate = job.Gate,
+                GateFootprint = job.GateFootprint
+            };
+
+            for (int i = 0; i < groupSize; i++)
+            {
+                AirlinePassengerAgent passenger =
+                    job.CarPassengers[nextPassenger++];
+                if (passenger != null)
+                    group.Passengers.Add(passenger);
+            }
+
+            if (group.Passengers.Count > 0)
+                pendingIncomingCarPickups.Enqueue(group);
+        }
+
+        TrySpawnPendingIncomingCarPickups();
+    }
+
+    private void HandleParkingAvailabilityChanged()
+    {
+        TrySpawnPendingIncomingCarPickups();
+    }
+
+    private bool HasFreePassengerParkingSpace()
+    {
+        ParkingSpace[] spaces = FindObjectsByType<ParkingSpace>();
+        for (int i = 0; i < spaces.Length; i++)
+        {
+            ParkingSpace space = spaces[i];
+            if (space != null && !space.IsOccupied && !space.IsReserved)
+                return true;
+        }
+        return false;
+    }
+
+    private void TrySpawnPendingIncomingCarPickups()
+    {
+        if (spawningIncomingCar || !isActiveAndEnabled ||
+            pendingIncomingCarPickups.Count == 0 ||
+            trafficSpawner == null || airlinePassengerCarPrefab == null)
+            return;
+
+        spawningIncomingCar = true;
+        try
+        {
+            while (pendingIncomingCarPickups.Count > 0 &&
+                   HasFreePassengerParkingSpace())
+            {
+                IncomingCarPickupGroup group =
+                    pendingIncomingCarPickups.Dequeue();
+
+                TrafficTestVehicle car =
+                    trafficSpawner.SpawnExternallyControlledVehicle(
+                        airlinePassengerCarPrefab);
+
+                // SpawnExternallyControlledVehicle reserves a free space
+                // synchronously. Reject a vehicle that could not reserve one.
+                if (car == null || car.CurrentParkingSpace == null)
+                {
+                    if (car != null)
+                        Destroy(car.gameObject);
+                    pendingIncomingCarPickups.Enqueue(group);
+                    break;
+                }
+
+                group.Vehicle = car;
+                incomingCarGroupsByVehicle.Add(car, group);
+                car.Parked += HandleIncomingPickupCarParked;
+                car.Exited += HandleIncomingPickupCarExited;
+            }
+        }
+        finally
+        {
+            spawningIncomingCar = false;
+        }
+    }
+
+    private void HandleIncomingPickupCarParked(TrafficTestVehicle car)
+    {
+        if (car == null ||
+            !incomingCarGroupsByVehicle.TryGetValue(
+                car, out IncomingCarPickupGroup group))
+            return;
+
+        ParkingSpace parking = car.CurrentParkingSpace;
+        PlacedBuilding parkingFootprint = parking != null
+            ? parking.GetComponent<PlacedBuilding>()
+            : null;
+        Vector3 desiredPosition =
+            car.ParkingPosition + car.transform.right * 1.5f;
+
+        if (pedestrianPathfinder == null ||
+            !pedestrianPathfinder.TryFindNearestWalkablePosition(
+                desiredPosition, 8, out Vector3 pickupPosition))
+        {
+            Debug.LogWarning(
+                $"PassengerCoordinator: Could not find a pedestrian pickup position beside car {car.name}.",
+                car);
+            AbandonIncomingPickupGroup(group);
+            car.RequestDeparture();
+            return;
+        }
+
+        int routedPassengers = 0;
+        for (int i = 0; i < group.Passengers.Count; i++)
+        {
+            AirlinePassengerAgent passenger = group.Passengers[i];
+            if (passenger == null)
+                continue;
+
+            passenger.ReachedCarPickup += HandlePassengerReachedIncomingCar;
+            incomingCarGroupsByPassenger[passenger] = group;
+
+            if (passenger.WalkToCarPickup(
+                pickupPosition, group.GateFootprint, parkingFootprint))
+            {
+                routedPassengers++;
+            }
+            else
+            {
+                passenger.ReachedCarPickup -= HandlePassengerReachedIncomingCar;
+                incomingCarGroupsByPassenger.Remove(passenger);
+                passenger.AbandonJourney();
+                Destroy(passenger.gameObject);
+                group.Passengers[i] = null;
+            }
+        }
+
+        if (routedPassengers == 0)
+            car.RequestDeparture();
+    }
+
+    private void HandlePassengerReachedIncomingCar(
+        AirlinePassengerAgent passenger)
+    {
+        if (passenger == null ||
+            !incomingCarGroupsByPassenger.TryGetValue(
+                passenger, out IncomingCarPickupGroup group))
+            return;
+
+        passenger.ReachedCarPickup -= HandlePassengerReachedIncomingCar;
+        incomingCarGroupsByPassenger.Remove(passenger);
+
+        if (group.Vehicle == null ||
+            !passenger.BoardCar(group.Vehicle.transform))
+        {
+            passenger.AbandonJourney();
+            Destroy(passenger.gameObject);
+            return;
+        }
+
+        group.BoardedCount++;
+        int remainingPassengers = 0;
+        for (int i = 0; i < group.Passengers.Count; i++)
+            if (group.Passengers[i] != null)
+                remainingPassengers++;
+
+        if (group.BoardedCount >= remainingPassengers &&
+            group.Vehicle.IsParked)
+            group.Vehicle.RequestDeparture();
+    }
+
+    private void HandleIncomingPickupCarExited(TrafficTestVehicle car)
+    {
+        if (car == null ||
+            !incomingCarGroupsByVehicle.TryGetValue(
+                car, out IncomingCarPickupGroup group))
+            return;
+
+        car.Parked -= HandleIncomingPickupCarParked;
+        car.Exited -= HandleIncomingPickupCarExited;
+        incomingCarGroupsByVehicle.Remove(car);
+
+        for (int i = 0; i < group.Passengers.Count; i++)
+        {
+            AirlinePassengerAgent passenger = group.Passengers[i];
+            if (passenger == null)
+                continue;
+
+            passenger.ReachedCarPickup -= HandlePassengerReachedIncomingCar;
+            incomingCarGroupsByPassenger.Remove(passenger);
+            if (passenger.State == AirlinePassengerAgent.JourneyState.OnCar)
+                passenger.CompleteReturnCarJourney();
+            else
+            {
+                passenger.AbandonJourney();
+                Destroy(passenger.gameObject);
+            }
+        }
+
+        HandleParkingAvailabilityChanged();
+    }
+
+    private void AbandonIncomingPickupGroup(IncomingCarPickupGroup group)
+    {
+        if (group == null)
+            return;
+
+        for (int i = 0; i < group.Passengers.Count; i++)
+        {
+            AirlinePassengerAgent passenger = group.Passengers[i];
+            if (passenger == null)
+                continue;
+
+            passenger.ReachedCarPickup -= HandlePassengerReachedIncomingCar;
+            incomingCarGroupsByPassenger.Remove(passenger);
+            passenger.AbandonJourney();
+            Destroy(passenger.gameObject);
+        }
+    }
+
     public int CalculateBookedPassengers(int capacity, float airportRanking, int scheduledStartMinute)
     {
         if (capacity <= 0)
