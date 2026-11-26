@@ -13,6 +13,7 @@ public enum AircraftTurnaroundTaskStatus
 public class AircraftTurnaroundController : MonoBehaviour
 {
     public static event Action<AircraftTurnaroundController> PassengersDeboarded;
+    public static event Action<AircraftTurnaroundController> PassengersBoardingStarted;
 
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
@@ -364,6 +365,9 @@ public class AircraftTurnaroundController : MonoBehaviour
     private bool externalCleaningControlled;
 
     [SerializeField, HideInInspector]
+    private bool externalBoardingControlled;
+
+    [SerializeField, HideInInspector]
     private float cleaningVehicleRequestRetryTimer;
 
     [SerializeField, HideInInspector]
@@ -490,7 +494,8 @@ public class AircraftTurnaroundController : MonoBehaviour
                     AircraftTurnaroundTaskStatus.InProgress;
 
             bool tickBoarding =
-                boarding.Status == AircraftTurnaroundTaskStatus.InProgress;
+                boarding.Status == AircraftTurnaroundTaskStatus.InProgress &&
+                !externalBoardingControlled;
 
             if (tickDeboarding)
                 AdvanceTask(TaskType.Deboarding, deltaGameSeconds);
@@ -923,6 +928,20 @@ public class AircraftTurnaroundController : MonoBehaviour
     }
 
     /// <summary>
+    /// Keeps boarding under passenger-coordinator control until every
+    /// terminal passenger has boarded the aircraft.
+    /// </summary>
+    public void CompleteExternalBoarding()
+    {
+        if (!externalBoardingControlled ||
+            boarding.Status != AircraftTurnaroundTaskStatus.InProgress)
+            return;
+
+        externalBoardingControlled = false;
+        CompleteTask(TaskType.Boarding);
+    }
+
+    /// <summary>
     /// Keeps cleaning under vehicle control until a cleaning vehicle
     /// completes its preparation, passenger cleaning and exit phases.
     /// </summary>
@@ -1063,6 +1082,16 @@ public class AircraftTurnaroundController : MonoBehaviour
 
         task.StartTask();
 
+        if (taskType == TaskType.Boarding)
+        {
+            int listenerCount = PassengersBoardingStarted != null
+                ? PassengersBoardingStarted.GetInvocationList().Length
+                : 0;
+            externalBoardingControlled = listenerCount > 0;
+            if (externalBoardingControlled)
+                PassengersBoardingStarted?.Invoke(this);
+        }
+
         Log(
             $"{name}: {GetTaskName(taskType)} started " +
             $"({task.DurationMinutes:0.#} in-game minutes).",
@@ -1095,6 +1124,9 @@ public class AircraftTurnaroundController : MonoBehaviour
             return;
 
         task.MarkCompleted();
+
+        if (taskType == TaskType.Boarding)
+            externalBoardingControlled = false;
 
         if (taskType == TaskType.Deboarding)
         {
@@ -1226,6 +1258,7 @@ public class AircraftTurnaroundController : MonoBehaviour
         externalFuelingControlled = false;
         fuelTruckRequestRetryTimer = 0f;
         externalCleaningControlled = false;
+        externalBoardingControlled = false;
         cleaningVehicleRequestRetryTimer = 0f;
         baggageVehicleRequestRetryTimer = 0f;
 
