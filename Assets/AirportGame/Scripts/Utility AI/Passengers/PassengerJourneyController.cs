@@ -106,6 +106,15 @@ public sealed class PassengerJourneyController : MonoBehaviour
             currentStage = JourneyStage.AtTransport;
     }
 
+    public void CancelTransport()
+    {
+        if (currentStage != JourneyStage.TravellingToTransport)
+            return;
+
+        transportDestination = TransportDestination.None;
+        currentStage = JourneyStage.AwaitingTransport;
+    }
+
     public void CompleteTransportJourney()
     {
         if (currentStage == JourneyStage.AtTransport ||
