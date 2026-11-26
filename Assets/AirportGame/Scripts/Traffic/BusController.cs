@@ -384,7 +384,7 @@ public class BusController : MonoBehaviour
             {
                 transform.position = target;
                 ArriveAtSmoothedWaypoint();
-                if (stopTimeRemaining > 0f)
+                if (boardingServiceActive)
                     return;
             }
             else
