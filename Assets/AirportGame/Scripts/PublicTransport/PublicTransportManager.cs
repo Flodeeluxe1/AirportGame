@@ -208,6 +208,9 @@ public class PublicTransportManager : MonoBehaviour
             newActiveBuses > newOwnedBuses)
             return false;
 
+        if (ownedBuses == newOwnedBuses && activeBuses == newActiveBuses)
+            return true;
+
         ownedBuses = newOwnedBuses;
         activeBuses = newActiveBuses;
         FleetChanged?.Invoke();
