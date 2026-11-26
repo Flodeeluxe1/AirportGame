@@ -779,33 +779,22 @@ public class PedestrianPathfinder : MonoBehaviour
         return true;
     }
 
-    // Endpoint cells may contain the gate/building the pedestrian is
-    // leaving or the stop/terminal it is approaching. Permit only that
-    // blocking building occupancy; surface, bounds and edge checks remain.
+    // The first and last cells represent the pedestrian's departure and
+    // destination points. They may be inside an occupied gate/stop footprint,
+    // so ignore cell occupancy and obstacle flags for these two cells only.
+    // The surface and grid bounds must still be valid, and all crossed edges
+    // remain subject to the normal door/wall access checks.
     private bool IsWalkableEndpoint(Vector2Int cell)
     {
         if (!HasValidReferences() || !gridManager.IsInsideGrid(cell))
             return false;
 
         BuildSurface surface = gridSurface.GetSurface(cell);
-        if (surface != BuildSurface.Grass &&
-            surface != BuildSurface.Foundation &&
-            surface != BuildSurface.Tarmac &&
-            surface != BuildSurface.PedestrianTarmac &&
-            surface != BuildSurface.Road)
-            return false;
-
-        if (gridOccupancy != null &&
-            gridOccupancy.TryGetOccupant(cell, out GameObject occupant) &&
-            occupant != null)
-        {
-            PlacedBuilding building = occupant.GetComponent<PlacedBuilding>();
-            if (building != null && building.Definition != null &&
-                building.Definition.blocksPathfinding)
-                return true;
-        }
-
-        return !gridSurface.IsObstacle(cell) && IsWalkable(cell);
+        return surface == BuildSurface.Grass ||
+               surface == BuildSurface.Foundation ||
+               surface == BuildSurface.Tarmac ||
+               surface == BuildSurface.PedestrianTarmac ||
+               surface == BuildSurface.Road;
     }
 
     private bool CanMoveBetween(
