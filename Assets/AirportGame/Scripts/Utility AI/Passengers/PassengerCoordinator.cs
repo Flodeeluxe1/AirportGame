@@ -465,6 +465,11 @@ public class PassengerCoordinator : MonoBehaviour
 
         if (airlinePassengerPrefab == null)
             Debug.LogError("PassengerCoordinator: Assign the airline Passenger prefab. SS_Passenger is reserved for sightseeing.", this);
+
+        if (trafficSpawner == null || airlinePassengerCarPrefab == null)
+            Debug.LogWarning(
+                "PassengerCoordinator: Incoming car pickups require the shared TrafficTestSpawner and passenger car prefab. The car prefab is normally read from SightseeingPassengerManager.",
+                this);
         else if (airlinePassengerPrefab.GetComponent<AirlinePassengerAgent>() == null)
             Debug.LogError("PassengerCoordinator: The assigned Passenger prefab must contain AirlinePassengerAgent.", airlinePassengerPrefab);
     }
@@ -574,6 +579,7 @@ public class PassengerCoordinator : MonoBehaviour
     private void OnDisable()
     {
         ParkingSpace.AvailabilityChanged -= HandleParkingAvailabilityChanged;
+        PlacedBuilding.BuildingChanged -= HandleParkingBuildingChanged;
         if (busSpawnerSubscribed && busSpawner != null)
             busSpawner.BusDispatched -= HandleBusDispatched;
         busSpawnerSubscribed = false;
@@ -606,6 +612,7 @@ public class PassengerCoordinator : MonoBehaviour
     private void OnEnable()
     {
         ParkingSpace.AvailabilityChanged += HandleParkingAvailabilityChanged;
+        PlacedBuilding.BuildingChanged += HandleParkingBuildingChanged;
         if (instance == this)
         {
             AircraftTurnaroundController.PassengersDeboardingStarted += HandlePassengersDeboardingStarted;
@@ -640,6 +647,26 @@ public class PassengerCoordinator : MonoBehaviour
 
             for (int i = 0; i < alreadyWaiting.Count; i++)
                 HandlePassengerReachedBusStop(alreadyWaiting[i]);
+
+            foreach (KeyValuePair<TrafficTestVehicle, IncomingCarPickupGroup> pair in incomingCarGroupsByVehicle)
+            {
+                if (pair.Key == null)
+                    continue;
+                pair.Key.Parked -= HandleIncomingPickupCarParked;
+                pair.Key.Exited -= HandleIncomingPickupCarExited;
+                pair.Key.Parked += HandleIncomingPickupCarParked;
+                pair.Key.Exited += HandleIncomingPickupCarExited;
+            }
+
+            foreach (KeyValuePair<AirlinePassengerAgent, IncomingCarPickupGroup> pair in incomingCarGroupsByPassenger)
+            {
+                if (pair.Key == null)
+                    continue;
+                pair.Key.ReachedCarPickup -= HandlePassengerReachedIncomingCar;
+                pair.Key.ReachedCarPickup += HandlePassengerReachedIncomingCar;
+            }
+
+            TrySpawnPendingIncomingCarPickups();
         }
     }
 
@@ -1282,6 +1309,12 @@ public class PassengerCoordinator : MonoBehaviour
     private void HandleParkingAvailabilityChanged()
     {
         TrySpawnPendingIncomingCarPickups();
+    }
+
+    private void HandleParkingBuildingChanged(PlacedBuilding building)
+    {
+        if (building != null && building.GetComponent<ParkingSpace>() != null)
+            TrySpawnPendingIncomingCarPickups();
     }
 
     private bool HasFreePassengerParkingSpace()
