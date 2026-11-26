@@ -1059,7 +1059,8 @@ public class PassengerCoordinator : MonoBehaviour
                 passenger.RedirectToTerminal(actualGate.transform.position);
         }
 
-        terminalPassengersByOperationId.Remove(flightIdentity.OperationId);
+        // Keep the terminal passenger list until the aircraft's boarding task
+        // consumes it. These visible agents are the outbound flight manifest.
     }
 
     public void ForgetScheduledFlightPassengerCount(string operationId)
