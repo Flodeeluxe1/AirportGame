@@ -148,9 +148,7 @@ public class PassengerCoordinator : MonoBehaviour
             return;
         }
 
-        float angle = passengerIndex * 2.39996323f;
-        Vector3 offset = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * 0.65f;
-        Vector3 spawnPosition = job.Gate.transform.position + offset;
+        Vector3 spawnPosition = job.Gate.transform.position;
         GameObject passengerObject = Instantiate(
             airlinePassengerPrefab, spawnPosition, Quaternion.identity);
         AirlinePassengerAgent passenger = passengerObject.GetComponent<AirlinePassengerAgent>();
@@ -174,11 +172,24 @@ public class PassengerCoordinator : MonoBehaviour
         if (job.FirstStop == null)
             return;
 
+        Vector3 waitingPosition;
+        if (pedestrianPathfinder == null ||
+            !pedestrianPathfinder.TryFindBusStopWaitingPosition(
+                job.FirstStop.transform.position,
+                Random.Range(-2.5f, 2.5f),
+                Random.Range(1.1f, 2.2f),
+                8,
+                out waitingPosition))
+        {
+            job.FailedCount++;
+            Destroy(passengerObject);
+            return;
+        }
+
         walkingToBusStopPassengers.Add(passenger);
         passenger.ReachedBusStop += HandlePassengerReachedBusStop;
-        Vector3 stopOffset = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * 1.5f;
         if (!passenger.WalkToBusStop(
-                job.FirstStop.transform.position + stopOffset,
+                waitingPosition,
                 job.GateFootprint,
                 job.FirstStop))
         {
@@ -520,13 +531,13 @@ public class PassengerCoordinator : MonoBehaviour
                 continue;
             }
 
-            float disembarkAngle = i * 2.39996323f;
-            Vector3 disembarkOffset = new Vector3(
-                Mathf.Cos(disembarkAngle), 0f, Mathf.Sin(disembarkAngle)) * 1.5f;
-            Vector3 desiredDisembarkPosition = stop.transform.position + disembarkOffset;
             if (pedestrianPathfinder == null ||
-                !pedestrianPathfinder.TryFindNearestWalkablePosition(
-                    desiredDisembarkPosition, 8, out Vector3 disembarkPosition))
+                !pedestrianPathfinder.TryFindBusStopWaitingPosition(
+                    stop.transform.position,
+                    Random.Range(-2.5f, 2.5f),
+                    Random.Range(1.1f, 2.2f),
+                    8,
+                    out Vector3 disembarkPosition))
             {
                 Debug.LogWarning(
                     $"PassengerCoordinator: Could not find a walkable disembark position beside stop {stop.name} for flight {passenger.FlightOperationId}.",
