@@ -292,6 +292,8 @@ public class AirlinePassengerAgent : MonoBehaviour
                 pickupPosition, gateFootprint, parkingFootprint))
         {
             state = JourneyState.Uninitialized;
+            if (interactions != null)
+                interactions.SetExternallyControlled(false);
             return false;
         }
         return true;
