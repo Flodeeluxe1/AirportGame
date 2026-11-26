@@ -1605,7 +1605,7 @@ public class PassengerCoordinator : MonoBehaviour
             gate == null)
         {
             Debug.LogWarning(
-                $"PassengerCoordinator: Outbound car passengers for flight {flight.FlightNumber} could not be dispatched. Assign the passenger car prefab and traffic spawner, and ensure the terminal foundation and road network are available; affected passengers will fall back to the bus manifest.",
+                $"PassengerCoordinator: Outbound car passengers for flight {flight.OperationId} could not be dispatched. Assign the passenger car prefab and traffic spawner, and ensure the terminal foundation and road network are available; affected passengers will fall back to the bus manifest.",
                 this);
             return 0;
         }
@@ -1629,7 +1629,7 @@ public class PassengerCoordinator : MonoBehaviour
             if (car == null)
             {
                 Debug.LogWarning(
-                    $"PassengerCoordinator: Could not spawn an outbound passenger car for flight {flight.FlightNumber}. Remaining car passengers will use the bus manifest.",
+                    $"PassengerCoordinator: Could not spawn an outbound passenger car for flight {flight.OperationId}. Remaining car passengers will use the bus manifest.",
                     this);
                 break;
             }
