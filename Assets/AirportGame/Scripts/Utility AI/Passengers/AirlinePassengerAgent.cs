@@ -211,7 +211,9 @@ public class AirlinePassengerAgent : MonoBehaviour
 
     public bool DisembarkToTerminal(
         Vector3 disembarkPosition,
-        Vector3 terminalPosition)
+        Vector3 terminalPosition,
+        PlacedBuilding busStopFootprint = null,
+        PlacedBuilding gateFootprint = null)
     {
         CacheComponents();
         if (state != JourneyState.OnBus || movement == null)
@@ -243,7 +245,8 @@ public class AirlinePassengerAgent : MonoBehaviour
 
         // Prefer a direct route. If the exact gate point is blocked, let the
         // pathfinder search for a nearby walkable approach instead.
-        if (!movement.MoveToAllowingOccupiedEndpoints(terminalPosition) &&
+        if (!movement.MoveToAllowingOccupiedEndpoints(
+                terminalPosition, busStopFootprint, gateFootprint) &&
             !movement.TryMoveToNearby(terminalPosition, disembarkPosition))
         {
             Debug.LogWarning(
