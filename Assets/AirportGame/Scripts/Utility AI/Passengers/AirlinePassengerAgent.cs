@@ -83,9 +83,15 @@ public class AirlinePassengerAgent : MonoBehaviour
 
         if (state == JourneyState.WalkingToTerminal)
         {
+            if (interactions != null && interactions.IsHandlingInteraction)
+                return;
+
             state = JourneyState.AtTerminal;
             if (interactions != null)
+            {
+                interactions.StopJourneyInteractions();
                 interactions.SetExternallyControlled(false);
+            }
             return;
         }
 
@@ -331,7 +337,8 @@ public class AirlinePassengerAgent : MonoBehaviour
             return false;
 
         if (interactions != null)
-            interactions.SetExternallyControlled(true);
+            interactions.SetJourneyInteractions(
+                true, terminalPosition, carFootprint, gateFootprint);
 
         state = JourneyState.WalkingToTerminal;
         if (!movement.MoveToAllowingOccupiedEndpoints(
@@ -339,7 +346,10 @@ public class AirlinePassengerAgent : MonoBehaviour
         {
             state = JourneyState.Uninitialized;
             if (interactions != null)
+            {
+                interactions.StopJourneyInteractions();
                 interactions.SetExternallyControlled(false);
+            }
             return false;
         }
 
