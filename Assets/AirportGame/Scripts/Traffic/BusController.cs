@@ -150,26 +150,34 @@ public class BusController : MonoBehaviour
         if (boardingQueue.Count > 0)
         {
             boardingIntervalRemaining -= deltaTime;
-            if (boardingIntervalRemaining > 0f)
-                return;
+            float interval = Mathf.Max(0.01f, boardingIntervalSeconds);
+            const int maxBoardingsPerUpdate = 32;
 
-            AirlinePassengerAgent passenger = boardingQueue.Dequeue();
-            if (passenger != null && TryBoardPassenger(passenger))
+            for (int i = 0; i < maxBoardingsPerUpdate &&
+                            boardingQueue.Count > 0 &&
+                            boardingIntervalRemaining <= 0f; i++)
             {
-                stopTimeRemaining = Mathf.Max(0f, stopDwellSeconds);
-                PassengerBoarded?.Invoke(this, passenger);
-            }
+                AirlinePassengerAgent passenger = boardingQueue.Dequeue();
+                if (passenger != null && TryBoardPassenger(passenger))
+                {
+                    stopTimeRemaining = Mathf.Max(0f, stopDwellSeconds);
+                    PassengerBoarded?.Invoke(this, passenger);
+                }
 
-            if (AvailablePassengerCapacity <= 0)
-            {
-                FinishStopBoarding();
-                return;
-            }
+                if (AvailablePassengerCapacity <= 0)
+                {
+                    FinishStopBoarding();
+                    return;
+                }
 
-            if (boardingQueue.Count > 0)
-                boardingIntervalRemaining = Mathf.Max(0.01f, boardingIntervalSeconds);
-            else
-                boardingIntervalRemaining = 0f;
+                if (boardingQueue.Count == 0)
+                {
+                    boardingIntervalRemaining = 0f;
+                    return;
+                }
+
+                boardingIntervalRemaining += interval;
+            }
             return;
         }
 
