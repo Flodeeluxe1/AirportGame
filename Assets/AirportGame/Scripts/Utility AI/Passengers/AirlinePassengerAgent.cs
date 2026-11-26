@@ -19,6 +19,9 @@ public class AirlinePassengerAgent : MonoBehaviour
         OnBus,
         WalkingToTerminal,
         AtTerminal,
+        WalkingToCarPickup,
+        AtCarPickup,
+        OnCar,
         OnAircraft,
         Completed,
         Abandoned
@@ -40,6 +43,7 @@ public class AirlinePassengerAgent : MonoBehaviour
     private bool[] colliderEnabledBeforeBoarding;
 
     public event System.Action<AirlinePassengerAgent> ReachedBusStop;
+    public event System.Action<AirlinePassengerAgent> ReachedCarPickup;
 
     public string FlightOperationId => flightOperationId;
     public JourneyState State => state;
@@ -78,6 +82,15 @@ public class AirlinePassengerAgent : MonoBehaviour
             state = JourneyState.AtTerminal;
             if (interactions != null)
                 interactions.SetExternallyControlled(false);
+            return;
+        }
+
+        if (state == JourneyState.WalkingToCarPickup)
+        {
+            state = JourneyState.AtCarPickup;
+            if (interactions != null)
+                interactions.SetExternallyControlled(true);
+            ReachedCarPickup?.Invoke(this);
         }
     }
 
@@ -258,6 +271,61 @@ public class AirlinePassengerAgent : MonoBehaviour
 
         state = JourneyState.OnBus;
         return true;
+    }
+
+    /// <summary>Walks from the arrival gate to the assigned parked pickup car.</summary>
+    public bool WalkToCarPickup(
+        Vector3 pickupPosition,
+        PlacedBuilding gateFootprint = null,
+        PlacedBuilding parkingFootprint = null)
+    {
+        CacheComponents();
+        if (movement == null || state == JourneyState.OnCar ||
+            state == JourneyState.Completed || state == JourneyState.Abandoned)
+            return false;
+
+        if (interactions != null)
+            interactions.SetExternallyControlled(true);
+
+        state = JourneyState.WalkingToCarPickup;
+        if (!movement.MoveToAllowingOccupiedEndpoints(
+                pickupPosition, gateFootprint, parkingFootprint))
+        {
+            state = JourneyState.Uninitialized;
+            return false;
+        }
+        return true;
+    }
+
+    /// <summary>Boards a parked pickup car and is hidden while travelling home.</summary>
+    public bool BoardCar(Transform carTransform)
+    {
+        CacheComponents();
+        if (carTransform == null || state != JourneyState.AtCarPickup)
+            return false;
+
+        if (movement != null && movement.IsMoving)
+            movement.Stop();
+        if (interactions != null)
+            interactions.SetExternallyControlled(true);
+
+        transform.SetParent(carTransform, false);
+        transform.localPosition = Vector3.zero;
+        transform.localRotation = Quaternion.identity;
+        HideWhileOnBus();
+        state = JourneyState.OnCar;
+        return true;
+    }
+
+    /// <summary>Completes the passenger's car journey when the pickup car exits.</summary>
+    public void CompleteReturnCarJourney()
+    {
+        if (state != JourneyState.OnCar)
+            return;
+
+        transform.SetParent(null, true);
+        state = JourneyState.Completed;
+        Destroy(gameObject);
     }
 
     /// <summary>Boards the assigned aircraft and becomes invisible for the flight.</summary>
