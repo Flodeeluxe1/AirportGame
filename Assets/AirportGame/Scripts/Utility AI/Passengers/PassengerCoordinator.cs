@@ -89,10 +89,6 @@ public class PassengerCoordinator : MonoBehaviour
         new Dictionary<string, int>();
     private readonly Dictionary<string, int> registeredIncomingPassengerCounts =
         new Dictionary<string, int>();
-    private readonly Dictionary<string, int> registeredIncomingCarPassengerCounts =
-        new Dictionary<string, int>();
-    private readonly Dictionary<string, int> registeredOutgoingCarPassengerCounts =
-        new Dictionary<string, int>();
     private readonly Dictionary<string, int> spawnedOutgoingCarPassengerCounts =
         new Dictionary<string, int>();
     private readonly HashSet<string> outgoingCarDispatchProcessedOperationIds =
@@ -637,8 +633,6 @@ public class PassengerCoordinator : MonoBehaviour
         registeredPassengerCounts.Clear();
         bookedPassengerCounts.Clear();
         registeredIncomingPassengerCounts.Clear();
-        registeredIncomingCarPassengerCounts.Clear();
-        registeredOutgoingCarPassengerCounts.Clear();
         spawnedOutgoingCarPassengerCounts.Clear();
         outgoingCarDispatchProcessedOperationIds.Clear();
         pendingOutgoingBusPassengerCounts.Clear();
@@ -766,16 +760,11 @@ public class PassengerCoordinator : MonoBehaviour
                 CalculateBookedPassengers(capacity, airportRanking, flight.StartMinute);
             registeredPassengerCounts[flight.OperationId] = outgoingDemand;
             bookedPassengerCounts[flight.OperationId] = outgoingDemand;
-            // The outgoing split is recalculated at dispatch time so recent
-            // changes to bus service, parking supply and fees are respected.
-            registeredOutgoingCarPassengerCounts[flight.OperationId] = 0;
-
             int incomingDemand =
                 CalculateBookedPassengers(capacity, airportRanking, flight.StartMinute);
             registeredIncomingPassengerCounts[flight.OperationId] = incomingDemand;
             // Recalculate the inbound split when the aircraft arrives, using
             // the parking and public-transport infrastructure at that time.
-            registeredIncomingCarPassengerCounts[flight.OperationId] = 0;
         }
 
         RemoveStalePassengerRegistrations(currentRegistrationIds);
@@ -1367,8 +1356,6 @@ public class PassengerCoordinator : MonoBehaviour
 
         int incomingCarCount =
             CalculateCarPassengerCount(stats.IncomingPassengers);
-        registeredIncomingCarPassengerCounts[identity.OperationId] =
-            incomingCarCount;
         int incomingBusCount =
             Mathf.Max(0, stats.IncomingPassengers - incomingCarCount);
 
@@ -1617,8 +1604,6 @@ public class PassengerCoordinator : MonoBehaviour
         {
             registeredPassengerCounts.Remove(staleOperationIds[i]);
             registeredIncomingPassengerCounts.Remove(staleOperationIds[i]);
-            registeredIncomingCarPassengerCounts.Remove(staleOperationIds[i]);
-            registeredOutgoingCarPassengerCounts.Remove(staleOperationIds[i]);
             spawnedOutgoingCarPassengerCounts.Remove(staleOperationIds[i]);
             outgoingCarDispatchProcessedOperationIds.Remove(staleOperationIds[i]);
             pendingOutgoingBusPassengerCounts.Remove(staleOperationIds[i]);
@@ -1750,8 +1735,6 @@ public class PassengerCoordinator : MonoBehaviour
                 ? registeredCount
                 : 0;
         int requestedPassengers = CalculateCarPassengerCount(totalPassengers);
-        registeredOutgoingCarPassengerCounts[flight.OperationId] =
-            requestedPassengers;
         int spawnedPassengers =
             SpawnOutgoingCarDropoffGroups(flight, requestedPassengers);
 
