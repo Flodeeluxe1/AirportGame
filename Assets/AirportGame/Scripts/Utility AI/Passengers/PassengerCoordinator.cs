@@ -1538,7 +1538,16 @@ public class PassengerCoordinator : MonoBehaviour
 
         if (foundationSystem == null || gridManager == null ||
             roadNetwork == null || trafficSpawner == null)
+        {
+            Debug.LogWarning(
+                "PassengerCoordinator: Cannot find passenger roadside drop-off because a dependency is missing. " +
+                $"FoundationSystem={(foundationSystem != null ? foundationSystem.name : "NULL")}, " +
+                $"GridManager={(gridManager != null ? gridManager.name : "NULL")}, " +
+                $"RoadNetwork={(roadNetwork != null ? roadNetwork.name : "NULL")}, " +
+                $"TrafficSpawner={(trafficSpawner != null ? trafficSpawner.name : "NULL")}.",
+                this);
             return false;
+        }
 
         if (hasCachedPassengerRoadsideDropoffPosition &&
             cachedRoadTopologyVersion == roadNetwork.TopologyVersion)
@@ -1547,13 +1556,28 @@ public class PassengerCoordinator : MonoBehaviour
             return true;
         }
 
-        Vector2Int entryCell = roadNetwork.GetRoadAnchor(
-            gridManager.WorldToGrid(trafficSpawner.transform.position));
+        Vector2Int spawnerGridCell =
+            gridManager.WorldToGrid(trafficSpawner.transform.position);
+        Vector2Int entryCell = roadNetwork.GetRoadAnchor(spawnerGridCell);
         RoadNetwork.RoadPathTree reachableRoads =
             roadNetwork.BuildForwardPathTree(entryCell);
         List<Vector2Int> roadPositions = roadNetwork.GetRoadPositions();
+        int foundationCount = 0;
+        foreach (Vector2Int ignored in foundationSystem.FoundationPositions)
+            foundationCount++;
+
+        if (foundationCount == 0)
+        {
+            Debug.LogWarning(
+                "PassengerCoordinator: No terminal foundation tiles were found. " +
+                $"FoundationSystem='{foundationSystem.name}'.",
+                foundationSystem);
+            return false;
+        }
+
         float bestDistance = float.MaxValue;
         bool found = false;
+        int reachableRoadCount = 0;
 
         foreach (Vector2Int roadCell in roadPositions)
         {
@@ -1561,6 +1585,7 @@ public class PassengerCoordinator : MonoBehaviour
             if (reachableRoads.GetPath(roadCell).Count == 0)
                 continue;
 
+            reachableRoadCount++;
             Vector2Int roadCenterCell = roadCell + Vector2Int.one;
             float nearestFoundationDistance = float.MaxValue;
             foreach (Vector2Int foundationCell in foundationSystem.FoundationPositions)
@@ -1582,7 +1607,22 @@ public class PassengerCoordinator : MonoBehaviour
         }
 
         if (!found)
+        {
+            Debug.LogWarning(
+                "PassengerCoordinator: Could not find a reachable road module for passenger drop-off. " +
+                $"Spawner world position={trafficSpawner.transform.position}, spawner grid cell={spawnerGridCell}, " +
+                $"resolved road entry cell={entryCell}, road modules={roadPositions.Count}, " +
+                $"reachable road modules={reachableRoadCount}, terminal foundation tiles={foundationCount}. " +
+                "Check that the TrafficTestSpawner is positioned on/next to the connected road network and that the road network reaches the terminal.",
+                this);
             return false;
+        }
+
+        Debug.Log(
+            "PassengerCoordinator: Resolved passenger roadside drop-off. " +
+            $"Entry cell={entryCell}, reachable road modules={reachableRoadCount}/{roadPositions.Count}, " +
+            $"terminal foundation tiles={foundationCount}, drop-off world position={cachedPassengerRoadsideDropoffPosition}.",
+            this);
 
         cachedRoadTopologyVersion = roadNetwork.TopologyVersion;
         hasCachedPassengerRoadsideDropoffPosition = true;
@@ -1597,15 +1637,53 @@ public class PassengerCoordinator : MonoBehaviour
         if (requestedPassengers <= 0)
             return 0;
 
-        if (trafficSpawner == null || airlinePassengerPrefab == null ||
-            airlinePassengerCarPrefab == null ||
-            !TryGetPassengerRoadsideDropoffPosition(out Vector3 roadsideDropoffPosition) ||
-            gateRegistry == null ||
-            !gateRegistry.TryGetGate(flight.GateStableId, out AircraftGate gate) ||
+        if (trafficSpawner == null)
+        {
+            Debug.LogWarning(
+                $"PassengerCoordinator: Outbound car dispatch failed for flight {flight.OperationId}: TrafficTestSpawner reference is NULL.",
+                this);
+            return 0;
+        }
+
+        if (airlinePassengerPrefab == null)
+        {
+            Debug.LogWarning(
+                $"PassengerCoordinator: Outbound car dispatch failed for flight {flight.OperationId}: Airline Passenger Prefab is NULL.",
+                this);
+            return 0;
+        }
+
+        if (airlinePassengerCarPrefab == null)
+        {
+            Debug.LogWarning(
+                $"PassengerCoordinator: Outbound car dispatch failed for flight {flight.OperationId}: Passenger Car Prefab is NULL.",
+                this);
+            return 0;
+        }
+
+        if (!TryGetPassengerRoadsideDropoffPosition(out Vector3 roadsideDropoffPosition))
+        {
+            Debug.LogWarning(
+                $"PassengerCoordinator: Outbound car dispatch failed for flight {flight.OperationId}: no valid roadside drop-off position could be resolved. See the preceding roadside diagnostic for the exact reason.",
+                this);
+            return 0;
+        }
+
+        if (gateRegistry == null)
+        {
+            Debug.LogWarning(
+                $"PassengerCoordinator: Outbound car dispatch failed for flight {flight.OperationId}: AircraftGateRegistry reference is NULL.",
+                this);
+            return 0;
+        }
+
+        if (!gateRegistry.TryGetGate(flight.GateStableId, out AircraftGate gate) ||
             gate == null)
         {
             Debug.LogWarning(
-                $"PassengerCoordinator: Outbound car passengers for flight {flight.OperationId} could not be dispatched. Assign the passenger car prefab and traffic spawner, and ensure the terminal foundation and road network are available; affected passengers will fall back to the bus manifest.",
+                $"PassengerCoordinator: Outbound car dispatch failed for flight {flight.OperationId}: gate lookup failed. " +
+                $"GateStableId='{flight.GateStableId}', registry='{gateRegistry.name}'. " +
+                "Check that this flight's gate stable ID matches a currently registered gate.",
                 this);
             return 0;
         }
