@@ -45,6 +45,8 @@ public class PassengerCoordinator : MonoBehaviour
         new HashSet<AirlinePassengerAgent>();
     private readonly Dictionary<BusController, List<AirlinePassengerAgent>> returnPassengersByBus =
         new Dictionary<BusController, List<AirlinePassengerAgent>>();
+    private readonly HashSet<AirlinePassengerAgent> queuedForBusDisembarking =
+        new HashSet<AirlinePassengerAgent>();
     private readonly HashSet<BusController> subscribedBuses =
         new HashSet<BusController>();
     private readonly HashSet<AirlinePassengerAgent> walkingToBusStopPassengers =
@@ -226,6 +228,8 @@ public class PassengerCoordinator : MonoBehaviour
             bus.JourneyCompleted -= HandleBusJourneyCompleted;
             bus.StopServiceCompleted -= HandleBusStopServiceCompleted;
             bus.PassengerBoardingFailed -= HandlePassengerBoardingFailed;
+            bus.PassengerDisembarked -= HandleBusPassengerDisembarked;
+            bus.DisembarkingCompleted -= HandleBusDisembarkingCompleted;
         }
 
         foreach (AirlinePassengerAgent passenger in walkingToBusStopPassengers)
@@ -251,6 +255,10 @@ public class PassengerCoordinator : MonoBehaviour
                 bus.JourneyCompleted += HandleBusJourneyCompleted;
                 bus.StopServiceCompleted += HandleBusStopServiceCompleted;
                 bus.PassengerBoardingFailed += HandlePassengerBoardingFailed;
+        bus.PassengerDisembarked += HandleBusPassengerDisembarked;
+        bus.DisembarkingCompleted += HandleBusDisembarkingCompleted;
+                bus.PassengerDisembarked += HandleBusPassengerDisembarked;
+                bus.DisembarkingCompleted += HandleBusDisembarkingCompleted;
             }
 
             List<AirlinePassengerAgent> alreadyWaiting = new List<AirlinePassengerAgent>();
@@ -360,9 +368,10 @@ public class PassengerCoordinator : MonoBehaviour
         if (bus == null || stop == null || bus.FirstStop != stop)
             return;
 
-        if (busManifests.TryGetValue(bus, out List<BusPassengerRecord> manifest))
-        {
-            for (int i = manifest.Count - 1; i >= 0; i--)
+        if (!busManifests.TryGetValue(bus, out List<BusPassengerRecord> manifest))
+            return;
+
+        for (int i = manifest.Count - 1; i >= 0; i--)
         {
             BusPassengerRecord record = manifest[i];
             if (record == null || record.Agent == null)
@@ -371,12 +380,16 @@ public class PassengerCoordinator : MonoBehaviour
                 continue;
             }
 
+            AirlinePassengerAgent passenger = record.Agent;
+            if (queuedForBusDisembarking.Contains(passenger))
+                continue;
+
             if (gateRegistry == null ||
                 !gateRegistry.TryGetGate(record.GateStableId, out AircraftGate gate) ||
                 gate == null)
             {
                 Debug.LogWarning(
-                    $"PassengerCoordinator: Could not find gate '{record.GateStableId}' for flight {record.Agent.FlightOperationId}; passenger remains on the bus.",
+                    $"PassengerCoordinator: Could not find gate '{record.GateStableId}' for flight {passenger.FlightOperationId}; passenger remains on the bus.",
                     this);
                 continue;
             }
@@ -387,12 +400,10 @@ public class PassengerCoordinator : MonoBehaviour
             Vector3 desiredDisembarkPosition = stop.transform.position + disembarkOffset;
             if (pedestrianPathfinder == null ||
                 !pedestrianPathfinder.TryFindNearestWalkablePosition(
-                    desiredDisembarkPosition,
-                    8,
-                    out Vector3 disembarkPosition))
+                    desiredDisembarkPosition, 8, out Vector3 disembarkPosition))
             {
                 Debug.LogWarning(
-                    $"PassengerCoordinator: Could not find a walkable disembark position beside stop {stop.name} for flight {record.Agent.FlightOperationId}.",
+                    $"PassengerCoordinator: Could not find a walkable disembark position beside stop {stop.name} for flight {passenger.FlightOperationId}.",
                     this);
                 continue;
             }
@@ -401,30 +412,56 @@ public class PassengerCoordinator : MonoBehaviour
             if (gateFootprint == null)
                 gateFootprint = gate.GetComponentInParent<PlacedBuilding>();
 
-            if (bus.DisembarkPassengerToTerminal(
-                record.Agent,
-                disembarkPosition,
-                gate.transform.position,
-                stop,
-                gateFootprint))
-            {
-                string operationId = record.Agent.FlightOperationId;
-                if (!terminalPassengersByOperationId.TryGetValue(
-                    operationId, out List<AirlinePassengerAgent> flightPassengers))
-                {
-                    flightPassengers = new List<AirlinePassengerAgent>();
-                    terminalPassengersByOperationId.Add(operationId, flightPassengers);
-                }
-
-                flightPassengers.Add(record.Agent);
-                manifest.RemoveAt(i);
-            }
+            if (bus.QueuePassengerForDisembarking(
+                passenger, disembarkPosition, gate.transform.position,
+                stop, gateFootprint))
+                queuedForBusDisembarking.Add(passenger);
         }
 
+        if (manifest.Count == 0)
+            busManifests.Remove(bus);
+    }
+
+    private void HandleBusPassengerDisembarked(
+        BusController bus, AirlinePassengerAgent passenger, bool succeeded)
+    {
+        if (passenger == null)
+            return;
+
+        queuedForBusDisembarking.Remove(passenger);
+        if (!succeeded)
+        {
+            Debug.LogWarning(
+                $"PassengerCoordinator: Passenger for flight {passenger.FlightOperationId} could not disembark and remains assigned to the bus.",
+                passenger);
+            return;
+        }
+
+        if (busManifests.TryGetValue(bus, out List<BusPassengerRecord> manifest))
+        {
+            for (int i = manifest.Count - 1; i >= 0; i--)
+            {
+                if (manifest[i] != null && manifest[i].Agent == passenger)
+                    manifest.RemoveAt(i);
+            }
             if (manifest.Count == 0)
                 busManifests.Remove(bus);
         }
 
+        string operationId = passenger.FlightOperationId;
+        if (!terminalPassengersByOperationId.TryGetValue(
+            operationId, out List<AirlinePassengerAgent> flightPassengers))
+        {
+            flightPassengers = new List<AirlinePassengerAgent>();
+            terminalPassengersByOperationId.Add(operationId, flightPassengers);
+        }
+        flightPassengers.Add(passenger);
+    }
+
+    private void HandleBusDisembarkingCompleted(BusController bus)
+    {
+        // Arriving passengers are released to board only after every queued
+        // onboard passenger has finished leaving this bus.
         BoardWaitingReturnPassengers(bus);
     }
 
