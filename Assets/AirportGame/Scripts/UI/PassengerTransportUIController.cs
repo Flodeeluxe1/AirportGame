@@ -184,7 +184,8 @@ public class PassengerTransportUIController : MonoBehaviour
         };
         openButton.name = "passenger-transport-open-button";
         openButton.style.position = Position.Absolute;
-        openButton.style.right = 14;
+        // Place immediately left of the 170 px Airline Management button (right = 697), with a 12 px gap.
+        openButton.style.right = 879;
         openButton.style.bottom = 14;
         openButton.style.height = 42;
         openButton.style.minWidth = 135;
