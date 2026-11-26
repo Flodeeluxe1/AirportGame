@@ -300,14 +300,16 @@ public class PassengerCoordinator : MonoBehaviour
 
     private void SpawnNextIncomingPassenger(IncomingPassengerSpawnJob job)
     {
-        int passengerIndex = job.NextPassengerIndex++;
-        if (job.Gate == null)
+        int passengerIndex = job.NextPassengerIndex;
+        if (job.Turnaround == null)
         {
             job.FailedCount++;
             return;
         }
 
-        Vector3 spawnPosition = job.Gate.transform.position;
+        Vector3 spawnPosition = job.Gate != null
+            ? job.Gate.transform.position
+            : job.Turnaround.transform.position;
         GameObject passengerObject = Instantiate(
             airlinePassengerPrefab, spawnPosition, Quaternion.identity);
         AirlinePassengerAgent passenger =
@@ -322,9 +324,11 @@ public class PassengerCoordinator : MonoBehaviour
                 $"Prefab: '{airlinePassengerPrefab.name}'. Check that it has a working AirlinePassengerAgent.",
                 passengerObject);
             Destroy(passengerObject);
+            job.FailedCount++;
             return;
         }
 
+        job.NextPassengerIndex++;
         job.SpawnedCount++;
         if (passenger.Movement != null)
             passenger.Movement.AlignFeetToGround(spawnPosition);
@@ -851,16 +855,14 @@ public class PassengerCoordinator : MonoBehaviour
             turnaround.GetComponent<AircraftFlightIdentity>();
         AircraftStats stats = turnaround.GetComponent<AircraftStats>();
 
-        if (airlinePassengerPrefab == null || gateRegistry == null ||
-            identity == null || !identity.IsInitialized ||
+        if (identity == null || !identity.IsInitialized ||
             identity.Definition == null || stats == null ||
             (identity.Definition.OperationType != FlightOperationType.PassengerOnly &&
              identity.Definition.OperationType != FlightOperationType.CargoAndPassengers))
         {
             Debug.LogError(
-                $"PassengerCoordinator: Cannot start real passenger deboarding for '{turnaround.name}'. Check the airline passenger prefab, gate registry, flight identity and aircraft stats.",
+                $"PassengerCoordinator: Cannot resolve the passenger flight manifest for '{turnaround.name}'. Deboarding remains in progress.",
                 turnaround);
-            turnaround.CompleteExternalDeboarding();
             return;
         }
 
@@ -872,17 +874,31 @@ public class PassengerCoordinator : MonoBehaviour
             return;
         }
 
+        if (airlinePassengerPrefab == null)
+        {
+            Debug.LogError(
+                $"PassengerCoordinator: Airline passenger prefab is missing. Deboarding for flight {identity.FlightNumber} remains in progress.",
+                turnaround);
+            return;
+        }
+
         string gateId = identity.HasActualGate
             ? identity.ActualGateStableId
             : identity.PlannedGateStableId;
 
-        if (!gateRegistry.TryGetGate(gateId, out AircraftGate gate) || gate == null)
+        AircraftGate gate = null;
+        if (gateRegistry != null &&
+            !string.IsNullOrEmpty(gateId) &&
+            gateRegistry.TryGetGate(gateId, out AircraftGate resolvedGate))
         {
-            Debug.LogError(
-                $"PassengerCoordinator: Cannot resolve gate '{gateId}' for arriving flight {identity.FlightNumber}.",
+            gate = resolvedGate;
+        }
+
+        if (gate == null)
+        {
+            Debug.LogWarning(
+                $"PassengerCoordinator: Cannot resolve gate '{gateId}' for arriving flight {identity.FlightNumber}. Passengers will spawn at the parked aircraft position.",
                 turnaround);
-            turnaround.CompleteExternalDeboarding();
-            return;
         }
 
         PlacedBuilding firstStop = busSpawner != null
