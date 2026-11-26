@@ -92,6 +92,10 @@ public class InteractionController : MonoBehaviour
     private InteractionDefinition queuedInteraction;
     private Coroutine interactionRoutine;
     private bool externallyControlled;
+    private bool journeyInteractionsEnabled;
+    private Vector3 journeyDestination;
+    private PlacedBuilding journeyAllowedStartFootprint;
+    private PlacedBuilding journeyAllowedTargetFootprint;
     private double nextDecisionTime;
     private double nextQueuePositionRefresh;
     private Vector3 lastQueueDestination;
@@ -101,6 +105,9 @@ public class InteractionController : MonoBehaviour
 
     public string CurrentStatus => currentStatus;
     public bool IsExternallyControlled => externallyControlled;
+    public bool IsHandlingInteraction =>
+        journeyInteractionsEnabled &&
+        (reservedProvider != null || queuedProvider != null || interactionRoutine != null);
 
     /// <summary>Temporarily hands movement and decisions to a transport system without disabling visitor systems.</summary>
     public void SetExternallyControlled(bool controlled)
@@ -111,6 +118,7 @@ public class InteractionController : MonoBehaviour
         externallyControlled = controlled;
         if (controlled)
         {
+            journeyInteractionsEnabled = false;
             if (interactionRoutine != null)
             {
                 StopCoroutine(interactionRoutine);
@@ -129,6 +137,50 @@ public class InteractionController : MonoBehaviour
             currentStatus = "Idle";
         }
     }
+    /// <summary>Allows need-driven interactions to temporarily interrupt and then resume a mandatory passenger route.</summary>
+    public void SetJourneyInteractions(
+        bool enabled,
+        Vector3 mandatoryDestination,
+        PlacedBuilding allowedStartFootprint = null,
+        PlacedBuilding allowedTargetFootprint = null)
+    {
+        journeyInteractionsEnabled = enabled;
+        if (!enabled)
+            return;
+
+        externallyControlled = false;
+        journeyDestination = mandatoryDestination;
+        journeyAllowedStartFootprint = allowedStartFootprint;
+        journeyAllowedTargetFootprint = allowedTargetFootprint;
+        nextDecisionTime = GameTimeManager.SimulationTime;
+    }
+
+    public void StopJourneyInteractions()
+    {
+        journeyInteractionsEnabled = false;
+    }
+
+    private void ResumeJourneyRoute()
+    {
+        if (!journeyInteractionsEnabled || movement == null ||
+            reservedProvider != null || queuedProvider != null ||
+            interactionRoutine != null)
+            return;
+
+        if (!movement.MoveToAllowingOccupiedEndpoints(
+                journeyDestination,
+                journeyAllowedStartFootprint,
+                journeyAllowedTargetFootprint))
+        {
+            journeyInteractionsEnabled = false;
+            currentStatus = "Mandatory journey route could not be resumed";
+        }
+        else
+        {
+            currentStatus = "Resuming passenger journey";
+        }
+    }
+
     public string CurrentInteractionName => currentInteractionName;
     public IReadOnlyList<DebugCandidateSnapshot> DebugCandidates => debugCandidates;
 
@@ -288,7 +340,8 @@ public class InteractionController : MonoBehaviour
             return;
         }
 
-        if (reservedInteraction != null || movement.IsMoving)
+        if (reservedInteraction != null ||
+            (movement.IsMoving && !journeyInteractionsEnabled))
             return;
 
         if (GameTimeManager.SimulationTime < nextDecisionTime)
@@ -788,6 +841,7 @@ public class InteractionController : MonoBehaviour
         }
 
         nextDecisionTime = GameTimeManager.SimulationTime + decisionInterval;
+        ResumeJourneyRoute();
     }
 
     private void PauseInteractionNeedDecay()
@@ -857,6 +911,7 @@ public class InteractionController : MonoBehaviour
         currentInteractionName = string.Empty;
         currentStatus = reason;
         nextDecisionTime = GameTimeManager.SimulationTime + decisionInterval;
+        ResumeJourneyRoute();
     }
 
     private void CancelCurrentInteraction(string reason)
@@ -875,6 +930,7 @@ public class InteractionController : MonoBehaviour
         ReleaseCurrentReservation();
         currentStatus = reason;
         nextDecisionTime = GameTimeManager.SimulationTime + decisionInterval;
+        ResumeJourneyRoute();
     }
 
     private void ReleaseCurrentReservation()
