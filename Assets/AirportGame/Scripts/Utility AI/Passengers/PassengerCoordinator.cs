@@ -31,6 +31,7 @@ public class PassengerCoordinator : MonoBehaviour
     [SerializeField] private PublicTransportManager publicTransportManager;
     [SerializeField] private TrafficTestSpawner trafficSpawner;
     [SerializeField] private GameObject airlinePassengerCarPrefab;
+    [Tooltip("Road cell in front of the terminal used when no parking space is immediately free.")]
     [SerializeField] private Transform passengerRoadsideDropoffPoint;
     [SerializeField] private AircraftGateRegistry gateRegistry;
     [SerializeField] private PedestrianPathfinder pedestrianPathfinder;
@@ -1475,12 +1476,19 @@ public class PassengerCoordinator : MonoBehaviour
         ScheduledPassengerFlight flight,
         int requestedPassengers)
     {
-        if (requestedPassengers <= 0 || trafficSpawner == null ||
-            airlinePassengerCarPrefab == null || passengerRoadsideDropoffPoint == null ||
-            gateRegistry == null ||
+        if (requestedPassengers <= 0)
+            return 0;
+
+        if (trafficSpawner == null || airlinePassengerCarPrefab == null ||
+            passengerRoadsideDropoffPoint == null || gateRegistry == null ||
             !gateRegistry.TryGetGate(flight.GateStableId, out AircraftGate gate) ||
             gate == null)
+        {
+            Debug.LogWarning(
+                $"PassengerCoordinator: Outbound car passengers for flight {flight.FlightNumber} could not be dispatched. Assign the passenger car prefab, traffic spawner, gate registry and a roadside drop-off point; affected passengers will fall back to the bus manifest.",
+                this);
             return 0;
+        }
 
         PlacedBuilding gateFootprint = gate.GetComponent<PlacedBuilding>();
         if (gateFootprint == null)
