@@ -426,6 +426,27 @@ public class PedestrianPathfinder : MonoBehaviour
     }
 
     /// <summary>
+    /// Resolves the placed building occupying a world position's grid cell.
+    /// Used to allow movement to leave or enter the complete endpoint footprint.
+    /// </summary>
+    public PlacedBuilding GetFootprintAtWorldPosition(Vector3 worldPosition)
+    {
+        if (!HasValidReferences())
+            return null;
+
+        Vector2Int cell = gridManager.WorldToGrid(worldPosition);
+        if (!gridOccupancy.TryGetOccupant(cell, out GameObject occupant) ||
+            occupant == null)
+            return null;
+
+        PlacedBuilding building = occupant.GetComponent<PlacedBuilding>();
+        if (building == null)
+            building = occupant.GetComponentInParent<PlacedBuilding>();
+
+        return building;
+    }
+
+    /// <summary>
     /// Finds a path using world positions. The returned list contains world-space cell centres.
     /// </summary>
     public List<Vector3> FindWorldPath(
@@ -440,6 +461,18 @@ public class PedestrianPathfinder : MonoBehaviour
 
         if (!HasValidReferences())
             return worldPath;
+
+        // Endpoint occupancy is handled at building-footprint granularity.
+        // Resolve omitted footprints from the actual occupants of the start
+        // and destination cells so every pedestrian movement request can use
+        // the same safe endpoint rule without caller-specific building logic.
+        if (allowOccupiedEndpoints)
+        {
+            if (allowedStartFootprint == null)
+                allowedStartFootprint = GetFootprintAtWorldPosition(startWorld);
+            if (allowedTargetFootprint == null)
+                allowedTargetFootprint = GetFootprintAtWorldPosition(targetWorld);
+        }
 
         List<Vector2Int> gridPath = FindPath(
             gridManager.WorldToGrid(startWorld),
@@ -473,7 +506,11 @@ public class PedestrianPathfinder : MonoBehaviour
         try
         {
         selectedDestination = preferredWorld;
-        worldPath = FindWorldPath(startWorld, preferredWorld, accessProfile);
+        PlacedBuilding startFootprint =
+            GetFootprintAtWorldPosition(startWorld);
+        worldPath = FindWorldPath(
+            startWorld, preferredWorld, accessProfile, true,
+            startFootprint, targetBuilding);
 
         // Preserve existing behaviour whenever the preferred point is reachable.
         if (worldPath.Count > 0)
@@ -494,7 +531,9 @@ public class PedestrianPathfinder : MonoBehaviour
         for (int i = 0; i < approachCells.Count; i++)
         {
             Vector2Int candidate = approachCells[i];
-            List<Vector2Int> candidatePath = FindPath(startCell, candidate, accessProfile);
+            List<Vector2Int> candidatePath = FindPath(
+                startCell, candidate, accessProfile, true,
+                startFootprint, targetBuilding);
 
             if (candidatePath.Count == 0)
                 continue;
