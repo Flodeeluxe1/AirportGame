@@ -20,6 +20,7 @@ public class AirlinePassengerAgent : MonoBehaviour
         OnBus,
         WalkingToTerminal,
         ProcessingDepartureJourney,
+        WaitingForBoarding,
         AtTerminal,
         WalkingToCarPickup,
         AtCarPickup,
@@ -43,6 +44,7 @@ public class AirlinePassengerAgent : MonoBehaviour
     private Vector3 departureGatePosition;
     private PlacedBuilding departureGateFootprint;
     private double nextDepartureStationRetryTime;
+    private bool boardingCallReceived;
     private Vector3 busStopPosition;
     private PlacedBuilding busStopGateFootprint;
     private PlacedBuilding waitingBusStopFootprint;
@@ -228,6 +230,22 @@ public class AirlinePassengerAgent : MonoBehaviour
             case PassengerJourneyController.JourneyStage.LuggageSecurity:
                 requiredRole = PassengerJourneyStationRole.LuggageSecurity;
                 break;
+            case PassengerJourneyController.JourneyStage.AwaitingBoarding:
+                if (!boardingCallReceived)
+                {
+                    state = JourneyState.WaitingForBoarding;
+                    if (interactions != null)
+                    {
+                        interactions.StopJourneyInteractions();
+                        interactions.SetExternallyControlled(false);
+                    }
+                    return;
+                }
+
+                if (!passengerJourney.CallForBoarding())
+                    return;
+                goto case PassengerJourneyController.JourneyStage.BoardingDesk;
+
             case PassengerJourneyController.JourneyStage.BoardingDesk:
                 requiredRole = PassengerJourneyStationRole.BoardingDesk;
                 break;
@@ -397,8 +415,23 @@ public class AirlinePassengerAgent : MonoBehaviour
         if (visitorExperience != null)
             visitorExperience.enabled = true;
 
+        boardingCallReceived = false;
         state = JourneyState.Uninitialized;
         return true;
+    }
+
+    /// <summary>Called by the flight coordinator when this passenger's aircraft starts boarding.</summary>
+    public void NotifyBoardingStarted()
+    {
+        boardingCallReceived = true;
+        if (passengerJourney == null ||
+            passengerJourney.Direction != PassengerJourneyController.JourneyDirection.Departure ||
+            passengerJourney.CurrentStage != PassengerJourneyController.JourneyStage.AwaitingBoarding)
+            return;
+
+        state = JourneyState.ProcessingDepartureJourney;
+        nextDepartureStationRetryTime = GameTimeManager.SimulationTime;
+        BeginNextDepartureStage();
     }
 
     public bool WalkToBusStop(
