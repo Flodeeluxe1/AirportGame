@@ -777,10 +777,13 @@ public class PedestrianMovementController : MonoBehaviour
             }
         }
 
+        // Grid waypoints guide the route, but the final destination is a
+        // world-space target (for example an exact queue slot). Never treat
+        // proximity to the last grid-cell centre as arrival at that target.
         if (movementPath.Count == 0 ||
             HorizontalDistance(
                 movementPath[movementPath.Count - 1],
-                destination) > waypointArrivalDistance)
+                destination) > 0.001f)
         {
             movementPath.Add(destination);
         }
