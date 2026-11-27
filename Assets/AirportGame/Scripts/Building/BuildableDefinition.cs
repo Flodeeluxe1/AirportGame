@@ -50,7 +50,8 @@ public enum PassengerJourneyStationRole
     BodySecurity,
     LuggageSecurity,
     BoardingGate,
-    BaggageClaim
+    BaggageClaim,
+    BoardingDesk
 }
 
 [System.Flags]
