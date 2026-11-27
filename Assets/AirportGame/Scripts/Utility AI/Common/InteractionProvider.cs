@@ -77,7 +77,22 @@ public class InteractionProvider : MonoBehaviour
             if (!animationExitPointResolved)
             {
                 animationExitPointResolved = true;
-                animationExitPoint = transform.Find("AnimationExitPoint");
+
+                // The marker may be nested inside the prefab hierarchy.
+                // Search descendants once and cache the result.
+                Transform[] childTransforms =
+                    GetComponentsInChildren<Transform>(true);
+
+                for (int i = 0; i < childTransforms.Length; i++)
+                {
+                    Transform child = childTransforms[i];
+                    if (child != transform &&
+                        child.name == "AnimationExitPoint")
+                    {
+                        animationExitPoint = child;
+                        break;
+                    }
+                }
             }
 
             return animationExitPoint;
