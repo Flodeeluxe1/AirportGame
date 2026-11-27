@@ -866,8 +866,23 @@ public class InteractionController : MonoBehaviour
             // them to the actual interaction approach on its next update.
             if (!movement.IsAtInteractionApproach(queuedProvider))
             {
-                reservedProvider = null;
-                reservedInteraction = null;
+                // The active queue entry may have arrived at its old
+                // FirstQueuePoint after being promoted. Redirect immediately
+                // instead of relying on UpdateQueueState, which can be
+                // skipped while another controller temporarily owns the agent.
+                reservedProvider = queuedProvider;
+                reservedInteraction = queuedInteraction;
+
+                if (!movement.MoveTo(queuedProvider))
+                {
+                    CancelQueuedInteraction(
+                        "Could not reach interaction after queue promotion");
+                }
+                else
+                {
+                    currentStatus = "Walking to " + currentInteractionName;
+                }
+
                 return;
             }
 
