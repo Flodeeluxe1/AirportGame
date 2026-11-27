@@ -95,6 +95,7 @@ public class InteractionController : MonoBehaviour
     private bool externallyControlled;
     private bool journeyInteractionsEnabled;
     private bool mandatoryInteractionActive;
+    private bool exitingInteraction;
     private Vector3 journeyDestination;
     private PlacedBuilding journeyAllowedStartFootprint;
     private PlacedBuilding journeyAllowedTargetFootprint;
@@ -847,6 +848,11 @@ public class InteractionController : MonoBehaviour
 
     private void HandleMovementArrived()
     {
+        // The arrival at an optional post-interaction exit point completes the
+        // interaction route; it must not start the interaction a second time.
+        if (exitingInteraction)
+            return;
+
         if (queuedProvider != null)
         {
             if (!queuedProvider.Queue.IsActive(this))
@@ -934,12 +940,42 @@ public class InteractionController : MonoBehaviour
 
 
         currentStatus = "Completed " + completedInteraction.DisplayName;
-        interactionRoutine = null;
 
-        // The animation point may be inside the object's blocked footprint.
-        // Return to the reachable approach point before releasing the slot.
-        if (completedProvider != null && movement != null)
+        // Some interactions (for example, body security) are pass-through
+        // stations. Walk to their optional exit point before releasing the
+        // reservation or reporting the mandatory interaction as complete.
+        if (completedProvider != null &&
+            completedProvider.HasAnimationExitPoint &&
+            movement != null)
+        {
+            exitingInteraction = true;
+            if (!movement.TryMoveTo(completedProvider.AnimationExitPosition))
+            {
+                exitingInteraction = false;
+                CancelCurrentInteraction("Could not find a path through interaction exit");
+                yield break;
+            }
+
+            currentStatus = "Walking through " + completedInteraction.DisplayName;
+            while (movement != null && movement.IsMoving)
+                yield return null;
+
+            if (movement == null || !movement.HasArrived)
+            {
+                exitingInteraction = false;
+                CancelCurrentInteraction("Could not reach interaction exit point");
+                yield break;
+            }
+
+            exitingInteraction = false;
+        }
+        else if (completedProvider != null && movement != null)
+        {
+            // Preserve the existing return-to-approach behaviour by default.
             movement.AlignToInteractionPoint(completedProvider);
+        }
+
+        interactionRoutine = null;
 
         if (queuedProvider != null && queuedProvider.Queue != null)
         {
