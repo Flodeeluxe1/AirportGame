@@ -119,6 +119,15 @@ public class PedestrianPathfinder : MonoBehaviour
         long performanceTimingStart = System.Diagnostics.Stopwatch.GetTimestamp();
         try
         {
+        // A target footprint is only an allowed traversal area when the
+        // destination cell is actually inside that building. Callers may pass
+        // an associated building even when their approach point is outside it.
+        if (allowedTargetFootprint != null &&
+            !IsInsideFootprint(target, allowedTargetFootprint))
+        {
+            allowedTargetFootprint = null;
+        }
+
         if (!HasValidReferences() ||
             !(IsWalkableForRoute(start, start, target, allowOccupiedEndpoints, allowedStartFootprint, allowedTargetFootprint)) ||
             !(IsWalkableForRoute(target, start, target, allowOccupiedEndpoints, allowedStartFootprint, allowedTargetFootprint)))
@@ -447,6 +456,23 @@ public class PedestrianPathfinder : MonoBehaviour
     }
 
     /// <summary>
+    /// Returns the supplied building only when the destination cell is inside
+    /// its footprint. External approach points must keep that building blocked.
+    /// </summary>
+    public PlacedBuilding GetAllowedTargetFootprint(
+        Vector3 targetWorldPosition,
+        PlacedBuilding candidate)
+    {
+        if (candidate == null || !HasValidReferences())
+            return null;
+
+        return IsInsideFootprint(
+            gridManager.WorldToGrid(targetWorldPosition), candidate)
+                ? candidate
+                : null;
+    }
+
+    /// <summary>
     /// Finds a path using world positions. The returned list contains world-space cell centres.
     /// </summary>
     public List<Vector3> FindWorldPath(
@@ -473,6 +499,9 @@ public class PedestrianPathfinder : MonoBehaviour
             if (allowedTargetFootprint == null)
                 allowedTargetFootprint = GetFootprintAtWorldPosition(targetWorld);
         }
+
+        allowedTargetFootprint =
+            GetAllowedTargetFootprint(targetWorld, allowedTargetFootprint);
 
         List<Vector2Int> gridPath = FindPath(
             gridManager.WorldToGrid(startWorld),
