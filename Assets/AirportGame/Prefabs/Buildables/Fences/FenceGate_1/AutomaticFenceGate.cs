@@ -11,7 +11,7 @@ using UnityEngine;
 public sealed class AutomaticFenceGate : MonoBehaviour
 {
     [Header("Sliding Panel")]
-    [Tooltip("The child transform named chainlink_singleGate is found automatically if this is empty.")]
+    [Tooltip("The child transform named FenceGate is found automatically if this is empty.")]
     [SerializeField] private Transform slidingPanel;
 
     [Tooltip("Distance to slide the panel along the gate's local X axis.")]
@@ -48,7 +48,7 @@ public sealed class AutomaticFenceGate : MonoBehaviour
         if (slidingPanel == null)
         {
             Debug.LogError(
-                "AutomaticFenceGate: Could not find child 'chainlink_singleGate'. " +
+                "AutomaticFenceGate: Could not find child 'FenceGate'. " +
                 "Assign the sliding panel in the Inspector.",
                 this);
             return;
@@ -109,7 +109,7 @@ public sealed class AutomaticFenceGate : MonoBehaviour
         for (int i = 0; i < childTransforms.Length; i++)
         {
             if (childTransforms[i] != transform &&
-                childTransforms[i].name == "chainlink_singleGate")
+                childTransforms[i].name == "FenceGate")
             {
                 return childTransforms[i];
             }
