@@ -12,11 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b707bf0339cdddd48ac715a8e271822e, type: 3}
   m_Name: BD_Fence1
   m_EditorClassIdentifier: Assembly-CSharp::BuildableDefinition
-  id: 
-  displayName: 
-  prefab: {fileID: 0}
-  placementType: 0
-  allowedSurfaces: 0
+  id: airport.fence.1
+  displayName: Fence 1
+  prefab: {fileID: 1052826426164710948, guid: ac9983e5a2c433140ad8beaa140b93a9, type: 3}
+  placementType: 1
+  allowedSurfaces: 37
   requiredSurface: 5
   width: 1
   depth: 1
@@ -26,12 +26,12 @@ MonoBehaviour:
   canBePlacedOnSurface: 0
   canSupportSurfaceObjects: 0
   canRotate: 1
-  buildCost: 0
+  buildCost: 30
   blocksPathfinding: 1
   environmentValue: 0
   environmentRadius: 0
-  menuCategory: Airport
-  category: 3
+  menuCategory: Fence
+  category: 10
   icon: {fileID: 0}
   roomFurnitureRole: 0
   passengerJourneyStationRole: 0

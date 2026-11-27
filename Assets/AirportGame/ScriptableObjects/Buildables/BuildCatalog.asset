@@ -13,7 +13,6 @@ MonoBehaviour:
   m_Name: BuildCatalog
   m_EditorClassIdentifier: Assembly-CSharp::BuildCatalog
   buildables:
-  - {fileID: 11400000, guid: 4e8d8daf9b75177428ee483e224ee921, type: 2}
   - {fileID: 11400000, guid: e4f11bbd9483d4a4d8609656c638ba09, type: 2}
   - {fileID: 11400000, guid: 06df8f1a4a255884cb80f82bf7be240f, type: 2}
   - {fileID: 11400000, guid: 8ce206eb9ede8f84eb2b8b8a233b7605, type: 2}
@@ -45,6 +44,8 @@ MonoBehaviour:
   - {fileID: 11400000, guid: e093a3ac0cdfcd11307eeabe88fa24eb, type: 2}
   - {fileID: 11400000, guid: 966998abf789419408e6bdbdb54403ac, type: 2}
   - {fileID: 11400000, guid: ede4d3d45d30d153f2c8231aaf265fc9, type: 2}
+  - {fileID: 11400000, guid: 4e8d8daf9b75177428ee483e224ee921, type: 2}
+  - {fileID: 11400000, guid: 24f3dbe1c15c94b4ca51fd1a0bd5637b, type: 2}
   - {fileID: 11400000, guid: b3a0efb29523d914f9a250a39c7c2093, type: 2}
   - {fileID: 11400000, guid: 7da872b80ff0b45963dfe5d28a3df513, type: 2}
   - {fileID: 11400000, guid: 631d6ef36619cd6ea9cbca15f76da6b8, type: 2}
