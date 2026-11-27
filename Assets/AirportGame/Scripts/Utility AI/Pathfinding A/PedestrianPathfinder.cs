@@ -509,9 +509,20 @@ public class PedestrianPathfinder : MonoBehaviour
         selectedDestination = preferredWorld;
         PlacedBuilding startFootprint =
             GetFootprintAtWorldPosition(startWorld);
+
+        // Only permit traversal through the target building when the preferred
+        // interaction point is actually inside its footprint. An external
+        // InteractionPoint must be approached from outside; allowing the whole
+        // desk footprint here can make A* choose a route straight through it.
+        Vector2Int preferredCell = gridManager.WorldToGrid(preferredWorld);
+        PlacedBuilding allowedTargetFootprint =
+            IsInsideFootprint(preferredCell, targetBuilding)
+                ? targetBuilding
+                : null;
+
         worldPath = FindWorldPath(
             startWorld, preferredWorld, accessProfile, true,
-            startFootprint, targetBuilding);
+            startFootprint, allowedTargetFootprint);
 
         // Preserve existing behaviour whenever the preferred point is reachable.
         if (worldPath.Count > 0)
@@ -559,7 +570,7 @@ public class PedestrianPathfinder : MonoBehaviour
             Vector2Int candidate = approachCells[i];
             List<Vector2Int> candidatePath = FindPath(
                 startCell, candidate, accessProfile, true,
-                startFootprint, targetBuilding);
+                startFootprint, allowedTargetFootprint);
 
             if (candidatePath.Count == 0)
                 continue;
