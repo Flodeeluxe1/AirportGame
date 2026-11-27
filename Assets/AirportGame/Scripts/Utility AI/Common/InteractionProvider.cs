@@ -22,6 +22,8 @@ public class InteractionProvider : MonoBehaviour
     private bool animationPointResolved;
     private Transform animationExitPoint;
     private bool animationExitPointResolved;
+    private bool markerTransformsResolved;
+    private Transform[] markerTransforms;
     private static GridManager cachedGridManager;
     private static bool gridManagerLookupAttempted;
 
@@ -37,6 +39,31 @@ public class InteractionProvider : MonoBehaviour
         }
     }
 
+    private Transform FindBuildingMarker(string markerName)
+    {
+        if (!markerTransformsResolved)
+        {
+            markerTransformsResolved = true;
+            PlacedBuilding building = GetComponentInParent<PlacedBuilding>();
+            Transform markerRoot = building != null ? building.transform : transform;
+            markerTransforms = markerRoot.GetComponentsInChildren<Transform>(true);
+        }
+
+        if (markerTransforms == null)
+            return null;
+
+        for (int i = 0; i < markerTransforms.Length; i++)
+        {
+            Transform candidate = markerTransforms[i];
+            if (candidate != null &&
+                candidate != transform &&
+                candidate.name == markerName)
+                return candidate;
+        }
+
+        return null;
+    }
+
     private Transform InteractionPointTransform
     {
         get
@@ -45,11 +72,11 @@ public class InteractionProvider : MonoBehaviour
             {
                 interactionPointResolved = true;
                 if (interactionPoint == null)
-                    interactionPoint = transform.Find("InteractionPoint");
+                    interactionPoint = FindBuildingMarker("InteractionPoint");
 
                 // Support existing prefabs until their child is renamed.
                 if (interactionPoint == null)
-                    interactionPoint = transform.Find("interactionPoint");
+                    interactionPoint = FindBuildingMarker("interactionPoint");
             }
 
             return interactionPoint;
@@ -63,7 +90,7 @@ public class InteractionProvider : MonoBehaviour
             if (!animationPointResolved)
             {
                 animationPointResolved = true;
-                animationPoint = transform.Find("AnimationPoint");
+                animationPoint = FindBuildingMarker("AnimationPoint");
             }
 
             return animationPoint;
@@ -78,21 +105,8 @@ public class InteractionProvider : MonoBehaviour
             {
                 animationExitPointResolved = true;
 
-                // The marker may be nested inside the prefab hierarchy.
-                // Search descendants once and cache the result.
-                Transform[] childTransforms =
-                    GetComponentsInChildren<Transform>(true);
-
-                for (int i = 0; i < childTransforms.Length; i++)
-                {
-                    Transform child = childTransforms[i];
-                    if (child != transform &&
-                        child.name == "AnimationExitPoint")
-                    {
-                        animationExitPoint = child;
-                        break;
-                    }
-                }
+                // Markers may be siblings of the nested object holding this provider.
+                animationExitPoint = FindBuildingMarker("AnimationExitPoint");
             }
 
             return animationExitPoint;
