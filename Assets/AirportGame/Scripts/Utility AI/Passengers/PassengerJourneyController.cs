@@ -249,7 +249,7 @@ public sealed class PassengerJourneyController : MonoBehaviour
             currentStage != JourneyStage.LuggageSecurity)
             return false;
 
-        currentStage = JourneyStage.DeparturesArea;
+        currentStage = JourneyStage.BodySecurity;
         return true;
     }
 
