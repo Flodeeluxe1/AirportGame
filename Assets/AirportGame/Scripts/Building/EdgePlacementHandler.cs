@@ -800,14 +800,24 @@ public class EdgePlacementHandler : IPlacementHandler
 
         if (boxCollider != null)
         {
-            // Collider bounds are world-space and include the collider's
-            // center, size, and transform scale. Align their lower Y bound
-            // with the grid surface instead of assuming a centered pivot.
+            // Transform the collider's local bottom-center into world space.
+            // Unlike Collider.bounds, this does not depend on Unity having
+            // a valid world AABB for the preview object.
+            Vector3 localBottomCenter =
+                boxCollider.center -
+                Vector3.up * (boxCollider.size.y * 0.5f);
+
             float colliderBottomOffset =
-                boxCollider.bounds.min.y -
+                target.transform.TransformPoint(localBottomCenter).y -
                 target.transform.position.y;
 
-            position.y -= colliderBottomOffset;
+            // Ignore malformed collider data rather than propagating NaN
+            // or Infinity into the object's world position.
+            if (!float.IsNaN(colliderBottomOffset) &&
+                !float.IsInfinity(colliderBottomOffset))
+            {
+                position.y -= colliderBottomOffset;
+            }
         }
 
         if (isHorizontal)
