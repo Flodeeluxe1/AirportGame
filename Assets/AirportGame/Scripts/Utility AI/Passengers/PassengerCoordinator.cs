@@ -134,6 +134,8 @@ public class PassengerCoordinator : MonoBehaviour
     private bool subscribedToScheduleReload;
     private readonly Dictionary<string, List<AirlinePassengerAgent>> terminalPassengersByOperationId =
         new Dictionary<string, List<AirlinePassengerAgent>>();
+    private readonly HashSet<string> boardingReadyOperationIds =
+        new HashSet<string>();
     private readonly Dictionary<BusController, List<BusPassengerRecord>> busManifests =
         new Dictionary<BusController, List<BusPassengerRecord>>();
     private readonly Queue<AirlinePassengerAgent> waitingReturnPassengers =
@@ -420,6 +422,7 @@ public class PassengerCoordinator : MonoBehaviour
                     job.Turnaround.CompleteExternalBoarding();
 
                 terminalPassengersByOperationId.Remove(job.OperationId);
+                boardingReadyOperationIds.Remove(job.OperationId);
                 activeOutgoingPassengerBoardingJob = null;
                 if (outgoingPassengerBoardingJobs.Count > 0)
                 {
@@ -473,6 +476,15 @@ public class PassengerCoordinator : MonoBehaviour
         {
             turnaround.CompleteExternalBoarding();
             return;
+        }
+
+        boardingReadyOperationIds.Add(identity.OperationId);
+        if (terminalPassengersByOperationId.TryGetValue(
+            identity.OperationId, out List<AirlinePassengerAgent> waitingPassengers))
+        {
+            for (int i = 0; i < waitingPassengers.Count; i++)
+                if (waitingPassengers[i] != null)
+                    waitingPassengers[i].NotifyBoardingStarted();
         }
 
         OutgoingPassengerBoardingJob job =
@@ -1248,6 +1260,8 @@ public class PassengerCoordinator : MonoBehaviour
             terminalPassengersByOperationId.Add(operationId, flightPassengers);
         }
         flightPassengers.Add(passenger);
+        if (boardingReadyOperationIds.Contains(operationId))
+            passenger.NotifyBoardingStarted();
     }
 
     private void HandleBusDisembarkingCompleted(BusController bus)
@@ -2129,6 +2143,8 @@ public class PassengerCoordinator : MonoBehaviour
                 terminalPassengersByOperationId.Add(group.OperationId, passengers);
             }
             passengers.Add(passenger);
+            if (boardingReadyOperationIds.Contains(group.OperationId))
+                passenger.NotifyBoardingStarted();
             carPassengersTransported++;
         }
 
