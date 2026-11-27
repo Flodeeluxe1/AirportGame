@@ -20,6 +20,8 @@ public class InteractionProvider : MonoBehaviour
     private bool interactionPointResolved;
     private Transform animationPoint;
     private bool animationPointResolved;
+    private Transform animationExitPoint;
+    private bool animationExitPointResolved;
     private static GridManager cachedGridManager;
     private static bool gridManagerLookupAttempted;
 
@@ -65,6 +67,20 @@ public class InteractionProvider : MonoBehaviour
             }
 
             return animationPoint;
+        }
+    }
+
+    private Transform AnimationExitPointTransform
+    {
+        get
+        {
+            if (!animationExitPointResolved)
+            {
+                animationExitPointResolved = true;
+                animationExitPoint = transform.Find("AnimationExitPoint");
+            }
+
+            return animationExitPoint;
         }
     }
 
@@ -122,6 +138,19 @@ public class InteractionProvider : MonoBehaviour
 
     /// <summary>Whether this provider has an explicitly configured sitting/animation point.</summary>
     public bool HasExplicitAnimationPoint => AnimationPointTransform != null;
+
+    /// <summary>Whether this provider has an optional point to walk to after the interaction.</summary>
+    public bool HasAnimationExitPoint => AnimationExitPointTransform != null;
+
+    /// <summary>World-space position the agent walks to after the interaction when configured.</summary>
+    public Vector3 AnimationExitPosition
+    {
+        get
+        {
+            Transform point = AnimationExitPointTransform;
+            return point != null ? point.position : InteractionPosition;
+        }
+    }
 
     /// <summary>Rotation used when the agent reaches the animation position.</summary>
     public Quaternion AnimationRotation
