@@ -594,6 +594,13 @@ public class PedestrianMovementController : MonoBehaviour
                     pathfinder.GetFootprintAtWorldPosition(worldDestination);
         }
 
+        // Keep runtime steering permissions consistent with the actual route
+        // destination. A nearby building is not traversable just because it
+        // was supplied as the destination's associated footprint.
+        allowedTargetFootprint =
+            pathfinder.GetAllowedTargetFootprint(
+                worldDestination, allowedTargetFootprint);
+
         this.allowedStartFootprint = allowedStartFootprint;
         this.allowedTargetFootprint = allowedTargetFootprint;
 
@@ -659,6 +666,10 @@ public class PedestrianMovementController : MonoBehaviour
         }
 
         selectedDestination.y = transform.position.y;
+        allowedStartFootprint =
+            pathfinder.GetFootprintAtWorldPosition(transform.position);
+        allowedTargetFootprint =
+            pathfinder.GetAllowedTargetFootprint(selectedDestination, targetBuilding);
 
         Log(
             $"PedestrianMovementController {name}: Selected nearby approach " +
@@ -756,6 +767,10 @@ public class PedestrianMovementController : MonoBehaviour
         }
 
         selectedDestination.y = transform.position.y;
+        allowedStartFootprint =
+            pathfinder.GetFootprintAtWorldPosition(transform.position);
+        allowedTargetFootprint =
+            pathfinder.GetAllowedTargetFootprint(selectedDestination, targetBuilding);
         lastApproachProvider = provider;
         lastApproachPosition = selectedDestination;
 
