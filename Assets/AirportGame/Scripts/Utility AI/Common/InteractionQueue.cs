@@ -52,11 +52,16 @@ public class InteractionQueue : MonoBehaviour
 
         queuePositionResolved = true;
 
-        Transform[] childTransforms = GetComponentsInChildren<Transform>(true);
+        // Queue markers can be siblings of the nested prefab object that
+        // carries the InteractionQueue component. Search from the building root.
+        PlacedBuilding building = GetComponentInParent<PlacedBuilding>();
+        Transform markerRoot = building != null ? building.transform : transform;
+        Transform[] childTransforms =
+            markerRoot.GetComponentsInChildren<Transform>(true);
 
         for (int i = 0; i < childTransforms.Length; i++)
         {
-            if (childTransforms[i] != transform &&
+            if (childTransforms[i] != markerRoot &&
                 childTransforms[i].name == "FirstQueuePosition")
             {
                 firstQueuePosition = childTransforms[i];
