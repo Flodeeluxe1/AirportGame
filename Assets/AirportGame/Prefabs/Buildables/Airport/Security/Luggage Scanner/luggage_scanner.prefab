@@ -203,7 +203,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b82a5f9d3c0e4a1f9b7d2e4c6f809132, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::InteractionProvider
-  interactions: []
+  interactions:
+  - {fileID: 11400000, guid: 44444444444444448444444444444444, type: 2}
   interactionPoint: {fileID: 0}
   interactionsEnabled: 1
 --- !u!114 &-7186972082685718413
