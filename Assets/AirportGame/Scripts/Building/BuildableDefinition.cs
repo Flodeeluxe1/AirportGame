@@ -26,7 +26,8 @@ public enum BuildCategory
     Taxiways,
     Tarmac,
     Pipelines,
-    PedestrianTarmac
+    PedestrianTarmac,
+    Fence
 }
 
 [System.Flags]
