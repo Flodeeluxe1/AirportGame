@@ -500,7 +500,8 @@ public class PedestrianPathfinder : MonoBehaviour
         out Vector3 selectedDestination,
         out List<Vector3> worldPath,
         bool logFailure = true,
-        PedestrianAccessProfile accessProfile = null)
+        PedestrianAccessProfile accessProfile = null,
+        bool logDiagnostics = false)
     {
         long performanceTimingStart = System.Diagnostics.Stopwatch.GetTimestamp();
         try
@@ -514,7 +515,32 @@ public class PedestrianPathfinder : MonoBehaviour
 
         // Preserve existing behaviour whenever the preferred point is reachable.
         if (worldPath.Count > 0)
+        {
+            if (logDiagnostics)
+            {
+                Debug.Log(
+                    $"[PedestrianPathfinder] Preferred interaction point is reachable. " +
+                    $"Preferred={preferredWorld} cell={gridManager.WorldToGrid(preferredWorld)}; " +
+                    $"provider={providerWorld} cell={gridManager.WorldToGrid(providerWorld)}; " +
+                    $"building={(targetBuilding != null ? targetBuilding.name : "none")} " +
+                    $"origin={(targetBuilding != null ? targetBuilding.Origin.ToString() : "n/a")} " +
+                    $"size={(targetBuilding != null ? $"{targetBuilding.Width}x{targetBuilding.Depth}" : "n/a")}; " +
+                    $"pathPoints={worldPath.Count}, first={worldPath[0]}, last={worldPath[worldPath.Count - 1]}.");
+            }
             return true;
+        }
+
+        if (logDiagnostics)
+        {
+            Debug.LogWarning(
+                $"[PedestrianPathfinder] Preferred interaction point is NOT reachable; " +
+                $"trying footprint boundary. Preferred={preferredWorld} " +
+                $"cell={gridManager.WorldToGrid(preferredWorld)}; " +
+                $"provider={providerWorld} cell={gridManager.WorldToGrid(providerWorld)}; " +
+                $"building={(targetBuilding != null ? targetBuilding.name : "none")} " +
+                $"origin={(targetBuilding != null ? targetBuilding.Origin.ToString() : "n/a")} " +
+                $"size={(targetBuilding != null ? $"{targetBuilding.Width}x{targetBuilding.Depth}" : "n/a")}.");
+        }
 
         if (!HasValidReferences())
             return false;
@@ -572,6 +598,14 @@ public class PedestrianPathfinder : MonoBehaviour
         worldPath = ConvertGridPathToWorld(SmoothPath(bestPath, accessProfile));
         selectedDestination = gridManager.GridToWorldCenter(bestTarget);
         selectedDestination.y += pathHeightOffset;
+        if (logDiagnostics)
+        {
+            Debug.Log(
+                $"[PedestrianPathfinder] Selected fallback approach. " +
+                $"destination={selectedDestination} cell={bestTarget}; " +
+                $"candidateCount={approachCells.Count}, reachable={reachableCandidateCount}, " +
+                $"pathPoints={worldPath.Count}, pathEnd={(worldPath.Count > 0 ? worldPath[worldPath.Count - 1].ToString() : "none")}.");
+        }
         return worldPath.Count > 0;
     
         }
