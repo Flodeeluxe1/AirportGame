@@ -35,7 +35,8 @@ public sealed class PassengerJourneyController : MonoBehaviour
         TravellingToBoardingGate,
         AtBoardingGate,
 
-        Completed
+        Completed,
+        BoardingDesk
     }
 
     public enum TransportDestination
@@ -215,7 +216,7 @@ public sealed class PassengerJourneyController : MonoBehaviour
             return false;
 
         currentStage = hasLuggage
-            ? JourneyStage.BaggageDrop
+            ? JourneyStage.LuggageSecurity
             : JourneyStage.BodySecurity;
         return true;
     }
@@ -237,9 +238,7 @@ public sealed class PassengerJourneyController : MonoBehaviour
             currentStage != JourneyStage.BodySecurity)
             return false;
 
-        currentStage = hasLuggage
-            ? JourneyStage.LuggageSecurity
-            : JourneyStage.DeparturesArea;
+        currentStage = JourneyStage.BoardingDesk;
         return true;
     }
 
@@ -248,6 +247,16 @@ public sealed class PassengerJourneyController : MonoBehaviour
         if (direction != JourneyDirection.Departure ||
             !hasLuggage ||
             currentStage != JourneyStage.LuggageSecurity)
+            return false;
+
+        currentStage = JourneyStage.DeparturesArea;
+        return true;
+    }
+
+    public bool CompleteBoardingDesk()
+    {
+        if (direction != JourneyDirection.Departure ||
+            currentStage != JourneyStage.BoardingDesk)
             return false;
 
         currentStage = JourneyStage.DeparturesArea;
