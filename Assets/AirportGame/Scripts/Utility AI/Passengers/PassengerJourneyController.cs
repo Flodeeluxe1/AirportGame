@@ -29,6 +29,7 @@ public sealed class PassengerJourneyController : MonoBehaviour
         CheckIn,
         BaggageDrop,
         BodySecurity,
+        AwaitingBoarding,
         LuggageSecurity,
         DeparturesArea,
         BoardingGate,
@@ -236,6 +237,16 @@ public sealed class PassengerJourneyController : MonoBehaviour
     {
         if (direction != JourneyDirection.Departure ||
             currentStage != JourneyStage.BodySecurity)
+            return false;
+
+        currentStage = JourneyStage.AwaitingBoarding;
+        return true;
+    }
+
+    public bool CallForBoarding()
+    {
+        if (direction != JourneyDirection.Departure ||
+            currentStage != JourneyStage.AwaitingBoarding)
             return false;
 
         currentStage = JourneyStage.BoardingDesk;
