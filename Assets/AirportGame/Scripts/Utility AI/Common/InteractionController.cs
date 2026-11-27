@@ -717,7 +717,7 @@ public class InteractionController : MonoBehaviour
         if (totalWeight <= 0f)
             return shortlist[0];
 
-        float roll = Random.value * totalWeight;
+        float roll = UnityEngine.Random.value * totalWeight;
 
         foreach (InteractionCandidate candidate in shortlist)
         {
