@@ -25,6 +25,7 @@ public sealed class TrafficFollowing : MonoBehaviour
     private IReadOnlyList<Vector2Int> currentRoute;
     private RoadNetwork roadNetwork;
     private GridManager gridManager;
+    private Vector3 previousPosition;
 
     public string LastRayHitCollider => "None";
     public string LastRayDirection => "Route";
@@ -34,12 +35,79 @@ public sealed class TrafficFollowing : MonoBehaviour
     private void OnEnable()
     {
         ActiveVehicles.Add(this);
+        previousPosition = transform.position;
     }
 
     private void OnDisable()
     {
         ActiveVehicles.Remove(this);
         currentRoute = null;
+    }
+
+    private void LateUpdate()
+    {
+        previousPosition = transform.position;
+    }
+
+    /// <summary>
+    /// Checks the active RoadTraffic vehicle registry against a box expressed
+    /// in the supplied transform's local space. The previous-to-current
+    /// movement segment is checked as well, so fast vehicles cannot simply
+    /// jump across a small detection zone between rendered frames.
+    /// </summary>
+    public static bool IsAnyVehicleInsideOrCrossingBox(
+        Transform boxTransform,
+        Vector3 localCenter,
+        Vector3 localSize)
+    {
+        if (boxTransform == null)
+            return false;
+
+        Bounds localBounds = new Bounds(localCenter, localSize);
+
+        foreach (TrafficFollowing vehicle in ActiveVehicles)
+        {
+            if (vehicle == null ||
+                !vehicle.isActiveAndEnabled ||
+                !vehicle.gameObject.activeInHierarchy)
+            {
+                continue;
+            }
+
+            Vector3 currentLocalPosition =
+                boxTransform.InverseTransformPoint(vehicle.transform.position);
+
+            if (localBounds.Contains(currentLocalPosition))
+                return true;
+
+            Vector3 previousLocalPosition =
+                boxTransform.InverseTransformPoint(vehicle.previousPosition);
+
+            if (localBounds.Contains(previousLocalPosition))
+                return true;
+
+            Vector3 movement =
+                currentLocalPosition - previousLocalPosition;
+
+            float movementDistance = movement.magnitude;
+
+            if (movementDistance <= 0.0001f)
+                continue;
+
+            Ray movementRay = new Ray(
+                previousLocalPosition,
+                movement / movementDistance);
+
+            if (localBounds.IntersectRay(
+                    movementRay,
+                    out float hitDistance) &&
+                hitDistance <= movementDistance)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public float BrakeToStop(float currentSpeed)
