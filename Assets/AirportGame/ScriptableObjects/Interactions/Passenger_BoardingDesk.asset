@@ -15,7 +15,7 @@ MonoBehaviour:
   interactionId: passenger_boarding_desk
   displayName: Boarding Desk
   description: Boarding
-  durationSeconds: 10
+  durationSeconds: 7
   maxConcurrentUsers: 1
   interactionRange: 1.5
   needEffects: []
