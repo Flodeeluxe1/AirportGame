@@ -139,6 +139,7 @@ public class InteractionController : MonoBehaviour
         {
             journeyInteractionsEnabled = false;
             mandatoryInteractionActive = false;
+            exitingInteraction = false;
             if (interactionRoutine != null)
             {
                 StopCoroutine(interactionRoutine);
@@ -407,6 +408,7 @@ public class InteractionController : MonoBehaviour
 
     private void OnDisable()
     {
+        exitingInteraction = false;
         if (movement != null)
         {
             movement.Arrived -= HandleMovementArrived;
@@ -1083,6 +1085,7 @@ public class InteractionController : MonoBehaviour
 
     private void CancelCurrentInteraction(string reason)
     {
+        exitingInteraction = false;
         bool wasMandatory = mandatoryInteractionActive;
         InteractionProvider failedProvider = reservedProvider;
         InteractionDefinition failedDefinition = reservedInteraction;
