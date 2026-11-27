@@ -678,6 +678,7 @@ public class PassengerCoordinator : MonoBehaviour
     {
         registeredPassengerCounts.Clear();
         bookedPassengerCounts.Clear();
+        boardingReadyOperationIds.Clear();
         registeredIncomingPassengerCounts.Clear();
         spawnedOutgoingCarPassengerCounts.Clear();
         outgoingCarDispatchProcessedOperationIds.Clear();
