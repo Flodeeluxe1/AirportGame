@@ -23,6 +23,7 @@
             <ui:Button name="category-wall-finishes" text="Wall Finishes" class="airport-subcategory-button"/>
           </ui:ScrollView>
           <ui:Button name="category-door" text="Door" class="category-button"/>
+          <ui:Button name="category-fence" text="Fence" class="category-button"/>
           <ui:Button name="category-airport" text="Airport" class="category-button"/>
           <ui:ScrollView
               name="airport-subcategory-list"
