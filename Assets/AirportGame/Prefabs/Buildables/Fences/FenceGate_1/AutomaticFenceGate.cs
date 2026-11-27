@@ -11,9 +11,6 @@ using UnityEngine;
 public sealed class AutomaticFenceGate : MonoBehaviour
 {
     [Header("Sliding Panel")]
-    [Tooltip("The child transform named FenceGate is found automatically if this is empty.")]
-    [SerializeField] private Transform slidingPanel;
-
     [Tooltip("Distance to slide the panel along the gate's local X axis.")]
     [SerializeField] private float openLocalXOffset = 3f;
 
@@ -21,10 +18,6 @@ public sealed class AutomaticFenceGate : MonoBehaviour
     [SerializeField] private float slideSpeed = 2.5f;
 
     [Header("Vehicle Detection")]
-    [Tooltip("Detection box center in this gate's local space.")]
-    [SerializeField] private Vector3 detectionBoxCenter =
-        new Vector3(1.5f, 1f, 0f);
-
     [Tooltip("Detection box size in this gate's local space. It covers both approach directions.")]
     [SerializeField] private Vector3 detectionBoxSize =
         new Vector3(8f, 4f, 12f);
@@ -33,7 +26,9 @@ public sealed class AutomaticFenceGate : MonoBehaviour
     [Tooltip("Real seconds to keep the gate open after the last vehicle leaves the detection area.")]
     [SerializeField] private float holdOpenAfterClear = 3f;
 
+    private Transform slidingPanel;
     private Vector3 closedLocalPosition;
+    private Vector3 detectionBoxCenter;
     private float clearTimer;
     private bool initialized;
 
@@ -42,18 +37,27 @@ public sealed class AutomaticFenceGate : MonoBehaviour
 
     private void Awake()
     {
-        if (slidingPanel == null)
-            slidingPanel = FindSlidingPanel();
+        slidingPanel = FindSlidingPanel();
 
         if (slidingPanel == null)
         {
             Debug.LogError(
-                "AutomaticFenceGate: Could not find child 'FenceGate'. " +
-                "Assign the sliding panel in the Inspector.",
+                "AutomaticFenceGate: Could not find child 'FenceGate'.",
                 this);
             return;
         }
 
+        BoxCollider prefabCollider = GetComponent<BoxCollider>();
+
+        if (prefabCollider == null)
+        {
+            Debug.LogError(
+                "AutomaticFenceGate: A BoxCollider is required to determine the prefab center.",
+                this);
+            return;
+        }
+
+        detectionBoxCenter = prefabCollider.center;
         closedLocalPosition = slidingPanel.localPosition;
         initialized = true;
     }
@@ -123,9 +127,13 @@ public sealed class AutomaticFenceGate : MonoBehaviour
         Matrix4x4 previousMatrix = Gizmos.matrix;
 
         Gizmos.matrix = transform.localToWorldMatrix;
-        Gizmos.DrawWireCube(
-            detectionBoxCenter,
-            detectionBoxSize);
+
+        BoxCollider prefabCollider = GetComponent<BoxCollider>();
+        Vector3 gizmoCenter = prefabCollider != null
+            ? prefabCollider.center
+            : Vector3.zero;
+
+        Gizmos.DrawWireCube(gizmoCenter, detectionBoxSize);
 
         Gizmos.matrix = previousMatrix;
     }
