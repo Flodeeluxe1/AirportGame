@@ -176,14 +176,14 @@ public class AirlinePassengerAgent : MonoBehaviour
             case PassengerJourneyController.JourneyStage.CheckIn:
                 passengerJourney.CompleteCheckIn();
                 break;
-            case PassengerJourneyController.JourneyStage.BaggageDrop:
-                passengerJourney.CompleteBaggageDrop();
-                break;
             case PassengerJourneyController.JourneyStage.BodySecurity:
                 passengerJourney.CompleteBodySecurity();
                 break;
             case PassengerJourneyController.JourneyStage.LuggageSecurity:
                 passengerJourney.CompleteLuggageSecurity();
+                break;
+            case PassengerJourneyController.JourneyStage.BoardingDesk:
+                passengerJourney.CompleteBoardingDesk();
                 break;
             default:
                 return;
@@ -222,14 +222,14 @@ public class AirlinePassengerAgent : MonoBehaviour
             case PassengerJourneyController.JourneyStage.CheckIn:
                 requiredRole = PassengerJourneyStationRole.AirlineCheckIn;
                 break;
-            case PassengerJourneyController.JourneyStage.BaggageDrop:
-                requiredRole = PassengerJourneyStationRole.BaggageDrop;
-                break;
             case PassengerJourneyController.JourneyStage.BodySecurity:
                 requiredRole = PassengerJourneyStationRole.BodySecurity;
                 break;
             case PassengerJourneyController.JourneyStage.LuggageSecurity:
                 requiredRole = PassengerJourneyStationRole.LuggageSecurity;
+                break;
+            case PassengerJourneyController.JourneyStage.BoardingDesk:
+                requiredRole = PassengerJourneyStationRole.BoardingDesk;
                 break;
             case PassengerJourneyController.JourneyStage.DeparturesArea:
                 if (!passengerJourney.BeginBoardingGateJourney())
