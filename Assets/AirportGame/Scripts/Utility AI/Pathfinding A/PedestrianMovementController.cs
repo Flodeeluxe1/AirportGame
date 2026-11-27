@@ -530,7 +530,7 @@ public class PedestrianMovementController : MonoBehaviour
     /// </summary>
     public bool MoveTo(Vector3 worldDestination)
     {
-        return MoveToWorldPosition(worldDestination, true, false);
+        return MoveToWorldPosition(worldDestination, true, true);
     }
 
     /// <summary>
@@ -555,7 +555,7 @@ public class PedestrianMovementController : MonoBehaviour
     /// </summary>
     public bool TryMoveTo(Vector3 worldDestination)
     {
-        return MoveToWorldPosition(worldDestination, false, false);
+        return MoveToWorldPosition(worldDestination, false, true);
     }
 
     private bool MoveToWorldPosition(
@@ -580,6 +580,22 @@ public class PedestrianMovementController : MonoBehaviour
                 PathFailed?.Invoke();
             return false;
         }
+
+        // Resolve both endpoint buildings once per route. The pathfinder
+        // allows their complete grid footprints, while all other occupied
+        // cells and all crossed wall/door edges remain normally validated.
+        if (allowOccupiedEndpoints)
+        {
+            if (allowedStartFootprint == null)
+                allowedStartFootprint =
+                    pathfinder.GetFootprintAtWorldPosition(transform.position);
+            if (allowedTargetFootprint == null)
+                allowedTargetFootprint =
+                    pathfinder.GetFootprintAtWorldPosition(worldDestination);
+        }
+
+        this.allowedStartFootprint = allowedStartFootprint;
+        this.allowedTargetFootprint = allowedTargetFootprint;
 
         Vector3 target = worldDestination;
         target.y = transform.position.y;
