@@ -719,15 +719,33 @@ public class PedestrianMovementController : MonoBehaviour
         Vector3 selectedDestination;
         List<Vector3> calculatedPath;
 
+        Vector3 preferredInteractionPosition = provider.InteractionPosition;
+        bool logBoardingDeskRoute =
+            provider.name.IndexOf("Boarding", StringComparison.OrdinalIgnoreCase) >= 0;
+
+        if (logBoardingDeskRoute)
+        {
+            Debug.Log(
+                $"[PedestrianMovementController] Boarding Desk route request. " +
+                $"pedestrian={name} start={transform.position}; provider={provider.name} " +
+                $"providerTransform={provider.transform.position}; " +
+                $"hasExplicitInteractionPoint={provider.HasExplicitInteractionPoint}; " +
+                $"interactionPoint={preferredInteractionPosition}; " +
+                $"building={(targetBuilding != null ? targetBuilding.name : "none")} " +
+                $"origin={(targetBuilding != null ? targetBuilding.Origin.ToString() : "n/a")} " +
+                $"size={(targetBuilding != null ? $"{targetBuilding.Width}x{targetBuilding.Depth}" : "n/a")}.");
+        }
+
         bool foundPath = pathfinder.TryFindBestApproachPath(
             transform.position,
-            provider.InteractionPosition,
+            preferredInteractionPosition,
             provider.transform.position,
             targetBuilding,
             out selectedDestination,
             out calculatedPath,
             true,
-            AccessProfile);
+            AccessProfile,
+            logBoardingDeskRoute);
 
         if (!foundPath)
         {
@@ -740,6 +758,16 @@ public class PedestrianMovementController : MonoBehaviour
         selectedDestination.y = transform.position.y;
         lastApproachProvider = provider;
         lastApproachPosition = selectedDestination;
+
+        if (logBoardingDeskRoute)
+        {
+            Debug.Log(
+                $"[PedestrianMovementController] Boarding Desk route selected. " +
+                $"pedestrian={name} destination={selectedDestination}; " +
+                $"pathPoints={calculatedPath.Count}; " +
+                $"first={(calculatedPath.Count > 0 ? calculatedPath[0].ToString() : "none")}; " +
+                $"last={(calculatedPath.Count > 0 ? calculatedPath[calculatedPath.Count - 1].ToString() : "none")}.");
+        }
 
         return StartMovement(selectedDestination, calculatedPath);
     }
