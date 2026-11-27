@@ -860,6 +860,17 @@ public class InteractionController : MonoBehaviour
             if (!queuedProvider.Queue.IsActive(this))
                 return;
 
+            // A passenger can be promoted while still walking to their old
+            // queue slot. Reaching that slot is not reaching the provider.
+            // Keep the queue reservation and let UpdateQueueState redirect
+            // them to the actual interaction approach on its next update.
+            if (!movement.IsAtInteractionApproach(queuedProvider))
+            {
+                reservedProvider = null;
+                reservedInteraction = null;
+                return;
+            }
+
             reservedProvider = queuedProvider;
             reservedInteraction = queuedInteraction;
         }
