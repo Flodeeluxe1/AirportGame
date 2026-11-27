@@ -155,6 +155,9 @@ public class AirportUIController : MonoBehaviour
         categoryButtons[BuildCategory.Pipelines] =
             root.Q<Button>("category-pipelines");
 
+        categoryButtons[BuildCategory.Fence] =
+            root.Q<Button>("category-fence");
+
         categoryButtons[BuildCategory.Commercial] =
             root.Q<Button>("category-commercial");
 
