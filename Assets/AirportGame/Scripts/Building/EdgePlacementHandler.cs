@@ -784,82 +784,43 @@ public class EdgePlacementHandler : IPlacementHandler
         if (target == null)
             return;
 
+        bool isHorizontal =
+            edge.direction == EdgeDirection.Horizontal;
+
+        target.transform.rotation =
+            isHorizontal
+                ? Quaternion.identity
+                : Quaternion.Euler(0f, 90f, 0f);
+
         Vector3 position =
-            gridManager.GridToWorld(
-                edge.cell
-            );
+            gridManager.GridToWorld(edge.cell);
 
-        float prefabHeight =
-            GetPrefabHeight(target);
+        BoxCollider boxCollider =
+            target.GetComponent<BoxCollider>();
 
-        position.y =
-            prefabHeight * 0.5f;
-
-        if (edge.direction ==
-            EdgeDirection.Horizontal)
+        if (boxCollider != null)
         {
-            position += new Vector3(
-                gridManager.CellSize * 0.5f,
-                0f,
-                0f
-            );
+            // Collider bounds are world-space and include the collider's
+            // center, size, and transform scale. Align their lower Y bound
+            // with the grid surface instead of assuming a centered pivot.
+            float colliderBottomOffset =
+                boxCollider.bounds.min.y -
+                target.transform.position.y;
 
-            target.transform.position =
-                position;
+            position.y -= colliderBottomOffset;
+        }
 
-            target.transform.rotation =
-                Quaternion.identity;
+        if (isHorizontal)
+        {
+            position.x += gridManager.CellSize * 0.5f;
         }
         else
         {
-            position += new Vector3(
-                0f,
-                0f,
-                gridManager.CellSize * 0.5f
-            );
-
-            target.transform.position =
-                position;
-
-            target.transform.rotation =
-                Quaternion.Euler(
-                    0f,
-                    90f,
-                    0f
-                );
+            position.z += gridManager.CellSize * 0.5f;
         }
+
+        target.transform.position = position;
     }
-
-    private float GetPrefabHeight(
-        GameObject target)
-    {
-        Renderer[] renderers =
-            target.GetComponentsInChildren<Renderer>(
-                true
-            );
-
-        if (renderers.Length == 0)
-        {
-            return 0f;
-        }
-
-        Bounds bounds =
-            renderers[0].bounds;
-
-        for (
-            int i = 1;
-            i < renderers.Length;
-            i++)
-        {
-            bounds.Encapsulate(
-                renderers[i].bounds
-            );
-        }
-
-        return bounds.size.y;
-    }
-
-
 
     private bool HasAnyValidStartEdge(Vector2Int vertex)
     {
