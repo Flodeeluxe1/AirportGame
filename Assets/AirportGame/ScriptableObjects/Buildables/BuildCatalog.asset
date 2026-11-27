@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: BuildCatalog
   m_EditorClassIdentifier: Assembly-CSharp::BuildCatalog
   buildables:
+  - {fileID: 11400000, guid: 4e8d8daf9b75177428ee483e224ee921, type: 2}
   - {fileID: 11400000, guid: e4f11bbd9483d4a4d8609656c638ba09, type: 2}
   - {fileID: 11400000, guid: 06df8f1a4a255884cb80f82bf7be240f, type: 2}
   - {fileID: 11400000, guid: 8ce206eb9ede8f84eb2b8b8a233b7605, type: 2}
