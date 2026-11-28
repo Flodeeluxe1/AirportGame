@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using UnityEngine;
 
 public enum SecurityArea
@@ -49,6 +50,7 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
 
     private int gridWidth;
     private int gridHeight;
+    private int floodVisitedCells;
 
     private void OnEnable()
     {
@@ -178,6 +180,7 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
     [ContextMenu("Rebuild Security Areas")]
     public void Rebuild()
     {
+        long rebuildStartTicks = Stopwatch.GetTimestamp();
         ResolveReferences();
 
         IsReady = false;
@@ -190,6 +193,9 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
             gridSurface == null ||
             gridManager.Width <= 0 || gridManager.Height <= 0)
         {
+            PerformanceMonitoringManager.RecordSecurityRebuild(
+                TicksToMilliseconds(Stopwatch.GetTimestamp() - rebuildStartTicks),
+                0.0, 0.0, 0.0, 0.0, 0.0, 0);
             return;
         }
 
@@ -199,6 +205,8 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
 
         EnsureBuffers(cellCount);
 
+        long edgeCollectionStartTicks = Stopwatch.GetTimestamp();
+        long scannerBoundaryTicks = 0;
         IReadOnlyList<PlacedBuilding> buildings = PlacedBuilding.ActiveBuildings;
         for (int i = 0; i < buildings.Count; i++)
         {
@@ -222,20 +230,32 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
             if (building.Definition.passengerJourneyStationRole ==
                 PassengerJourneyStationRole.BodySecurity)
             {
+                long scannerStartTicks = Stopwatch.GetTimestamp();
                 AddScannerBoundary(building);
+                scannerBoundaryTicks += Stopwatch.GetTimestamp() - scannerStartTicks;
             }
         }
+        double edgeCollectionMs = TicksToMilliseconds(
+            Stopwatch.GetTimestamp() - edgeCollectionStartTicks - scannerBoundaryTicks);
+        double scannerBoundaryMs = TicksToMilliseconds(scannerBoundaryTicks);
 
         // First identify cells connected to the outside of the map.
         // Physical walls/fences and scanner dividers both block this flood:
         // a complete scanner line separates the public side from the
         // runway-side region even when both sides are inside the map bounds.
+        floodVisitedCells = 0;
+        long publicFloodStartTicks = Stopwatch.GetTimestamp();
         FloodFromGridPerimeter(enclosedRoomReachable, blockingEdges);
+        double publicFloodMs = TicksToMilliseconds(
+            Stopwatch.GetTimestamp() - publicFloodStartTicks);
+        int publicCellsVisited = floodVisitedCells;
 
         // The runway is the authoritative seed for the airport-side region.
         // Flood it regardless of outside connectivity; outside reachability
         // takes precedence later, so a runway connected to public space
         // remains Unsecure while still identifying the correct scanner side.
+        floodVisitedCells = 0;
+        long runwayFloodStartTicks = Stopwatch.GetTimestamp();
         for (int z = 0; z < gridHeight; z++)
         {
             for (int x = 0; x < gridWidth; x++)
@@ -251,7 +271,11 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
                     null);
             }
         }
+        double runwayFloodMs = TicksToMilliseconds(
+            Stopwatch.GetTimestamp() - runwayFloodStartTicks);
+        int runwayCellsVisited = floodVisitedCells;
 
+        long classificationStartTicks = Stopwatch.GetTimestamp();
         for (int z = 0; z < gridHeight; z++)
         {
             for (int x = 0; x < gridWidth; x++)
@@ -289,6 +313,24 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
         }
 
         IsReady = true;
+
+        double classificationMs = TicksToMilliseconds(
+            Stopwatch.GetTimestamp() - classificationStartTicks);
+        double totalMs = TicksToMilliseconds(
+            Stopwatch.GetTimestamp() - rebuildStartTicks);
+        PerformanceMonitoringManager.RecordSecurityRebuild(
+            totalMs,
+            edgeCollectionMs,
+            scannerBoundaryMs,
+            publicFloodMs,
+            runwayFloodMs,
+            classificationMs,
+            publicCellsVisited + runwayCellsVisited);
+    }
+
+    private static double TicksToMilliseconds(long ticks)
+    {
+        return ticks * 1000.0 / Stopwatch.Frequency;
     }
 
     private void EnsureBuffers(int cellCount)
@@ -510,6 +552,7 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
         while (head < tail)
         {
             int index = floodQueue[head++];
+            floodVisitedCells++;
             int x = index % gridWidth;
             int z = index / gridWidth;
 
