@@ -30,6 +30,7 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
     private SecurityArea[] areas;
     private bool[] enclosedRoomReachable;
     private bool[] secureReachable;
+    private bool[] physicallyOutsideReachable;
     private bool[] criticalReachable;
     private int[] floodQueue;
 
@@ -220,6 +221,11 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
         // runway-side region even when both sides are inside the map bounds.
         FloodFromGridPerimeter(enclosedRoomReachable, blockingEdges);
 
+        // Physical enclosure is evaluated independently of the scanner.
+        // A cell unreachable from the map perimeter using only physical
+        // walls, doors and fences is Secure, even on the runway side.
+        FloodFromGridPerimeter(physicallyOutsideReachable, perimeterEdges);
+
         // The runway is the authoritative seed for the airport-side region.
         // Flood it regardless of outside connectivity; outside reachability
         // takes precedence later, so a runway connected to public space
@@ -283,19 +289,14 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
 
         for (int i = 0; i < cellCount; i++)
         {
-            if (enclosedRoomReachable[i])
-                areas[i] = SecurityArea.Unsecure;
-            else if (secureReachable[i])
+            if (!physicallyOutsideReachable[i])
                 areas[i] = SecurityArea.Secure;
+            else if (enclosedRoomReachable[i])
+                areas[i] = SecurityArea.Unsecure;
             else if (criticalReachable[i])
                 areas[i] = SecurityArea.Critical;
             else
-                // Any cell isolated from the public perimeter and not
-                // connected to the runway is on the secure side of the
-                // security boundary. This also covers enclosed rooms when
-                // a scanner divider's seed cell does not coincide exactly
-                // with the scanner's occupied grid cell.
-                areas[i] = SecurityArea.Secure;
+                areas[i] = SecurityArea.Unclassified;
         }
 
         // If a secure flood reaches the outer grid row/column, there is an
@@ -333,6 +334,9 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
         if (secureForbidden == null || secureForbidden.Length != cellCount)
             secureForbidden = new bool[cellCount];
 
+        if (physicallyOutsideReachable == null || physicallyOutsideReachable.Length != cellCount)
+            physicallyOutsideReachable = new bool[cellCount];
+
         if (floodQueue == null || floodQueue.Length != cellCount)
             floodQueue = new int[cellCount];
 
@@ -340,6 +344,7 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
         System.Array.Clear(secureReachable, 0, secureReachable.Length);
         System.Array.Clear(criticalReachable, 0, criticalReachable.Length);
         System.Array.Clear(secureForbidden, 0, secureForbidden.Length);
+        System.Array.Clear(physicallyOutsideReachable, 0, physicallyOutsideReachable.Length);
     }
 
     private void AddBuildingEdges(
@@ -612,7 +617,7 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
 
     private bool IsSecure(int x, int z)
     {
-        return secureReachable[ToIndex(x, z)];
+        return !physicallyOutsideReachable[ToIndex(x, z)];
     }
 
     private int ToIndex(Vector2Int cell)
