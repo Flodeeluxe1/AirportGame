@@ -62,6 +62,21 @@ public class PerformanceMonitoringManager : MonoBehaviour
     private static readonly Dictionary<string, TrackedMethodTiming> TrackedTimings =
         new Dictionary<string, TrackedMethodTiming>(8);
 
+    // Security measurements are accumulated without per-rebuild allocations.
+    private static int pendingSecurityRebuildCount;
+    private static double pendingSecurityTotalMs, pendingSecurityWorstMs;
+    private static double pendingSecurityEdgeMs, pendingSecurityScannerMs;
+    private static double pendingSecurityPublicFloodMs, pendingSecurityRunwayFloodMs;
+    private static double pendingSecurityClassificationMs;
+    private static long pendingSecurityCellsVisited;
+
+    private int securityRebuildCount;
+    private double securityAverageRebuildMs, securityWorstRebuildMs;
+    private double securityAverageEdgeMs, securityAverageScannerMs;
+    private double securityAveragePublicFloodMs, securityAverageRunwayFloodMs;
+    private double securityAverageClassificationMs;
+    private long securityCellsVisited;
+
     private void Awake()
     {
         isVisible = startVisible;
@@ -132,6 +147,24 @@ public class PerformanceMonitoringManager : MonoBehaviour
         lastGen2Collections += gen2Collections;
 
         UpdateMemoryStats();
+
+        securityRebuildCount = pendingSecurityRebuildCount;
+        securityAverageRebuildMs = securityRebuildCount > 0 ? pendingSecurityTotalMs / securityRebuildCount : 0.0;
+        securityWorstRebuildMs = pendingSecurityWorstMs;
+        securityAverageEdgeMs = securityRebuildCount > 0 ? pendingSecurityEdgeMs / securityRebuildCount : 0.0;
+        securityAverageScannerMs = securityRebuildCount > 0 ? pendingSecurityScannerMs / securityRebuildCount : 0.0;
+        securityAveragePublicFloodMs = securityRebuildCount > 0 ? pendingSecurityPublicFloodMs / securityRebuildCount : 0.0;
+        securityAverageRunwayFloodMs = securityRebuildCount > 0 ? pendingSecurityRunwayFloodMs / securityRebuildCount : 0.0;
+        securityAverageClassificationMs = securityRebuildCount > 0 ? pendingSecurityClassificationMs / securityRebuildCount : 0.0;
+        securityCellsVisited = pendingSecurityCellsVisited;
+
+        pendingSecurityRebuildCount = 0;
+        pendingSecurityTotalMs = pendingSecurityWorstMs = 0.0;
+        pendingSecurityEdgeMs = pendingSecurityScannerMs = 0.0;
+        pendingSecurityPublicFloodMs = pendingSecurityRunwayFloodMs = 0.0;
+        pendingSecurityClassificationMs = 0.0;
+        pendingSecurityCellsVisited = 0;
+
         UpdateOverlayText();
 
         sampleElapsed = 0f;
@@ -142,6 +175,23 @@ public class PerformanceMonitoringManager : MonoBehaviour
         spikeCount = 0;
     }
 
+
+    /// <summary>Records one security rebuild for the next monitoring sample.</summary>
+    public static void RecordSecurityRebuild(
+        double totalMs, double edgeCollectionMs, double scannerBoundaryMs,
+        double publicFloodMs, double runwayFloodMs, double classificationMs,
+        int cellsVisited)
+    {
+        pendingSecurityRebuildCount++;
+        pendingSecurityTotalMs += totalMs;
+        if (totalMs > pendingSecurityWorstMs) pendingSecurityWorstMs = totalMs;
+        pendingSecurityEdgeMs += edgeCollectionMs;
+        pendingSecurityScannerMs += scannerBoundaryMs;
+        pendingSecurityPublicFloodMs += publicFloodMs;
+        pendingSecurityRunwayFloodMs += runwayFloodMs;
+        pendingSecurityClassificationMs += classificationMs;
+        pendingSecurityCellsVisited += cellsVisited;
+    }
 
     /// <summary>Records elapsed time for selected methods; reports only on frame spikes.</summary>
     public static void RecordTrackedMethod(string methodName, long startTimestamp)
@@ -232,7 +282,14 @@ public class PerformanceMonitoringManager : MonoBehaviour
             $"GC collections: Gen0 {gen0Collections}   Gen1 {gen1Collections}   Gen2 {gen2Collections}\n" +
             $"Managed heap: {FormatBytes(managedMemoryBytes)}\n" +
             $"Unity allocated: {FormatBytes(allocatedMemoryBytes)}\n" +
-            $"Unity reserved: {FormatBytes(reservedMemoryBytes)}";
+            $"Unity reserved: {FormatBytes(reservedMemoryBytes)}\\n" +
+            $"SECURITY (last {sampleInterval:0.0}s): {securityRebuildCount} rebuild(s)\\n" +
+            (securityRebuildCount > 0
+                ? $"Rebuild: {securityAverageRebuildMs:0.000} ms avg / {securityWorstRebuildMs:0.000} ms worst\\n" +
+                  $"Edges {securityAverageEdgeMs:0.000} | Scanner {securityAverageScannerMs:0.000} ms\\n" +
+                  $"Public flood {securityAveragePublicFloodMs:0.000} | Runway flood {securityAverageRunwayFloodMs:0.000} ms\\n" +
+                  $"Classify {securityAverageClassificationMs:0.000} ms | Cells visited {securityCellsVisited}"
+                : "No security rebuilds this sample");
     }
 
     private static string FormatBytes(long bytes)
@@ -261,7 +318,7 @@ public class PerformanceMonitoringManager : MonoBehaviour
         style.fontSize = 13;
         style.richText = false;
 
-        float height = 176f;
+        float height = 250f;
         GUI.Box(
             new Rect(overlayPosition.x, overlayPosition.y, overlayWidth, height),
             cachedOverlayText,
