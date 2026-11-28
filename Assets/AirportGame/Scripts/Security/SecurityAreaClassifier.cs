@@ -263,7 +263,10 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
         System.Array.Clear(criticalReachable, 0, criticalReachable.Length);
         floodVisitedCells = 0;
         long runwayFloodStartTicks = Stopwatch.GetTimestamp();
-        FloodFromRunwaySurfaces(criticalReachable);
+        FloodFromRunwaySurfaces(
+            criticalReachable,
+            out double runwaySeedScanMs,
+            out double runwayTraversalMs);
         double runwayFloodMs = TicksToMilliseconds(
             Stopwatch.GetTimestamp() - runwayFloodStartTicks);
         int runwayCellsVisited = floodVisitedCells;
@@ -317,6 +320,8 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
             scannerBoundaryMs,
             publicFloodMs,
             runwayFloodMs,
+            runwaySeedScanMs,
+            runwayTraversalMs,
             classificationMs,
             publicCellsVisited + runwayCellsVisited);
     }
@@ -625,9 +630,13 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
     // Queue every runway cell as a seed before traversing. This is equivalent
     // to flooding each unvisited runway component separately, but processes
     // all runway-connected regions in one breadth-first traversal.
-    private void FloodFromRunwaySurfaces(bool[] reached)
+    private void FloodFromRunwaySurfaces(
+        bool[] reached,
+        out double seedScanMs,
+        out double traversalMs)
     {
         int tail = 0;
+        long seedScanStartTicks = Stopwatch.GetTimestamp();
 
         for (int z = 0; z < gridHeight; z++)
         {
@@ -640,7 +649,13 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
             }
         }
 
+        seedScanMs = TicksToMilliseconds(
+            Stopwatch.GetTimestamp() - seedScanStartTicks);
+
+        long traversalStartTicks = Stopwatch.GetTimestamp();
         FloodQueueFromExisting(tail, reached);
+        traversalMs = TicksToMilliseconds(
+            Stopwatch.GetTimestamp() - traversalStartTicks);
     }
 
     private void EnqueueIfNew(int index, bool[] reached, ref int tail)
