@@ -449,7 +449,8 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
             return false;
 
         return building.Definition.category == BuildCategory.Wall ||
-               building.Definition.category == BuildCategory.Door;
+               building.Definition.category == BuildCategory.Door ||
+               building.Definition.category == BuildCategory.Fence;
     }
 
     private void FloodFromGridPerimeter(
