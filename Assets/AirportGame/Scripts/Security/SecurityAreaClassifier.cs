@@ -219,10 +219,10 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
         // from entering the enclosed airport area.
         FloodFromGridPerimeter(enclosedRoomReachable, perimeterEdges);
 
-        // The runway is the authoritative seed for the Critical Area.
-        // It can only seed a region that is actually enclosed from outside.
-        // This is important: if the runway is connected to public space
-        // through a gap, the outside flood reaches it and it stays Unsecure.
+        // The runway is the authoritative seed for the airport-side region.
+        // Flood it regardless of outside connectivity; outside reachability
+        // takes precedence later, so a runway connected to public space
+        // remains Unsecure while still identifying the correct scanner side.
         for (int z = 0; z < gridHeight; z++)
         {
             for (int x = 0; x < gridWidth; x++)
