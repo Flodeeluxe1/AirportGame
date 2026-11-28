@@ -67,6 +67,7 @@ public class PerformanceMonitoringManager : MonoBehaviour
     private static double pendingSecurityTotalMs, pendingSecurityWorstMs;
     private static double pendingSecurityEdgeMs, pendingSecurityScannerMs;
     private static double pendingSecurityPublicFloodMs, pendingSecurityRunwayFloodMs;
+    private static double pendingSecurityRunwaySeedScanMs, pendingSecurityRunwayTraversalMs;
     private static double pendingSecurityClassificationMs;
     private static long pendingSecurityCellsVisited;
 
@@ -74,6 +75,7 @@ public class PerformanceMonitoringManager : MonoBehaviour
     private double securityAverageRebuildMs, securityWorstRebuildMs;
     private double securityAverageEdgeMs, securityAverageScannerMs;
     private double securityAveragePublicFloodMs, securityAverageRunwayFloodMs;
+    private double securityAverageRunwaySeedScanMs, securityAverageRunwayTraversalMs;
     private double securityAverageClassificationMs;
     private long securityCellsVisited;
 
@@ -155,6 +157,8 @@ public class PerformanceMonitoringManager : MonoBehaviour
         securityAverageScannerMs = securityRebuildCount > 0 ? pendingSecurityScannerMs / securityRebuildCount : 0.0;
         securityAveragePublicFloodMs = securityRebuildCount > 0 ? pendingSecurityPublicFloodMs / securityRebuildCount : 0.0;
         securityAverageRunwayFloodMs = securityRebuildCount > 0 ? pendingSecurityRunwayFloodMs / securityRebuildCount : 0.0;
+        securityAverageRunwaySeedScanMs = securityRebuildCount > 0 ? pendingSecurityRunwaySeedScanMs / securityRebuildCount : 0.0;
+        securityAverageRunwayTraversalMs = securityRebuildCount > 0 ? pendingSecurityRunwayTraversalMs / securityRebuildCount : 0.0;
         securityAverageClassificationMs = securityRebuildCount > 0 ? pendingSecurityClassificationMs / securityRebuildCount : 0.0;
         securityCellsVisited = pendingSecurityCellsVisited;
 
@@ -162,6 +166,7 @@ public class PerformanceMonitoringManager : MonoBehaviour
         pendingSecurityTotalMs = pendingSecurityWorstMs = 0.0;
         pendingSecurityEdgeMs = pendingSecurityScannerMs = 0.0;
         pendingSecurityPublicFloodMs = pendingSecurityRunwayFloodMs = 0.0;
+        pendingSecurityRunwaySeedScanMs = pendingSecurityRunwayTraversalMs = 0.0;
         pendingSecurityClassificationMs = 0.0;
         pendingSecurityCellsVisited = 0;
 
@@ -174,6 +179,7 @@ public class PerformanceMonitoringManager : MonoBehaviour
                 $"Rebuild: {securityAverageRebuildMs:0.000} ms avg / {securityWorstRebuildMs:0.000} ms worst\n" +
                 $"Edges {securityAverageEdgeMs:0.000} | Scanner {securityAverageScannerMs:0.000} ms\n" +
                 $"Public flood {securityAveragePublicFloodMs:0.000} | Runway flood {securityAverageRunwayFloodMs:0.000} ms\n" +
+                $"Runway seeds {securityAverageRunwaySeedScanMs:0.000} | Runway BFS {securityAverageRunwayTraversalMs:0.000} ms\n" +
                 $"Classify {securityAverageClassificationMs:0.000} ms | Cells visited {securityCellsVisited}",
                 this);
         }
@@ -190,8 +196,9 @@ public class PerformanceMonitoringManager : MonoBehaviour
     /// <summary>Records one security rebuild for the next monitoring sample.</summary>
     public static void RecordSecurityRebuild(
         double totalMs, double edgeCollectionMs, double scannerBoundaryMs,
-        double publicFloodMs, double runwayFloodMs, double classificationMs,
-        int cellsVisited)
+        double publicFloodMs, double runwayFloodMs,
+        double runwaySeedScanMs, double runwayTraversalMs,
+        double classificationMs, int cellsVisited)
     {
         pendingSecurityRebuildCount++;
         pendingSecurityTotalMs += totalMs;
@@ -200,6 +207,8 @@ public class PerformanceMonitoringManager : MonoBehaviour
         pendingSecurityScannerMs += scannerBoundaryMs;
         pendingSecurityPublicFloodMs += publicFloodMs;
         pendingSecurityRunwayFloodMs += runwayFloodMs;
+        pendingSecurityRunwaySeedScanMs += runwaySeedScanMs;
+        pendingSecurityRunwayTraversalMs += runwayTraversalMs;
         pendingSecurityClassificationMs += classificationMs;
         pendingSecurityCellsVisited += cellsVisited;
     }
@@ -299,6 +308,7 @@ public class PerformanceMonitoringManager : MonoBehaviour
                 ? $"Rebuild: {securityAverageRebuildMs:0.000} ms avg / {securityWorstRebuildMs:0.000} ms worst\n" +
                   $"Edges {securityAverageEdgeMs:0.000} | Scanner {securityAverageScannerMs:0.000} ms\n" +
                   $"Public flood {securityAveragePublicFloodMs:0.000} | Runway flood {securityAverageRunwayFloodMs:0.000} ms\n" +
+                  $"Runway seeds {securityAverageRunwaySeedScanMs:0.000} | Runway BFS {securityAverageRunwayTraversalMs:0.000} ms\n" +
                   $"Classify {securityAverageClassificationMs:0.000} ms | Cells visited {securityCellsVisited}"
                 : "No security rebuilds this sample");
     }
