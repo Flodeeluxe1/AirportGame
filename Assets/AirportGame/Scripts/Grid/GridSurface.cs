@@ -6,6 +6,7 @@ public class GridSurface : MonoBehaviour
     [Header("Debug")]
     [SerializeField] private bool logToConsole = false;
     public event System.Action FoundationSurfaceChanged;
+    public event System.Action RunwaySurfaceChanged;
 
     [SerializeField]
     private GridManager gridManager;
@@ -521,6 +522,7 @@ public class GridSurface : MonoBehaviour
         }
 
         bool foundationChanged = false;
+        bool runwayChanged = false;
 
         for (int x = 0; x < gridManager.Width; x++)
         {
@@ -528,6 +530,8 @@ public class GridSurface : MonoBehaviour
             {
                 if (surfaces[x, z] == BuildSurface.Foundation)
                     foundationChanged = true;
+                if (surfaces[x, z] == BuildSurface.Runway)
+                    runwayChanged = true;
 
                 surfaces[x, z] = BuildSurface.Grass;
                 InvalidateGroundVehicleClearanceMap();
@@ -536,6 +540,8 @@ public class GridSurface : MonoBehaviour
 
         if (foundationChanged)
             FoundationSurfaceChanged?.Invoke();
+        if (runwayChanged)
+            RunwaySurfaceChanged?.Invoke();
 
         surfaceOwners.Clear();
         obstacleOwners.Clear();
@@ -779,8 +785,12 @@ public class GridSurface : MonoBehaviour
             runwayUnderlyingSurfaces[position] = previousSurface;
         }
 
-        surfaces[position.x, position.y] = BuildSurface.Runway;
-        InvalidateGroundVehicleClearanceMap();
+        if (previousSurface != BuildSurface.Runway)
+        {
+            surfaces[position.x, position.y] = BuildSurface.Runway;
+            InvalidateGroundVehicleClearanceMap();
+            RunwaySurfaceChanged?.Invoke();
+        }
 
         if (previousSurface == BuildSurface.Foundation)
             FoundationSurfaceChanged?.Invoke();
@@ -812,6 +822,11 @@ public class GridSurface : MonoBehaviour
         }
 
         BuildSurface currentSurface = surfaces[position.x, position.y];
+        if (previousSurface == BuildSurface.Runway &&
+            currentSurface != BuildSurface.Runway)
+        {
+            RunwaySurfaceChanged?.Invoke();
+        }
         if (previousSurface == BuildSurface.Foundation ||
             currentSurface == BuildSurface.Foundation)
         {
