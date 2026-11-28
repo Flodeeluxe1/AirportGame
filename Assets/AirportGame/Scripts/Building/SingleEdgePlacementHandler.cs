@@ -209,13 +209,15 @@ public sealed class SingleEdgePlacementHandler : IPlacementHandler
             (Mathf.Max(1, definition.edgeLength) - 1) *
             gridManager.CellSize * 0.5f;
 
+        Quaternion edgeRotation;
+
         if (firstEdge.direction == EdgeDirection.Horizontal)
         {
             position += new Vector3(
                 gridManager.CellSize * 0.5f + halfLengthOffset,
                 0f,
                 0f);
-            target.transform.rotation = Quaternion.identity;
+            edgeRotation = Quaternion.identity;
         }
         else
         {
@@ -223,7 +225,22 @@ public sealed class SingleEdgePlacementHandler : IPlacementHandler
                 0f,
                 0f,
                 gridManager.CellSize * 0.5f + halfLengthOffset);
-            target.transform.rotation = Quaternion.Euler(0f, 90f, 0f);
+            edgeRotation = Quaternion.Euler(0f, 90f, 0f);
+        }
+
+        target.transform.rotation = edgeRotation;
+
+        // Some long edge prefabs (including FenceGate1) have their root
+        // pivot at one end rather than at the visual/collider center.
+        // Offset the root so the collider center lands on the grid-edge center.
+        BoxCollider boxCollider = target.GetComponent<BoxCollider>();
+        if (boxCollider != null)
+        {
+            Vector3 localCenterXZ = new Vector3(
+                boxCollider.center.x,
+                0f,
+                boxCollider.center.z);
+            position -= edgeRotation * localCenterXZ;
         }
 
         target.transform.position = position;
