@@ -419,6 +419,15 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
         FloodQueueFromExisting(1, reached, barriers, forbidden);
     }
 
+    private void EnqueueIfNew(int index, bool[] reached, ref int tail)
+    {
+        if (reached[index])
+            return;
+
+        reached[index] = true;
+        floodQueue[tail++] = index;
+    }
+
     private void FloodQueueFromExisting(
         int tail,
         bool[] reached,
