@@ -18,6 +18,9 @@ public sealed class SingleEdgePlacementHandler : IPlacementHandler
     private Renderer[] previewRenderers;
 
     private GridEdge currentEdge;
+    private EdgeDirection manualDirection;
+    private bool hasManualDirection;
+    private readonly RaycastHit[] fenceHitBuffer = new RaycastHit[32];
     private readonly List<GridEdge> previewEdges = new List<GridEdge>();
 
     public void Initialize(
@@ -47,6 +50,8 @@ public sealed class SingleEdgePlacementHandler : IPlacementHandler
             : null;
 
         currentEdge = new GridEdge(Vector2Int.zero, EdgeDirection.Horizontal);
+        manualDirection = EdgeDirection.Horizontal;
+        hasManualDirection = false;
         previewEdges.Clear();
 
         if (placementPreview != null)
@@ -54,6 +59,17 @@ public sealed class SingleEdgePlacementHandler : IPlacementHandler
     }
 
     public void UpdatePlacement(Vector3 hitPoint)
+    {
+        UpdatePlacement(hitPoint, null);
+    }
+
+    public void UpdatePlacement(Ray mouseRay, Vector3 hitPoint)
+    {
+        EdgeDirection? fenceDirection = FindFenceDirection(mouseRay);
+        UpdatePlacement(hitPoint, fenceDirection);
+    }
+
+    private void UpdatePlacement(Vector3 hitPoint, EdgeDirection? fenceDirection)
     {
         if (definition == null ||
             previewObject == null ||
@@ -83,9 +99,12 @@ public sealed class SingleEdgePlacementHandler : IPlacementHandler
         float distanceToVertical = Mathf.Min(localX, 1f - localX);
         float distanceToHorizontal = Mathf.Min(localZ, 1f - localZ);
 
-        EdgeDirection direction = distanceToVertical < distanceToHorizontal
+        EdgeDirection nearestDirection = distanceToVertical < distanceToHorizontal
             ? EdgeDirection.Vertical
             : EdgeDirection.Horizontal;
+
+        EdgeDirection direction = fenceDirection ??
+            (hasManualDirection ? manualDirection : nearestDirection);
 
         currentEdge = GetCenteredStartEdge(gridX, gridZ, direction);
 
@@ -259,9 +278,60 @@ public sealed class SingleEdgePlacementHandler : IPlacementHandler
         }
     }
 
+    private EdgeDirection? FindFenceDirection(Ray mouseRay)
+    {
+        int hitCount = Physics.RaycastNonAlloc(
+            mouseRay,
+            fenceHitBuffer,
+            1000f,
+            Physics.DefaultRaycastLayers,
+            QueryTriggerInteraction.Ignore);
+
+        float nearestDistance = float.PositiveInfinity;
+        EdgeDirection? foundDirection = null;
+
+        for (int i = 0; i < hitCount; i++)
+        {
+            RaycastHit hit = fenceHitBuffer[i];
+            Collider hitCollider = hit.collider;
+
+            if (hitCollider == null ||
+                (previewObject != null &&
+                 hitCollider.transform.IsChildOf(previewObject.transform)))
+            {
+                continue;
+            }
+
+            PlacedBuilding building =
+                hitCollider.GetComponentInParent<PlacedBuilding>();
+
+            if (building == null ||
+                building.Definition == null ||
+                building.Definition.category != BuildCategory.Fence ||
+                !building.IsEdgeBuilding ||
+                hit.distance >= nearestDistance)
+            {
+                continue;
+            }
+
+            nearestDistance = hit.distance;
+            foundDirection = building.EdgeDirection;
+        }
+
+        return foundDirection;
+    }
+
     public void Rotate()
     {
-        // Orientation is determined by the nearest grid edge.
+        EdgeDirection baseDirection = hasManualDirection
+            ? manualDirection
+            : currentEdge.direction;
+
+        manualDirection = baseDirection == EdgeDirection.Horizontal
+            ? EdgeDirection.Vertical
+            : EdgeDirection.Horizontal;
+
+        hasManualDirection = true;
     }
 
     public void TryPlace()
@@ -314,6 +384,8 @@ public sealed class SingleEdgePlacementHandler : IPlacementHandler
         placementPreview = null;
         previewRenderers = null;
         currentEdge = new GridEdge(Vector2Int.zero, EdgeDirection.Horizontal);
+        manualDirection = EdgeDirection.Horizontal;
+        hasManualDirection = false;
         previewEdges.Clear();
     }
 }
