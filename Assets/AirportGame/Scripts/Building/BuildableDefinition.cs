@@ -142,6 +142,9 @@ public class BuildableDefinition : ScriptableObject
 
     public bool requiresExistingWall = false;
 
+    [Tooltip("Places this edge buildable as one object with a single click instead of using wall-line drawing.")]
+    public bool isSingleEdgePlacement = false;
+
     [Header("Wall Mounted")]
     public bool isWallMounted = false;
 
