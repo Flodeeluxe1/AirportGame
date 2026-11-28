@@ -24,6 +24,7 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
 
     private SecurityArea[] areas;
     private bool[] criticalReachable;
+    private bool[] enclosedRoomReachable;
     private bool[] secureReachable;
     private int[] floodQueue;
 
@@ -184,26 +185,26 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
             }
         }
 
-        // Critical space is the part of the grid not reachable from the
-        // map perimeter when crossing fence edges is forbidden.
+        // Preserve fence-enclosed critical zones, and also detect rooms
+        // enclosed by walls/doors. This allows a scanner to divide a
+        // fully enclosed room without requiring a fence perimeter.
         FloodFromGridPerimeter(criticalReachable, fenceEdges);
+        FloodFromGridPerimeter(enclosedRoomReachable, blockingEdges);
 
-        // A scanner's local forward direction identifies its secure side.
-        // Scanner-generated virtual lines and physical walls/fences block
-        // propagation between areas.
+        // The scanner's local forward direction is the post-scanner side.
+        // Flood only within the wall-enclosed room and stop at the scanner's
+        // virtual boundary, so only that side becomes Critical.
         for (int i = 0; i < secureSeeds.Count; i++)
         {
             int seed = secureSeeds[i];
-            if (!criticalReachable[seed])
-                FloodFromSeed(seed, secureReachable, blockingEdges, criticalReachable);
+            if (!enclosedRoomReachable[seed])
+                FloodFromSeed(seed, secureReachable, blockingEdges, enclosedRoomReachable);
         }
 
         for (int i = 0; i < cellCount; i++)
         {
-            if (!criticalReachable[i])
+            if (!criticalReachable[i] || secureReachable[i])
                 areas[i] = SecurityArea.Critical;
-            else if (secureReachable[i])
-                areas[i] = SecurityArea.Secure;
             else
                 areas[i] = SecurityArea.Unsecure;
         }
@@ -234,6 +235,9 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
         if (criticalReachable == null || criticalReachable.Length != cellCount)
             criticalReachable = new bool[cellCount];
 
+        if (enclosedRoomReachable == null || enclosedRoomReachable.Length != cellCount)
+            enclosedRoomReachable = new bool[cellCount];
+
         if (secureReachable == null || secureReachable.Length != cellCount)
             secureReachable = new bool[cellCount];
 
@@ -241,6 +245,7 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
             floodQueue = new int[cellCount];
 
         System.Array.Clear(criticalReachable, 0, criticalReachable.Length);
+        System.Array.Clear(enclosedRoomReachable, 0, enclosedRoomReachable.Length);
         System.Array.Clear(secureReachable, 0, secureReachable.Length);
     }
 
