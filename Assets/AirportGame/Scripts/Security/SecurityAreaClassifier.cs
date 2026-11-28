@@ -29,8 +29,11 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
     private int maxScannerToWallDistance = 8;
 
     private SecurityArea[] areas;
-    private bool[] enclosedRoomReachable;
-    private bool[] criticalReachable;
+    // Generation-stamped visitation avoids clearing cell-sized arrays each rebuild.
+    private int[] enclosedRoomVisitGeneration;
+    private int[] criticalVisitGeneration;
+    private int enclosedRoomGeneration;
+    private int criticalGeneration;
     private int[] floodQueue;
 
     // Edge barriers are stored as flat arrays for fast flood-fill lookups.
@@ -244,7 +247,9 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
         // runway-side region even when both sides are inside the map bounds.
         floodVisitedCells = 0;
         long publicFloodStartTicks = Stopwatch.GetTimestamp();
-        FloodFromGridPerimeter(enclosedRoomReachable);
+        enclosedRoomGeneration = NextGeneration(
+            enclosedRoomGeneration, enclosedRoomVisitGeneration);
+        FloodFromGridPerimeter(enclosedRoomVisitGeneration, enclosedRoomGeneration);
         double publicFloodMs = TicksToMilliseconds(
             Stopwatch.GetTimestamp() - publicFloodStartTicks);
         int publicCellsVisited = floodVisitedCells;
@@ -253,6 +258,7 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
         // Flood it regardless of outside connectivity; outside reachability
         // takes precedence later, so a runway connected to public space
         // remains Unsecure while still identifying the correct scanner side.
+        criticalGeneration = NextGeneration(criticalGeneration, criticalVisitGeneration);
         floodVisitedCells = 0;
         long runwayFloodStartTicks = Stopwatch.GetTimestamp();
         for (int z = 0; z < gridHeight; z++)
@@ -265,8 +271,8 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
                 int runwayIndex = ToIndex(x, z);
                 FloodFromSeed(
                     runwayIndex,
-                    criticalReachable,
-                    null);
+                    criticalVisitGeneration,
+                    criticalGeneration);
             }
         }
         double runwayFloodMs = TicksToMilliseconds(
@@ -283,12 +289,12 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
                 // Public-side connectivity wins. The scanner divider is
                 // included in blockingEdges, separating this from the
                 // runway-side foundation area.
-                if (enclosedRoomReachable[index])
+                if (enclosedRoomVisitGeneration[index] == enclosedRoomGeneration)
                     areas[index] = SecurityArea.Unsecure;
                 else if (gridSurface.GetSurface(new Vector2Int(x, z)) ==
                          BuildSurface.Foundation)
                     areas[index] = SecurityArea.Secure;
-                else if (criticalReachable[index])
+                else if (criticalVisitGeneration[index] == criticalGeneration)
                     areas[index] = SecurityArea.Critical;
                 else
                     areas[index] = SecurityArea.Unclassified;
@@ -326,6 +332,19 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
             publicCellsVisited + runwayCellsVisited);
     }
 
+    private static int NextGeneration(int current, int[] generations)
+    {
+        // Handle the extremely rare integer wraparound without leaving stale
+        // cells marked as visited in the new generation.
+        if (current == int.MaxValue)
+        {
+            System.Array.Clear(generations, 0, generations.Length);
+            return 1;
+        }
+
+        return current + 1;
+    }
+
     private static double TicksToMilliseconds(long ticks)
     {
         return ticks * 1000.0 / Stopwatch.Frequency;
@@ -346,17 +365,21 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
         System.Array.Clear(horizontalBlockingEdges, 0, horizontalBlockingEdges.Length);
         System.Array.Clear(verticalBlockingEdges, 0, verticalBlockingEdges.Length);
 
-        if (enclosedRoomReachable == null || enclosedRoomReachable.Length != cellCount)
-            enclosedRoomReachable = new bool[cellCount];
+        if (enclosedRoomVisitGeneration == null || enclosedRoomVisitGeneration.Length != cellCount)
+        {
+            enclosedRoomVisitGeneration = new int[cellCount];
+            enclosedRoomGeneration = 0;
+        }
 
-        if (criticalReachable == null || criticalReachable.Length != cellCount)
-            criticalReachable = new bool[cellCount];
+        if (criticalVisitGeneration == null || criticalVisitGeneration.Length != cellCount)
+        {
+            criticalVisitGeneration = new int[cellCount];
+            criticalGeneration = 0;
+        }
 
         if (floodQueue == null || floodQueue.Length != cellCount)
             floodQueue = new int[cellCount];
 
-        System.Array.Clear(enclosedRoomReachable, 0, enclosedRoomReachable.Length);
-        System.Array.Clear(criticalReachable, 0, criticalReachable.Length);
     }
 
     private void AddBuildingEdges(PlacedBuilding building)
@@ -528,53 +551,50 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
         return verticalBlockingEdges[z * (gridWidth + 1) + edgeX];
     }
 
-    private void FloodFromGridPerimeter(bool[] reached)
+    private void FloodFromGridPerimeter(int[] reached, int generation)
     {
         int tail = 0;
 
         for (int x = 0; x < gridWidth; x++)
         {
-            EnqueueIfNew(ToIndex(x, 0), reached, ref tail);
+            EnqueueIfNew(ToIndex(x, 0), reached, generation, ref tail);
             if (gridHeight > 1)
-                EnqueueIfNew(ToIndex(x, gridHeight - 1), reached, ref tail);
+                EnqueueIfNew(ToIndex(x, gridHeight - 1), reached, generation, ref tail);
         }
 
         for (int z = 1; z < gridHeight - 1; z++)
         {
-            EnqueueIfNew(ToIndex(0, z), reached, ref tail);
+            EnqueueIfNew(ToIndex(0, z), reached, generation, ref tail);
             if (gridWidth > 1)
-                EnqueueIfNew(ToIndex(gridWidth - 1, z), reached, ref tail);
+                EnqueueIfNew(ToIndex(gridWidth - 1, z), reached, generation, ref tail);
         }
 
-        FloodQueueFromExisting(tail, reached, null);
+        FloodQueueFromExisting(tail, reached, generation);
     }
 
-    private void FloodFromSeed(
-        int seed,
-        bool[] reached,
-        bool[] forbidden)
+    private void FloodFromSeed(int seed, int[] reached, int generation)
     {
-        if (reached[seed] || (forbidden != null && forbidden[seed]))
+        if (reached[seed] == generation)
             return;
 
-        reached[seed] = true;
+        reached[seed] = generation;
         floodQueue[0] = seed;
-        FloodQueueFromExisting(1, reached, forbidden);
+        FloodQueueFromExisting(1, reached, generation);
     }
 
-    private void EnqueueIfNew(int index, bool[] reached, ref int tail)
+    private void EnqueueIfNew(int index, int[] reached, int generation, ref int tail)
     {
-        if (reached[index])
+        if (reached[index] == generation)
             return;
 
-        reached[index] = true;
+        reached[index] = generation;
         floodQueue[tail++] = index;
     }
 
     private void FloodQueueFromExisting(
         int tail,
-        bool[] reached,
-        bool[] forbidden)
+        int[] reached,
+        int generation)
     {
         int head = 0;
 
@@ -586,7 +606,7 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
             int z = index / gridWidth;
 
             TryVisit(x + 1, z, IsVerticalBlocked(x + 1, z),
-                reached, forbidden, ref tail);
+                reached, generation, ref tail);
             TryVisit(x - 1, z, IsVerticalBlocked(x, z),
                 reached, forbidden, ref tail);
             TryVisit(x, z + 1, IsHorizontalBlocked(x, z + 1),
@@ -600,8 +620,8 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
         int x,
         int z,
         bool crossingBlocked,
-        bool[] reached,
-        bool[] forbidden,
+        int[] reached,
+        int generation,
         ref int tail)
     {
         if (x < 0 || x >= gridWidth || z < 0 || z >= gridHeight ||
@@ -611,10 +631,10 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
         }
 
         int index = ToIndex(x, z);
-        if (reached[index] || (forbidden != null && forbidden[index]))
+        if (reached[index] == generation)
             return;
 
-        reached[index] = true;
+        reached[index] = generation;
         floodQueue[tail++] = index;
     }
 
