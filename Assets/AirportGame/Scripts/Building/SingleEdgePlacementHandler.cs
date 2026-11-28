@@ -22,6 +22,7 @@ public sealed class SingleEdgePlacementHandler : IPlacementHandler
     private bool hasManualDirection;
     private readonly RaycastHit[] fenceHitBuffer = new RaycastHit[32];
     private readonly List<GridEdge> previewEdges = new List<GridEdge>();
+    private readonly List<GameObject> fencesToReplace = new List<GameObject>();
 
     public void Initialize(
         BuildController controller,
@@ -163,14 +164,34 @@ public sealed class SingleEdgePlacementHandler : IPlacementHandler
             GridEdge edge = previewEdges[i];
 
             if (!IsEdgeInsideGrid(edge) ||
-                !edgeOccupancy.CanOccupy(edge) ||
                 !HasRequiredFoundation(edge))
             {
                 return false;
             }
+
+            if (!edgeOccupancy.CanOccupy(edge))
+            {
+                GameObject occupant = edgeOccupancy.GetOccupant(edge);
+                if (!IsReplaceableFence(occupant))
+                    return false;
+            }
         }
 
         return true;
+    }
+
+    private bool IsReplaceableFence(GameObject candidate)
+    {
+        if (candidate == null)
+            return false;
+
+        PlacedBuilding building =
+            candidate.GetComponent<PlacedBuilding>();
+
+        return building != null &&
+               building.IsEdgeBuilding &&
+               building.Definition != null &&
+               building.Definition.category == BuildCategory.Fence;
     }
 
     private bool IsEdgeInsideGrid(GridEdge edge)
@@ -340,6 +361,19 @@ public sealed class SingleEdgePlacementHandler : IPlacementHandler
             return;
         }
 
+        // Gather each existing fence only once, even if it occupies
+        // multiple edges covered by this gate.
+        fencesToReplace.Clear();
+        for (int i = 0; i < previewEdges.Count; i++)
+        {
+            GameObject occupant = edgeOccupancy.GetOccupant(previewEdges[i]);
+            if (IsReplaceableFence(occupant) &&
+                !fencesToReplace.Contains(occupant))
+            {
+                fencesToReplace.Add(occupant);
+            }
+        }
+
         GameObject placedObject = Object.Instantiate(definition.prefab);
         Renderer[] placedRenderers =
             placedObject.GetComponentsInChildren<Renderer>(true);
@@ -354,8 +388,19 @@ public sealed class SingleEdgePlacementHandler : IPlacementHandler
             definition.edgeLength,
             currentEdge.direction);
 
+        // Release all edges owned by each replaced fence before assigning
+        // the gate's edges. Destroy removes the complete fence object.
+        for (int i = 0; i < fencesToReplace.Count; i++)
+        {
+            GameObject fence = fencesToReplace[i];
+            edgeOccupancy.ReleaseBuilding(fence);
+            Object.Destroy(fence);
+        }
+
         for (int i = 0; i < previewEdges.Count; i++)
             edgeOccupancy.Occupy(previewEdges[i], placedObject);
+
+        fencesToReplace.Clear();
 
         Debug.Log(
             $"Placed {definition.displayName} across {previewEdges.Count} edge(s).");
@@ -364,6 +409,7 @@ public sealed class SingleEdgePlacementHandler : IPlacementHandler
     public void Cancel()
     {
         previewEdges.Clear();
+        fencesToReplace.Clear();
     }
 
     public void Reset()
@@ -376,5 +422,6 @@ public sealed class SingleEdgePlacementHandler : IPlacementHandler
         manualDirection = EdgeDirection.Horizontal;
         hasManualDirection = false;
         previewEdges.Clear();
+        fencesToReplace.Clear();
     }
 }
