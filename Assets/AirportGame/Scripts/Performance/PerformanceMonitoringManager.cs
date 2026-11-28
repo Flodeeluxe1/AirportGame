@@ -282,12 +282,12 @@ public class PerformanceMonitoringManager : MonoBehaviour
             $"GC collections: Gen0 {gen0Collections}   Gen1 {gen1Collections}   Gen2 {gen2Collections}\n" +
             $"Managed heap: {FormatBytes(managedMemoryBytes)}\n" +
             $"Unity allocated: {FormatBytes(allocatedMemoryBytes)}\n" +
-            $"Unity reserved: {FormatBytes(reservedMemoryBytes)}\\n" +
-            $"SECURITY (last {sampleInterval:0.0}s): {securityRebuildCount} rebuild(s)\\n" +
+            $"Unity reserved: {FormatBytes(reservedMemoryBytes)}\n" +
+            $"SECURITY (last {sampleInterval:0.0}s): {securityRebuildCount} rebuild(s)\n" +
             (securityRebuildCount > 0
-                ? $"Rebuild: {securityAverageRebuildMs:0.000} ms avg / {securityWorstRebuildMs:0.000} ms worst\\n" +
-                  $"Edges {securityAverageEdgeMs:0.000} | Scanner {securityAverageScannerMs:0.000} ms\\n" +
-                  $"Public flood {securityAveragePublicFloodMs:0.000} | Runway flood {securityAverageRunwayFloodMs:0.000} ms\\n" +
+                ? $"Rebuild: {securityAverageRebuildMs:0.000} ms avg / {securityWorstRebuildMs:0.000} ms worst\n" +
+                  $"Edges {securityAverageEdgeMs:0.000} | Scanner {securityAverageScannerMs:0.000} ms\n" +
+                  $"Public flood {securityAveragePublicFloodMs:0.000} | Runway flood {securityAverageRunwayFloodMs:0.000} ms\n" +
                   $"Classify {securityAverageClassificationMs:0.000} ms | Cells visited {securityCellsVisited}"
                 : "No security rebuilds this sample");
     }
