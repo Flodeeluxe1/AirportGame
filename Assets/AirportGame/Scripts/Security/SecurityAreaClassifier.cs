@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -29,8 +30,6 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
 
     private SecurityArea[] areas;
     private bool[] enclosedRoomReachable;
-    private bool[] secureReachable;
-    private bool[] physicallyOutsideReachable;
     private bool[] criticalReachable;
     private int[] floodQueue;
 
@@ -39,23 +38,6 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
     private readonly HashSet<GridEdge> perimeterEdges = new HashSet<GridEdge>();
     // Includes physical edges plus the virtual body-scanner divider.
     private readonly HashSet<GridEdge> blockingEdges = new HashSet<GridEdge>();
-    private struct ScannerDivider
-    {
-        public int sideA;
-        public int sideB;
-
-        public ScannerDivider(int sideA, int sideB)
-        {
-            this.sideA = sideA;
-            this.sideB = sideB;
-        }
-    }
-
-    private readonly List<ScannerDivider> scannerDividers =
-        new List<ScannerDivider>();
-    private readonly List<int> secureSeeds = new List<int>();
-    private bool[] secureForbidden;
-
     [SerializeField, Tooltip("Number of body scanners missing a wall endpoint.")]
     private int incompleteScannerBoundaryCount;
     [SerializeField, Tooltip("True when a secure flood reaches the outer grid boundary.")]
@@ -119,6 +101,12 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
             edgeOccupancy.OccupancyChanged -= OnOccupancyChanged;
             edgeOccupancy.OccupancyChanged += OnOccupancyChanged;
         }
+
+        if (gridSurface != null)
+        {
+            gridSurface.FoundationSurfaceChanged -= OnFoundationSurfaceChanged;
+            gridSurface.FoundationSurfaceChanged += OnFoundationSurfaceChanged;
+        }
     }
 
     private void Unsubscribe()
@@ -127,6 +115,15 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
 
         if (edgeOccupancy != null)
             edgeOccupancy.OccupancyChanged -= OnOccupancyChanged;
+
+        if (gridSurface != null)
+            gridSurface.FoundationSurfaceChanged -= OnFoundationSurfaceChanged;
+
+        if (pendingSurfaceRebuild != null)
+        {
+            StopCoroutine(pendingSurfaceRebuild);
+            pendingSurfaceRebuild = null;
+        }
     }
 
     private void OnBuildingChanged(PlacedBuilding building)
@@ -136,6 +133,22 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
 
     private void OnOccupancyChanged()
     {
+        Rebuild();
+    }
+
+    private Coroutine pendingSurfaceRebuild;
+
+    private void OnFoundationSurfaceChanged()
+    {
+        if (pendingSurfaceRebuild == null && isActiveAndEnabled)
+            pendingSurfaceRebuild = StartCoroutine(RebuildAfterSurfaceChanges());
+    }
+
+    private IEnumerator RebuildAfterSurfaceChanges()
+    {
+        // Coalesce per-cell foundation notifications into one rebuild.
+        yield return null;
+        pendingSurfaceRebuild = null;
         Rebuild();
     }
 
@@ -172,8 +185,6 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
         hasSecurityBoundaryLeak = false;
         perimeterEdges.Clear();
         blockingEdges.Clear();
-        scannerDividers.Clear();
-        secureSeeds.Clear();
 
         if (gridManager == null || edgeOccupancy == null ||
             gridSurface == null ||
@@ -221,11 +232,6 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
         // runway-side region even when both sides are inside the map bounds.
         FloodFromGridPerimeter(enclosedRoomReachable, blockingEdges);
 
-        // Physical enclosure is evaluated independently of the scanner.
-        // A cell unreachable from the map perimeter using only physical
-        // walls, doors and fences is Secure, even on the runway side.
-        FloodFromGridPerimeter(physicallyOutsideReachable, perimeterEdges);
-
         // The runway is the authoritative seed for the airport-side region.
         // Flood it regardless of outside connectivity; outside reachability
         // takes precedence later, so a runway connected to public space
@@ -246,57 +252,25 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
             }
         }
 
-        // Scanner rotation is deliberately ignored. Each scanner is only
-        // a divider: the runway flood determines which half is airport-side,
-        // and the opposite half is eligible to become Secure.
-        for (int i = 0; i < scannerDividers.Count; i++)
+        for (int z = 0; z < gridHeight; z++)
         {
-            ScannerDivider divider = scannerDividers[i];
-
-            if (criticalReachable[divider.sideA] &&
-                !criticalReachable[divider.sideB])
+            for (int x = 0; x < gridWidth; x++)
             {
-                AddSecureSeed(divider.sideB);
-            }
-            else if (criticalReachable[divider.sideB] &&
-                     !criticalReachable[divider.sideA])
-            {
-                AddSecureSeed(divider.sideA);
-            }
-        }
+                int index = ToIndex(x, z);
 
-        // Secure floods may not pass through public cells or the runway-
-        // connected Critical Area, even if an incomplete perimeter gives
-        // those regions a route around the scanner divider.
-        for (int i = 0; i < cellCount; i++)
-        {
-            secureForbidden[i] =
-                enclosedRoomReachable[i] || criticalReachable[i];
-        }
-
-        for (int i = 0; i < secureSeeds.Count; i++)
-        {
-            int seed = secureSeeds[i];
-            if (!secureForbidden[seed])
-            {
-                FloodFromSeed(
-                    seed,
-                    secureReachable,
-                    blockingEdges,
-                    secureForbidden);
+                // Public-side connectivity wins. The scanner divider is
+                // included in blockingEdges, separating this from the
+                // runway-side foundation area.
+                if (enclosedRoomReachable[index])
+                    areas[index] = SecurityArea.Unsecure;
+                else if (gridSurface.GetSurface(new Vector2Int(x, z)) ==
+                         BuildSurface.Foundation)
+                    areas[index] = SecurityArea.Secure;
+                else if (criticalReachable[index])
+                    areas[index] = SecurityArea.Critical;
+                else
+                    areas[index] = SecurityArea.Unclassified;
             }
-        }
-
-        for (int i = 0; i < cellCount; i++)
-        {
-            if (!physicallyOutsideReachable[i])
-                areas[i] = SecurityArea.Secure;
-            else if (enclosedRoomReachable[i])
-                areas[i] = SecurityArea.Unsecure;
-            else if (criticalReachable[i])
-                areas[i] = SecurityArea.Critical;
-            else
-                areas[i] = SecurityArea.Unclassified;
         }
 
         // If a secure flood reaches the outer grid row/column, there is an
@@ -325,26 +299,14 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
         if (enclosedRoomReachable == null || enclosedRoomReachable.Length != cellCount)
             enclosedRoomReachable = new bool[cellCount];
 
-        if (secureReachable == null || secureReachable.Length != cellCount)
-            secureReachable = new bool[cellCount];
-
         if (criticalReachable == null || criticalReachable.Length != cellCount)
             criticalReachable = new bool[cellCount];
-
-        if (secureForbidden == null || secureForbidden.Length != cellCount)
-            secureForbidden = new bool[cellCount];
-
-        if (physicallyOutsideReachable == null || physicallyOutsideReachable.Length != cellCount)
-            physicallyOutsideReachable = new bool[cellCount];
 
         if (floodQueue == null || floodQueue.Length != cellCount)
             floodQueue = new int[cellCount];
 
         System.Array.Clear(enclosedRoomReachable, 0, enclosedRoomReachable.Length);
-        System.Array.Clear(secureReachable, 0, secureReachable.Length);
         System.Array.Clear(criticalReachable, 0, criticalReachable.Length);
-        System.Array.Clear(secureForbidden, 0, secureForbidden.Length);
-        System.Array.Clear(physicallyOutsideReachable, 0, physicallyOutsideReachable.Length);
     }
 
     private void AddBuildingEdges(
@@ -412,9 +374,6 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
                     EdgeDirection.Horizontal));
             }
 
-            AddScannerDivider(
-                scanner.Origin + Vector2Int.up,
-                scanner.Origin + Vector2Int.down);
         }
         else
         {
@@ -428,28 +387,7 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
                     EdgeDirection.Vertical));
             }
 
-            AddScannerDivider(
-                scanner.Origin + Vector2Int.right,
-                scanner.Origin + Vector2Int.left);
         }
-    }
-
-    private void AddScannerDivider(Vector2Int sideA, Vector2Int sideB)
-    {
-        if (!gridManager.IsInsideGrid(sideA) ||
-            !gridManager.IsInsideGrid(sideB))
-        {
-            return;
-        }
-
-        scannerDividers.Add(new ScannerDivider(
-            ToIndex(sideA),
-            ToIndex(sideB)));
-    }
-
-    private void AddSecureSeed(int index)
-    {
-        secureSeeds.Add(index);
     }
 
     private bool TryFindWall(
@@ -617,7 +555,7 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
 
     private bool IsSecure(int x, int z)
     {
-        return !physicallyOutsideReachable[ToIndex(x, z)];
+        return areas[ToIndex(x, z)] == SecurityArea.Secure;
     }
 
     private int ToIndex(Vector2Int cell)
