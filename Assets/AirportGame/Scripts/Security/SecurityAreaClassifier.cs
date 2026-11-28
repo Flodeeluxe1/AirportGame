@@ -286,7 +286,7 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
         if (!TryFindWall(scanner.Origin, positiveStep, out GridEdge positiveWall) ||
             !TryFindWall(scanner.Origin, negativeStep, out GridEdge negativeWall))
         {
-            IncompleteScannerBoundaryCount++;
+            incompleteScannerBoundaryCount++;
             return;
         }
 
