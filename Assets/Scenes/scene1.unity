@@ -1590,6 +1590,8 @@ GameObject:
   - component: {fileID: 728659361}
   - component: {fileID: 728659363}
   - component: {fileID: 728659362}
+  - component: {fileID: 728659365}
+  - component: {fileID: 728659364}
   m_Layer: 0
   m_Name: Grid
   m_TagString: Untagged
@@ -1705,6 +1707,40 @@ MonoBehaviour:
   gridSurface: {fileID: 728659360}
   edgeOccupancy: {fileID: 751787733}
   logRoomChanges: 1
+--- !u!114 &728659364
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 728659357}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b7d3e9a1c5f64280a4e6d1f9382b507c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SecurityAreaDebugVisualizer
+  classifier: {fileID: 728659365}
+  showAreaCells: 1
+  cellFill: 0.82
+  verticalOffset: 0.08
+--- !u!114 &728659365
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 728659357}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a2f4c8d19e634b7f95a1c3e6d8f02741, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SecurityAreaClassifier
+  gridManager: {fileID: 0}
+  edgeOccupancy: {fileID: 0}
+  gridSurface: {fileID: 0}
+  maxScannerToWallDistance: 10
+  incompleteScannerBoundaryCount: 0
+  hasSecurityBoundaryLeak: 0
 --- !u!1 &732156761
 GameObject:
   m_ObjectHideFlags: 0
@@ -1892,12 +1928,12 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 736971620}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 0cb38dc4818c360498cff4f875ac4bc7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PerformanceMonitoringManager
-  logToConsole: 0
+  logToConsole: 1
   sampleInterval: 1
   frameSpikeThresholdMs: 350
   startVisible: 1
