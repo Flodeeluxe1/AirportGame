@@ -16,11 +16,11 @@ MonoBehaviour:
   displayName: Fence Gate
   prefab: {fileID: 5605719680988089666, guid: 9429eb69829f93041ada82da8dee95e7, type: 3}
   placementType: 1
-  allowedSurfaces: 101
+  allowedSurfaces: 0
   requiredSurface: 5
   width: 1
   depth: 1
-  edgeLength: 6
+  edgeLength: 7
   requiresExistingWall: 0
   isSingleEdgePlacement: 1
   isWallMounted: 0
