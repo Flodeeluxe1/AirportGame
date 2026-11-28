@@ -220,7 +220,7 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
         {
             PerformanceMonitoringManager.RecordSecurityRebuild(
                 TicksToMilliseconds(Stopwatch.GetTimestamp() - rebuildStartTicks),
-                0.0, 0.0, 0.0, 0.0, 0.0, 0);
+                0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0);
             return;
         }
 
