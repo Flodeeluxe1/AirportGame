@@ -52,6 +52,7 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
 
     private readonly List<ScannerDivider> scannerDividers =
         new List<ScannerDivider>();
+    private readonly List<int> secureSeeds = new List<int>();
     private bool[] secureForbidden;
 
     [SerializeField, Tooltip("Number of body scanners missing a wall endpoint.")]
@@ -171,6 +172,7 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
         perimeterEdges.Clear();
         blockingEdges.Clear();
         scannerDividers.Clear();
+        secureSeeds.Clear();
 
         if (gridManager == null || edgeOccupancy == null ||
             gridSurface == null ||
@@ -265,24 +267,13 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
                 enclosedRoomReachable[i] || criticalReachable[i];
         }
 
-        for (int i = 0; i < scannerDividers.Count; i++)
+        for (int i = 0; i < secureSeeds.Count; i++)
         {
-            ScannerDivider divider = scannerDividers[i];
-
-            if (criticalReachable[divider.sideA] &&
-                !criticalReachable[divider.sideB])
+            int seed = secureSeeds[i];
+            if (!secureForbidden[seed])
             {
                 FloodFromSeed(
-                    divider.sideB,
-                    secureReachable,
-                    blockingEdges,
-                    secureForbidden);
-            }
-            else if (criticalReachable[divider.sideB] &&
-                     !criticalReachable[divider.sideA])
-            {
-                FloodFromSeed(
-                    divider.sideA,
+                    seed,
                     secureReachable,
                     blockingEdges,
                     secureForbidden);
@@ -447,14 +438,7 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
 
     private void AddSecureSeed(int index)
     {
-        if (!secureForbidden[index] && !secureReachable[index])
-        {
-            FloodFromSeed(
-                index,
-                secureReachable,
-                blockingEdges,
-                secureForbidden);
-        }
+        secureSeeds.Add(index);
     }
 
     private bool TryFindWall(
