@@ -38,7 +38,21 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
     private readonly HashSet<GridEdge> perimeterEdges = new HashSet<GridEdge>();
     // Includes physical edges plus the virtual body-scanner divider.
     private readonly HashSet<GridEdge> blockingEdges = new HashSet<GridEdge>();
-    private readonly List<int> secureSeeds = new List<int>();
+    private struct ScannerDivider
+    {
+        public int sideA;
+        public int sideB;
+
+        public ScannerDivider(int sideA, int sideB)
+        {
+            this.sideA = sideA;
+            this.sideB = sideB;
+        }
+    }
+
+    private readonly List<ScannerDivider> scannerDividers =
+        new List<ScannerDivider>();
+    private bool[] secureForbidden;
 
     [SerializeField, Tooltip("Number of body scanners missing a wall endpoint.")]
     private int incompleteScannerBoundaryCount;
@@ -156,7 +170,7 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
         hasSecurityBoundaryLeak = false;
         perimeterEdges.Clear();
         blockingEdges.Clear();
-        secureSeeds.Clear();
+        scannerDividers.Clear();
 
         if (gridManager == null || edgeOccupancy == null ||
             gridSurface == null ||
@@ -215,30 +229,63 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
                     continue;
 
                 int runwayIndex = ToIndex(x, z);
-                if (!enclosedRoomReachable[runwayIndex])
-                {
-                    FloodFromSeed(
-                        runwayIndex,
-                        criticalReachable,
-                        blockingEdges,
-                        enclosedRoomReachable);
-                }
+                FloodFromSeed(
+                    runwayIndex,
+                    criticalReachable,
+                    blockingEdges,
+                    null);
             }
         }
 
-        // Scanner-facing seeds may only classify enclosed cells that are
-        // not already connected to the runway's Critical Area. Therefore
-        // a reversed scanner cannot override the runway-side classification.
-        for (int i = 0; i < secureSeeds.Count; i++)
+        // Scanner rotation is deliberately ignored. Each scanner is only
+        // a divider: the runway flood determines which half is airport-side,
+        // and the opposite half is eligible to become Secure.
+        for (int i = 0; i < scannerDividers.Count; i++)
         {
-            int seed = secureSeeds[i];
-            if (!enclosedRoomReachable[seed] && !criticalReachable[seed])
+            ScannerDivider divider = scannerDividers[i];
+
+            if (criticalReachable[divider.sideA] &&
+                !criticalReachable[divider.sideB])
+            {
+                AddSecureSeed(divider.sideB);
+            }
+            else if (criticalReachable[divider.sideB] &&
+                     !criticalReachable[divider.sideA])
+            {
+                AddSecureSeed(divider.sideA);
+            }
+        }
+
+        // Secure floods may not pass through public cells or the runway-
+        // connected Critical Area, even if an incomplete perimeter gives
+        // those regions a route around the scanner divider.
+        for (int i = 0; i < cellCount; i++)
+        {
+            secureForbidden[i] =
+                enclosedRoomReachable[i] || criticalReachable[i];
+        }
+
+        for (int i = 0; i < scannerDividers.Count; i++)
+        {
+            ScannerDivider divider = scannerDividers[i];
+
+            if (criticalReachable[divider.sideA] &&
+                !criticalReachable[divider.sideB])
             {
                 FloodFromSeed(
-                    seed,
+                    divider.sideB,
                     secureReachable,
                     blockingEdges,
-                    enclosedRoomReachable);
+                    secureForbidden);
+            }
+            else if (criticalReachable[divider.sideB] &&
+                     !criticalReachable[divider.sideA])
+            {
+                FloodFromSeed(
+                    divider.sideA,
+                    secureReachable,
+                    blockingEdges,
+                    secureForbidden);
             }
         }
 
@@ -286,12 +333,16 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
         if (criticalReachable == null || criticalReachable.Length != cellCount)
             criticalReachable = new bool[cellCount];
 
+        if (secureForbidden == null || secureForbidden.Length != cellCount)
+            secureForbidden = new bool[cellCount];
+
         if (floodQueue == null || floodQueue.Length != cellCount)
             floodQueue = new int[cellCount];
 
         System.Array.Clear(enclosedRoomReachable, 0, enclosedRoomReachable.Length);
         System.Array.Clear(secureReachable, 0, secureReachable.Length);
         System.Array.Clear(criticalReachable, 0, criticalReachable.Length);
+        System.Array.Clear(secureForbidden, 0, secureForbidden.Length);
     }
 
     private void AddBuildingEdges(
@@ -318,18 +369,11 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
         bool alongGridX = Mathf.Abs(right.x) >= Mathf.Abs(right.z);
 
         Vector2Int positiveStep;
-        int normalSign;
 
         if (alongGridX)
-        {
             positiveStep = new Vector2Int(right.x >= 0f ? 1 : -1, 0);
-            normalSign = scanner.transform.forward.z >= 0f ? 1 : -1;
-        }
         else
-        {
             positiveStep = new Vector2Int(0, right.z >= 0f ? 1 : -1);
-            normalSign = scanner.transform.forward.x >= 0f ? 1 : -1;
-        }
 
         Vector2Int negativeStep = -positiveStep;
 
@@ -366,8 +410,9 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
                     EdgeDirection.Horizontal));
             }
 
-            Vector2Int secureCell = scanner.Origin + new Vector2Int(0, normalSign);
-            AddSecureSeed(secureCell);
+            AddScannerDivider(
+                scanner.Origin + Vector2Int.up,
+                scanner.Origin + Vector2Int.down);
         }
         else
         {
@@ -381,15 +426,35 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
                     EdgeDirection.Vertical));
             }
 
-            Vector2Int secureCell = scanner.Origin + new Vector2Int(normalSign, 0);
-            AddSecureSeed(secureCell);
+            AddScannerDivider(
+                scanner.Origin + Vector2Int.right,
+                scanner.Origin + Vector2Int.left);
         }
     }
 
-    private void AddSecureSeed(Vector2Int cell)
+    private void AddScannerDivider(Vector2Int sideA, Vector2Int sideB)
     {
-        if (gridManager.IsInsideGrid(cell))
-            secureSeeds.Add(ToIndex(cell));
+        if (!gridManager.IsInsideGrid(sideA) ||
+            !gridManager.IsInsideGrid(sideB))
+        {
+            return;
+        }
+
+        scannerDividers.Add(new ScannerDivider(
+            ToIndex(sideA),
+            ToIndex(sideB)));
+    }
+
+    private void AddSecureSeed(int index)
+    {
+        if (!secureForbidden[index] && !secureReachable[index])
+        {
+            FloodFromSeed(
+                index,
+                secureReachable,
+                blockingEdges,
+                secureForbidden);
+        }
     }
 
     private bool TryFindWall(
