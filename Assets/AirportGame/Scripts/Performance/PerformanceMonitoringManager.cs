@@ -167,6 +167,17 @@ public class PerformanceMonitoringManager : MonoBehaviour
 
         UpdateOverlayText();
 
+        if (logToConsole && securityRebuildCount > 0)
+        {
+            Log(
+                $"Security performance (last {sampleInterval:0.0}s): {securityRebuildCount} rebuild(s)\n" +
+                $"Rebuild: {securityAverageRebuildMs:0.000} ms avg / {securityWorstRebuildMs:0.000} ms worst\n" +
+                $"Edges {securityAverageEdgeMs:0.000} | Scanner {securityAverageScannerMs:0.000} ms\n" +
+                $"Public flood {securityAveragePublicFloodMs:0.000} | Runway flood {securityAverageRunwayFloodMs:0.000} ms\n" +
+                $"Classify {securityAverageClassificationMs:0.000} ms | Cells visited {securityCellsVisited}",
+                this);
+        }
+
         sampleElapsed = 0f;
         sampleFrameTime = 0f;
         sampleFrameCount = 0;
