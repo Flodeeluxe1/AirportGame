@@ -583,11 +583,11 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
             TryVisit(x + 1, z, IsVerticalBlocked(x + 1, z),
                 reached, ref tail);
             TryVisit(x - 1, z, IsVerticalBlocked(x, z),
-                reached, generation, ref tail);
+                reached, ref tail);
             TryVisit(x, z + 1, IsHorizontalBlocked(x, z + 1),
-                reached, generation, ref tail);
+                reached, ref tail);
             TryVisit(x, z - 1, IsHorizontalBlocked(x, z),
-                reached, generation, ref tail);
+                reached, ref tail);
         }
     }
 
