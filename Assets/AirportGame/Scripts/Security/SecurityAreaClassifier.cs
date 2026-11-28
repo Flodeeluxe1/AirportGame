@@ -290,7 +290,12 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
             else if (criticalReachable[i])
                 areas[i] = SecurityArea.Critical;
             else
-                areas[i] = SecurityArea.Critical;
+                // Any cell isolated from the public perimeter and not
+                // connected to the runway is on the secure side of the
+                // security boundary. This also covers enclosed rooms when
+                // a scanner divider's seed cell does not coincide exactly
+                // with the scanner's occupied grid cell.
+                areas[i] = SecurityArea.Secure;
         }
 
         // If a secure flood reaches the outer grid row/column, there is an
