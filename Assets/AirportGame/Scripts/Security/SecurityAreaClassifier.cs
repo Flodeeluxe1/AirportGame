@@ -1,4 +1,3 @@
-using System.Collections;
 using System.Collections.Generic;
 using Stopwatch = System.Diagnostics.Stopwatch;
 using UnityEngine;
@@ -34,11 +33,11 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
     private bool[] criticalReachable;
     private int[] floodQueue;
 
-    // Physical perimeter edges (walls, doors and fences) must form a
-    // continuous loop before any enclosed cell can be considered secure.
-    private readonly HashSet<GridEdge> perimeterEdges = new HashSet<GridEdge>();
-    // Includes physical edges plus the virtual body-scanner divider.
-    private readonly HashSet<GridEdge> blockingEdges = new HashSet<GridEdge>();
+    // Edge barriers are stored as flat arrays for fast flood-fill lookups.
+    // Horizontal edges: z * gridWidth + x (z ranges 0..gridHeight).
+    // Vertical edges: z * (gridWidth + 1) + x (x ranges 0..gridWidth).
+    private bool[] horizontalBlockingEdges;
+    private bool[] verticalBlockingEdges;
     [SerializeField, Tooltip("Number of body scanners missing a wall endpoint.")]
     private int incompleteScannerBoundaryCount;
     [SerializeField, Tooltip("True when a secure flood reaches the outer grid boundary.")]
@@ -51,12 +50,13 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
     private int gridWidth;
     private int gridHeight;
     private int floodVisitedCells;
+    private bool rebuildRequested;
 
     private void OnEnable()
     {
         ResolveReferences();
         Subscribe();
-        Rebuild();
+        RequestRebuild();
     }
 
     private void Start()
@@ -64,12 +64,30 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
         // Other scene objects may finish their Awake/OnEnable after this one.
         ResolveReferences();
         Subscribe();
-        Rebuild();
+        RequestRebuild();
     }
 
     private void OnDisable()
     {
+        rebuildRequested = false;
         Unsubscribe();
+    }
+
+    private void LateUpdate()
+    {
+        if (!rebuildRequested)
+            return;
+
+        // Clear before rebuilding so any change raised during the rebuild
+        // schedules one follow-up on the next frame.
+        rebuildRequested = false;
+        Rebuild();
+    }
+
+    private void RequestRebuild()
+    {
+        if (isActiveAndEnabled)
+            rebuildRequested = true;
     }
 
     private void ResolveReferences()
@@ -121,37 +139,21 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
         if (gridSurface != null)
             gridSurface.FoundationSurfaceChanged -= OnFoundationSurfaceChanged;
 
-        if (pendingSurfaceRebuild != null)
-        {
-            StopCoroutine(pendingSurfaceRebuild);
-            pendingSurfaceRebuild = null;
-        }
     }
 
     private void OnBuildingChanged(PlacedBuilding building)
     {
-        Rebuild();
+        RequestRebuild();
     }
 
     private void OnOccupancyChanged()
     {
-        Rebuild();
+        RequestRebuild();
     }
-
-    private Coroutine pendingSurfaceRebuild;
 
     private void OnFoundationSurfaceChanged()
     {
-        if (pendingSurfaceRebuild == null && isActiveAndEnabled)
-            pendingSurfaceRebuild = StartCoroutine(RebuildAfterSurfaceChanges());
-    }
-
-    private IEnumerator RebuildAfterSurfaceChanges()
-    {
-        // Coalesce per-cell foundation notifications into one rebuild.
-        yield return null;
-        pendingSurfaceRebuild = null;
-        Rebuild();
+        RequestRebuild();
     }
 
     public SecurityArea GetArea(Vector2Int cell)
@@ -186,8 +188,6 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
         IsReady = false;
         incompleteScannerBoundaryCount = 0;
         hasSecurityBoundaryLeak = false;
-        perimeterEdges.Clear();
-        blockingEdges.Clear();
 
         if (gridManager == null || edgeOccupancy == null ||
             gridSurface == null ||
@@ -222,8 +222,7 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
                     category == BuildCategory.Wall ||
                     category == BuildCategory.Door)
                 {
-                    AddBuildingEdges(building, perimeterEdges);
-                    AddBuildingEdges(building, blockingEdges);
+                    AddBuildingEdges(building);
                 }
             }
 
@@ -245,7 +244,7 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
         // runway-side region even when both sides are inside the map bounds.
         floodVisitedCells = 0;
         long publicFloodStartTicks = Stopwatch.GetTimestamp();
-        FloodFromGridPerimeter(enclosedRoomReachable, blockingEdges);
+        FloodFromGridPerimeter(enclosedRoomReachable);
         double publicFloodMs = TicksToMilliseconds(
             Stopwatch.GetTimestamp() - publicFloodStartTicks);
         int publicCellsVisited = floodVisitedCells;
@@ -267,7 +266,6 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
                 FloodFromSeed(
                     runwayIndex,
                     criticalReachable,
-                    blockingEdges,
                     null);
             }
         }
@@ -338,6 +336,16 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
         if (areas == null || areas.Length != cellCount)
             areas = new SecurityArea[cellCount];
 
+        int horizontalEdgeCount = gridWidth * (gridHeight + 1);
+        int verticalEdgeCount = (gridWidth + 1) * gridHeight;
+        if (horizontalBlockingEdges == null || horizontalBlockingEdges.Length != horizontalEdgeCount)
+            horizontalBlockingEdges = new bool[horizontalEdgeCount];
+        if (verticalBlockingEdges == null || verticalBlockingEdges.Length != verticalEdgeCount)
+            verticalBlockingEdges = new bool[verticalEdgeCount];
+
+        System.Array.Clear(horizontalBlockingEdges, 0, horizontalBlockingEdges.Length);
+        System.Array.Clear(verticalBlockingEdges, 0, verticalBlockingEdges.Length);
+
         if (enclosedRoomReachable == null || enclosedRoomReachable.Length != cellCount)
             enclosedRoomReachable = new bool[cellCount];
 
@@ -351,9 +359,7 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
         System.Array.Clear(criticalReachable, 0, criticalReachable.Length);
     }
 
-    private void AddBuildingEdges(
-        PlacedBuilding building,
-        HashSet<GridEdge> destination)
+    private void AddBuildingEdges(PlacedBuilding building)
     {
         int length = Mathf.Max(1, building.EdgeLength);
 
@@ -365,7 +371,7 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
             else
                 cell.y += i;
 
-            destination.Add(new GridEdge(cell, building.EdgeDirection));
+            AddBlockingEdge(new GridEdge(cell, building.EdgeDirection));
         }
     }
 
@@ -411,7 +417,7 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
 
             for (int x = minX; x < maxX; x++)
             {
-                blockingEdges.Add(new GridEdge(
+                AddBlockingEdge(new GridEdge(
                     new Vector2Int(x, scanner.Origin.y),
                     EdgeDirection.Horizontal));
             }
@@ -424,7 +430,7 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
 
             for (int z = minZ; z < maxZ; z++)
             {
-                blockingEdges.Add(new GridEdge(
+                AddBlockingEdge(new GridEdge(
                     new Vector2Int(scanner.Origin.x, z),
                     EdgeDirection.Vertical));
             }
@@ -495,9 +501,34 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
                building.Definition.category == BuildCategory.Fence;
     }
 
-    private void FloodFromGridPerimeter(
-        bool[] reached,
-        HashSet<GridEdge> barriers)
+    private void AddBlockingEdge(GridEdge edge)
+    {
+        int x = edge.cell.x;
+        int z = edge.cell.y;
+
+        if (edge.direction == EdgeDirection.Horizontal)
+        {
+            if (x >= 0 && x < gridWidth && z >= 0 && z <= gridHeight)
+                horizontalBlockingEdges[z * gridWidth + x] = true;
+        }
+        else
+        {
+            if (x >= 0 && x <= gridWidth && z >= 0 && z < gridHeight)
+                verticalBlockingEdges[z * (gridWidth + 1) + x] = true;
+        }
+    }
+
+    private bool IsHorizontalBlocked(int x, int edgeZ)
+    {
+        return horizontalBlockingEdges[edgeZ * gridWidth + x];
+    }
+
+    private bool IsVerticalBlocked(int edgeX, int z)
+    {
+        return verticalBlockingEdges[z * (gridWidth + 1) + edgeX];
+    }
+
+    private void FloodFromGridPerimeter(bool[] reached)
     {
         int tail = 0;
 
@@ -515,13 +546,12 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
                 EnqueueIfNew(ToIndex(gridWidth - 1, z), reached, ref tail);
         }
 
-        FloodQueueFromExisting(tail, reached, barriers, null);
+        FloodQueueFromExisting(tail, reached, null);
     }
 
     private void FloodFromSeed(
         int seed,
         bool[] reached,
-        HashSet<GridEdge> barriers,
         bool[] forbidden)
     {
         if (reached[seed] || (forbidden != null && forbidden[seed]))
@@ -529,7 +559,7 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
 
         reached[seed] = true;
         floodQueue[0] = seed;
-        FloodQueueFromExisting(1, reached, barriers, forbidden);
+        FloodQueueFromExisting(1, reached, forbidden);
     }
 
     private void EnqueueIfNew(int index, bool[] reached, ref int tail)
@@ -544,7 +574,6 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
     private void FloodQueueFromExisting(
         int tail,
         bool[] reached,
-        HashSet<GridEdge> barriers,
         bool[] forbidden)
     {
         int head = 0;
@@ -556,35 +585,27 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
             int x = index % gridWidth;
             int z = index / gridWidth;
 
-            TryVisit(x + 1, z, new GridEdge(
-                new Vector2Int(x + 1, z), EdgeDirection.Vertical),
-                reached, barriers, forbidden, ref tail);
-
-            TryVisit(x - 1, z, new GridEdge(
-                new Vector2Int(x, z), EdgeDirection.Vertical),
-                reached, barriers, forbidden, ref tail);
-
-            TryVisit(x, z + 1, new GridEdge(
-                new Vector2Int(x, z + 1), EdgeDirection.Horizontal),
-                reached, barriers, forbidden, ref tail);
-
-            TryVisit(x, z - 1, new GridEdge(
-                new Vector2Int(x, z), EdgeDirection.Horizontal),
-                reached, barriers, forbidden, ref tail);
+            TryVisit(x + 1, z, IsVerticalBlocked(x + 1, z),
+                reached, forbidden, ref tail);
+            TryVisit(x - 1, z, IsVerticalBlocked(x, z),
+                reached, forbidden, ref tail);
+            TryVisit(x, z + 1, IsHorizontalBlocked(x, z + 1),
+                reached, forbidden, ref tail);
+            TryVisit(x, z - 1, IsHorizontalBlocked(x, z),
+                reached, forbidden, ref tail);
         }
     }
 
     private void TryVisit(
         int x,
         int z,
-        GridEdge crossingEdge,
+        bool crossingBlocked,
         bool[] reached,
-        HashSet<GridEdge> barriers,
         bool[] forbidden,
         ref int tail)
     {
         if (x < 0 || x >= gridWidth || z < 0 || z >= gridHeight ||
-            barriers.Contains(crossingEdge))
+            crossingBlocked)
         {
             return;
         }
