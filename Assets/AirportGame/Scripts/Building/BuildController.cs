@@ -378,7 +378,10 @@ public class BuildController : MonoBehaviour
             return;
         }
 
-        currentHandler.UpdatePlacement(hit.point);
+        if (currentHandler is SingleEdgePlacementHandler singleEdgeHandler)
+            singleEdgeHandler.UpdatePlacement(ray, hit.point);
+        else
+            currentHandler.UpdatePlacement(hit.point);
     }
 
     private Vector2 GetMousePosition()
