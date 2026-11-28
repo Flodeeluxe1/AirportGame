@@ -52,6 +52,21 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
     private int gridHeight;
     private int floodVisitedCells;
     private bool rebuildRequested;
+    private bool edgeDataDirty = true;
+    private int cachedGridWidth;
+    private int cachedGridHeight;
+
+    private struct ScannerTransformSnapshot
+    {
+        public PlacedBuilding Building;
+        public Transform Transform;
+        public Vector3 Position;
+        public Vector3 Right;
+        public Vector2Int Origin;
+    }
+
+    private readonly List<ScannerTransformSnapshot> scannerSnapshots =
+        new List<ScannerTransformSnapshot>();
 
     private void OnEnable()
     {
@@ -76,6 +91,12 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
 
     private void LateUpdate()
     {
+        if (HasScannerTransformChanged())
+        {
+            edgeDataDirty = true;
+            RequestRebuild();
+        }
+
         if (!rebuildRequested)
             return;
 
@@ -144,11 +165,13 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
 
     private void OnBuildingChanged(PlacedBuilding building)
     {
+        edgeDataDirty = true;
         RequestRebuild();
     }
 
     private void OnOccupancyChanged()
     {
+        edgeDataDirty = true;
         RequestRebuild();
     }
 
@@ -205,39 +228,20 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
         int cellCount = gridWidth * gridHeight;
 
         EnsureBuffers(cellCount);
-
-        long edgeCollectionStartTicks = Stopwatch.GetTimestamp();
-        long scannerBoundaryTicks = 0;
-        IReadOnlyList<PlacedBuilding> buildings = PlacedBuilding.ActiveBuildings;
-        for (int i = 0; i < buildings.Count; i++)
+        if (cachedGridWidth != gridWidth || cachedGridHeight != gridHeight)
         {
-            PlacedBuilding building = buildings[i];
-            if (building == null || building.Definition == null)
-                continue;
-
-            BuildCategory category = building.Definition.category;
-
-            if (building.IsEdgeBuilding)
-            {
-                if (category == BuildCategory.Fence ||
-                    category == BuildCategory.Wall ||
-                    category == BuildCategory.Door)
-                {
-                    AddBuildingEdges(building);
-                }
-            }
-
-            if (building.Definition.passengerJourneyStationRole ==
-                PassengerJourneyStationRole.BodySecurity)
-            {
-                long scannerStartTicks = Stopwatch.GetTimestamp();
-                AddScannerBoundary(building);
-                scannerBoundaryTicks += Stopwatch.GetTimestamp() - scannerStartTicks;
-            }
+            edgeDataDirty = true;
+            cachedGridWidth = gridWidth;
+            cachedGridHeight = gridHeight;
         }
-        double edgeCollectionMs = TicksToMilliseconds(
-            Stopwatch.GetTimestamp() - edgeCollectionStartTicks - scannerBoundaryTicks);
-        double scannerBoundaryMs = TicksToMilliseconds(scannerBoundaryTicks);
+
+        double edgeCollectionMs = 0.0;
+        double scannerBoundaryMs = 0.0;
+        if (edgeDataDirty)
+        {
+            BuildEdgeData(out edgeCollectionMs, out scannerBoundaryMs);
+            edgeDataDirty = false;
+        }
 
         // First identify cells connected to the outside of the map.
         // Physical walls/fences and scanner dividers both block this flood:
@@ -333,9 +337,6 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
         if (verticalBlockingEdges == null || verticalBlockingEdges.Length != verticalEdgeCount)
             verticalBlockingEdges = new bool[verticalEdgeCount];
 
-        System.Array.Clear(horizontalBlockingEdges, 0, horizontalBlockingEdges.Length);
-        System.Array.Clear(verticalBlockingEdges, 0, verticalBlockingEdges.Length);
-
         if (enclosedRoomReachable == null || enclosedRoomReachable.Length != cellCount)
             enclosedRoomReachable = new bool[cellCount];
 
@@ -345,6 +346,89 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
         if (floodQueue == null || floodQueue.Length != cellCount)
             floodQueue = new int[cellCount];
 
+    }
+
+    private void BuildEdgeData(out double edgeCollectionMs, out double scannerBoundaryMs)
+    {
+        long edgeCollectionStartTicks = Stopwatch.GetTimestamp();
+        long scannerBoundaryTicks = 0;
+
+        System.Array.Clear(horizontalBlockingEdges, 0, horizontalBlockingEdges.Length);
+        System.Array.Clear(verticalBlockingEdges, 0, verticalBlockingEdges.Length);
+        scannerSnapshots.Clear();
+
+        IReadOnlyList<PlacedBuilding> buildings = PlacedBuilding.ActiveBuildings;
+        for (int i = 0; i < buildings.Count; i++)
+        {
+            PlacedBuilding building = buildings[i];
+            if (building == null || building.Definition == null)
+                continue;
+
+            BuildCategory category = building.Definition.category;
+            if (building.IsEdgeBuilding &&
+                (category == BuildCategory.Fence ||
+                 category == BuildCategory.Wall ||
+                 category == BuildCategory.Door))
+            {
+                AddBuildingEdges(building);
+            }
+
+            if (building.Definition.passengerJourneyStationRole ==
+                PassengerJourneyStationRole.BodySecurity)
+            {
+                Transform scannerTransform = building.transform;
+                scannerSnapshots.Add(new ScannerTransformSnapshot
+                {
+                    Building = building,
+                    Transform = scannerTransform,
+                    Position = scannerTransform.position,
+                    Right = scannerTransform.right,
+                    Origin = building.Origin
+                });
+
+                long scannerStartTicks = Stopwatch.GetTimestamp();
+                AddScannerBoundary(building);
+                scannerBoundaryTicks += Stopwatch.GetTimestamp() - scannerStartTicks;
+            }
+        }
+
+        edgeCollectionMs = TicksToMilliseconds(
+            Stopwatch.GetTimestamp() - edgeCollectionStartTicks - scannerBoundaryTicks);
+        scannerBoundaryMs = TicksToMilliseconds(scannerBoundaryTicks);
+    }
+
+    private bool HasScannerTransformChanged()
+    {
+        int snapshotIndex = 0;
+        IReadOnlyList<PlacedBuilding> buildings = PlacedBuilding.ActiveBuildings;
+
+        for (int i = 0; i < buildings.Count; i++)
+        {
+            PlacedBuilding building = buildings[i];
+            if (building == null || building.Definition == null ||
+                building.Definition.passengerJourneyStationRole !=
+                    PassengerJourneyStationRole.BodySecurity)
+            {
+                continue;
+            }
+
+            if (snapshotIndex >= scannerSnapshots.Count)
+                return true;
+
+            ScannerTransformSnapshot snapshot = scannerSnapshots[snapshotIndex++];
+            Transform scannerTransform = building.transform;
+
+            if (snapshot.Building != building ||
+                snapshot.Transform != scannerTransform ||
+                snapshot.Origin != building.Origin ||
+                snapshot.Position != scannerTransform.position ||
+                snapshot.Right != scannerTransform.right)
+            {
+                return true;
+            }
+        }
+
+        return snapshotIndex != scannerSnapshots.Count;
     }
 
     private void AddBuildingEdges(PlacedBuilding building)
