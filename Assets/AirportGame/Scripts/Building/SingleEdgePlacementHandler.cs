@@ -90,21 +90,10 @@ public sealed class SingleEdgePlacementHandler : IPlacementHandler
         float gridX = localHit.x / cellSize;
         float gridZ = localHit.z / cellSize;
 
-        int cellX = Mathf.FloorToInt(gridX);
-        int cellZ = Mathf.FloorToInt(gridZ);
-
-        float localX = gridX - cellX;
-        float localZ = gridZ - cellZ;
-
-        float distanceToVertical = Mathf.Min(localX, 1f - localX);
-        float distanceToHorizontal = Mathf.Min(localZ, 1f - localZ);
-
-        EdgeDirection nearestDirection = distanceToVertical < distanceToHorizontal
-            ? EdgeDirection.Vertical
-            : EdgeDirection.Horizontal;
-
+        // Keep a stable default orientation until the player rotates.
+        // Fence alignment temporarily overrides this while a fence is hit.
         EdgeDirection direction = fenceDirection ??
-            (hasManualDirection ? manualDirection : nearestDirection);
+            (hasManualDirection ? manualDirection : EdgeDirection.Horizontal);
 
         currentEdge = GetCenteredStartEdge(gridX, gridZ, direction);
 
