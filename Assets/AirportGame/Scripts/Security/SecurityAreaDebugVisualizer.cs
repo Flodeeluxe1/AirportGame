@@ -61,20 +61,31 @@ public sealed class SecurityAreaDebugVisualizer : MonoBehaviour
 
     private void DrawDiagnostics()
     {
-        if (classifier.IncompleteScannerBoundaryCount == 0 &&
-            !classifier.HasSecurityBoundaryLeak)
-        {
+        if (!classifier.HasSecurityBoundaryLeak)
             return;
-        }
 
-        Vector3 labelPosition = gridManager.transform.position +
-            new Vector3(0f, verticalOffset + 0.2f, 0f);
-
-        // Keep diagnostics visible without requiring an editor-only Handles
-        // dependency; the missing boundaries are also reflected by the
-        // orange partial lines from SecurityBoundaryVisualizer.
         Gizmos.color = new Color(1f, 0.55f, 0.1f, 1f);
-        Gizmos.DrawWireSphere(labelPosition, gridManager.CellSize * 0.18f);
+        float size = gridManager.CellSize * 0.96f;
+        Vector3 markerSize = new Vector3(size, 0.08f, size);
+
+        for (int z = 0; z < gridManager.Height; z++)
+        {
+            for (int x = 0; x < gridManager.Width; x++)
+            {
+                if (x != 0 && x != gridManager.Width - 1 &&
+                    z != 0 && z != gridManager.Height - 1)
+                {
+                    continue;
+                }
+
+                if (classifier.GetArea(new Vector2Int(x, z)) != SecurityArea.Secure)
+                    continue;
+
+                Vector3 center = gridManager.GridToWorldCenter(new Vector2Int(x, z));
+                center.y += verticalOffset + 0.06f;
+                Gizmos.DrawWireCube(center, markerSize);
+            }
+        }
     }
 
     private static Color GetAreaColor(SecurityArea area)
