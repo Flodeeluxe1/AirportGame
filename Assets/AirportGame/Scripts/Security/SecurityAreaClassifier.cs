@@ -22,6 +22,10 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
     [SerializeField] private GridManager gridManager;
     [SerializeField] private EdgeOccupancy edgeOccupancy;
 
+    [Header("Scanner Boundary Warnings")]
+    [Min(1), SerializeField, Tooltip("Maximum allowed distance from a body scanner to either wall endpoint, measured in grid cells.")]
+    private int maxScannerToWallDistance = 8;
+
     private SecurityArea[] areas;
     private bool[] enclosedRoomReachable;
     private bool[] secureReachable;
@@ -285,11 +289,25 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
 
         Vector2Int negativeStep = -positiveStep;
 
-        if (!TryFindWall(scanner.Origin, positiveStep, out GridEdge positiveWall) ||
-            !TryFindWall(scanner.Origin, negativeStep, out GridEdge negativeWall))
+        bool foundPositiveWall = TryFindWall(
+            scanner.Origin, positiveStep, out GridEdge positiveWall, out int positiveDistance);
+        bool foundNegativeWall = TryFindWall(
+            scanner.Origin, negativeStep, out GridEdge negativeWall, out int negativeDistance);
+
+        if (!foundPositiveWall || !foundNegativeWall)
         {
             incompleteScannerBoundaryCount++;
             return;
+        }
+
+        if (positiveDistance > maxScannerToWallDistance ||
+            negativeDistance > maxScannerToWallDistance)
+        {
+            Debug.LogWarning(
+                $"Body scanner '{scanner.name}' is too far from its wall endpoint(s). " +
+                $"Distances: {positiveDistance} and {negativeDistance} grid cells; " +
+                $"configured maximum: {maxScannerToWallDistance}.",
+                scanner);
         }
 
         if (alongGridX)
@@ -333,7 +351,8 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
     private bool TryFindWall(
         Vector2Int startCell,
         Vector2Int step,
-        out GridEdge wallEdge)
+        out GridEdge wallEdge,
+        out int distanceInCells)
     {
         Vector2Int currentCell = startCell;
         int maximumSteps = gridWidth + gridHeight;
@@ -345,6 +364,7 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
             if (IsWallOrDoor(candidate))
             {
                 wallEdge = candidate;
+                distanceInCells = i + 1;
                 return true;
             }
 
@@ -356,6 +376,7 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
         }
 
         wallEdge = default;
+        distanceInCells = 0;
         return false;
     }
 
