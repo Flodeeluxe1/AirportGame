@@ -31,8 +31,13 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
     private readonly HashSet<GridEdge> blockingEdges = new HashSet<GridEdge>();
     private readonly List<int> secureSeeds = new List<int>();
 
-    public int IncompleteScannerBoundaryCount { get; private set; }
-    public bool HasSecurityBoundaryLeak { get; private set; }
+    [SerializeField, Tooltip("Number of body scanners missing a wall endpoint.")]
+    private int incompleteScannerBoundaryCount;
+    [SerializeField, Tooltip("True when a secure flood reaches the outer grid boundary.")]
+    private bool hasSecurityBoundaryLeak;
+
+    public int IncompleteScannerBoundaryCount => incompleteScannerBoundaryCount;
+    public bool HasSecurityBoundaryLeak => hasSecurityBoundaryLeak;
     public bool IsReady { get; private set; }
 
     private int gridWidth;
@@ -132,8 +137,8 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
         ResolveReferences();
 
         IsReady = false;
-        IncompleteScannerBoundaryCount = 0;
-        HasSecurityBoundaryLeak = false;
+        incompleteScannerBoundaryCount = 0;
+        hasSecurityBoundaryLeak = false;
         fenceEdges.Clear();
         blockingEdges.Clear();
         secureSeeds.Clear();
@@ -206,9 +211,9 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
         // If a secure flood reaches the outer grid row/column, there is an
         // open route to the map boundary (often a missing scanner endpoint
         // or an incomplete wall connection).
-        for (int x = 0; x < gridWidth && !HasSecurityBoundaryLeak; x++)
+        for (int x = 0; x < gridWidth && !hasSecurityBoundaryLeak; x++)
         {
-            HasSecurityBoundaryLeak =
+            hasSecurityBoundaryLeak =
                 IsSecure(x, 0) || IsSecure(x, gridHeight - 1);
         }
 
