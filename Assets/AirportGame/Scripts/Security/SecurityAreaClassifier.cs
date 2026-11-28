@@ -68,9 +68,15 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
     private readonly List<ScannerTransformSnapshot> scannerSnapshots =
         new List<ScannerTransformSnapshot>();
 
+    // Runway seed cells are stable between runway surface edits. Cache their
+    // flattened indices so ordinary classification rebuilds avoid a full-grid scan.
+    private readonly List<int> runwaySeedIndices = new List<int>();
+    private bool runwaySeedCacheDirty = true;
+
     private void OnEnable()
     {
         edgeDataDirty = true;
+        runwaySeedCacheDirty = true;
         ResolveReferences();
         Subscribe();
         RequestRebuild();
@@ -149,6 +155,8 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
         {
             gridSurface.FoundationSurfaceChanged -= OnFoundationSurfaceChanged;
             gridSurface.FoundationSurfaceChanged += OnFoundationSurfaceChanged;
+            gridSurface.RunwaySurfaceChanged -= OnRunwaySurfaceChanged;
+            gridSurface.RunwaySurfaceChanged += OnRunwaySurfaceChanged;
         }
     }
 
@@ -161,6 +169,7 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
 
         if (gridSurface != null)
             gridSurface.FoundationSurfaceChanged -= OnFoundationSurfaceChanged;
+            gridSurface.RunwaySurfaceChanged -= OnRunwaySurfaceChanged;
 
     }
 
@@ -178,6 +187,12 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
 
     private void OnFoundationSurfaceChanged()
     {
+        RequestRebuild();
+    }
+
+    private void OnRunwaySurfaceChanged()
+    {
+        runwaySeedCacheDirty = true;
         RequestRebuild();
     }
 
@@ -232,6 +247,7 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
         if (cachedGridWidth != gridWidth || cachedGridHeight != gridHeight)
         {
             edgeDataDirty = true;
+            runwaySeedCacheDirty = true;
             cachedGridWidth = gridWidth;
             cachedGridHeight = gridHeight;
         }
@@ -638,16 +654,23 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
         int tail = 0;
         long seedScanStartTicks = Stopwatch.GetTimestamp();
 
-        for (int z = 0; z < gridHeight; z++)
+        if (runwaySeedCacheDirty)
         {
-            for (int x = 0; x < gridWidth; x++)
+            runwaySeedIndices.Clear();
+            for (int z = 0; z < gridHeight; z++)
             {
-                if (gridSurface.GetSurface(new Vector2Int(x, z)) != BuildSurface.Runway)
-                    continue;
-
-                EnqueueIfNew(ToIndex(x, z), reached, ref tail);
+                for (int x = 0; x < gridWidth; x++)
+                {
+                    if (gridSurface.GetSurface(new Vector2Int(x, z)) == BuildSurface.Runway)
+                        runwaySeedIndices.Add(ToIndex(x, z));
+                }
             }
+
+            runwaySeedCacheDirty = false;
         }
+
+        for (int i = 0; i < runwaySeedIndices.Count; i++)
+            EnqueueIfNew(runwaySeedIndices[i], reached, ref tail);
 
         seedScanMs = TicksToMilliseconds(
             Stopwatch.GetTimestamp() - seedScanStartTicks);
