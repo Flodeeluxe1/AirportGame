@@ -70,6 +70,7 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
 
     private void OnEnable()
     {
+        edgeDataDirty = true;
         ResolveReferences();
         Subscribe();
         RequestRebuild();
