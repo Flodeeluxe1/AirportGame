@@ -168,9 +168,10 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
             edgeOccupancy.OccupancyChanged -= OnOccupancyChanged;
 
         if (gridSurface != null)
+        {
             gridSurface.FoundationSurfaceChanged -= OnFoundationSurfaceChanged;
             gridSurface.RunwaySurfaceChanged -= OnRunwaySurfaceChanged;
-
+        }
     }
 
     private void OnBuildingChanged(PlacedBuilding building)
