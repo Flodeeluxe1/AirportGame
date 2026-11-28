@@ -495,7 +495,7 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
 
     private bool IsSecure(int x, int z)
     {
-        return areas[ToIndex(x, z)] == SecurityArea.Secure;
+        return secureReachable[ToIndex(x, z)];
     }
 
     private int ToIndex(Vector2Int cell)
