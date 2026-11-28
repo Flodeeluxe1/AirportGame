@@ -822,8 +822,8 @@ public class GridSurface : MonoBehaviour
         }
 
         BuildSurface currentSurface = surfaces[position.x, position.y];
-        if (previousSurface == BuildSurface.Runway &&
-            currentSurface != BuildSurface.Runway)
+        if ((previousSurface == BuildSurface.Runway) !=
+            (currentSurface == BuildSurface.Runway))
         {
             RunwaySurfaceChanged?.Invoke();
         }
