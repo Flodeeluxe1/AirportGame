@@ -38,6 +38,7 @@ public class BuildController : MonoBehaviour
 
     private CellPlacementHandler cellHandler;
     private EdgePlacementHandler edgeHandler;
+    private SingleEdgePlacementHandler singleEdgeHandler;
     private AreaPlacementHandler areaHandler;
     private DoorPlacementHandler doorHandler;
     private WallMountedPlacementHandler wallMountedHandler;
@@ -66,6 +67,7 @@ public class BuildController : MonoBehaviour
 
         cellHandler = new CellPlacementHandler();
         edgeHandler = new EdgePlacementHandler();
+        singleEdgeHandler = new SingleEdgePlacementHandler();
         areaHandler = new AreaPlacementHandler();
         doorHandler = new DoorPlacementHandler();
         wallMountedHandler = new WallMountedPlacementHandler();
@@ -79,6 +81,10 @@ public class BuildController : MonoBehaviour
         );
 
         edgeHandler.Initialize(
+            this, gridManager, gridOccupancy, edgeOccupancy
+        );
+
+        singleEdgeHandler.Initialize(
             this, gridManager, gridOccupancy, edgeOccupancy
         );
 
@@ -195,6 +201,14 @@ public class BuildController : MonoBehaviour
             else if (currentDefinition.requiresExistingWall)
             {
                 HandleDoorInput(mouse);
+            }
+            else if (currentDefinition.isSingleEdgePlacement)
+            {
+                if (mouse.leftButton.wasPressedThisFrame &&
+                    !IsPointerOverBuildUI())
+                {
+                    singleEdgeHandler.TryPlace();
+                }
             }
             else
             {
@@ -330,6 +344,9 @@ public class BuildController : MonoBehaviour
 
             if (definition.requiresExistingWall)
                 return doorHandler;
+
+            if (definition.isSingleEdgePlacement)
+                return singleEdgeHandler;
 
             return edgeHandler;
         }
