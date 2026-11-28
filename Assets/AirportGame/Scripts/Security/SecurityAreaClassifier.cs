@@ -217,9 +217,9 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
                 IsSecure(x, 0) || IsSecure(x, gridHeight - 1);
         }
 
-        for (int z = 0; z < gridHeight && !HasSecurityBoundaryLeak; z++)
+        for (int z = 0; z < gridHeight && !hasSecurityBoundaryLeak; z++)
         {
-            HasSecurityBoundaryLeak =
+            hasSecurityBoundaryLeak =
                 IsSecure(0, z) || IsSecure(gridWidth - 1, z);
         }
 
