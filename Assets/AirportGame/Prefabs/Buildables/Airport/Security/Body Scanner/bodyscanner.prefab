@@ -214,6 +214,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 3335962461630677237, guid: 25a73468af9274a428448187a74bc2ca, type: 3}
       insertIndex: -1
       addedObject: {fileID: -825467249785307257}
+    - targetCorrespondingSourceObject: {fileID: 3335962461630677237, guid: 25a73468af9274a428448187a74bc2ca, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7654321}
   m_SourcePrefab: {fileID: 100100000, guid: 25a73468af9274a428448187a74bc2ca, type: 3}
 --- !u!4 &1595362997725142979 stripped
 Transform:
@@ -257,3 +260,17 @@ MonoBehaviour:
   maximumWaitingAgents: 20
   queueSpacing: 0.5
   firstQueuePosition: {fileID: 0}
+--- !u!114 &7654321
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2118959692243125625}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9b7d4a2c6e8f41b0a3d5c7e9f102468a, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::SecurityBoundaryVisualizer
+  showBoundaryGizmo: 1
+  lineHeight: 0.05
