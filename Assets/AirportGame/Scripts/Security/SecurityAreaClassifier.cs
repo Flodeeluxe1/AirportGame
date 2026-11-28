@@ -215,9 +215,10 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
         }
 
         // First identify cells connected to the outside of the map.
-        // A closed combination of walls and fences prevents this flood
-        // from entering the enclosed airport area.
-        FloodFromGridPerimeter(enclosedRoomReachable, perimeterEdges);
+        // Physical walls/fences and scanner dividers both block this flood:
+        // a complete scanner line separates the public side from the
+        // runway-side region even when both sides are inside the map bounds.
+        FloodFromGridPerimeter(enclosedRoomReachable, blockingEdges);
 
         // The runway is the authoritative seed for the airport-side region.
         // Flood it regardless of outside connectivity; outside reachability
