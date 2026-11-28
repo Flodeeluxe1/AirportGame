@@ -15,6 +15,7 @@ public sealed class SingleEdgePlacementHandler : IPlacementHandler
     private BuildableDefinition definition;
     private GameObject previewObject;
     private PlacementPreview placementPreview;
+    private Renderer[] previewRenderers;
 
     private GridEdge currentEdge;
     private readonly List<GridEdge> previewEdges = new List<GridEdge>();
@@ -41,6 +42,9 @@ public sealed class SingleEdgePlacementHandler : IPlacementHandler
         this.definition = definition;
         this.previewObject = previewObject;
         this.placementPreview = placementPreview;
+        previewRenderers = previewObject != null
+            ? previewObject.GetComponentsInChildren<Renderer>(true)
+            : null;
 
         currentEdge = new GridEdge(Vector2Int.zero, EdgeDirection.Horizontal);
         previewEdges.Clear();
@@ -86,7 +90,7 @@ public sealed class SingleEdgePlacementHandler : IPlacementHandler
         currentEdge = GetCenteredStartEdge(gridX, gridZ, direction);
 
         BuildPreviewEdges();
-        ApplyEdgeTransform(previewObject, currentEdge);
+        ApplyEdgeTransform(previewObject, currentEdge, previewRenderers);
 
         placementPreview.SetValid(AreAllEdgesValid());
     }
@@ -190,7 +194,10 @@ public sealed class SingleEdgePlacementHandler : IPlacementHandler
                definition.AllowsSurface(gridSurface.GetSurface(secondCell));
     }
 
-    private void ApplyEdgeTransform(GameObject target, GridEdge firstEdge)
+    private void ApplyEdgeTransform(
+        GameObject target,
+        GridEdge firstEdge,
+        Renderer[] renderers)
     {
         if (target == null)
             return;
@@ -221,8 +228,7 @@ public sealed class SingleEdgePlacementHandler : IPlacementHandler
 
         target.transform.position = position;
 
-        Renderer[] renderers = target.GetComponentsInChildren<Renderer>(true);
-        if (renderers.Length == 0)
+        if (renderers == null || renderers.Length == 0)
             return;
 
         float bottomY = renderers[0].bounds.min.y;
@@ -259,7 +265,9 @@ public sealed class SingleEdgePlacementHandler : IPlacementHandler
         }
 
         GameObject placedObject = Object.Instantiate(definition.prefab);
-        ApplyEdgeTransform(placedObject, currentEdge);
+        Renderer[] placedRenderers =
+            placedObject.GetComponentsInChildren<Renderer>(true);
+        ApplyEdgeTransform(placedObject, currentEdge, placedRenderers);
 
         PlacedBuilding placedBuilding =
             placedObject.AddComponent<PlacedBuilding>();
@@ -287,6 +295,7 @@ public sealed class SingleEdgePlacementHandler : IPlacementHandler
         definition = null;
         previewObject = null;
         placementPreview = null;
+        previewRenderers = null;
         currentEdge = new GridEdge(Vector2Int.zero, EdgeDirection.Horizontal);
         previewEdges.Clear();
     }
