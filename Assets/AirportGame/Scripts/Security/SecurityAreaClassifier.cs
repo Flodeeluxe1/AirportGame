@@ -657,44 +657,65 @@ public sealed class SecurityAreaClassifier : MonoBehaviour
         bool[] reached)
     {
         int head = 0;
+        int width = gridWidth;
+        int height = gridHeight;
+        int verticalStride = width + 1;
 
         while (head < tail)
         {
             int index = floodQueue[head++];
             floodVisitedCells++;
-            int x = index % gridWidth;
-            int z = index / gridWidth;
 
-            TryVisit(x + 1, z, IsVerticalBlocked(x + 1, z),
-                reached, ref tail);
-            TryVisit(x - 1, z, IsVerticalBlocked(x, z),
-                reached, ref tail);
-            TryVisit(x, z + 1, IsHorizontalBlocked(x, z + 1),
-                reached, ref tail);
-            TryVisit(x, z - 1, IsHorizontalBlocked(x, z),
-                reached, ref tail);
+            int x = index % width;
+            int z = index / width;
+
+            // Inline the four neighbor checks. This avoids four helper calls,
+            // repeated coordinate validation and repeated index calculations
+            // for every visited cell.
+            if (x + 1 < width &&
+                !verticalBlockingEdges[z * verticalStride + x + 1])
+            {
+                int neighbor = index + 1;
+                if (!reached[neighbor])
+                {
+                    reached[neighbor] = true;
+                    floodQueue[tail++] = neighbor;
+                }
+            }
+
+            if (x > 0 &&
+                !verticalBlockingEdges[z * verticalStride + x])
+            {
+                int neighbor = index - 1;
+                if (!reached[neighbor])
+                {
+                    reached[neighbor] = true;
+                    floodQueue[tail++] = neighbor;
+                }
+            }
+
+            if (z + 1 < height &&
+                !horizontalBlockingEdges[(z + 1) * width + x])
+            {
+                int neighbor = index + width;
+                if (!reached[neighbor])
+                {
+                    reached[neighbor] = true;
+                    floodQueue[tail++] = neighbor;
+                }
+            }
+
+            if (z > 0 &&
+                !horizontalBlockingEdges[z * width + x])
+            {
+                int neighbor = index - width;
+                if (!reached[neighbor])
+                {
+                    reached[neighbor] = true;
+                    floodQueue[tail++] = neighbor;
+                }
+            }
         }
-    }
-
-    private void TryVisit(
-        int x,
-        int z,
-        bool crossingBlocked,
-        bool[] reached,
-        ref int tail)
-    {
-        if (x < 0 || x >= gridWidth || z < 0 || z >= gridHeight ||
-            crossingBlocked)
-        {
-            return;
-        }
-
-        int index = ToIndex(x, z);
-        if (reached[index])
-            return;
-
-        reached[index] = true;
-        floodQueue[tail++] = index;
     }
 
     private bool IsSecure(int x, int z)
